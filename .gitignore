@@ -1,0 +1,14 @@
+C2_to_C2
+C2_to_C3
+C3_to_C2
+C3_to_C3
+bin
+obj
+
+*.txt
+*.exe
+*.o
+*.cbp
+*.depend
+*.layout
+*.nsentry
