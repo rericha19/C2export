@@ -41,7 +41,7 @@ stuffs all files from a chosen folder into a chosen .nsf
 // but there's still a ton of magic numbers everywhere
 #define CHUNKSIZE 65536
 #define BYTE 256
-#define MAX 100
+#define MAX 200
 
 // more dumb things
 #define C2_NEIGHBOURS_END 0x1B4
@@ -58,6 +58,7 @@ stuffs all files from a chosen folder into a chosen .nsf
 #define WIPE 2089682330u
 #define IMPORT 3083219648u
 #define INTRO 223621809
+#define RESIZE 3426052343
 
 int counter[22];    // counts entry types, counter[0] is total entry count
 int print_en = 2;   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
@@ -69,6 +70,13 @@ unsigned int anim[1024][3];  // field one is model, field 3 is animation, field 
 unsigned int animrefcount;   // count of animation references when porting c3 to c2
 
 //functional prototypes, also list of functions excluding main and main1
+void resize_chunk_handler(unsigned char *chunk);
+void resize_entity(unsigned char *item, int itemsize, double scale[3]);
+void resize_zone(int fsize, unsigned char *buffer, double scale[3]);
+void resize_level(FILE *fpath, char *path, double scale[3], char *time);
+void resize_folder(DIR *df, char *path, double scale[3], char *time);
+void resize_scenery(int fsize, unsigned char *buffer, double scale[3]);
+void resize_main(char *time);
 void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 int camfix(unsigned char *cam, int length);
 void entitycoordfix(unsigned char *item, int itemlength);
@@ -82,7 +90,7 @@ void clrscr();
 void askmode(int *zonetype);
 void condprint(char *s);
 void askprint();
-void generic(unsigned char *buffer, int entrysize,char *lvlid, char *date);
+void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);
 void model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
@@ -90,7 +98,6 @@ void countwipe();
 void countprint();
 void animation(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void pathstring(char *finalpath, char *type, int eid, char *lvlid, char *date);
-void idtofname(char *help, char *id);
 void eid_conv(unsigned int m_value, char *eid);
 int normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype);
 int texture_chunk(unsigned char *buffer, char *lvlid, char *date);
@@ -101,6 +108,252 @@ int exprt(int zone, char *fpath, char *date);
 void intro_text();
 void print_help();
 const unsigned long hash(const char *str);
+
+
+void resize_main(char *time)
+{
+    FILE *level = NULL;
+    char path[MAX] = "";
+    double scale[3];
+    int check = 1;
+    DIR *df = NULL;
+
+    scanf("%d %lf %lf %lf",&gamemode,&scale[0],&scale[1],&scale[2]);
+    if (gamemode != 2 && gamemode != 3)
+    {
+        printf("[error] invalid gamemode, defaulting to 2");
+        gamemode = 2;
+    }
+    printf("Input the path to the directory or level whose contents you want to export:\n");
+    scanf(" %[^\n]",path);
+
+    if (path[0]=='\"')
+    {
+        strcpy(path,path+1);
+        *(strchr(path,'\0')-1) = '\0';
+    }
+
+    if ((df = opendir(path)) != NULL)  // opendir returns NULL if couldn't open directory
+        resize_folder(df,path,scale,time);
+    else if ((level = fopen(path,"rb")) != NULL)
+        resize_level(level,path,scale,time);
+    else
+    {
+        printf("Couldn't open\n");
+        check--;
+    }
+
+    fclose(level);
+    closedir(df);
+    if (check) printf("\nEntries' dimensions resized\n\n");
+    return ;
+}
+
+void resize_level(FILE *level, char *filepath, double scale[3], char *time)
+{
+    FILE *filenew;
+    char *help, lcltemp[MAX];
+    char buffer[CHUNKSIZE];
+    int i,chunkcount;
+
+    help = strrchr(filepath,'\\');
+    *help = '\0';
+    help = help + 1;
+    sprintf(lcltemp,"%s\\%s_%s",filepath,time,help);
+
+    filenew = fopen(lcltemp,"wb");
+    fseek(level,0,SEEK_END);
+    chunkcount = ftell(level) / CHUNKSIZE;
+    rewind(level);
+
+    printf("\n\n%d\n",chunkcount);
+
+    for (i = 0; i < chunkcount; i++)
+    {
+        fread(buffer, sizeof(unsigned char), CHUNKSIZE, level);
+        resize_chunk_handler(buffer);
+        fwrite(buffer, sizeof(unsigned char), CHUNKSIZE, filenew);
+    }
+    fclose(filenew);
+}
+
+void resize_chunk_handler(unsigned char *chunk)
+{
+
+}
+
+void resize_folder(DIR *df, char *path, double scale[3], char *time)
+{
+    struct dirent *de;
+    char lcltemp[6] = "", help[MAX] = "";
+    unsigned char *buffer = NULL;
+    FILE *file, *filenew;
+    int filesize;
+
+    sprintf(help,"%s\\%s",path,time);
+    mkdir(help);
+
+    while ((de = readdir(df)) != NULL)
+    {
+        if (de->d_name[0] != '.')
+        {
+            char fpath[200] = "";
+            sprintf(fpath,"%s\\%s",path,de->d_name);
+            strncpy(lcltemp,de->d_name,5);
+            if (buffer != NULL) free(buffer);
+
+            if (!strcmp("scene",lcltemp))
+            {
+                sprintf(temp,"%s\n",de->d_name);
+                condprint(temp);
+                file = fopen(fpath,"rb");
+                fseek(file,0,SEEK_END);
+                filesize = ftell(file);
+                rewind(file);
+                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
+                fread(buffer,sizeof(unsigned char),filesize,file);
+                resize_scenery(filesize,buffer,scale);
+                sprintf(help,"%s\\%s\\%s",path,time,strrchr(fpath,'\\')+1);
+                filenew = fopen(help,"wb");
+                fwrite(buffer,sizeof(unsigned char),filesize,filenew);
+                fclose(file);
+                fclose(filenew);
+            }
+            if (!strcmp("zone ",lcltemp))
+            {
+                sprintf(temp,"%s\n",de->d_name);
+                condprint(temp);
+                file = fopen(fpath,"rb");
+                fseek(file,0,SEEK_END);
+                filesize = ftell(file);
+                rewind(file);
+                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
+                fread(buffer,sizeof(unsigned char),filesize,file);
+                resize_zone(filesize,buffer,scale);
+                sprintf(help,"%s\\%s\\%s",path,time,strrchr(fpath,'\\')+1);
+                filenew = fopen(help,"wb");
+                fwrite(buffer,sizeof(unsigned char),filesize,filenew);
+                fclose(file);
+                fclose(filenew);
+            }
+        }
+    }
+}
+
+void resize_zone(int fsize, unsigned char *buffer, double scale[3])
+{
+    int i, itemcount, coord;
+    itemcount = buffer[0xC];
+    int itemoffs[itemcount];
+
+    for (i = 0; i < itemcount; i++)
+        itemoffs[i] = 256 * buffer[0x11 + i*4] + buffer[0x10 + i*4];
+
+    for (i = 0; i < 6; i++)
+    {
+        coord = from_u32(buffer+itemoffs[1] + i*4);
+        coord = coord * scale[i % 3];
+        for (int j = 0; j < 4; j++)
+        {
+            buffer[itemoffs[1]+ i*4 + j] = coord % 256;
+            coord = coord / 256;
+        }
+    }
+
+    for (i = 2; i < itemcount; i++)
+       resize_entity(buffer + itemoffs[i], itemoffs[i+1] - itemoffs[i], scale);
+}
+
+void resize_entity(unsigned char *item, int itemsize, double scale[3])
+{
+    int i;
+    int off0x4B = 0;
+    short int coord;
+
+    for (i = 0; i < item[0xC]; i++)
+    {
+        if (item[0x10 + i*8] == 0x4B && item[0x11 +i*8] == 0)
+            off0x4B = BYTE * item[0x13 + i*8] + item[0x12+i*8]+0xC;
+    }
+
+    if (off0x4B)
+    {
+        for (i = 0; i < item[off0x4B]*6; i += 2)
+            {
+                if (item[off0x4B + 0x5 + i] < 0x80)
+                {
+                    coord = BYTE * (signed) item[off0x4B + 0x5 + i] + (signed) item[off0x4B + 0x4 + i];
+                    coord = coord * scale[i/2 % 3];
+                    item[off0x4B + 0x5 + i] = coord / 256;
+                    item[off0x4B + 0x4 + i] = coord % 256;
+                }
+                else
+                {
+                    coord = 65536 - BYTE * (signed) item[off0x4B + 0x5 + i] - (signed) item[off0x4B + 0x4 + i];
+                    coord = coord * scale[i/2 % 3];
+                    item[off0x4B + 0x5 + i] = 255 - coord / 256;
+                    item[off0x4B + 0x4 + i] = 256 - coord % 256;
+                    if (item[off0x4B + 0x4 + i] == 0) item[off0x4B + 0x5 + i]++;
+                }
+            }
+
+    }
+}
+
+void resize_scenery(int fsize, unsigned char *buffer, double scale[3])
+{
+    unsigned int i,item1off,origin,j,curr_off,next_off,group,rest,vert;
+
+    item1off = buffer[0x10];
+    for (i = 0; i < 3; i++)
+    {
+        origin = from_u32(buffer + item1off + 4 * i);
+        origin = scale[i] * origin;
+        for (j = 0; j < 4; j++)
+        {
+            buffer[item1off + j + i*4] = origin % 256;
+            origin /= 256;
+        }
+    }
+
+    curr_off = BYTE * buffer[0x15] + buffer[0x14];
+    next_off = BYTE * buffer[0x19] + buffer[0x18];
+
+    for (i = curr_off; i < next_off; i += 2)
+    {
+        group = 256 * buffer[i + 1] + buffer[i];
+        vert = group / 16;
+        rest = group % 16;
+        if (gamemode == 3 && vert >= 2048)
+        {
+            vert = 4096 - vert;
+            if (i < 2*(next_off-curr_off)/3)
+            {
+                if (i % 4 == 0)
+                    vert = vert * scale[0];
+                else
+                    vert = vert * scale[1];
+            }
+            else vert = vert * scale[2];
+            vert = 4096 - vert;
+        }
+        else
+        {
+            if (i < 2*(next_off-curr_off)/3)
+            {
+                if (i % 4 == 0)
+                    vert = vert * scale[0];
+                else
+                    vert = vert * scale[1];
+            }
+            else vert = vert * scale[2];
+        }
+
+        group = 16*vert + rest;
+        buffer[i + 1] = group / 256;
+        buffer[i] = group % 256;
+    }
+}
 
 void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[])
 // saves the current chunk
@@ -347,23 +600,23 @@ int filelister(char *path, FILE *fnew)
 {
     // i have the arrays bigger than usual so i can do some dumb stuff with memcpy to make it easier for myself
     unsigned char nrmal[CHUNKSIZE+1024];
-    unsigned char sound[CHUNKSIZE+1024];
-    unsigned char spech[CHUNKSIZE+1024];
-    unsigned char instr[CHUNKSIZE+1024];
+ //   unsigned char sound[CHUNKSIZE+1024];
+ //   unsigned char spech[CHUNKSIZE+1024];
+//    unsigned char instr[CHUNKSIZE+1024];
     unsigned char textu[CHUNKSIZE+1024];
     FILE *file;
-    char temp1[100], temp2[6], eid[6];
+    char temp1[MAX], temp2[6], eid[6];
     int entrysize, i, curr_chunk, curr_off = 0, eidint, index = 0, offsets[256];
-    unsigned int checksum;
+//    unsigned int checksum;
 
     curr_chunk = 2 * (int) ftell(fnew) / CHUNKSIZE + 1;
 
     for (i = 0; i < CHUNKSIZE + 1024; i++)
     {
         nrmal[i] = 0;
-        sound[i] = 0;
-        spech[i] = 0;
-        instr[i] = 0;
+    //    sound[i] = 0;
+    //    spech[i] = 0;
+   //     instr[i] = 0;
         textu[i] = 0;
     }
 
@@ -447,8 +700,8 @@ int import(char *time)
 {
     FILE *base, *importee;
     char *help, *help2;
-    char path[100] = "";
-    char lcltemp[100] = "", nsfpath[100] = "", nsfcheck[4];
+    char path[MAX] = "";
+    char lcltemp[MAX] = "", nsfpath[MAX] = "", nsfcheck[4];
     unsigned char *basebase;
     int baselength;
 
@@ -603,7 +856,7 @@ void askprint()
     printf("Printing %s.\n\n",dest[3 - print_en]);
 }
 
-void generic(unsigned char *buffer, int entrysize,char *lvlid, char *date)
+void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date)
 // exports entries that need nor receive no change
 {
     FILE *f;
@@ -761,7 +1014,6 @@ void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zone
     int lcl_entrysize = entrysize;
     int i, j;
     int curr_off, lcl_temp, irrelitems, next_off;
-    int shift;
 
     for (int i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
@@ -948,7 +1200,7 @@ void animation(unsigned char *buffer, int entrysize, char *lvlid, char *date)
     char path[MAX] = "";
     char cur_type[10] = "";
     char *cpy;
-    int curr_off;
+//    int curr_off;
     int lcltemp;
 
     for (int i = 0; i < 4; i++)
@@ -977,7 +1229,7 @@ void animation(unsigned char *buffer, int entrysize, char *lvlid, char *date)
             //autism
             for (int j = 0; j < cpy[0xC]; j++)
             {
-                curr_off = BYTE * cpy[0x11 + 4*j] + cpy[0x10 + 4*j];
+                //curr_off = BYTE * cpy[0x11 + 4*j] + cpy[0x10 + 4*j];
             }
         }
         else    // c3 to c2
@@ -1017,20 +1269,6 @@ void pathstring(char *finalpath, char *type, int eid, char *lvlid, char *date)
         sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d", gamemode, port, date, lvlid, type, eidstr, counter[0]);
     else
         sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", gamemode, port, date, lvlid, type, eidstr, counter[0]);
-}
-
-void idtofname(char *help, char *id)
-//changes the ID to filaname
-{
-    help[0] = 'S';
-    help[1] = help[2] = help[3] = help[4] = help[5] = '0';
-    help[6] = id[0];
-    help[7] = id[1];
-    help[8] = '.';
-    help[9] = 'N';
-    help[10]= 'S';
-    help[11]= 'F';
-    help[12]= '\0';
 }
 
 void eid_conv(unsigned int m_value, char *eid)
@@ -1086,7 +1324,7 @@ int normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype)
             break;
 
         case 4: case 12: case 13: case 14: case 15: case 19: case 20: case 21:
-            generic(entry, offset_end - offset_start, lvlid, date);
+            generic_entry(entry, offset_end - offset_start, lvlid, date);
             break;
         default:
             eidnum = 0;
@@ -1155,7 +1393,7 @@ int exprt(int zone, char *fpath, char *date)
     countwipe();
     FILE *file;     //the NSF thats to be exported
     unsigned int numbytes, i; //zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
-    char temp[MAX] = "", nsfcheck[4];
+    char temp[MAX] = ""; //, nsfcheck[4];
     unsigned char chunk[CHUNKSIZE];   //array where the level data is stored
     int port;
     char lcltemp[3][6] = {"","",""};
@@ -1255,7 +1493,7 @@ void intro_text()
     printf("If printing to file is on, its printing into 'log.txt' located in folder of the current export.\n");
     printf("Type \"HELP\" for list of commands and their format. ");
     printf("Commands >ARE NOT< case sensitive.\n");
-    printf("You can drag'n'drop the files and folders to this window instead of copying in the paths\n");
+    printf("You can drag & drop the files and folders to this window instead of copying in the paths\n");
     for (int i = 0; i < 100; i++) printf("*");
     printf("\n\n");
 }
@@ -1280,6 +1518,11 @@ void print_help()
 
     printf("EXPORT\n");
     printf("\t exports level's contents with given settings\n");
+
+    printf("RESIZE<G> <X> <Y> <Z> (float) \n");
+    printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
+    printf("\t parameters are according to games' orientation, Y is vertical and Z depth\n");
+    printf("\t changes dimensions of certain entries according to given parameters\n\n");
 
     printf("EXPORTALL\n");
     printf("\t exports contents of all levels in the with given settings.\n");
@@ -1322,9 +1565,7 @@ int main()
     int zonetype = 8;
     time_t rawtime;
     struct tm * timeinfo;
-    char dpath[100] = "", fpath[100] = "", moretemp[100] = "";
-    char p_command[MAX];
-    char lcltemp[MAX] = "";
+    char dpath[MAX] = "", fpath[MAX] = "", moretemp[MAX] = "";
     char nsfcheck[4] = "";
     struct dirent *de;
 
@@ -1333,15 +1574,18 @@ int main()
 
     while (1)
     {
+        char p_comm_cpy[MAX]= "";
+        char lcltemp[9] = "";
+        char p_command[MAX];
         scanf("%s",p_command);
-        time (&rawtime );
-        timeinfo = localtime ( &rawtime );
+        time(&rawtime);
+        timeinfo = localtime(&rawtime );
         sprintf(lcltemp,"%02d_%02d_%02d",timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
-        for (unsigned int i = 0; i < strlen(temp); i++)
+        for (unsigned int i = 0; i < strlen(lcltemp); i++)
                 if (!isalnum(lcltemp[i])) lcltemp[i] = '_';
         for (unsigned int i = 0; i < strlen(p_command); i++)
-            p_command[i] = toupper(p_command[i]);
-        switch(hash(p_command))
+            p_comm_cpy[i] = toupper(p_command[i]);
+        switch(hash(p_comm_cpy))
         {
         case KILL:
             return 0;
@@ -1404,9 +1648,9 @@ int main()
             clrscr();
             intro_text();
             break;
-       /* case INTRO:
-            intro_text();
-            break;*/
+        case RESIZE:
+            resize_main(lcltemp);
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;
