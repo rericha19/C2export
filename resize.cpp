@@ -67,7 +67,8 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO
 
 void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3])
 {
-    int offset_start,offset_end, i, checksum;
+    int offset_start,offset_end, i;
+    unsigned int checksum;
     unsigned char *entry = NULL;
     if (chunk[2] != 0) return;
 
@@ -273,7 +274,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
                     vert = vert * scale[1];
             }
             else vert = vert * scale[2];
-            vert = 4096 - vert;
+                vert = 4096 - vert;
         }
         else
         {
