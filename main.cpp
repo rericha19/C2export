@@ -34,77 +34,8 @@ stuffs all files from a chosen folder into a chosen .nsf
 
 INFO status;
 
-
-void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[])
-// saves the current chunk
-{
-    char help[1024];
-    int i;
-    unsigned int checksum;
-
-    for (i = 0; i < 1024; i++) help[i] = 0;
-
-    *index = *index - 1;
-    help[0] = 0x34;
-    help[1] = 0x12;
-    help[2] = help[3] = help[6] = help[7] = help[0xA] = help[0xB] = 0;
-    help[4] = *curr_chunk % 256;
-    help[5] = *curr_chunk / 256;
-    help[8] = (*index + 1) % 256;
-    help[9] = (*index + 1) / 256;
-    for (i = 0; i < *index + 2; i++)
-        {
-            help[0x11 + i*4] = (0x10 + offsets[i] + (*index + 2)*4) / 256;
-            help[0x10 + i*4] = (0x10 + offsets[i] + (*index + 2)*4) % 256;
-        }
-    memmove(chunk + 0x10 + (*index + 2)*4, chunk, CHUNKSIZE);
-    memcpy(chunk,help,0x10 + (*index + 2)*4);
-
-    checksum = nsfChecksum(chunk);
-
-    for (i = 0; i < 4; i++)
-    {
-        chunk[0xC + i] = checksum % 256;
-        checksum /= 256;
-    }
-
-    fwrite(chunk,sizeof(unsigned char), CHUNKSIZE, fnew);
-    for (i = 0; i < CHUNKSIZE; i++)
-        chunk[i] = 0;
-    *index = 0;
-    *curr_off = 0;
-    *curr_chunk += 2;
-}
-
 int camfix(unsigned char *cam, int length)
 {
-
-    /*int i, j, shift = 0, curr_off = 0, temp;
-
-    for (i = 0; i < cam[0xC]; i++)
-    {
-        if (cam[0x10 + i*8] == 7 && cam[0x11 +i*8] == 3)
-        {
-            memmove(cam + 0x10 + i*8, cam + 0x18 + i*8, length - 0x18 - i*8);
-            curr_off = BYTE * cam[0x13 + i*8] + cam[0x12+i*8]+0xC-0x8;
-            shift += 8;
-            cam[0xC]--;
-            for (j = 0; j < cam[0xC]; j++)
-            {
-                temp = BYTE * cam[0x13 + j*8] + cam[0x12 + j*8];
-                temp -= 8;
-                cam[0x13 + j*8] = temp / 256;
-                cam[0x12 + j*8] = temp % 256;
-
-            }
-        }
-    }
-
-    if (curr_off)
-    {
-        printf("yes i got here lmao\n");
-    }*/
-
     int i, curr_off;
 
     for (i = 0; i < cam[0xC]; i++)

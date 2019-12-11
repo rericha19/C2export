@@ -67,7 +67,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO
 
 void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3])
 {
-    int offset_start,offset_end, i;
+    int offset_start,offset_end, i, checksum;
     unsigned char *entry = NULL;
     if (chunk[2] != 0) return;
 
@@ -76,11 +76,17 @@ void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3])
         offset_start = BYTE * chunk[0x11 + i * 4] + chunk[0x10 + i * 4];
         offset_end = BYTE * chunk[0x15 + i * 4] + chunk[0x14 + i * 4];
         if (!offset_end) offset_end = CHUNKSIZE;
-        if (entry != NULL) free(entry);
-        entry = (unsigned char *) calloc(offset_end - offset_start, sizeof(char));
-        memcpy(entry, chunk + offset_start, offset_end - offset_start);
+        entry = chunk + offset_start;
         if (entry[8] == 7) resize_zone(offset_end - offset_start, entry, scale, status);
         if (entry[8] == 3) resize_scenery(offset_end - offset_start, entry, scale, status);
+    }
+
+    checksum = nsfChecksum(chunk);
+
+    for (i = 0; i < 4; i++)
+    {
+        chunk[0xC + i] = checksum % 256;
+        checksum /= 256;
     }
 }
 
@@ -167,7 +173,6 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
             }
         }
         else {
-            printf("mah\n");
             coord = coord * scale[i % 3];
             for (int j = 0; j < 4; j++)
             {
@@ -178,7 +183,8 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
     }
 
     for (i = 2; i < itemcount; i++)
-       resize_entity(buffer + itemoffs[i], itemoffs[i+1] - itemoffs[i], scale, status);
+       if (i > buffer[itemoffs[0]+0x188] || (i % 3 == 2))
+           resize_entity(buffer + itemoffs[i], itemoffs[i+1] - itemoffs[i], scale, status);
 }
 
 void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status)
@@ -226,13 +232,25 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
     for (i = 0; i < 3; i++)
     {
         origin = from_u32(buffer + item1off + 4 * i);
-        if (origin >= (1LL<<31)) origin = (1LL<<32) - origin;
-        origin = scale[i] * origin;
-        if (origin >= (1LL<<31)) origin = (1LL<<32) - origin;
-        for (j = 0; j < 4; j++)
+        if (origin >= (1LL<<31))
         {
-            buffer[item1off + j + i*4] = origin % 256;
-            origin /= 256;
+            origin = (1LL<<32) - origin;
+            origin = scale[i] * origin;
+            origin = (1LL<<32) - origin;
+            for (j = 0; j < 4; j++)
+            {
+                buffer[item1off + j + i*4] = origin % 256;
+                origin /= 256;
+            }
+        }
+        else
+        {
+            origin = scale[i] * origin;
+            for (j = 0; j < 4; j++)
+            {
+                buffer[item1off + j + i*4] = origin % 256;
+                origin /= 256;
+            }
         }
     }
 
