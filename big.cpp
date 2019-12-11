@@ -897,7 +897,7 @@ int main()
             break;
             }
         case CHANGEPRINT:
-            askprint(&status.print_en);
+            askprint(&status);
             break;
         case WIPE:
             clrscr();

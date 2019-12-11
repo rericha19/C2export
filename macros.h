@@ -43,7 +43,7 @@ unsigned int animrefcount;   // count of animation references when porting c3 to
 
 //functional prototypes, also list of functions excluding main and main1
 void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status);
-void resize_chunk_handler(unsigned char *chunk, INFO status);
+void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
 void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
 void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
 void resize_level(FILE *fpath, char *path, double scale[3], char *time, INFO status);
@@ -62,7 +62,7 @@ void printstatus(INFO status);
 void clrscr();
 void askmode(int *zonetype, INFO *status);
 void condprint(INFO status);
-void askprint(int *print_en);
+void askprint(INFO *status);
 void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);

@@ -56,20 +56,32 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO
     chunkcount = ftell(level) / CHUNKSIZE;
     rewind(level);
 
-    printf("\n\n%d\n",chunkcount);
-
     for (i = 0; i < chunkcount; i++)
     {
         fread(buffer, sizeof(unsigned char), CHUNKSIZE, level);
-        resize_chunk_handler(buffer,status);
+        resize_chunk_handler(buffer, status, scale);
         fwrite(buffer, sizeof(unsigned char), CHUNKSIZE, filenew);
     }
     fclose(filenew);
 }
 
-void resize_chunk_handler(unsigned char *chunk, INFO status)
+void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3])
 {
+    int offset_start,offset_end, i;
+    unsigned char *entry = NULL;
+    if (chunk[2] != 0) return;
 
+    for (i = 0; i < chunk[8]; i++)
+    {
+        offset_start = BYTE * chunk[0x11 + i * 4] + chunk[0x10 + i * 4];
+        offset_end = BYTE * chunk[0x15 + i * 4] + chunk[0x14 + i * 4];
+        if (!offset_end) offset_end = CHUNKSIZE;
+        if (entry != NULL) free(entry);
+        entry = (unsigned char *) calloc(offset_end - offset_start, sizeof(char));
+        memcpy(entry, chunk + offset_start, offset_end - offset_start);
+        if (entry[8] == 7) resize_zone(offset_end - offset_start, entry, scale, status);
+        if (entry[8] == 3) resize_scenery(offset_end - offset_start, entry, scale, status);
+    }
 }
 
 void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status)
@@ -132,7 +144,8 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status
 
 void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
 {
-    int i, itemcount, coord;
+    int i, itemcount;
+    unsigned int coord;
     itemcount = buffer[0xC];
     int itemoffs[itemcount];
 
@@ -142,11 +155,25 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
     for (i = 0; i < 6; i++)
     {
         coord = from_u32(buffer+itemoffs[1] + i*4);
-        coord = coord * scale[i % 3];
-        for (int j = 0; j < 4; j++)
+        if (coord >= (1LL<<31))
         {
-            buffer[itemoffs[1]+ i*4 + j] = coord % 256;
-            coord = coord / 256;
+            coord = (1LL<<32) - coord;
+            coord = coord * scale[i % 3];
+            coord = (1LL<<32) - coord;
+            for (int j = 0; j < 4; j++)
+            {
+                buffer[itemoffs[1]+ i*4 + j] = coord % 256;
+                coord = coord / 256;
+            }
+        }
+        else {
+            printf("mah\n");
+            coord = coord * scale[i % 3];
+            for (int j = 0; j < 4; j++)
+            {
+                buffer[itemoffs[1]+ i*4 + j] = coord % 256;
+                coord = coord / 256;
+            }
         }
     }
 
@@ -190,16 +217,18 @@ void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO stat
     }
 }
 
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status
-                    )
+void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status)
 {
-    unsigned int i,item1off,origin,j,curr_off,next_off,group,rest,vert;
+    unsigned int i,item1off,j,curr_off,next_off,group,rest,vert;
+    long long int origin;
 
     item1off = buffer[0x10];
     for (i = 0; i < 3; i++)
     {
         origin = from_u32(buffer + item1off + 4 * i);
+        if (origin >= (1LL<<31)) origin = (1LL<<32) - origin;
         origin = scale[i] * origin;
+        if (origin >= (1LL<<31)) origin = (1LL<<32) - origin;
         for (j = 0; j < 4; j++)
         {
             buffer[item1off + j + i*4] = origin % 256;
@@ -215,7 +244,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
         group = 256 * buffer[i + 1] + buffer[i];
         vert = group / 16;
         rest = group % 16;
-        if (status.gamemode == 3 && vert >= 2048)
+        if (status.gamemode == 2 && vert >= 2048)
         {
             vert = 4096 - vert;
             if (i < 2*(next_off-curr_off)/3)

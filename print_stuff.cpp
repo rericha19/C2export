@@ -136,7 +136,7 @@ void countwipe(INFO status)
 }
 
 
-void askprint(int *print_en)
+void askprint(INFO *status)
 // pops up the dialog that lets you pick where to write most of the print statements
 {
     char dest[4][10] = {"to both", "to file", "here", "nowhere"};
@@ -146,23 +146,23 @@ void askprint(int *print_en)
     switch (toupper(pc))
     {
     case 'B':
-        *print_en = 3;
+        status->print_en = 3;
         break;
     case 'F':
-        *print_en = 2;
+        status->print_en = 2;
         break;
     case 'H':
-        *print_en = 1;
+        status->print_en = 1;
         break;
     case 'N':
-        *print_en = 0;
+        status->print_en = 0;
         break;
     default:
-        *print_en = 0;
+        status->print_en = 0;
         printf("[error] invalid input, defaulting to 'N'\n");
         break;
     }
-    printf("Printing %s.\n\n",dest[3 - *print_en]);
+    printf("Printing %s.\n\n",dest[3 - status->print_en]);
 }
 
 
