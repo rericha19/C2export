@@ -59,7 +59,7 @@ void print_help()
     printf("\n\n");
 }
 
-void countprint(int counter[22], int portmode, int gamemode, char *temp, int print_en, FILE *flog)
+void countprint(INFO status)
 // prints the stats
 {
     int i;
@@ -70,39 +70,40 @@ void countprint(int counter[22], int portmode, int gamemode, char *temp, int pri
      "", "", "", "Demo entries:\t", "Speech entries:\t", "T21 entries: \t"};
 
     for (i = 0; i < 22; i++)
-        if (counter[i])
+        if (status.counter[i])
         {
-            if (portmode && (i == 2 || i == 7 || (i == 11 && portmode && (gamemode == 3)))) strcpy(lcltemp2,lcltemp);
-                else strcpy(lcltemp2,"\t");
-            sprintf(temp,"%s %s%3d\t",prefix[i],lcltemp2,counter[i]);
-            condprint(temp, print_en, flog);
-            for (int j = 0; j < (double) counter[i]/6; j++)
+            if (status.portmode && (i == 2 || i == 7 || (i == 11 && status.portmode && (status.gamemode == 3))))
+                strcpy(lcltemp2,lcltemp);
+            else strcpy(lcltemp2,"\t");
+            sprintf(status.temp,"%s %s%3d\t",prefix[i],lcltemp2,status.counter[i]);
+            condprint(status);
+            for (int j = 0; j < (double) status.counter[i]/6; j++)
             {
-                sprintf(temp,"|");
-                condprint(temp, print_en, flog);
+                sprintf(status.temp,"|");
+                condprint(status);
             }
-            sprintf(temp,"\n");
-            condprint(temp, print_en, flog);
+            sprintf(status.temp,"\n");
+            condprint(status);
         }
-    sprintf(temp,"\n");
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"\n");
+    condprint(status);
 }
 
 
-void condprint(char *s, int print_en, FILE *flog)
+void condprint(INFO status)
 // conditional print controlled by print_en (print state) - both(3) file(2) here(1) or nowhere(0)
 {
-    switch (print_en)
+    switch (status.print_en)
     {
     case 3:
-        printf("%s",s);
-        fprintf(flog,"%s",s);
+        printf("%s",status.temp);
+        fprintf(status.flog,"%s",status.temp);
         break;
     case 1:
-        printf("%s",s);
+        printf("%s",status.temp);
         break;
     case 2:
-        fprintf(flog,"%s",s);
+        fprintf(status.flog,"%s",status.temp);
         break;
     default:
         break;
@@ -127,11 +128,11 @@ unsigned int from_u32(unsigned char *data)
 }
 
 
-void countwipe(int counter[22])
+void countwipe(INFO status)
 // wipes the stats
 {
     for (int i = 0; i < 22; i++)
-        counter[i] = 0;
+        status.counter[i] = 0;
 }
 
 
@@ -219,22 +220,66 @@ unsigned int nsfChecksum(const unsigned char *data)
 }
 
 
-void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date)
+void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status)
 //creates a string thats a save path for the currently processed file
 {
     char eidstr[6];
     eid_conv(eid,eidstr);
     int port;
 
-    if (portmode == 1)
+    if (status.portmode == 1)
        {
-        if (gamemode == 2) port = 3;
+        if (status.gamemode == 2) port = 3;
             else port = 2;
        }
-    else port = gamemode;
+    else port = status.gamemode;
 
     if (strcmp(type,"texture") == 0)
-        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d", gamemode, port, date, lvlid, type, eidstr, counter[0]);
+        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
     else
-        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", gamemode, port, date, lvlid, type, eidstr, counter[0]);
+        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
+}
+
+void askmode(int *zonetype, INFO *status)
+// gets the info about the game and what to do with it
+{
+    char c;
+    int help;
+    printf("Which game are the files from? [2/3]\n");
+    printf("Change to other game's format? [Y/N]\n");
+    scanf("%d %c",&help, &c);
+    c = toupper(c);
+
+    status->gamemode = help;
+
+    if (status->gamemode > 3 || status->gamemode < 2)
+    {
+    	printf("[error] invalid game, defaulting to Crash 2\n");
+    	status->gamemode = 2;
+    }
+
+    if (c == 'Y')
+		status->portmode = 1;
+    else
+		{
+		if (c == 'N')
+			status->portmode = 0;
+        else
+            {
+                printf("[error] invalid portmode, defaulting to 0 (not changing format)\n");
+                status->portmode = 0;
+            }
+    	}
+
+    if (status->gamemode == 2 && status->portmode == 1)
+    {
+        printf("How many neighbours should the exported files' zones have? [8/16]\n");
+        scanf("%d",zonetype);
+        if (!(*zonetype == 8 || *zonetype == 16))
+        {
+            printf("[error] invalid neighbour count, defaulting to 8\n");
+            *zonetype = 8;
+        }
+    }
+    printstatus(*zonetype,status->gamemode,status->portmode);
 }

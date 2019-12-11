@@ -27,16 +27,29 @@
 #define WIPE 2089682330u
 #define IMPORT 3083219648u
 #define INTRO 223621809
-#define RESIZE 3426052343
+#define RESIZE 3426052343u
+
+typedef struct info{
+int counter[22];    // counts entry types, counter[0] is total entry count
+int print_en;   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
+FILE *flog;  // file where the logs are exported if file print is enabled
+char temp[MAX]; // strings are written into this before being printed by condprint
+int gamemode;   // 2 for C2, 3 for C3
+int portmode;   // 0 for normal export, 1 for porting
+unsigned int anim[1024][3];  // field one is model, field 3 is animation, field 2 is original animation when c3->c2
+unsigned int animrefcount;   // count of animation references when porting c3 to c2
+} INFO;
+
 
 //functional prototypes, also list of functions excluding main and main1
-void resize_chunk_handler(unsigned char *chunk);
-void resize_entity(unsigned char *item, int itemsize, double scale[3]);
-void resize_zone(int fsize, unsigned char *buffer, double scale[3]);
-void resize_level(FILE *fpath, char *path, double scale[3], char *time);
-void resize_folder(DIR *df, char *path, double scale[3], char *time);
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3]);
-void resize_main(char *time);
+void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status);
+void resize_chunk_handler(unsigned char *chunk, INFO status);
+void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
+void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
+void resize_level(FILE *fpath, char *path, double scale[3], char *time, INFO status);
+void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status);
+void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
+void resize_main(char *time, INFO status);
 void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 int camfix(unsigned char *cam, int length);
 void entitycoordfix(unsigned char *item, int itemlength);
@@ -44,18 +57,18 @@ unsigned int from_u32(unsigned char *data);
 void scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 unsigned int nsfChecksum(const unsigned char *data);
 int filelister(char *path, FILE *base);
-int import(char *time);
-void printstatus(int zonetype, int gamemode, int portmode);
+int import(char *time, INFO status);
+void printstatus(INFO status);
 void clrscr();
-void askmode(int *zonetype);
-void condprint(char *s, int print_en, FILE *flog);
+void askmode(int *zonetype, INFO *status);
+void condprint(INFO status);
 void askprint(int *print_en);
 void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);
 void model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void countwipe(int counters[22]);
-void countprint(int counters[22], int gamemode, int portmode, char *temp, int print_en, FILE *flog);
+void countwipe(INFO status);
+void countprint(INFO status);
 void animation(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void pathstring(char *finalpath, char *type, int eid, char *lvlid, char *date);
 void eid_conv(unsigned int m_value, char *eid);

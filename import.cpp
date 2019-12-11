@@ -1,8 +1,6 @@
 #include "macros.h"
 
-extern char temp[MAX];
-
-int import(char *time)
+int import(char *time, INFO status)
 // brute imports entries from a selected folder into a selected level
 {
     FILE *base, *importee;
@@ -56,8 +54,8 @@ int import(char *time)
     filelister(path,importee);
     fclose(base);
     fclose(importee);
-    sprintf(temp,"Done!\n");
-    printf(temp);
+    sprintf(status.temp,"Done!\n");
+    printf(status.temp);
     return 1;
 }
 

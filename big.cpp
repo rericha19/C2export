@@ -1,4 +1,3 @@
-#define MAIN_FILE
 #include "macros.h"
 
 // Crash 2 levels' entry exporter made by Averso
@@ -32,308 +31,9 @@ stuffs all files from a chosen folder into a chosen .nsf
 // fix scenery change
 // rewrite all times you read big endian stuff, make a from_u16 function, use from_u32 more
 
-struct info{
-int counter[22];    // counts entry types, counter[0] is total entry count
-int print_en;   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
-FILE *flog;  // file where the logs are exported if file print is enabled
-char temp[MAX]; // strings are written into this before being printed by condprint
-int gamemode;   // 2 for C2, 3 for C3
-int portmode;   // 0 for normal export, 1 for porting
-unsigned int anim[1024][3];  // field one is model, field 3 is animation, field 2 is original animation when c3->c2
-unsigned int animrefcount;   // count of animation references when porting c3 to c2
-}
 
-info.print_en = 2;
-info.flog = NULL;
+INFO status;
 
-
-void askmode(int *zonetype)
-// gets the info about the game and what to do with it
-{
-    char c;
-    printf("Which game are the files from? [2/3]\n");
-    printf("Change to other game's format? [Y/N]\n");
-    scanf("%d %c",&gamemode, &c);
-    c = toupper(c);
-
-    if (gamemode > 3 || gamemode < 2)
-    {
-    	printf("[error] invalid game, defaulting to Crash 2\n");
-    	gamemode = 2;
-    }
-
-    if (c == 'Y')
-		portmode = 1;
-    else
-		{
-		if (c == 'N')
-			portmode = 0;
-        else
-            {
-                printf("[error] invalid portmode, defaulting to 0 (not changing format)\n");
-                portmode = 0;
-            }
-    	}
-
-    if (gamemode == 2 && portmode == 1)
-    {
-        printf("How many neighbours should the exported files' zones have? [8/16]\n");
-        scanf("%d",zonetype);
-        if (!(*zonetype == 8 || *zonetype == 16))
-        {
-            printf("[error] invalid neighbour count, defaulting to 8\n");
-            *zonetype = 8;
-        }
-    }
-    printstatus(*zonetype,gamemode,portmode);
-}
-
-
-
-void resize_main(char *time)
-{
-    FILE *level = NULL;
-    char path[MAX] = "";
-    double scale[3];
-    int check = 1;
-    DIR *df = NULL;
-
-    scanf("%d %lf %lf %lf",&gamemode,&scale[0],&scale[1],&scale[2]);
-    if (gamemode != 2 && gamemode != 3)
-    {
-        printf("[error] invalid gamemode, defaulting to 2");
-        gamemode = 2;
-    }
-    printf("Input the path to the directory or level whose contents you want to export:\n");
-    scanf(" %[^\n]",path);
-
-    if (path[0]=='\"')
-    {
-        strcpy(path,path+1);
-        *(strchr(path,'\0')-1) = '\0';
-    }
-
-    if ((df = opendir(path)) != NULL)  // opendir returns NULL if couldn't open directory
-        resize_folder(df,path,scale,time);
-    else if ((level = fopen(path,"rb")) != NULL)
-        resize_level(level,path,scale,time);
-    else
-    {
-        printf("Couldn't open\n");
-        check--;
-    }
-
-    fclose(level);
-    closedir(df);
-    if (check) printf("\nEntries' dimensions resized\n\n");
-    return ;
-}
-
-void resize_level(FILE *level, char *filepath, double scale[3], char *time)
-{
-    FILE *filenew;
-    char *help, lcltemp[MAX];
-    unsigned char buffer[CHUNKSIZE];
-    int i,chunkcount;
-
-    help = strrchr(filepath,'\\');
-    *help = '\0';
-    help = help + 1;
-    sprintf(lcltemp,"%s\\%s_%s",filepath,time,help);
-
-    filenew = fopen(lcltemp,"wb");
-    fseek(level,0,SEEK_END);
-    chunkcount = ftell(level) / CHUNKSIZE;
-    rewind(level);
-
-    printf("\n\n%d\n",chunkcount);
-
-    for (i = 0; i < chunkcount; i++)
-    {
-        fread(buffer, sizeof(unsigned char), CHUNKSIZE, level);
-        resize_chunk_handler(buffer);
-        fwrite(buffer, sizeof(unsigned char), CHUNKSIZE, filenew);
-    }
-    fclose(filenew);
-}
-
-void resize_chunk_handler(unsigned char *chunk)
-{
-
-}
-
-void resize_folder(DIR *df, char *path, double scale[3], char *time)
-{
-    struct dirent *de;
-    char lcltemp[6] = "", help[MAX] = "";
-    unsigned char *buffer = NULL;
-    FILE *file, *filenew;
-    int filesize;
-
-    sprintf(help,"%s\\%s",path,time);
-    mkdir(help);
-
-    while ((de = readdir(df)) != NULL)
-    {
-        if (de->d_name[0] != '.')
-        {
-            char fpath[200] = "";
-            sprintf(fpath,"%s\\%s",path,de->d_name);
-            strncpy(lcltemp,de->d_name,5);
-            if (buffer != NULL) free(buffer);
-
-            if (!strcmp("scene",lcltemp))
-            {
-                sprintf(temp,"%s\n",de->d_name);
-                condprint(temp, print_en, flog);
-                file = fopen(fpath,"rb");
-                fseek(file,0,SEEK_END);
-                filesize = ftell(file);
-                rewind(file);
-                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
-                fread(buffer,sizeof(unsigned char),filesize,file);
-                resize_scenery(filesize,buffer,scale);
-                sprintf(help,"%s\\%s\\%s",path,time,strrchr(fpath,'\\')+1);
-                filenew = fopen(help,"wb");
-                fwrite(buffer,sizeof(unsigned char),filesize,filenew);
-                fclose(file);
-                fclose(filenew);
-            }
-            if (!strcmp("zone ",lcltemp))
-            {
-                sprintf(temp,"%s\n",de->d_name);
-                condprint(temp, print_en, flog);
-                file = fopen(fpath,"rb");
-                fseek(file,0,SEEK_END);
-                filesize = ftell(file);
-                rewind(file);
-                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
-                fread(buffer,sizeof(unsigned char),filesize,file);
-                resize_zone(filesize,buffer,scale);
-                sprintf(help,"%s\\%s\\%s",path,time,strrchr(fpath,'\\')+1);
-                filenew = fopen(help,"wb");
-                fwrite(buffer,sizeof(unsigned char),filesize,filenew);
-                fclose(file);
-                fclose(filenew);
-            }
-        }
-    }
-}
-
-void resize_zone(int fsize, unsigned char *buffer, double scale[3])
-{
-    int i, itemcount, coord;
-    itemcount = buffer[0xC];
-    int itemoffs[itemcount];
-
-    for (i = 0; i < itemcount; i++)
-        itemoffs[i] = 256 * buffer[0x11 + i*4] + buffer[0x10 + i*4];
-
-    for (i = 0; i < 6; i++)
-    {
-        coord = from_u32(buffer+itemoffs[1] + i*4);
-        coord = coord * scale[i % 3];
-        for (int j = 0; j < 4; j++)
-        {
-            buffer[itemoffs[1]+ i*4 + j] = coord % 256;
-            coord = coord / 256;
-        }
-    }
-
-    for (i = 2; i < itemcount; i++)
-       resize_entity(buffer + itemoffs[i], itemoffs[i+1] - itemoffs[i], scale);
-}
-
-void resize_entity(unsigned char *item, int itemsize, double scale[3])
-{
-    int i;
-    int off0x4B = 0;
-    short int coord;
-
-    for (i = 0; i < item[0xC]; i++)
-    {
-        if (item[0x10 + i*8] == 0x4B && item[0x11 +i*8] == 0)
-            off0x4B = BYTE * item[0x13 + i*8] + item[0x12+i*8]+0xC;
-    }
-
-    if (off0x4B)
-    {
-        for (i = 0; i < item[off0x4B]*6; i += 2)
-            {
-                if (item[off0x4B + 0x5 + i] < 0x80)
-                {
-                    coord = BYTE * (signed) item[off0x4B + 0x5 + i] + (signed) item[off0x4B + 0x4 + i];
-                    coord = coord * scale[i/2 % 3];
-                    item[off0x4B + 0x5 + i] = coord / 256;
-                    item[off0x4B + 0x4 + i] = coord % 256;
-                }
-                else
-                {
-                    coord = 65536 - BYTE * (signed) item[off0x4B + 0x5 + i] - (signed) item[off0x4B + 0x4 + i];
-                    coord = coord * scale[i/2 % 3];
-                    item[off0x4B + 0x5 + i] = 255 - coord / 256;
-                    item[off0x4B + 0x4 + i] = 256 - coord % 256;
-                    if (item[off0x4B + 0x4 + i] == 0) item[off0x4B + 0x5 + i]++;
-                }
-            }
-
-    }
-}
-
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3])
-{
-    unsigned int i,item1off,origin,j,curr_off,next_off,group,rest,vert;
-
-    item1off = buffer[0x10];
-    for (i = 0; i < 3; i++)
-    {
-        origin = from_u32(buffer + item1off + 4 * i);
-        origin = scale[i] * origin;
-        for (j = 0; j < 4; j++)
-        {
-            buffer[item1off + j + i*4] = origin % 256;
-            origin /= 256;
-        }
-    }
-
-    curr_off = BYTE * buffer[0x15] + buffer[0x14];
-    next_off = BYTE * buffer[0x19] + buffer[0x18];
-
-    for (i = curr_off; i < next_off; i += 2)
-    {
-        group = 256 * buffer[i + 1] + buffer[i];
-        vert = group / 16;
-        rest = group % 16;
-        if (gamemode == 3 && vert >= 2048)
-        {
-            vert = 4096 - vert;
-            if (i < 2*(next_off-curr_off)/3)
-            {
-                if (i % 4 == 0)
-                    vert = vert * scale[0];
-                else
-                    vert = vert * scale[1];
-            }
-            else vert = vert * scale[2];
-            vert = 4096 - vert;
-        }
-        else
-        {
-            if (i < 2*(next_off-curr_off)/3)
-            {
-                if (i % 4 == 0)
-                    vert = vert * scale[0];
-                else
-                    vert = vert * scale[1];
-            }
-            else vert = vert * scale[2];
-        }
-
-        group = 16*vert + rest;
-        buffer[i + 1] = group / 256;
-        buffer[i] = group % 256;
-    }
-}
 
 void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[])
 // saves the current chunk
@@ -508,11 +208,11 @@ void scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date)
         eidint = (BYTE * eidint) + buffer[7 - i];
     }
     eid_conv(eidint,eid);
-    make_path(path, cur_type, eidint, lvlid, date);
+    make_path(path, cur_type, eidint, lvlid, date, status);
 
-    if (portmode)
+    if (status.portmode)
     {
-        if (gamemode == 3) // c3 to c2
+        if (status.gamemode == 3) // c3 to c2
         {
             item1off = buffer[0x10];
             for (i = 0; i < 3; i++)
@@ -545,17 +245,13 @@ void scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date)
             ;
         }
     }
-    sprintf(temp,"\t\t saved as '%s'\n", path);
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"\t\t saved as '%s'\n", path);
+    condprint(status);
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), entrysize, f);
     fclose(f);
-    counter[3]++;
+    status.counter[3]++;
 }
-
-
-
-
 
 
 
@@ -605,15 +301,15 @@ void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date)
         eidint = (BYTE * eidint) + buffer[7 - i];
     eid_conv(eidint,eid);
 
-    make_path(path, cur_type, eidint, lvlid, date);
+    make_path(path, cur_type, eidint, lvlid, date, status);
 
-    sprintf(temp,"\t\t saved as '%s'\n", path);
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"\t\t saved as '%s'\n", path);
+    condprint(status);
 
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), entrysize, f);
     fclose(f);
-    counter[buffer[8]]++;
+    status.counter[buffer[8]]++;
 }
 
 void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
@@ -638,10 +334,10 @@ void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     strncpy(cur_type,"GOOL",10);
     eid_conv(eidint,eid);
 
-    if (cpy[0xC] == 6 && portmode)
+    if (cpy[0xC] == 6 && status.portmode)
     {
         curr_off = BYTE * cpy[0x25] + cpy[0x24];
-        if (gamemode == 2) //if its c2 to c3
+        if (status.gamemode == 2) //if its c2 to c3
         {
             ;
         }
@@ -665,10 +361,10 @@ void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
                         eid_conv(help2, eidhelp2);
                         if (eidhelp2[4] == 'V')
                         {
-                            anim[animrefcount][1] = help1;
-                            anim[animrefcount][2] = help2;
-                            anim[animrefcount][3] = help2;
-                            animrefcount++;
+                            status.anim[status.animrefcount][1] = help1;
+                            status.anim[status.animrefcount][2] = help2;
+                            status.anim[status.animrefcount][3] = help2;
+                            status.animrefcount++;
                         }
                     }
 
@@ -695,14 +391,14 @@ void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
         }
     }
 
-    make_path(path, cur_type, eidint, lvlid, date);
-    sprintf(temp,"\t\t saved as '%s'\n", path);
-    condprint(temp, print_en, flog);
+    make_path(path, cur_type, eidint, lvlid, date, status);
+    sprintf(status.temp,"\t\t saved as '%s'\n", path);
+    condprint(status);
     f = fopen(path,"wb");
     fwrite(cpy, sizeof(char), entrysize, f);
     free(cpy);
     fclose(f);
-    counter[11]++;
+    status.counter[11]++;
 }
 
 void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype)
@@ -725,9 +421,9 @@ void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zone
     cpy = (unsigned char *) calloc(entrysize, sizeof(char));
     memcpy(cpy,buffer,entrysize);
 
-    if (portmode)
+    if (status.portmode)
     {
-        if (gamemode == 2) //c2 to c3
+        if (status.gamemode == 2) //c2 to c3
         {
             if (zonetype == 16)
             {
@@ -803,15 +499,15 @@ void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zone
     }
 
     strncpy(cur_type,"zone",10);
-    make_path(path, cur_type, eidint, lvlid, date);
+    make_path(path, cur_type, eidint, lvlid, date, status);
 
-    sprintf(temp,"\t\t saved as '%s'\n", path);
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"\t\t saved as '%s'\n", path);
+    condprint(status);
     f = fopen(path,"wb");
     fwrite(cpy, sizeof(char), lcl_entrysize, f);
     free(cpy);
     fclose(f);
-    counter[7]++;
+    status.counter[7]++;
 }
 
 void model(unsigned char *buffer, int entrysize,char *lvlid, char *date)
@@ -827,11 +523,11 @@ void model(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     int msize = 0;
 
     // scale change in case its porting
-    if (gamemode == 2)
+    if (status.gamemode == 2)
         scaling = 1./8;
     else scaling = 8;
 
-    if (portmode)
+    if (status.portmode)
     for (i = 0; i < 3; i++)
     {
         msize = BYTE * buffer[buffer[0x10] + 1 + i * 4] + buffer[buffer[0x10] + i * 4];
@@ -848,14 +544,14 @@ void model(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     strncpy(cur_type,"model",10);
     eid_conv(eidint,eid);
 
-    make_path(path, cur_type, eidint, lvlid, date);
+    make_path(path, cur_type, eidint, lvlid, date, status);
 
-    sprintf(temp,"\t\t saved as '%s'\n", path);
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"\t\t saved as '%s'\n", path);
+    condprint(status);
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), entrysize, f);
     fclose(f);
-    counter[2]++;
+    status.counter[2]++;
 }
 
 void animation(unsigned char *buffer, int entrysize, char *lvlid, char *date)
@@ -879,9 +575,9 @@ void animation(unsigned char *buffer, int entrysize, char *lvlid, char *date)
     cpy = (char *) calloc(entrysize, sizeof(char));
     memcpy(cpy,buffer,entrysize);
 
-    if (portmode)
+    if (status.portmode)
     {
-        if (gamemode == 2) //c2 to c3
+        if (status.gamemode == 2) //c2 to c3
         {
             // offset fix
             cpy = (char *) realloc(cpy, entrysize + cpy[0xC]*4);
@@ -908,14 +604,14 @@ void animation(unsigned char *buffer, int entrysize, char *lvlid, char *date)
         }
     }
 
-    make_path(path, cur_type, eidint, lvlid, date);
-    sprintf(temp,"\t\t saved as '%s'\n", path);
-    condprint(temp, print_en, flog);
+    make_path(path, cur_type, eidint, lvlid, date,status);
+    sprintf(status.temp,"\t\t saved as '%s'\n", path);
+    condprint(status);
     f = fopen(path,"wb");
     fwrite(cpy, sizeof(char), entrysize, f);
     free(cpy);
     fclose(f);
-    counter[1]++;
+    status.counter[1]++;
 }
 
 
@@ -931,7 +627,7 @@ int normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype)
 
     for (i = 0; i < buffer[8]; i++)
     {
-        counter[0]++;
+        status.counter[0]++;
         offset_start = BYTE * buffer[0x11 + i * 4] + buffer[0x10 + i * 4];
         offset_end = BYTE * buffer[0x15 + i * 4] + buffer[0x14 + i * 4];
         if (!offset_end) offset_end = CHUNKSIZE;
@@ -963,8 +659,8 @@ int normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype)
             for (int j = 0; j < 4; j++)
                 eidnum = (eidnum * BYTE) + entry[7 - j];
             eid_conv(eidnum,eid);
-            sprintf(temp,"\t T%2d, unknown entry\t%s\n",entry[8],eid);
-            condprint(temp, print_en, flog);
+            sprintf(status.temp,"\t T%2d, unknown entry\t%s\n",entry[8],eid);
+            condprint(status);
             break;
         }
         free(entry);
@@ -983,16 +679,16 @@ int texture_chunk(unsigned char *buffer, char *lvlid, char *date)
     for (int i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
 
-    make_path(path, cur_type, eidint, lvlid, date);
+    make_path(path, cur_type, eidint, lvlid, date,status);
 
     //opening, writing and closing
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), CHUNKSIZE, f);
     fclose(f);
-    sprintf(temp,"\t\t saved as '%s'\n",path);
-    condprint(temp, print_en, flog);
-    counter[5]++;
-    counter[0]++;
+    sprintf(status.temp,"\t\t saved as '%s'\n",path);
+    condprint(status);
+    status.counter[5]++;
+    status.counter[0]++;
     return 0;
 }
 
@@ -1002,8 +698,8 @@ int chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, in
 // and lvlid that just gets sent further
 {
     char ctypes[7][20]={"Normal","Texture","Proto sound","Sound","Wavebank","Speech","Unknown"};
-    sprintf(temp,"%s chunk \t%03d\n", ctypes[buffer[2]], chunkid*2 +1);
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"%s chunk \t%03d\n", ctypes[buffer[2]], chunkid*2 +1);
+    condprint(status);
     switch (buffer[2])
     {
     case 0: case 3: case 4: case 5:
@@ -1022,7 +718,7 @@ int exprt(int zone, char *fpath, char *date)
 // does the thing yea
 {
     char sid[3] = "";
-    countwipe(counter);
+    countwipe(status);
     FILE *file;     //the NSF thats to be exported
     unsigned int numbytes, i; //zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
     char temp[MAX] = ""; //, nsfcheck[4];
@@ -1039,12 +735,12 @@ int exprt(int zone, char *fpath, char *date)
         return 0;
     }*/
 
-    if (portmode == 1)
+    if (status.portmode == 1)
        {
-        if (gamemode == 2) port = 3;
+        if (status.gamemode == 2) port = 3;
             else port = 2;
        }
-       else port = gamemode;
+       else port = status.gamemode;
 
 
     sid[0] = *(strchr(fpath,'\0')-6);
@@ -1063,24 +759,24 @@ int exprt(int zone, char *fpath, char *date)
         printf(temp);
     }
     //making directories
-    sprintf(temp,"C%d_to_C%d",gamemode,port);
-    mkdir(temp);
-    sprintf(temp,"C%d_to_C%d\\\\%s",gamemode,port,date);
-    mkdir(temp);
-    sprintf(temp,"C%d_to_C%d\\\\%s\\\\S00000%s",gamemode,port,date,sid);
-    mkdir(temp);
+    sprintf(status.temp,"C%d_to_C%d",status.gamemode,port);
+    mkdir(status.temp);
+    sprintf(status.temp,"C%d_to_C%d\\\\%s",status.gamemode,port,date);
+    mkdir(status.temp);
+    sprintf(status.temp,"C%d_to_C%d\\\\%s\\\\S00000%s",status.gamemode,port,date,sid);
+    mkdir(status.temp);
 
     //if file print is enabled, open the file
-    sprintf(temp,"C%d_to_C%d\\\\%s\\\\log.txt",gamemode,port,date);
-    if (print_en >= 2) flog = fopen(temp,"w");
+    sprintf(temp,"C%d_to_C%d\\\\%s\\\\log.txt",status.gamemode,port,date);
+    if (status.print_en >= 2) status.flog = fopen(status.temp,"w");
 
 
     //reading the file
     fseek(file, 0, SEEK_END);
     numbytes = ftell(file);
     rewind(file);
-    sprintf(temp,"The NSF [ID %s] has %d pages/chunks\n",sid,(numbytes / CHUNKSIZE)*2 - 1);
-    condprint(temp, print_en, flog);
+    sprintf(status.temp,"The NSF [ID %s] has %d pages/chunks\n",sid,(numbytes / CHUNKSIZE)*2 - 1);
+    condprint(status);
 
     //hands the chunks to chunk_handler one by one
     for (i = 0; (unsigned int) i < (numbytes/CHUNKSIZE); i++)
@@ -1088,26 +784,26 @@ int exprt(int zone, char *fpath, char *date)
         fread(chunk, sizeof(char), CHUNKSIZE, file);
         chunk_handler(chunk,i,sid,date,zone);
     }
-    strcpy(temp,"\n");
-    condprint(temp, print_en, flog);
+    strcpy(status.temp,"\n");
+    condprint(status);
 
     //closing and printing
-    countprint(counter, gamemode, portmode, temp, print_en, flog);
+    countprint(status);
     if (fclose(file) == EOF)
     {
         sprintf(temp,"[ERROR] file could not be closed\n");
         printf(temp);
         return 2;
     }
-    if (print_en >= 2) fclose(flog);
-    sprintf(temp,"\n");
-    condprint(temp, print_en, flog);
+    if (status.print_en >= 2) fclose(status.flog);
+    sprintf(status.temp,"\n");
+    condprint(status);
 
-    for (i = 0; (unsigned int) i < animrefcount; i++)
+    for (i = 0; (unsigned int) i < status.animrefcount; i++)
     {
-        eid_conv(anim[i][1],lcltemp[1]);
-        eid_conv(anim[i][2],lcltemp[2]);
-        eid_conv(anim[i][3],lcltemp[3]);
+        eid_conv(status.anim[i][1],lcltemp[1]);
+        eid_conv(status.anim[i][2],lcltemp[2]);
+        eid_conv(status.anim[i][3],lcltemp[3]);
        // printf("ref: %03d, model: %s, animation: %s, new eid: %s\n", i, lcltemp[1], lcltemp[2], lcltemp[3]);
     }
 
@@ -1119,6 +815,8 @@ int exprt(int zone, char *fpath, char *date)
 int main()
  //actual main
 {
+    status.print_en = 2;
+    status.flog = NULL;
     int zonetype = 8;
     time_t rawtime;
     struct tm * timeinfo;
@@ -1126,7 +824,7 @@ int main()
     char nsfcheck[4] = "";
     struct dirent *de;
 
-    animrefcount = 0;
+    status.animrefcount = 0;
 	intro_text();
 
     while (1)
@@ -1150,7 +848,7 @@ int main()
             print_help();
             break;
         case IMPORT:
-            import(lcltemp);
+            import(lcltemp,status);
             printf("\n");
             break;
         case EXPORT:
@@ -1161,14 +859,14 @@ int main()
                 strcpy(fpath,fpath+1);
             *(strchr(fpath,'\0')-1) = '\0';
         }
-            askmode(&zonetype);
+            askmode(&zonetype,&status);
             exprt(zonetype,fpath,lcltemp);
             printf("\n");
             break;
 
         case EXPORTALL:
             {
-            askmode(&zonetype);
+            askmode(&zonetype, &status);
             printf("\nInput the path to the folder whose NSFs you want to export:\n");
             scanf(" %[^\n]",dpath);
             if (dpath[0]=='\"')
@@ -1199,14 +897,14 @@ int main()
             break;
             }
         case CHANGEPRINT:
-            askprint(&print_en);
+            askprint(&status.print_en);
             break;
         case WIPE:
             clrscr();
             intro_text();
             break;
         case RESIZE:
-            resize_main(lcltemp);
+            resize_main(lcltemp,status);
             break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
@@ -1214,3 +912,4 @@ int main()
         }
     }
 }
+
