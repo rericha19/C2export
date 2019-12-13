@@ -28,6 +28,7 @@
 #define IMPORT 3083219648u
 #define INTRO 223621809
 #define RESIZE 3426052343u
+#define ROTATE 3437938580u
 
 typedef struct info{
 int counter[22];    // counts entry types, counter[0] is total entry count
