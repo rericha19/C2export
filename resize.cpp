@@ -226,7 +226,7 @@ void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO stat
 
 void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status)
 {
-    unsigned int i,item1off,j,curr_off,next_off,group,rest,vert;
+    int i,item1off,j,curr_off,next_off,group,rest,vert;
     long long int origin;
     int vertcount;
 
@@ -260,7 +260,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     vertcount = next_off-curr_off / 6;
 
-    for (i = curr_off; i < curr_off + vertcount * 6; i += 2)
+    for (i = curr_off; i < next_off; i += 2)
     {
         group = 256 * buffer[i + 1] + buffer[i];
         vert = group / 16;
@@ -276,7 +276,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
                     vert = vert * scale[1];
             }
             else vert = vert * scale[2];
-                vert = 4096 - vert;
+            vert = 4096 - vert;
         }
         else
         {

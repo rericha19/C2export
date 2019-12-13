@@ -838,7 +838,7 @@ int main()
             resize_main(lcltemp,status);
             break;
         case ROTATE:
-            rotate_main();
+            rotate_main(lcltemp);
             break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
