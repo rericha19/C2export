@@ -45,30 +45,26 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation)
     unsigned int i,curr_off,next_off,group,rest,vert;
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
+    int vertcount = (next_off-curr_off)/6;
     unsigned int verts[(next_off-curr_off)/6][2];
-    int check1 = 0,check2 = 0;
 
-    for (i = curr_off; i < next_off; i += 2)
+    for (i = curr_off; i < curr_off + 6*vertcount; i += 2)
     {
         group = 256 * buffer[i + 1] + buffer[i];
         vert = group / 16;
         rest = group % 16;
-        if (i < (2*(next_off-curr_off)/3 + curr_off) - 1 && (i % 4 == 0))
+        if (i < (4*vertcount + curr_off) && (i % 4 == 0))
         {
-            check1++;
-            //printf("%X\n",group);
+
         }
-        else if (i >= (2*(next_off-curr_off)/3 + curr_off) - 1)
+        else if (i >= (4*vertcount + curr_off))
         {
-            check2++;
-            //printf("\n%X",group);
+
         }
         group = 16*vert + rest;
         buffer[i + 1] = group / 256;
         buffer[i] = group % 256;
     }
-
-    printf("%d %d\n",check1,check2);
 }
 
 void rotate_zone(unsigned char *buffer, char *filepath, double rotation)

@@ -228,6 +228,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
 {
     unsigned int i,item1off,j,curr_off,next_off,group,rest,vert;
     long long int origin;
+    int vertcount;
 
     item1off = buffer[0x10];
     for (i = 0; i < 3; i++)
@@ -257,8 +258,9 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
 
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
+    vertcount = next_off-curr_off / 6;
 
-    for (i = curr_off; i < next_off; i += 2)
+    for (i = curr_off; i < curr_off + vertcount * 6; i += 2)
     {
         group = 256 * buffer[i + 1] + buffer[i];
         vert = group / 16;
@@ -266,7 +268,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
         if (status.gamemode == 2 && vert >= 2048)
         {
             vert = 4096 - vert;
-            if (i < 2*(next_off-curr_off)/3 + curr_off - 1)
+            if (i < 4*vertcount + curr_off)
             {
                 if (i % 4 == 0)
                     vert = vert * scale[0];
@@ -278,7 +280,7 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
         }
         else
         {
-            if (i < 2*(next_off-curr_off)/3 + curr_off - 1)
+            if (i < 4*vertcount + curr_off)
             {
                 if (i % 4 == 0)
                     vert = vert * scale[0];
