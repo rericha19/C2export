@@ -11,11 +11,12 @@ void intro_text()
  //self-explanatory
 {
     for (int i = 0; i < 100; i++) printf("*");
-    printf("\nCrash 2/3 level entry exporter/importer/reformatter made by Averso.\n");
+    printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
     printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
     printf("If printing to file is on, its printing into 'log.txt' located in folder of the current export.\n");
     printf("Type \"HELP\" for list of commands and their format. ");
     printf("Commands >ARE NOT< case sensitive.\n");
+    printf("I don't really check much whether the files are valid, so make sure they actually are.\n");
     printf("You can drag & drop the files and folders to this window instead of copying in the paths\n");
     for (int i = 0; i < 100; i++) printf("*");
     printf("\n\n");

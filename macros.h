@@ -5,12 +5,14 @@
 #include <time.h>
 #include <ctype.h>
 #include <dirent.h>
+#include <cmath>
 
 // idk why i made any of these macros now that i think about it, maybe to get rid of magic numbers,
 // but there's still a ton of magic numbers everywhere
 #define CHUNKSIZE 65536
 #define BYTE 256
 #define MAX 200
+#define PI 3.1415926535
 
 // more dumb things
 #define C2_NEIGHBOURS_END 0x1B4
@@ -29,6 +31,7 @@
 #define INTRO 223621809
 #define RESIZE 3426052343u
 #define ROTATE 3437938580u
+
 
 typedef struct info{
 int counter[22];    // counts entry types, counter[0] is total entry count
