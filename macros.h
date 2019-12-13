@@ -43,6 +43,8 @@ unsigned int animrefcount;   // count of animation references when porting c3 to
 
 
 //functional prototypes, also list of functions excluding main and main1
+void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
+void rotate_scenery(unsigned char *buffer, char *filepath, double rotation);
 void rotate_main();
 void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status);
 void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);

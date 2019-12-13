@@ -783,14 +783,14 @@ int main()
             printf("\n");
             break;
         case EXPORT:
+            askmode(&zonetype,&status);
             printf("Input the path to the file whose contents you want to export:\n");
             scanf(" %[^\n]",fpath);
             if (fpath[0]=='\"')
             {
                 strcpy(fpath,fpath+1);
-            *(strchr(fpath,'\0')-1) = '\0';
-        }
-            askmode(&zonetype,&status);
+                *(strchr(fpath,'\0')-1) = '\0';
+            }
             exprt(zonetype,fpath,lcltemp);
             printf("\n");
             break;

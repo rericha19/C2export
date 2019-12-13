@@ -39,16 +39,19 @@ void print_help()
 
     printf("IMPORT\n\t prompts an import screen thing for import of entries into C2 base level\n");
 
-    printf("EXPORT\n");
+    printf("EXPORT <G><Y/N>[8/16]\n");
     printf("\t exports level's contents with given settings\n");
 
-    printf("RESIZE<G> <X> <Y> <Z> (float) \n");
+    printf("EXPORTALL <G><Y/N>[8/16]\n");
+    printf("\t exports contents of all levels in the with given settings.\n");
+
+    printf("RESIZE <G> <X> <Y> <Z> (float) \n");
     printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
     printf("\t parameters are according to games' orientation, Y is vertical and Z depth\n");
-    printf("\t changes dimensions of certain entries according to given parameters\n\n");
+    printf("\t changes dimensions of the zones and scenery according to given parameters, messes up warps\n\n");
 
-    printf("EXPORTALL\n");
-    printf("\t exports contents of all levels in the with given settings.\n");
+    printf("ROTATE <D> (float)\n");
+    printf("\t rotates scenery or objects in a zone you specified");
 
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");

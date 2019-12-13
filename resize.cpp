@@ -14,7 +14,7 @@ void resize_main(char *time, INFO status)
         printf("[error] invalid gamemode, defaulting to 2");
         status.gamemode = 2;
     }
-    printf("Input the path to the directory or level whose contents you want to export:\n");
+    printf("Input the path to the directory or level whose contents you want to resize:\n");
     scanf(" %[^\n]",path);
 
     if (path[0]=='\"')
