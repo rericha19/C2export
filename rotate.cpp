@@ -65,7 +65,6 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
             else if (i >= (4*vertcount + curr_off))
                 verts[(i - curr_off)/2-vertcount*2][1] = vert;
 
-            vert = vert + 4096;
         }
         else
         {
@@ -78,9 +77,7 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     }
 
     for (i = 0; i < vertcount; i++)
-    {
         rot(&verts[i][0],&verts[vertcount - 1 - i][1], rotation);
-    }
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i++)
     {
@@ -92,6 +89,8 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
 
         else if (i >= (4*vertcount + curr_off))
             verts[(i - curr_off)/2-vertcount*2][1] = vert;
+
+        if (vert < 0) vert = vert - 4096;
         group = 16 * vert + rest;
         buffer[i + 1] = group / 256;
         buffer[i] = group % 256;
@@ -117,13 +116,18 @@ void rot(int *x, int *y, double rotation)
 {
     int temp1, temp2;
 
-    printf("%d %d\n",*x,*y);
+    //printf("%d %d\n",*x,*y);
+
+    int h1 = 993, h2 = 308;
+
+    *x -= h1;
+    *y -= h2;
 
     temp1 = *x * cos(rotation) - *y * sin(rotation);
-    temp2 = *x * sin(rotation) + *y * cos(rotation);
+    //temp2 = *x * sin(rotation) + *y * cos(rotation);  <-- this line did nothing
 
-    *x = temp1;
-    *y = temp2;
+    *x = temp1 + h1;
+    *y = temp2 + h2;
 
-    printf("%d %d\n",*x,*y);
+   // printf("%d %d\n",*x,*y);
 }
