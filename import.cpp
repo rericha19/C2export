@@ -143,9 +143,7 @@ int filelister(char *path, FILE *fnew)
                 entrysize = ftell(file);
                 rewind(file);
                 if (entrysize + curr_off + 0x16 + (index + 2) * 4 >= 65536)
-                {
                     chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
-                }
                 offsets[index + 1] = offsets[index] + entrysize;
                 fread(nrmal + curr_off, sizeof(unsigned char), entrysize, file);
                 curr_off = curr_off + entrysize;

@@ -803,14 +803,14 @@ int main()
             if (dpath[0]=='\"')
             {
                 strcpy(dpath,dpath+1);
-            *(strchr(dpath,'\0')-1) = '\0';
+                *(strchr(dpath,'\0')-1) = '\0';
             }
             // opendir() returns a pointer of DIR type.
             DIR *df = opendir(dpath);
 
             if (df == NULL)  // opendir returns NULL if couldn't open directory
             {
-                printf("Could not open selected directory\n");
+                printf("[ERROR] Could not open selected directory\n");
                 break;
             }
 
@@ -840,10 +840,29 @@ int main()
         case ROTATE:
             rotate_main(lcltemp);
             break;
+        case BUILD:
+            {
+            printf("Input the path to the base level (.nsf):\n");
+            scanf(" %[^\n]",fpath);
+            if (fpath[0]=='\"')
+            {
+                strcpy(fpath,fpath+1);
+                *(strchr(fpath,'\0')-1) = '\0';
+            }
+            printf("\nInput the path to the folder whose contents you want to import:\n");
+            scanf(" %[^\n]",dpath);
+            if (dpath[0]=='\"')
+            {
+                strcpy(dpath,dpath+1);
+                *(strchr(dpath,'\0')-1) = '\0';
+            }
+            build_main(fpath, dpath, 21, status);
+            printf("\n\n");
+            break;
+            }
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;
         }
     }
 }
-

@@ -46,51 +46,43 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
-    int curr_off,next_off,group,rest,vert, i;
+    int curr_off,next_off, i;
+    unsigned int group, rest, vert;
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     int vertcount = (next_off-curr_off)/6;
-    int verts[vertcount][2];
+    unsigned int verts[vertcount][2];
 
-    for (i = curr_off; i < curr_off + 6*vertcount; i += 2)
+    for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
         group = 256 * buffer[i + 1] + buffer[i];
         vert = group / 16;
-        if (vert >= 2048)
-        {
-            vert = vert - 4096;
-            if (i < (4*vertcount + curr_off) && (i % 4 == 0))
-                verts[(i-curr_off)/4][0] = vert;
+        if (i < (4*vertcount + curr_off) && (i % 4 == 0))
+            verts[(i-curr_off)/4][0] = vert;
 
-            else if (i >= (4*vertcount + curr_off))
-                verts[(i - curr_off)/2-vertcount*2][1] = vert;
-
-        }
-        else
-        {
-            if (i < (4*vertcount + curr_off) && (i % 4 == 0))
-                verts[(i-curr_off)/4][0] = vert;
-
-            else if (i >= (4*vertcount + curr_off))
-                verts[(i - curr_off)/2-vertcount*2][1] = vert;
-        }
+        else if (i >= (4*vertcount + curr_off))
+            verts[(i - curr_off)/2-vertcount*2][1] = vert;
+        if (vert > 2048) printf("x_index: %d, z_index: %d\n",(i-curr_off)/4, (i - curr_off)/2-vertcount*2);
     }
 
     for (i = 0; i < vertcount; i++)
         rot(&verts[i][0],&verts[vertcount - 1 - i][1], rotation);
 
-    for (i = curr_off; i < curr_off + 6 * vertcount; i++)
+    for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
         group = 256 * buffer[i + 1] + buffer[i];
         rest = group % 16;
         vert = group / 16;
         if (i < (4*vertcount + curr_off) && (i % 4 == 0))
-            vert = verts[(i - curr_off)/4][0];
+            {
+                vert = verts[(i - curr_off)/4][0];
+            }
 
         else if (i >= (4*vertcount + curr_off))
-            verts[(i - curr_off)/2-vertcount*2][1] = vert;
+            {
+                vert = verts[(i - curr_off)/2-vertcount*2][1];
+            }
 
-        if (vert < 0) vert = vert - 4096;
         group = 16 * vert + rest;
         buffer[i + 1] = group / 256;
         buffer[i] = group % 256;
@@ -112,22 +104,17 @@ void rotate_zone(unsigned char *buffer, char *filepath, double rotation)
 }
 
 
-void rot(int *x, int *y, double rotation)
+void rot(unsigned int *y,unsigned int *x, double rotation)
 {
     int temp1, temp2;
+    int x_t = *x, y_t = *y;
 
-    //printf("%d %d\n",*x,*y);
+    temp1 = x_t;
+    temp2 = y_t;
 
-    int h1 = 993, h2 = 308;
+    temp1 = x_t * cos(rotation) - y_t * sin(rotation);
+    temp2 = x_t * sin(rotation) + y_t * cos(rotation);
 
-    *x -= h1;
-    *y -= h2;
-
-    temp1 = *x * cos(rotation) - *y * sin(rotation);
-    //temp2 = *x * sin(rotation) + *y * cos(rotation);  <-- this line did nothing
-
-    *x = temp1 + h1;
-    *y = temp2 + h2;
-
-   // printf("%d %d\n",*x,*y);
+    *x = temp1;
+    *y = temp2;
 }

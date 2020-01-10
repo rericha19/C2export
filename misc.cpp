@@ -194,7 +194,7 @@ int main1()
 }
 
 
-void eid_conv(unsigned int m_value, char *eid)
+char* eid_conv(unsigned int m_value, char *eid)
 //converts int eid to string eid
 {
     static const char charset[] =
@@ -208,6 +208,7 @@ void eid_conv(unsigned int m_value, char *eid)
     eid[3] = charset[(m_value >> 7) & 0x3F];
     eid[4] = charset[(m_value >> 1) & 0x3F];
     eid[5] = '\0';
+    return eid;
 }
 
 

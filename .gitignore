@@ -4,6 +4,7 @@ C3_to_C2
 C3_to_C3
 bin
 obj
+MAIN BKUP1.cpp
 
 *.txt
 *.exe
