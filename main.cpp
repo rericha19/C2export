@@ -856,7 +856,7 @@ int main()
                 strcpy(dpath,dpath+1);
                 *(strchr(dpath,'\0')-1) = '\0';
             }
-            build_main(fpath, dpath, 21, status);
+            build_main(fpath, dpath, 21, status, lcltemp);
             printf("\n\n");
             break;
             }

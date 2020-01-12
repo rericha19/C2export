@@ -103,7 +103,7 @@ int exprt(int zone, char *fpath, char *date);
 void intro_text();
 void print_help();
 const unsigned long hash(const char *str);
-void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status);
+void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
 unsigned int* getrelatives(unsigned char *entry);
 unsigned int get_slst(unsigned char *item);
 unsigned int* GOOL_relatives(unsigned char *entry);

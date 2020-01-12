@@ -15,10 +15,10 @@ int import(char *time, INFO status)
     scanf(" %[^\n]",nsfpath);
 
     if (nsfpath[0]=='\"')
-            {
-                strcpy(nsfpath,nsfpath+1);
-                *(strchr(nsfpath,'\0')-1) = '\0';
-            }
+    {
+        strcpy(nsfpath,nsfpath+1);
+        *(strchr(nsfpath,'\0')-1) = '\0';
+    }
 
     strncpy(nsfcheck,strchr(nsfpath,'\0')-3,3);
     if ((base = fopen(nsfpath,"rb")) == NULL || strcmp("NSF",nsfcheck))
@@ -51,7 +51,7 @@ int import(char *time, INFO status)
     importee = fopen(lcltemp,"wb");
     fwrite(basebase,sizeof(unsigned char),baselength,importee);
 
-    filelister(path,importee);
+    filelister(path, importee);
     fclose(base);
     fclose(importee);
     sprintf(status.temp,"Done!\n");
