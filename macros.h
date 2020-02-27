@@ -5,7 +5,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <dirent.h>
-#include <cmath>
+#include <math.h>
 
 // idk why i made any of these macros now that i think about it, maybe to get rid of magic numbers,
 // but there's still a ton of magic numbers everywhere
@@ -36,6 +36,7 @@
 #define RESIZE 3426052343u
 #define ROTATE 3437938580u
 #define BUILD 215559733u
+#define PROP 2089440550u
 
 
 typedef struct info{
@@ -54,8 +55,8 @@ typedef struct entry{
     unsigned int EID;
     int esize;
     int chunk;
-    unsigned char *data = NULL;
-    unsigned int *related = NULL;
+    unsigned char *data;
+    unsigned int *related;
 } ENTRY;
 
 
@@ -76,6 +77,7 @@ void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk,
 int camfix(unsigned char *cam, int length);
 void entitycoordfix(unsigned char *item, int itemlength);
 unsigned int from_u32(unsigned char *data);
+unsigned int from_u16(unsigned char *data);
 void scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 unsigned int nsfChecksum(const unsigned char *data);
 int filelister(char *path, FILE *base);
@@ -89,7 +91,7 @@ void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date)
 void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);
 void model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void countwipe(INFO status);
+void countwipe(INFO *status);
 void countprint(INFO status);
 void animation(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void pathstring(char *finalpath, char *type, int eid, char *lvlid, char *date);
@@ -108,4 +110,4 @@ unsigned int* getrelatives(unsigned char *entry);
 unsigned int get_slst(unsigned char *item);
 unsigned int* GOOL_relatives(unsigned char *entry);
 int get_index(unsigned int eid, ENTRY elist[1500], int counter);
-
+void prop_main(char* path);

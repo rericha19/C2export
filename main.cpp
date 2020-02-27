@@ -649,7 +649,7 @@ int exprt(int zone, char *fpath, char *date)
 // does the thing yea
 {
     char sid[3] = "";
-    countwipe(status);
+    countwipe(&status);
     FILE *file;     //the NSF thats to be exported
     unsigned int numbytes, i; //zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
     char temp[MAX] = ""; //, nsfcheck[4];
@@ -857,9 +857,19 @@ int main()
                 *(strchr(dpath,'\0')-1) = '\0';
             }
             build_main(fpath, dpath, 21, status, lcltemp);
-            printf("\n\n");
+            printf("Done.\n\n");
             break;
             }
+        case PROP:
+            printf("Input the path to the file:\n");
+            scanf(" %[^\n]",fpath);
+            if (fpath[0]=='\"')
+            {
+                strcpy(fpath,fpath+1);
+                *(strchr(fpath,'\0')-1) = '\0';
+            }
+            prop_main(fpath);
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;

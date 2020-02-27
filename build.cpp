@@ -1,9 +1,9 @@
 #include "macros.h"
 
-int cmpfunc (const void * a, const void * b)
+int cmpfunc(const void *a, const void *b)
 // for qsort
 {
-   return ( *(int*)a - *(int*)b );
+   return (*(int*) a - *(int*) b);
 }
 
 unsigned int get_model(unsigned char *anim)
@@ -85,7 +85,7 @@ unsigned int* getrelatives(unsigned char *entry)
 unsigned int* GOOL_relatives(unsigned char *entry, int entrysize)
 // gets gool relatives
 {
-    int curr_off, type = 0;
+    int curr_off, type = 0, help;
     int i, counter = 0;
     char temp[6];
     int curr_eid;
@@ -99,8 +99,11 @@ unsigned int* GOOL_relatives(unsigned char *entry, int entrysize)
         {
             case 1:
                 if (!type)
-                    if ((from_u32(entry + curr_off + 0xC) & 0xFF00FFFF) == 01) type = 2;
+                {
+                    help = from_u32(entry + curr_off + 0xC) & 0xFF00FFFF;
+                    if (help <= 05 && help > 0) type = 2;
                         else type = 3;
+                }
 
                 if (type == 2)
                 {
@@ -155,7 +158,8 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     unsigned char chunk[CHUNKSIZE], entry[CHUNKSIZE];
     ENTRY elist[2500];
     char temp[MAX], *temp1, *temp2, lcltemp[MAX];
-    int chunkindex = 0, fsize, offset, index = 0, j, i, k, chunkcount, help, help2, help3, help4, baseborder, chunkborder;
+    int chunkindex = 0, fsize, offset, index = 0, chunkcount, help, help2, help3, help4, baseborder, chunkborder;
+    register int i,j,k;
     struct dirent *de;
 
 
@@ -177,6 +181,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     chunkcount = ftell(nsf) / CHUNKSIZE;
     rewind(nsf);
 
+    printf("\nReading from the NSF.\n");
     // getting stuff from the base NSF
     for (i = 0; i < chunkcount; i++)
     {
@@ -188,13 +193,14 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
             {
                 offset = 256 * chunk[j * 4 + 0x11] + chunk[j * 4 + 0x10];
                 elist[index].EID = from_u32(chunk + offset + 4);
-                elist[index].chunk = i * 2 + 1;
+                elist[index].chunk = i;
                 elist[index++].esize = -1;
             }
     }
 
     baseborder = index;
 
+    printf("Reading from the folder.\n");
     // getting stuff from the folder
     while ((de = readdir(df)) != NULL)
     if ((de->d_name)[0] != '.')
@@ -232,16 +238,16 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         memcpy(elist[index++].data, entry, fsize);
     }
 
-    // gets model references
+    printf("Getting model references.\n");
+    // gets model references6
     for (i = 0; i < index; i++)
     {
-        //printf("model ref\n");
         if ((elist[i].related != NULL) && (from_u32(elist[i].data + 8) == 0xB))
         {
             help2 = 0;
             for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                 if ((help = get_index(elist[i].related[j + 1], elist, index)) > 0)
-                    if (elist[help].data != NULL)
+                    if (elist[help].data != NULL && (from_u32(elist[help].data + 8) == 1))
                         new_relatives[help2++] = get_model(elist[help].data);
 
             if (help2)
@@ -255,10 +261,10 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         }
     }
 
+    printf("Removing invalid references.\n");
     // gets rid of dupes and invalid references, sorts
     for (i = 0; i < index; i++)
     {
-        //printf("weeding out invalid references\n");
         if (elist[i].related == NULL) continue;
         for (j = 1; (unsigned) j < elist[i].related[0] + 1; j++)
         {
@@ -290,16 +296,15 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
     chunkborder = chunkindex;
 
+    printf("Building T11s' chunks.\n");
     // tries to do T11 and their ralatives' chunk assignment
     for (i = 0; i < index; i++)
     {
-        // doing stuff to T11s
         int sizes[10] = {0};
         int counters[10] = {0};
         help4 = 0;
         if ((elist[i].data != NULL) && (from_u32(elist[i].data + 8) == 0xB))
         {
-            printf("%s\n", eid_conv(elist[i].EID, temp));
             elist[i].chunk = chunkborder;
             sizes[0] += elist[i].esize;
             help2++;
@@ -308,7 +313,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
             {
                 help3 = get_index(elist[i].related[j + 1], elist, index);
                 for (k = 0; k <= help4; k++)
-                    if ((elist[help3].esize + sizes[k] + 0x10 + 4 * (counters[k]+1)) < CHUNKSIZE)
+                    if ((elist[help3].esize + sizes[k] + 0x10 + 4 * (counters[k]+2)) < CHUNKSIZE)
                     {
                         elist[help3].chunk = chunkborder + k;
                         sizes[k] += elist[help3].esize;
@@ -326,9 +331,11 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         }
     }
 
+    //TODO merge sets that share assets somehow (merge the first match probably)
+
+    printf("Merging T11 chunks.\n");
     while(1)
     {
-        //printf("tryna rearrange\n");
         int help5 = 0;
         for (i = chunkindex; i < chunkborder; i++)
         {
@@ -356,7 +363,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
                         help4++;
                     }
 
-                if ((help + help3 + 4 * help2 + 4 * help4 + 0x10) <= CHUNKSIZE)
+                if ((help + help3 + 4 * help2 + 4 * help4 + 0x14) <= CHUNKSIZE)
                     if (help3 > maxsize)
                     {
                         maxsize = help3;
@@ -374,6 +381,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         if (!help5) break;
     }
 
+    printf("Getting rid of empty chunks.\n");
     help2 = 0;
     for (i = chunkindex; i < chunkborder; i++)
     {
@@ -384,6 +392,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     }
     chunkborder = help2 + 1;
 
+    printf("Building actual chunks.\n");
     for (i = chunkindex; i < chunkborder; i++)
     {
         help2 = 2 * i + 1;
@@ -393,7 +402,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         for (j = 0; j < index; j++)
             if (elist[j].chunk == i) help++;
 
-        unsigned int offsets[help + 1];
+        unsigned int offsets[help + 2];
 
         chunks[i][0] = 0x34;
         chunks[i][1] = 0x12;
@@ -402,7 +411,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         chunks[i][5] = help2 / 256;
         chunks[i][8] = help % 256;
         chunks[i][9] = help / 256;
-
 
         help++;
         help2 = 0;
@@ -413,6 +421,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
             {
                 offsets[help2 + 1] = offsets[help2] + elist[j].esize;
                 help2++;
+                //printf("%X\n", offsets[help2]);
             }
 
         for (j = 0; j < help; j++)
@@ -425,6 +434,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         for (j = 0; j < index; j++)
             if (elist[j].chunk == i)
             {
+                //printf("%02d %d\n", i, help3);
                 memcpy(chunks[i] + help3, elist[j].data, elist[j].esize);
                 help3 += elist[j].esize;
             }
@@ -439,7 +449,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     }
 
     // prints stuff
-    /*for (i = 0; i < index; i++)
+   for (i = 0; i < index; i++)
     {
         printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, temp), elist[i].chunk, elist[i].esize);
         if (elist[i].related != NULL)
@@ -455,9 +465,10 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     }
 
     for (i = 0; i < chunkborder; i++)
-        printf("%03d: %s\n",i, eid_conv(from_u32(chunks[i] + 4), temp));*/
+        printf("%03d: %s\n",i, eid_conv(from_u32(chunks[i] + 4), temp));
 
 
+    printf("Writing a new NSF.\n");
     // writes into a new nsf
     temp1 = strrchr(nsfpath,'\\');
     *temp1 = '\0';

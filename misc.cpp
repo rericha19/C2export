@@ -40,19 +40,21 @@ void print_help()
 
     printf("IMPORT\n\t prompts an import screen thing for import of entries into C2 base level\n");
 
-    printf("EXPORT <G><Y/N>[8/16]\n");
+    printf("PROP\n\t prints a list of properties and values the specified item has\n");
+
+    printf("EXPORT\n");
     printf("\t exports level's contents with given settings\n");
 
-    printf("EXPORTALL <G><Y/N>[8/16]\n");
+    printf("EXPORTALL\n");
     printf("\t exports contents of all levels in the with given settings.\n");
 
-    printf("RESIZE <G> <X> <Y> <Z> (float) \n");
+    printf("RESIZE\n");
     printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
     printf("\t parameters are according to games' orientation, Y is vertical and Z depth\n");
     printf("\t changes dimensions of the zones and scenery according to given parameters, messes up warps\n\n");
 
-    printf("ROTATE <D> (float)\n");
-    printf("\t rotates scenery or objects in a zone you specified");
+    printf("ROTATE\n");
+    printf("\t rotates scenery or objects in a zone you specified\n");
 
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
@@ -131,12 +133,22 @@ unsigned int from_u32(unsigned char *data)
     return result;
 }
 
+unsigned int from_u16(unsigned char *data)
+// reads a word and returns an integer
+{
+    const unsigned char *p = data;
+    unsigned int result = p[0];
+    result |= p[1] << 8;
+    return result;
+}
 
-void countwipe(INFO status)
+
+
+void countwipe(INFO *status)
 // wipes the stats
 {
     for (int i = 0; i < 22; i++)
-        status.counter[i] = 0;
+        status->counter[i] = 0;
 }
 
 
