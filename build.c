@@ -6,14 +6,59 @@ int cmpfunc(const void *a, const void *b)
    return (*(int*) a - *(int*) b);
 }
 
+int to_enum(const void *a)
+{
+    ENTRY x = *((ENTRY *) a);
+    int result = 0;
+
+    if (x.data == NULL) return 0;
+
+    switch(*(int *)(x.data + 0x8))
+    {
+        case 0xB:
+            result += 1;
+            break;
+        case 0x2:
+            result += 2;
+            break;
+        case 0x1:
+            result += 3;
+            break;
+        case 0x7:
+            result += 4;
+            break;
+        case 0x4:
+            result += 5;
+            break;
+        case 0x3:
+            result += 6;
+            break;
+        default:
+            result += MAX;
+            break;
+    }
+
+    return result;
+}
+
+int cmp_entry(const void *a, const void *b)
+{
+    int x = to_enum(a);
+    int y = to_enum(b);
+
+    if (x != y) return (x - y);
+
+    return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
+}
+
 unsigned int get_model(unsigned char *anim)
 // gets a model from an animation (from the first frame)
 {
     return from_u32(anim + 0x10 + from_u32(anim + 0x10));
 }
 
-int get_chunkindex(unsigned int textr, unsigned char **chunks, int counter)
-// returns index of the chunk whose chunk EID is equal to searched texture EID
+int get_chunk_index(unsigned int textr, unsigned char **chunks, int counter)
+// returns entry_count of the chunk whose chunk EID is equal to searched texture EID
 {
     int i, retrn = -1;
 
@@ -24,7 +69,7 @@ int get_chunkindex(unsigned int textr, unsigned char **chunks, int counter)
 }
 
 int get_index(unsigned int eid, ENTRY elist[1500], int counter)
-// returns index of the struct whose EID is equal to searched EID
+// returns entry_count of the struct whose EID is equal to searched EID
 {
     int retrn = -1;
 
@@ -49,7 +94,7 @@ unsigned int get_slst(unsigned char *item)
 unsigned int* getrelatives(unsigned char *entry)
 // gets zone's relatives
 {
-    int item1len, relcount, item1off, camcount, neighbourcount, scencount, i, index = 0;
+    int item1len, relcount, item1off, camcount, neighbourcount, scencount, i, entry_count = 0;
     unsigned int* relatives;
 
     item1off = from_u32(entry + 0x10);
@@ -61,23 +106,26 @@ unsigned int* getrelatives(unsigned char *entry)
     if (camcount == 0) return NULL;
     neighbourcount = entry[item1off + 0x190];
     relcount = camcount/3 + neighbourcount + scencount + 1;
+
     if (relcount == 1) return NULL;
-    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != NONE) relcount++;
+
+    /*if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != NONE)
+        relcount++;*/
     relatives = (unsigned int *) malloc(relcount * sizeof(unsigned int));
 
-    relatives[index++] = relcount - 1;
-
-    for (i = 0; i < scencount; i++)
-        relatives[index++] = from_u32(entry + item1off + 0x4 + 0x30 * i);
-
-    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != NONE)
-        relatives[index++] = from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]);
-
-    for (i = 0; i < neighbourcount; i++)
-        relatives[index++] = from_u32(entry + item1off + 0x194 + 4*i);
+    relatives[entry_count++] = relcount - 1;
 
     for (i = 0; i < (camcount/3); i++)
-        relatives[index++] = get_slst(entry + from_u32(entry + 0x18 + 0xC * i));
+        relatives[entry_count++] = get_slst(entry + from_u32(entry + 0x18 + 0xC * i));
+
+    /*if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != NONE)
+        relatives[entry_count++] = from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]);*/
+
+    for (i = 0; i < neighbourcount; i++)
+        relatives[entry_count++] = from_u32(entry + item1off + 0x194 + 4*i);
+
+    for (i = 0; i < scencount; i++)
+        relatives[entry_count++] = from_u32(entry + item1off + 0x4 + 0x30 * i);
 
     return relatives;
 }
@@ -158,7 +206,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     unsigned char chunk[CHUNKSIZE], entry[CHUNKSIZE];
     ENTRY elist[2500];
     char temp[MAX], *temp1, *temp2, lcltemp[MAX];
-    int chunkindex = 0, fsize, offset, index = 0, chunkcount, help, help2, help3, help4, baseborder, chunkborder;
+    int chunk_index = 0, fsize, offset, entry_count = 0, chunkcount, help, help2, help3, help4, baseborder, chunkborder, chunk_index2, x;
     register int i,j,k;
     struct dirent *de;
 
@@ -186,19 +234,19 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     for (i = 0; i < chunkcount; i++)
     {
         fread(chunk, CHUNKSIZE, sizeof(unsigned char), nsf);
-        chunks[chunkindex] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
-        memcpy(chunks[chunkindex++], chunk, CHUNKSIZE);
+        chunks[chunk_index] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
+        memcpy(chunks[chunk_index++], chunk, CHUNKSIZE);
         if (chunk[2] != 1)
             for (j = 0; j < chunk[8]; j++)
             {
                 offset = 256 * chunk[j * 4 + 0x11] + chunk[j * 4 + 0x10];
-                elist[index].EID = from_u32(chunk + offset + 4);
-                elist[index].chunk = i;
-                elist[index++].esize = -1;
+                elist[entry_count].EID = from_u32(chunk + offset + 4);
+                elist[entry_count].chunk = i;
+                elist[entry_count++].esize = -1;
             }
     }
 
-    baseborder = index;
+    baseborder = entry_count;
 
     printf("Reading from the folder.\n");
     // getting stuff from the folder
@@ -218,35 +266,35 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         fread(entry, fsize, sizeof(unsigned char), file);
         if (fsize == CHUNKSIZE && from_u32(entry) == MAGIC_TEXTURE)
         {
-            if (get_chunkindex(from_u32(entry + 4), chunks, chunkindex) > 0) continue;
-            chunks[chunkindex] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
-            memcpy(chunks[chunkindex++], entry, CHUNKSIZE);
+            if (get_chunk_index(from_u32(entry + 4), chunks, chunk_index) > 0) continue;
+            chunks[chunk_index] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
+            memcpy(chunks[chunk_index++], entry, CHUNKSIZE);
             continue;
         }
 
         if (from_u32(entry) != MAGIC_ENTRY) continue;
-        if (get_index(from_u32(entry + 4), elist, index) > 0) continue;
+        if (get_index(from_u32(entry + 4), elist, entry_count) > 0) continue;
 
-        elist[index].EID = from_u32(entry + 4);
-        elist[index].chunk = -1;
-        elist[index].esize = fsize;
-        elist[index].data = (unsigned char *) malloc(fsize * sizeof(unsigned char));
+        elist[entry_count].EID = from_u32(entry + 4);
+        elist[entry_count].chunk = -1;
+        elist[entry_count].esize = fsize;
+        elist[entry_count].data = (unsigned char *) malloc(fsize * sizeof(unsigned char));
         if (entry[8] == 7)
-            elist[index].related = getrelatives(entry);
+            elist[entry_count].related = getrelatives(entry);
         if (entry[8] == 11 && entry[0xC] == 6)
-            elist[index].related = GOOL_relatives(entry, fsize);
-        memcpy(elist[index++].data, entry, fsize);
+            elist[entry_count].related = GOOL_relatives(entry, fsize);
+        memcpy(elist[entry_count++].data, entry, fsize);
     }
 
     printf("Getting model references.\n");
     // gets model references6
-    for (i = 0; i < index; i++)
+    for (i = 0; i < entry_count; i++)
     {
         if ((elist[i].related != NULL) && (from_u32(elist[i].data + 8) == 0xB))
         {
             help2 = 0;
             for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                if ((help = get_index(elist[i].related[j + 1], elist, index)) > 0)
+                if ((help = get_index(elist[i].related[j + 1], elist, entry_count)) > 0)
                     if (elist[help].data != NULL && (from_u32(elist[help].data + 8) == 1))
                         new_relatives[help2++] = get_model(elist[help].data);
 
@@ -263,12 +311,12 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
     printf("Removing invalid references.\n");
     // gets rid of dupes and invalid references, sorts
-    for (i = 0; i < index; i++)
+    for (i = 0; i < entry_count; i++)
     {
         if (elist[i].related == NULL) continue;
         for (j = 1; (unsigned) j < elist[i].related[0] + 1; j++)
         {
-            help = get_index(elist[i].related[j], elist, index);
+            help = get_index(elist[i].related[j], elist, entry_count);
             if (help < baseborder) elist[i].related[j] = 0;
             if (elist[i].related[j] == elist[i].EID) elist[i].related[j] = 0;
             for (k = j + 1; (unsigned) k < elist[i].related[0] + 1; k++)
@@ -291,43 +339,39 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         for (j = 0; j < help; j++)
             elist[i].related[j + 1] = new_relatives[j];
 
-        qsort(elist[i].related + 1, elist[i].related[0], sizeof(unsigned int), cmpfunc);
+        //qsort(elist[i].related + 1, elist[i].related[0], sizeof(unsigned int), cmpfunc);
     }
 
-    chunkborder = chunkindex;
+    chunkborder = chunk_index;
+
+    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry);
+
 
     printf("Building T11s' chunks.\n");
-    // tries to do T11 and their ralatives' chunk assignment
-    for (i = 0; i < index; i++)
+    // tries to do T11 and their relatives' chunk assignment
+    for (i = 0; i < entry_count; i++)
     {
-        int sizes[10] = {0};
-        int counters[10] = {0};
+        int sizes[100] = {0};
+        int counters[100] = {0};
         help4 = 0;
         if ((elist[i].data != NULL) && (from_u32(elist[i].data + 8) == 0xB))
         {
             elist[i].chunk = chunkborder;
             sizes[0] += elist[i].esize;
             help2++;
+            k = 0;
             if (elist[i].related != NULL)
             for (j = 0; (unsigned) j < elist[i].related[0]; j++)
             {
-                help3 = get_index(elist[i].related[j + 1], elist, index);
-                for (k = 0; k <= help4; k++)
-                    if ((elist[help3].esize + sizes[k] + 0x10 + 4 * (counters[k]+2)) < CHUNKSIZE)
-                    {
-                        elist[help3].chunk = chunkborder + k;
-                        sizes[k] += elist[help3].esize;
-                        counters[k]++;
-                    }
-                    else
-                    {
-                        help4++;
-                        elist[help3].chunk = chunkborder + help4;
-                        sizes[help4] += elist[help3].esize;
-                        counters[help4]++;
-                    }
+                help3 = get_index(elist[i].related[j + 1], elist, entry_count);
+                if ((elist[help3].esize + sizes[k] + 0x10 + 4 * (counters[k] + 2)) > CHUNKSIZE)
+                    k++;
+                elist[help3].chunk = chunkborder + k;
+                sizes[k] += elist[help3].esize;
+                counters[k]++;
+
             }
-        chunkborder += help4 + 1;
+            chunkborder += k + 1;
         }
     }
 
@@ -337,12 +381,12 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     while(1)
     {
         int help5 = 0;
-        for (i = chunkindex; i < chunkborder; i++)
+        for (i = chunk_index; i < chunkborder; i++)
         {
             help = 0;
             help2 = 0;
 
-            for (j = 0; j < index; j++)
+            for (j = 0; j < entry_count; j++)
                 if (elist[j].chunk == i)
                 {
                     help += elist[j].esize;
@@ -350,13 +394,13 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
                 }
 
             int maxsize = 0;
-            int maxindex = 0;
+            int maxentry_count = 0;
 
             for (j = i + 1; j < chunkborder; j++)
             {
                 help3 = 0;
                 help4 = 0;
-                for (k = 0; k < index; k++)
+                for (k = 0; k < entry_count; k++)
                     if (elist[k].chunk == j)
                     {
                         help3 += elist[k].esize;
@@ -367,14 +411,14 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
                     if (help3 > maxsize)
                     {
                         maxsize = help3;
-                        maxindex = j;
+                        maxentry_count = j;
                     }
             }
 
-            if (maxindex)
+            if (maxentry_count)
             {
-                for (j = 0; j < index; j++)
-                    if (elist[j].chunk == maxindex) elist[j].chunk = i;
+                for (j = 0; j < entry_count; j++)
+                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
                 help5++;
             }
         }
@@ -383,23 +427,119 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
     printf("Getting rid of empty chunks.\n");
     help2 = 0;
-    for (i = chunkindex; i < chunkborder; i++)
+    for (i = chunk_index; i < chunkborder; i++)
     {
         help = 0;
-        for (j = 0; j < index; j++)
+        for (j = 0; j < entry_count; j++)
             if (elist[j].chunk == i) help++;
         if (help) help2 = i;
     }
     chunkborder = help2 + 1;
 
+
+    chunk_index2 = chunkborder;
+    printf("Building zones' chunks.\n");
+    // tries to do T11 and their relatives' chunk assignment
+    for (i = 0; i < entry_count; i++)
+    {
+        int sizes[1000] = {0};
+        int counters[1000] = {0};
+        help4 = 0;
+        if ((elist[i].data != NULL) && (from_u32(elist[i].data + 8) == 0x7) && elist[i].related != NULL)
+        {
+            if (elist[i].chunk == -1) elist[i].chunk = chunkborder;
+            sizes[0] += elist[i].esize;
+            help2++;
+            k = 0;
+            if (elist[i].related != NULL)
+            //for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+            x = from_u32(elist[i].data + 0x10);
+            for (j = 0; j < elist[i].related[0]; j++)
+            {
+                help3 = get_index(elist[i].related[j + 1], elist, entry_count);
+                if (elist[help3].chunk != -1) continue;
+                if (elist[help3].related != NULL) continue;
+                if ((elist[help3].esize + sizes[k] + 0x10 + 4 * (counters[k]+2)) > CHUNKSIZE)
+                    k++;
+                printf("zones k: %d\n", k);
+                elist[help3].chunk = chunkborder + k;
+                sizes[k] += elist[help3].esize;
+                counters[k]++;
+            }
+            chunkborder += k + 1;
+        }
+    }
+
+
+    printf("Merging zone chunks chunks.\n");
+    while(1)
+    {
+        int help5 = 0;
+        for (i = chunk_index2; i < chunkborder; i++)
+        {
+            help = 0;
+            help2 = 0;
+
+            for (j = 0; j < entry_count; j++)
+                if (elist[j].chunk == i)
+                {
+                    help += elist[j].esize;
+                    help2++;
+                }
+
+            int maxsize = 0;
+            int maxentry_count = 0;
+
+            for (j = i + 1; j < chunkborder; j++)
+            {
+                help3 = 0;
+                help4 = 0;
+                for (k = 0; k < entry_count; k++)
+                    if (elist[k].chunk == j)
+                    {
+                        help3 += elist[k].esize;
+                        help4++;
+                    }
+
+                if ((help + help3 + 4 * help2 + 4 * help4 + 0x14) <= CHUNKSIZE)
+                    if (help3 > maxsize)
+                    {
+                        maxsize = help3;
+                        maxentry_count = j;
+                    }
+            }
+
+            if (maxentry_count)
+            {
+                for (j = 0; j < entry_count; j++)
+                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
+                help5++;
+            }
+        }
+        if (!help5) break;
+    }
+
+    printf("Getting rid of empty chunks.\n");
+    help2 = 0;
+    for (i = chunk_index2; i < chunkborder; i++)
+    {
+        help = 0;
+        for (j = 0; j < entry_count; j++)
+            if (elist[j].chunk == i) help++;
+        if (help) help2 = i;
+    }
+    chunkborder = help2 + 1;
+
+
+
     printf("Building actual chunks.\n");
-    for (i = chunkindex; i < chunkborder; i++)
+    for (i = chunk_index; i < chunkborder; i++)
     {
         help2 = 2 * i + 1;
         help = 0;
         chunks[i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
 
-        for (j = 0; j < index; j++)
+        for (j = 0; j < entry_count; j++)
             if (elist[j].chunk == i) help++;
 
         unsigned int offsets[help + 2];
@@ -416,7 +556,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         help2 = 0;
         offsets[help2] = 0x10 + help*4;
 
-        for (j = 0; j < index; j++)
+        for (j = 0; j < entry_count; j++)
             if (elist[j].chunk == i)
             {
                 offsets[help2 + 1] = offsets[help2] + elist[j].esize;
@@ -431,7 +571,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         }
 
         help3 = offsets[0];
-        for (j = 0; j < index; j++)
+        for (j = 0; j < entry_count; j++)
             if (elist[j].chunk == i)
             {
                 //printf("%02d %d\n", i, help3);
@@ -449,17 +589,17 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     }
 
     // prints stuff
-   for (i = 0; i < index; i++)
+   for (i = 0; i < entry_count; i++)
     {
         printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, temp), elist[i].chunk, elist[i].esize);
         if (elist[i].related != NULL)
         {
-            printf("------ %05d\n", elist[i].related[0]);
+            printf("------ %5d\n", elist[i].related[0]);
             for (j = 0; j < (signed) elist[i].related[0]; j++)
             {
                 help3 = elist[i].related[j+1];
-                printf("--%02d-- %s %02d %05d\n", j + 1, eid_conv(help3,temp),
-                       elist[get_index(help3, elist, index)].chunk, elist[get_index(help3, elist, index)].esize);
+                printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(help3, temp),
+                       elist[get_index(help3, elist, entry_count)].chunk, elist[get_index(help3, elist, entry_count)].esize);
             }
         }
     }
@@ -484,7 +624,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     for (i = 0; i < chunkborder; i++)
         free(chunks[i]);
 
-    for (i = 0; i < index; i++)
+    for (i = 0; i < entry_count; i++)
         if (elist[i].data != NULL) free(elist[i].data);
 
     fclose(nsfnew);

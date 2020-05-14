@@ -56,7 +56,7 @@ typedef struct entry{
     int esize;
     int chunk;
     unsigned char *data;
-    unsigned int *related;
+    unsigned int *related = NULL;
 } ENTRY;
 
 
