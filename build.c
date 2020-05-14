@@ -352,19 +352,68 @@ void dumb_merge(ENTRY *elist, int chunk_index_start, int chunk_index_end, int en
     }
 }
 
+void read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture, int *entry_count)
+{
+    struct dirent *de;
+    char temp[500];
+    FILE *file = NULL;
+    int fsize;
+    unsigned char entry[CHUNKSIZE];
+
+    while ((de = readdir(df)) != NULL)
+    if ((de->d_name)[0] != '.')
+    {
+        sprintf(temp, "%s\\%s", dirpath, de->d_name);
+        if (file != NULL)
+        {
+            fclose(file);
+            file = NULL;
+        }
+        if ((file = fopen(temp, "rb")) == NULL) continue;
+        fseek(file, 0, SEEK_END);
+        fsize = ftell(file);
+        rewind(file);
+        fread(entry, fsize, sizeof(unsigned char), file);
+        if (fsize == CHUNKSIZE && from_u32(entry) == MAGIC_TEXTURE)
+        {
+            if (get_base_chunk_border(from_u32(entry + 4), chunks, *chunk_border_texture) > 0) continue;
+            chunks[*chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
+            memcpy(chunks[*chunk_border_texture], entry, CHUNKSIZE);
+            (*chunk_border_texture)++;
+            continue;
+        }
+
+        if (from_u32(entry) != MAGIC_ENTRY) continue;
+        if (get_index(from_u32(entry + 4), elist, *entry_count) > 0) continue;
+
+        elist[*entry_count].EID = from_u32(entry + 4);
+        elist[*entry_count].chunk = -1;
+        elist[*entry_count].esize = fsize;
+
+        if (entry[8] == 7)
+            elist[*entry_count].related = getrelatives(entry);
+        if (entry[8] == 11 && entry[0xC] == 6)
+            elist[*entry_count].related = GOOL_relatives(entry, fsize);
+
+        elist[*entry_count].data = (unsigned char *) malloc(fsize * sizeof(unsigned char));
+        memcpy(elist[*entry_count].data, entry, fsize);
+        (*entry_count)++;
+    }
+
+    fclose(file);
+}
+
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
 {
     DIR *df = NULL;
-    struct dirent *de;
-    FILE *nsf = NULL, *file = NULL, *nsfnew = NULL;
+    FILE *nsf = NULL, *nsfnew = NULL;
 
-    unsigned char entry[CHUNKSIZE];
     char temp[MAX], *temp1, *temp2, lcltemp[MAX];
 
     unsigned char *chunks[512];
     ENTRY elist[2500];
 
-    int i, j, fsize;
+    int i, j;
     int chunk_border_base       = 0,
         chunk_border_texture    = 0,
         chunk_border_gool       = 0,
@@ -398,43 +447,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
     printf("Reading from the folder.\n");
     // getting stuff from the folder
-    while ((de = readdir(df)) != NULL)
-    if ((de->d_name)[0] != '.')
-    {
-        sprintf(temp, "%s\\%s", dirpath, de->d_name);
-        if (file != NULL)
-        {
-            fclose(file);
-            file = NULL;
-        }
-        if ((file = fopen(temp, "rb")) == NULL) continue;
-        fseek(file, 0, SEEK_END);
-        fsize = ftell(file);
-        rewind(file);
-        fread(entry, fsize, sizeof(unsigned char), file);
-        if (fsize == CHUNKSIZE && from_u32(entry) == MAGIC_TEXTURE)
-        {
-            if (get_base_chunk_border(from_u32(entry + 4), chunks, chunk_border_texture) > 0) continue;
-            chunks[chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
-            memcpy(chunks[chunk_border_texture++], entry, CHUNKSIZE);
-            continue;
-        }
-
-        if (from_u32(entry) != MAGIC_ENTRY) continue;
-        if (get_index(from_u32(entry + 4), elist, entry_count) > 0) continue;
-
-        elist[entry_count].EID = from_u32(entry + 4);
-        elist[entry_count].chunk = -1;
-        elist[entry_count].esize = fsize;
-
-        if (entry[8] == 7)
-            elist[entry_count].related = getrelatives(entry);
-        if (entry[8] == 11 && entry[0xC] == 6)
-            elist[entry_count].related = GOOL_relatives(entry, fsize);
-
-        elist[entry_count].data = (unsigned char *) malloc(fsize * sizeof(unsigned char));
-        memcpy(elist[entry_count++].data, entry, fsize);
-    }
+    read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count);
 
     printf("Getting model references.\n");
     // gets model references
@@ -521,13 +534,11 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         }
     }
 
-
     printf("Merging zone chunks.\n");
     dumb_merge(elist, chunk_border_gool, chunk_count, entry_count);
 
     printf("Getting rid of empty chunks.\n");
     chunk_count = remove_empty_chunks(chunk_border_gool, chunk_count, entry_count, elist);
-
 
     printf("Building actual chunks.\n");
     for (i = chunk_border_texture; i < chunk_count; i++)
