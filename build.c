@@ -278,26 +278,99 @@ unsigned int* GOOL_relatives(unsigned char *entry, int entrysize)
     return relatives;
 }
 
+void read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture, int *entry_count, FILE *nsf)
+{
+    int i, j , offset;
+    unsigned char chunk[CHUNKSIZE];
+
+    for (i = 0; i < chunk_border_base; i++)
+    {
+        fread(chunk, CHUNKSIZE, sizeof(unsigned char), nsf);
+        chunks[*chunk_border_texture] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
+        memcpy(chunks[*chunk_border_texture], chunk, CHUNKSIZE);
+        (*chunk_border_texture)++;
+        if (chunk[2] != 1)
+            for (j = 0; j < chunk[8]; j++)
+            {
+                offset = 0x100 * chunk[j * 4 + 0x11] + chunk[j * 4 + 0x10];
+                elist[*entry_count].EID = from_u32(chunk + offset + 4);
+                elist[*entry_count].chunk = i;
+                elist[*entry_count].esize = -1;
+                (*entry_count)++;
+            }
+    }
+}
+
+void dumb_merge(ENTRY *elist, int chunk_index_start, int chunk_index_end, int entry_count)
+{
+    int i, j, k;
+    while(1)
+    {
+        int merge_happened = 0;
+        for (i = chunk_index_start; i < chunk_index_end; i++)
+        {
+            int size1 = 0;
+            int count1 = 0;
+
+            for (j = 0; j < entry_count; j++)
+                if (elist[j].chunk == i)
+                {
+                    size1 += elist[j].esize;
+                    count1++;
+                }
+
+            int maxsize = 0;
+            int maxentry_count = 0;
+
+            for (j = i + 1; j < chunk_index_end; j++)
+            {
+                int size2 = 0;
+                int count2 = 0;
+                for (k = 0; k < entry_count; k++)
+                    if (elist[k].chunk == j)
+                    {
+                        size2 += elist[k].esize;
+                        count2++;
+                    }
+
+                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
+                    if (size2 > maxsize)
+                    {
+                        maxsize = size2;
+                        maxentry_count = j;
+                    }
+            }
+
+            if (maxentry_count)
+            {
+                for (j = 0; j < entry_count; j++)
+                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
+                merge_happened++;
+            }
+        }
+        if (!merge_happened) break;
+    }
+}
+
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
 {
     DIR *df = NULL;
     struct dirent *de;
     FILE *nsf = NULL, *file = NULL, *nsfnew = NULL;
 
-    unsigned char chunk[CHUNKSIZE], entry[CHUNKSIZE];
+    unsigned char entry[CHUNKSIZE];
     char temp[MAX], *temp1, *temp2, lcltemp[MAX];
 
     unsigned char *chunks[512];
     ENTRY elist[2500];
 
-    int i, j, k, fsize, offset;
+    int i, j, fsize;
     int chunk_border_base       = 0,
         chunk_border_texture    = 0,
         chunk_border_gool       = 0,
         chunk_count             = 0,
         entry_count_base        = 0,
         entry_count             = 0;
-
 
 
     // opening and stuff
@@ -320,22 +393,9 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
     printf("\nReading from the NSF.\n");
     // getting stuff from the base NSF
-    for (i = 0; i < chunk_border_base; i++)
-    {
-        fread(chunk, CHUNKSIZE, sizeof(unsigned char), nsf);
-        chunks[chunk_border_texture] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
-        memcpy(chunks[chunk_border_texture++], chunk, CHUNKSIZE);
-        if (chunk[2] != 1)
-            for (j = 0; j < chunk[8]; j++)
-            {
-                offset = 0x100 * chunk[j * 4 + 0x11] + chunk[j * 4 + 0x10];
-                elist[entry_count].EID = from_u32(chunk + offset + 4);
-                elist[entry_count].chunk = i;
-                elist[entry_count++].esize = -1;
-            }
-    }
-
+    read_nsf(elist, chunk_border_base, chunks, &chunk_border_texture, &entry_count, nsf);
     entry_count_base = entry_count;
+
     printf("Reading from the folder.\n");
     // getting stuff from the folder
     while ((de = readdir(df)) != NULL)
@@ -386,7 +446,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     chunk_count = chunk_border_texture;
     qsort(elist, entry_count, sizeof(ENTRY), cmp_entry);
 
-
     printf("Building T11s' chunks.\n");
     // tries to do T11 and their relatives' chunk assignment
     for (i = 0; i < entry_count; i++)
@@ -424,52 +483,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     }*/
 
     printf("Merging T11 chunks.\n");
-    while(1)
-    {
-        int merge_happened = 0;
-        for (i = chunk_border_texture; i < chunk_count; i++)
-        {
-            int size1 = 0;
-            int count1 = 0;
-
-            for (j = 0; j < entry_count; j++)
-                if (elist[j].chunk == i)
-                {
-                    size1 += elist[j].esize;
-                    count1++;
-                }
-
-            int maxsize = 0;
-            int maxentry_count = 0;
-
-            for (j = i + 1; j < chunk_count; j++)
-            {
-                int size2 = 0;
-                int count2 = 0;
-                for (k = 0; k < entry_count; k++)
-                    if (elist[k].chunk == j)
-                    {
-                        size2 += elist[k].esize;
-                        count2++;
-                    }
-
-                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-                    if (size2 > maxsize)
-                    {
-                        maxsize = size2;
-                        maxentry_count = j;
-                    }
-            }
-
-            if (maxentry_count)
-            {
-                for (j = 0; j < entry_count; j++)
-                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
-                merge_happened++;
-            }
-        }
-        if (!merge_happened) break;
-    }
+    dumb_merge(elist, chunk_border_texture, chunk_count, entry_count);
 
     printf("Getting rid of empty chunks.\n");
     chunk_count = remove_empty_chunks(chunk_border_texture, chunk_count, entry_count, elist);
@@ -509,52 +523,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
 
     printf("Merging zone chunks.\n");
-    while(1)
-    {
-        int merge_happened = 0;
-        for (i = chunk_border_gool; i < chunk_count; i++)
-        {
-            int size1 = 0;
-            int count1 = 0;
-
-            for (j = 0; j < entry_count; j++)
-                if (elist[j].chunk == i)
-                {
-                    size1 += elist[j].esize;
-                    count1++;
-                }
-
-            int maxsize = 0;
-            int maxentry_count = 0;
-
-            for (j = i + 1; j < chunk_count; j++)
-            {
-                int size2 = 0;
-                int count2 = 0;
-                for (k = 0; k < entry_count; k++)
-                    if (elist[k].chunk == j)
-                    {
-                        size2 += elist[k].esize;
-                        count2++;
-                    }
-
-                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-                    if (size2 > maxsize)
-                    {
-                        maxsize = size2;
-                        maxentry_count = j;
-                    }
-            }
-
-            if (maxentry_count)
-            {
-                for (j = 0; j < entry_count; j++)
-                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
-                merge_happened++;
-            }
-        }
-        if (!merge_happened) break;
-    }
+    dumb_merge(elist, chunk_border_gool, chunk_count, entry_count);
 
     printf("Getting rid of empty chunks.\n");
     chunk_count = remove_empty_chunks(chunk_border_gool, chunk_count, entry_count, elist);
