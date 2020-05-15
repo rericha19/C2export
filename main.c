@@ -842,7 +842,7 @@ int main()
             break;
         case BUILD:
             {
-            printf("Input the path to the base level (.nsf):\n");
+            printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
             scanf(" %[^\n]",fpath);
             if (fpath[0]=='\"')
             {

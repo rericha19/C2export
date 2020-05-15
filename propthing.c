@@ -1,5 +1,4 @@
 #include "macros.h"
-#define OFFSET 0xC
 
 void prop_main(char* path)
 {

@@ -9,6 +9,8 @@
 
 // idk why i made any of these macros now that i think about it, maybe to get rid of magic numbers,
 // but there's still a ton of magic numbers everywhere
+
+#define OFFSET 0xC
 #define CHUNKSIZE 65536
 #define BYTE 256
 #define MAX 200
@@ -39,6 +41,13 @@
 #define PROP 2089440550u
 
 
+#define ENTRY_TYPE_ZONE 0x7
+#define ENTRY_TYPE_GOOL 0xB
+#define ENTRY_TYPE_INST 0xE
+#define ENTRY_TYPE_VCOL 0xF
+#define ENTRY_TYPE_DEMO 0x13
+#define ENTRY_TYPE_SOUND 0xC
+
 typedef struct info{
     int counter[22];    // counts entry types, counter[0] is total entry count
     int print_en;   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
@@ -50,6 +59,17 @@ typedef struct info{
     unsigned int animrefcount;   // count of animation references when porting c3 to c2
 } INFO;
 
+typedef struct spawn{
+    int x;
+    int y;
+    int z;
+    unsigned int zone;
+} SPAWN;
+
+typedef struct spawns{
+    int spawn_count;
+    SPAWN *spawns;
+} SPAWNS;
 
 typedef struct entry{
     unsigned int EID;
@@ -58,6 +78,11 @@ typedef struct entry{
     unsigned char *data;
     unsigned int *related = NULL;
 } ENTRY;
+
+typedef struct dumb {
+    int eid;
+    int index;
+} ITEM;
 
 
 //functional prototypes, also list of functions excluding main and main1
