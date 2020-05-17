@@ -163,3 +163,4 @@ unsigned int get_slst(unsigned char *item);
 unsigned int* GOOL_relatives(unsigned char *entry);
 int get_index(unsigned int eid, ENTRY elist[1500], int counter);
 void prop_main(char* path);
+long long int fact(int n);

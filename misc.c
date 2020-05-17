@@ -6,7 +6,6 @@ void printstatus(int zonetype, int gamemode, int portmode)
     printf("Selected game: Crash %d, porting: %d, zone neighbours (if C2->C3): %d\n\n", gamemode, portmode, zonetype);
 }
 
-
 void intro_text()
  //self-explanatory
 {
