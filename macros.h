@@ -79,13 +79,40 @@ typedef struct entry{
     unsigned int *related = NULL;
 } ENTRY;
 
-typedef struct dumb {
+typedef struct item {
     int eid;
     int index;
 } ITEM;
 
+typedef struct payload {
+    int *chunks;
+    int count;
+    unsigned int zone;
+} PAYLOAD;
 
-//functional prototypes, also list of functions excluding main and main1
+typedef struct payloads {
+    int count;
+    PAYLOAD *arr;
+} PAYLOADS;
+
+typedef struct list {
+    int count;
+    unsigned int *eids;
+} LIST;
+
+typedef struct load {
+    char type;
+    int list_length;
+    unsigned int *list;
+    int index;
+} LOAD;
+
+typedef struct load_list {
+    int count;
+    LOAD array[100];
+} LOAD_LIST;
+
+//functional prototypes, also list of functions excluding main and main1, definitely outdated
 void rot(unsigned int *x,unsigned int *y, double rotation);
 void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
 void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);

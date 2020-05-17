@@ -1,4 +1,5 @@
 #include "macros.h"
+#define PRINTING 0
 
 int cmpfunc(const void *a, const void *b)
 // for qsort
@@ -149,12 +150,12 @@ void get_model_references(ENTRY *elist, int entry_count, int entry_count_base)
     }
 }
 
-int get_index(unsigned int eid, ENTRY elist[1500], int counter)
+int get_index(unsigned int eid, ENTRY elist[1500], int entry_count)
 // returns entry_count of the struct whose EID is equal to searched EID
 {
     int retrn = -1;
 
-    for (int i = 0; i < counter; i++)
+    for (int i = 0; i < entry_count; i++)
         if (elist[i].EID == eid) retrn = i;
 
     return retrn;
@@ -411,12 +412,12 @@ void dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int e
 int is_relative(unsigned int searched, unsigned int *array, int count)
 {
     for (int i = 0; i < count; i++)
-        if (searched == array[i]) return 1;
+        if (searched == array[i]) return 1; //(count - i)*(count - i)/2;
 
     return 0;
 }
 
-void relative_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
+void gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
 {
     int i, j, k;
     while(1)
@@ -424,7 +425,7 @@ void relative_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, i
         int merge_happened = 0;
         for (i = chunk_index_start; i < *chunk_index_end; i++)
         {
-            int size1 = 0, count1 = 0, maxsize = 0, max_entry_count = 0;;
+            int size1 = 0, count1 = 0, max_rating = 0, max_entry_count = 0;;
             unsigned int relatives[250];
             int relative_counter = 0;
 
@@ -452,15 +453,18 @@ void relative_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, i
                     {
                         size2 += elist[k].esize;
                         count2++;
-                        if (is_relative(elist[k].EID, relatives, relative_counter)) has_relative++;
+                        has_relative += is_relative(elist[k].EID, relatives, relative_counter);
                     }
 
                 if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-                    if (size2 > maxsize && has_relative)
+                {
+                    int rating = has_relative;
+                    if (rating > max_rating)
                     {
-                        maxsize = size2;
+                        max_rating = rating;
                         max_entry_count = j;
                     }
+                }
             }
 
             if (max_entry_count)
@@ -468,6 +472,7 @@ void relative_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, i
                 for (j = 0; j < entry_count; j++)
                     if (elist[j].chunk == max_entry_count) elist[j].chunk = i;
                 merge_happened++;
+                //printf("merge happened\n");
             }
         }
         if (!merge_happened) break;
@@ -583,7 +588,7 @@ int load_list_sort(const void *a, const void *b)
 
 void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID)
 {
-    int i, x = 0;
+    int i, x = 0, input;
     char temp[100];
     FILE *nsd = fopen(path, "wb");
     if (nsd == NULL) return;
@@ -591,17 +596,16 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
     unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);
     *(int *)(nsddata + 0x400) = chunk_count;
 
-    printf("\nPick a spawn:\n");
+    // lets u pick a spawn point
+    printf("Pick a spawn:\n");
     for (i = 0; i < spawns.spawn_count; i++)
         printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
-
-    int input;
     scanf("%d", &input);
-    if (input - 1 > spawns.spawn_count || input < 0)
+    if (input - 1 > spawns.spawn_count || input <= 0)
     {
         printf("No such spawn, defaulting to first one\n");
-        input = 0;
+        input = 1;
     }
 
     if (input - 1)
@@ -610,7 +614,7 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
     for (i = 0; i < entry_count; i++)
         if (elist[i].chunk != -1)
         {
-            *(int *)(nsddata + 0x520 + 8*x) = elist[i].chunk;
+            *(int *)(nsddata + 0x520 + 8*x) = elist[i].chunk * 2 + 1;
             *(int *)(nsddata + 0x524 + 8*x) = elist[i].EID;
             x++;
         }
@@ -639,6 +643,7 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
     fwrite(nsddata, 1, end, nsd);
     fclose(nsd);
 
+    // sorts load lists
     for (i = 0; i < entry_count; i++)
         if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
         {
@@ -684,6 +689,228 @@ SPAWNS init_spawns()
     temp.spawns = NULL;
 
     return temp;
+}
+
+PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone)
+{
+    int chunks[250];
+    int count = 0;
+    int curr_chunk;
+    int is_there;
+    char help[100];
+
+    PAYLOAD temp;
+
+    for (int i = 0; i < list.count; i++)
+    {
+        int elist_index = get_index(list.eids[i], elist, entry_count);
+        curr_chunk = elist[elist_index].chunk;
+        is_there = 0;
+        for (int j = 0; j < count; j++)
+            if (chunks[j] == curr_chunk) is_there = 1;
+
+        if (!is_there && eid_conv(elist[elist_index].EID, help)[4] != 'T' && curr_chunk != -1)
+        {
+            chunks[count] = curr_chunk;
+            count++;
+        }
+    }
+
+    temp.zone = zone;
+    temp.count = count;
+    temp.chunks = (int *) malloc(count * sizeof(int));
+    memcpy(temp.chunks, chunks, sizeof(int) * count);
+
+    return temp;
+}
+
+LIST init_list()
+{
+    LIST list;
+    list.count = 0;
+    list.eids = NULL;
+
+    return list;
+}
+
+int list_comp(const void *a, const void *b)
+{
+    unsigned int x = *(unsigned int*) a;
+    unsigned int y = *(unsigned int*) b;
+
+    return (x - y);
+}
+
+int list_find(LIST list, unsigned int searched)
+{
+    int first = 0;
+    int last = list.count - 1;
+    int middle = (first + last)/2;
+
+    while (first <= last)
+    {
+        if (list.eids[middle] < searched)
+            first = middle + 1;
+        else if (list.eids[middle] == searched)
+            return middle;
+        else
+            last = middle - 1;
+
+        middle = (first + last)/2;
+    }
+
+    return -1;
+}
+
+void list_add(LIST *list, unsigned int eid)
+{
+    list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int *));
+    list->eids[list->count] = eid;
+    list->count++;
+    qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
+}
+
+void list_rem(LIST *list, unsigned int eid)
+{
+    int index = list_find(*list, eid);
+    if (index == -1) return;
+
+    list->eids[index] = list->eids[list->count - 1];
+    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int *));
+    list->count--;
+    qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
+}
+
+void list_insert(LIST *list, unsigned int eid)
+{
+    if (list_find(*list, eid) == -1)
+        list_add(list, eid);
+}
+
+void print_payload(PAYLOAD payload)
+{
+    char temp[100];
+    printf("Zone: %s; payload: %3d\n", eid_conv(payload.zone, temp), payload.count);
+}
+
+LOAD_LIST init_load_list()
+{
+    LOAD_LIST temp;
+    temp.count = 0;
+
+    return temp;
+}
+
+int comp(const void *a, const void *b)
+{
+    LOAD x = *(LOAD *) a;
+    LOAD y = *(LOAD *) b;
+
+    return (x.index - y.index);
+}
+
+int pay_cmp(const void *a, const void *b)
+{
+    PAYLOAD x = *(PAYLOAD *) a;
+    PAYLOAD y = *(PAYLOAD *) b;
+
+    return (y.count - x.count);
+}
+
+void insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
+{
+    for (int i = 0; i < payloads->count; i++)
+        if (payloads->arr[i].zone == insertee.zone)
+        {
+            if (payloads->arr[i].count < insertee.count)
+            {
+                    payloads->arr[i].count = insertee.count;
+                    free(payloads->arr[i].chunks);
+                    payloads->arr[i].chunks = insertee.chunks;
+                    return;
+            }
+            else return;
+        }
+
+    payloads->arr = (PAYLOAD *) realloc(payloads->arr, (payloads->count + 1) * sizeof(PAYLOAD));
+    payloads->arr[payloads->count] = insertee;
+    (payloads->count)++;
+}
+
+PAYLOADS max_payload(ENTRY *elist, int entry_count)
+{
+    PAYLOADS payloads;
+    payloads.count = 0;
+    payloads.arr = NULL;
+    int i, j, k, l, m;
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        {
+            int item1off = from_u32(elist[i].data + 0x10);
+            int cam_count = from_u32(elist[i].data + item1off + 0x188) / 3;
+
+            for (j = 0; j < cam_count; j++)
+            {
+                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
+                LOAD_LIST load_list = init_load_list();
+                LIST list = init_list();
+                PAYLOAD payload;
+                for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
+                {
+                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
+                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
+                    if (code == 0x208 || code == 0x209)
+                    {
+                        int sub_list_offset = offset + 4 * list_count;
+                        int point;
+                        int load_list_item_count;
+                        for (l = 0; l < list_count; l++, sub_list_offset += load_list_item_count * 4)
+                        {
+                            load_list_item_count = from_u16(elist[i].data + offset + l * 2);
+                            point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
+
+                            load_list.array[load_list.count].list_length = load_list_item_count;
+                            load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
+                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
+                            if (code == 0x208)
+                                load_list.array[load_list.count].type = 'A';
+                            else
+                                load_list.array[load_list.count].type = 'B';
+                            load_list.array[load_list.count].index = point;
+                            load_list.count++;
+                        }
+                    }
+                    qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
+                }
+
+                // if (load_list.count) printf("CAMERA\n");
+                for (l = 0; l < load_list.count; l++)
+                    {
+                        if (load_list.array[l].type == 'A')
+                            for (m = 0; m < load_list.array[l].list_length; m++)
+                                list_add(&list, load_list.array[l].list[m]);
+
+                        if (load_list.array[l].type == 'B')
+                            for (m = 0; m < load_list.array[l].list_length; m++)
+                                list_rem(&list, load_list.array[l].list[m]);
+
+                        payload = get_payload(elist, entry_count, list, elist[i].EID);
+                        insert_payload(&payloads, payload);
+                    }
+            }
+        }
+
+    return payloads;
+}
+
+void load_list_merge(ENTRY *elist, int entry_count)
+{
+    PAYLOADS payloads = max_payload(elist, entry_count);
+    qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
+    for (int i = 0; i < payloads.count; i++)
+        print_payload(payloads.arr[i]);
+
 }
 
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
@@ -783,7 +1010,15 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         }
     }
 
-    relative_merge(elist, chunk_border_texture, &chunk_count, entry_count);
+    // include demo and vcol entries, merge into gool_chunks
+    for (i = 0; i < entry_count; i++)
+    {
+        int type = entry_type(elist[i]);
+        if (type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_VCOL)
+            elist[i].chunk = chunk_count++;
+    }
+
+    gool_merge(elist, chunk_border_texture, &chunk_count, entry_count);
     dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
     chunk_border_gool = chunk_count;
 
@@ -791,21 +1026,18 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     printf("Building zones' chunks.\n");
     // tries to do zones and their relatives' chunk assignment
     for (i = 0; i < entry_count; i++)
-    {
-        int size = 0;
-        int counter = 0;
-        int relative_index;
         if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
         {
-            if (elist[i].chunk == -1)
-                elist[i].chunk = chunk_count;
-            size += elist[i].esize;
+            if (elist[i].chunk != -1) continue;
+            elist[i].chunk = chunk_count;
+            int size = elist[i].esize;
+            int counter = 1;
             if (elist[i].related != NULL)
                 for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                 {
-                    relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
+                    int relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
                     if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
-                    if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
+                    if (elist[relative_index].esize + size + 4 * counter > CHUNKSIZE)
                     {
                         chunk_count++;
                         size = 0;
@@ -817,21 +1049,20 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
                 }
             chunk_count++;
         }
-    }
 
 
-    relative_merge(elist, chunk_border_gool, &chunk_count, entry_count);
-    dumb_merge(elist, chunk_border_gool, &chunk_count, entry_count);
+    load_list_merge(elist, entry_count);
+    //dumb_merge(elist, chunk_border_gool, &chunk_count, entry_count);
 
 
-    // include demo and vcol entries
+    // include demo and vcol entries, merge into normal chunks
     for (i = 0; i < entry_count; i++)
     {
         int type = entry_type(elist[i]);
         if (type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_VCOL)
             elist[i].chunk = chunk_count++;
     }
-    dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
+    //dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
 
     // include instrument entries
     for (i = 0; i < entry_count; i++)
@@ -839,17 +1070,18 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
             elist[i].chunk = chunk_count++;
     chunk_border_instruments = chunk_count;
 
-    // include sounds
+    // include sounds, merge sound chunks
     for (i = 0; i < entry_count; i++)
         if (entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             elist[i].chunk = chunk_count++;
     dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
 
-
+    // only opens the nsf, does not write yet
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
     nsfnew = fopen(lcltemp, "wb");
 
+    // opens nsd, writes it, sorts load lists
     *(strchr(lcltemp, '\0') - 1) = 'D';
     write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
 
@@ -903,11 +1135,13 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);
     }
 
-    // prints stuff
-    print(elist, entry_count);
-
-    for (i = 0; i < chunk_count; i++)
-        printf("%03d: %s\n",i, eid_conv(from_u32(chunks[i] + 4), temp));
+    // prints entries and their stats and relatives, then chunks and their EIDs
+    if (PRINTING)
+    {
+        print(elist, entry_count);
+        for (i = 0; i < chunk_count; i++)
+            printf("%03d: %s\n",i, eid_conv(from_u32(chunks[i] + 4), temp));
+    }
 
 
     printf("Writing new NSF.\n");
