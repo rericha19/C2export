@@ -905,13 +905,14 @@ PAYLOADS max_payload(ENTRY *elist, int entry_count)
 }
 
 
-void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int **res, int *counter)
+void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int ***res, int *counter)
 {
     if (index == r)
     {
-        memcpy(res[*counter], data, r * sizeof(int));
+        *res = (int **) realloc(*res, (*counter + 1) * sizeof(int *));
+        (*res)[*counter] = (int *) malloc(r * sizeof(int));
+        memcpy((*res)[*counter], data, r * sizeof(int));
         (*counter)++;
-        // printf("r: %d, reeee %d\n", r, *counter);
         return;
     }
 
@@ -922,7 +923,7 @@ void combinationUtil(int arr[], int data[], int start, int end, int index, int r
     }
 }
 
-void getCombinations(int arr[], int n, int r, int **res, int *counter)
+void getCombinations(int arr[], int n, int r, int ***res, int *counter)
 {
     int data[r];
     combinationUtil(arr, data, 0, n - 1, 0, r, res, counter);
@@ -951,30 +952,33 @@ void chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
 int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
 {
     int i, j, k, l;
-    int max_size, size;
+    int max_size = 0, size;
     int max_comb = 0;
     int *best = NULL;
+    ENTRY temp_list[100];
 
-    for (i = 2; i < chunk_count; i++)
+    for (i = 2; i < 3; i++)
     {
-        int combination_count = fact(chunk_count)/(fact(i) * fact(chunk_count - i));
         int counter = 0;
+        int index = 0;
 
-        int **combinations = (int **) malloc(combination_count * sizeof(int *));
-        for (j = 0; j < combination_count; j++)
-            combinations[j] = (int *) malloc(i * sizeof(int));
-        getCombinations(chunks, chunk_count, i, combinations, &counter);
+        int **combinations = NULL;
+        getCombinations(chunks, chunk_count, i, &combinations, &counter);
 
-        for (j = 0; j < combination_count; j++)
+        for (j = 0; j < counter; j++)
         {
             size = 0x14;
+            index = 0;
             for (k = 0; k < i; k++)
                 for (l = 0; l < entry_count; l++)
                     if (elist[l].chunk == combinations[j][k])
+                    {
                         size += 4 + elist[l].esize;
+                        temp_list[index++] = elist[l];
+                    }
 
 
-            if (size <= CHUNKSIZE && i > max_comb)
+            if (size <= CHUNKSIZE && size > max_size)
             {
                 max_size = size;
                 free(best);
@@ -985,12 +989,12 @@ int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
             }
         }
 
-        for (j = 0; j < combination_count; j++)
+        for (j = 0; j < counter; j++)
             free(combinations[j]);
         free(combinations);
     }
 
-    if (max_comb)
+    if (max_size != 0)
     {
         chunk_merge(elist, entry_count, best, max_comb);
         return 1;
@@ -1008,7 +1012,7 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
     {
         //printf("AAAAAAAAAAAA\n");
         PAYLOADS payloads = max_payload(elist, entry_count);
-        qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
+        // qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
         if (payloads.arr[0].count < 20) break;
             print_payload(payloads.arr[0]);
@@ -1084,7 +1088,8 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         chunk_border_instruments= 0,
         chunk_count             = 0,
         entry_count_base        = 0,
-        entry_count             = 0;
+        entry_count             = 0,
+        chunk_border_sounds;
 
 
     // opening and stuff
@@ -1130,6 +1135,20 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     chunk_count = chunk_border_texture;
     qsort(elist, entry_count, sizeof(ENTRY), cmp_entry);
 
+     // include instrument entries
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_INST)
+            elist[i].chunk = chunk_count++;
+    chunk_border_instruments = chunk_count;
+
+    // include sounds, merge sound chunks
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+            elist[i].chunk = chunk_count++;
+    dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
+
+    chunk_border_sounds = chunk_count;
+
     printf("Building T11s' chunks.\n");
     // tries to do T11 and their relatives' chunk assignment
     for (i = 0; i < entry_count; i++)
@@ -1168,9 +1187,9 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
             elist[i].chunk = chunk_count++;
     }
 
-    gool_merge(elist, chunk_border_texture, &chunk_count, entry_count);
-    dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
-    chunk_border_gool = chunk_count;
+    // gool_merge(elist, chunk_border_texture, &chunk_count, entry_count);
+    // dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
+    // chunk_border_gool = chunk_count;
 
 
     printf("Building zones' chunks.\n");
@@ -1179,7 +1198,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
         {
             if (elist[i].chunk != -1) continue;
-            elist[i].chunk = chunk_count;
+            elist[i].chunk = chunk_count++;
             int size = elist[i].esize;
             int counter = 1;
             if (elist[i].related != NULL)
@@ -1193,11 +1212,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
                 }
         }
 
-
-    load_list_merge(elist, entry_count, chunk_border_gool, &chunk_count);
-    dumb_merge(elist, chunk_border_gool, &chunk_count, entry_count);
-
-
     // include demo and vcol entries, merge into normal chunks
     for (i = 0; i < entry_count; i++)
     {
@@ -1205,19 +1219,12 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         if (type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_VCOL)
             elist[i].chunk = chunk_count++;
     }
-    dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
 
-    // include instrument entries
-    for (i = 0; i < entry_count; i++)
-        if (entry_type(elist[i]) == ENTRY_TYPE_INST)
-            elist[i].chunk = chunk_count++;
-    chunk_border_instruments = chunk_count;
 
-    // include sounds, merge sound chunks
-    for (i = 0; i < entry_count; i++)
-        if (entry_type(elist[i]) == ENTRY_TYPE_SOUND)
-            elist[i].chunk = chunk_count++;
-    dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
+    load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    //dumb_merge(elist, chunk_border_gool, &chunk_count, entry_count);
+
+
 
     // only opens the nsf, does not write yet
     *(strrchr(nsfpath,'\\') + 1) = '\0';
@@ -1243,7 +1250,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         *(unsigned short int *) chunks[i] = 0x1234;
         *((unsigned short int*) (chunks[i] + 4)) = chunk_no;
         *((unsigned short int*) (chunks[i] + 8)) = local_entry_count;
-        if (i >= chunk_border_instruments) *(short int*)(chunks[i] + 2) = 3;
+        if (i < chunk_border_sounds) *(short int*)(chunks[i] + 2) = 3;
 
         local_entry_count++;
         int indexer = 0;
