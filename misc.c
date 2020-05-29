@@ -204,6 +204,12 @@ int main1()
     return 0;
 }
 
+void swap_ints(int *a, int *b)
+{
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
 
 char* eid_conv(unsigned int m_value, char *eid)
 //converts int eid to string eid
@@ -299,3 +305,75 @@ void askmode(int *zonetype, INFO *status)
     }
     printstatus(*zonetype,status->gamemode,status->portmode);
 }
+
+long long int fact(int n)
+{
+    long long int result = 1;
+    for (int i = 1; i <= n; i++)
+        result *= i;
+
+    return result;
+}
+
+int cmpfunc(const void *a, const void *b)
+{
+   return (*(int*) a - *(int*) b);
+}
+
+int comp(const void *a, const void *b)
+{
+    LOAD x = *(LOAD *) a;
+    LOAD y = *(LOAD *) b;
+
+    return (x.index - y.index);
+}
+
+int pay_cmp(const void *a, const void *b)
+{
+    PAYLOAD x = *(PAYLOAD *) a;
+    PAYLOAD y = *(PAYLOAD *) b;
+
+    return (y.count - x.count);
+}
+
+int list_comp(const void *a, const void *b)
+{
+    unsigned int x = *(unsigned int*) a;
+    unsigned int y = *(unsigned int*) b;
+
+    return (x - y);
+}
+
+int load_list_sort(const void *a, const void *b)
+{
+    ITEM x = *(ITEM *) a;
+    ITEM y = *(ITEM *) b;
+
+    return (x.index - y.index);
+}
+
+
+void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int ***res, int *counter)
+{
+    if (index == r)
+    {
+        *res = (int **) realloc(*res, (*counter + 1) * sizeof(int *));
+        (*res)[*counter] = (int *) malloc(r * sizeof(int));
+        memcpy((*res)[*counter], data, r * sizeof(int));
+        (*counter)++;
+        return;
+    }
+
+    for (int i = start; i <= end && end - i + 1 >= r - index; i++)
+    {
+        data[index] = arr[i];
+        combinationUtil(arr, data, i+1, end, index+1, r, res, counter);
+    }
+}
+
+void getCombinations(int arr[], int n, int r, int ***res, int *counter)
+{
+    int data[r];
+    combinationUtil(arr, data, 0, n - 1, 0, r, res, counter);
+}
+

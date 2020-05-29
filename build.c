@@ -1,11 +1,5 @@
 #include "macros.h"
-#define PRINTING 0
-
-int cmpfunc(const void *a, const void *b)
-// for qsort
-{
-   return (*(int*) a - *(int*) b);
-}
+#define PRINTING 1
 
 int to_enum(const void *a)
 {
@@ -133,9 +127,11 @@ void get_model_references(ENTRY *elist, int entry_count, int entry_count_base)
             int relative_index;
             int new_counter = 0;
             for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                if ((relative_index = get_index(elist[i].related[j + 1], elist, entry_count)) > 0)
+                if ((relative_index = get_index(elist[i].related[j + 1], elist, entry_count)) >= 0)
                     if (elist[relative_index].data != NULL && (from_u32(elist[relative_index].data + 8) == 1))
+                    {
                         new_relatives[new_counter++] = get_model(elist[relative_index].data);
+                    }
 
             if (new_counter)
             {
@@ -578,14 +574,6 @@ int get_nsd_index(unsigned int searched, ENTRY *elist, int entry_count)
     return -1;
 }
 
-int load_list_sort(const void *a, const void *b)
-{
-    ITEM x = *(ITEM *) a;
-    ITEM y = *(ITEM *) b;
-
-    return (x.index - y.index);
-}
-
 void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID)
 {
     int i, x = 0, input;
@@ -691,9 +679,9 @@ SPAWNS init_spawns()
     return temp;
 }
 
-PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone)
+PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min)
 {
-    int chunks[250];
+    int chunks[1000];
     int count = 0;
     int curr_chunk;
     int is_there;
@@ -709,7 +697,7 @@ PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone)
         for (int j = 0; j < count; j++)
             if (chunks[j] == curr_chunk) is_there = 1;
 
-        if (!is_there && eid_conv(elist[elist_index].EID, help)[4] != 'T' && curr_chunk != -1)
+        if (!is_there && eid_conv(elist[elist_index].EID, help)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
         {
             chunks[count] = curr_chunk;
             count++;
@@ -731,14 +719,6 @@ LIST init_list()
     list.eids = NULL;
 
     return list;
-}
-
-int list_comp(const void *a, const void *b)
-{
-    unsigned int x = *(unsigned int*) a;
-    unsigned int y = *(unsigned int*) b;
-
-    return (x - y);
 }
 
 int list_find(LIST list, unsigned int searched)
@@ -787,10 +767,12 @@ void list_insert(LIST *list, unsigned int eid)
         list_add(list, eid);
 }
 
-void print_payload(PAYLOAD payload)
+void print_payload(PAYLOAD payload, int dumb)
 {
     char temp[100];
-    printf("Zone: %s; payload: %3d\n", eid_conv(payload.zone, temp), payload.count);
+    printf("Zone: %s; payload: %3d", eid_conv(payload.zone, temp), payload.count);
+    if (dumb) printf("; stopper: %2d", dumb);
+    printf("\n");
 }
 
 LOAD_LIST init_load_list()
@@ -801,21 +783,6 @@ LOAD_LIST init_load_list()
     return temp;
 }
 
-int comp(const void *a, const void *b)
-{
-    LOAD x = *(LOAD *) a;
-    LOAD y = *(LOAD *) b;
-
-    return (x.index - y.index);
-}
-
-int pay_cmp(const void *a, const void *b)
-{
-    PAYLOAD x = *(PAYLOAD *) a;
-    PAYLOAD y = *(PAYLOAD *) b;
-
-    return (y.count - x.count);
-}
 
 void insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
 {
@@ -837,7 +804,7 @@ void insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
     (payloads->count)++;
 }
 
-PAYLOADS max_payload(ENTRY *elist, int entry_count)
+PAYLOADS get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
 {
     PAYLOADS payloads;
     payloads.count = 0;
@@ -884,7 +851,6 @@ PAYLOADS max_payload(ENTRY *elist, int entry_count)
                     qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
                 }
 
-                // if (load_list.count) printf("CAMERA\n");
                 for (l = 0; l < load_list.count; l++)
                     {
                         if (load_list.array[l].type == 'A')
@@ -895,47 +861,13 @@ PAYLOADS max_payload(ENTRY *elist, int entry_count)
                             for (m = 0; m < load_list.array[l].list_length; m++)
                                 list_rem(&list, load_list.array[l].list[m]);
 
-                        payload = get_payload(elist, entry_count, list, elist[i].EID);
+                        payload = get_payload(elist, entry_count, list, elist[i].EID, chunk_min);
                         insert_payload(&payloads, payload);
                     }
             }
         }
 
     return payloads;
-}
-
-
-void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int ***res, int *counter)
-{
-    if (index == r)
-    {
-        *res = (int **) realloc(*res, (*counter + 1) * sizeof(int *));
-        (*res)[*counter] = (int *) malloc(r * sizeof(int));
-        memcpy((*res)[*counter], data, r * sizeof(int));
-        (*counter)++;
-        return;
-    }
-
-    for (int i = start; i <= end && end - i + 1 >= r - index; i++)
-    {
-        data[index] = arr[i];
-        combinationUtil(arr, data, i+1, end, index+1, r, res, counter);
-    }
-}
-
-void getCombinations(int arr[], int n, int r, int ***res, int *counter)
-{
-    int data[r];
-    combinationUtil(arr, data, 0, n - 1, 0, r, res, counter);
-}
-
-long long int fact(int n)
-{
-    long long int result = 1;
-    for (int i = 1; i <= n; i++)
-        result *= i;
-
-    return result;
 }
 
 void chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
@@ -949,79 +881,279 @@ void chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
     //printf("%3d ", chunks)
 }
 
+int get_common(int* listA, int countA, int *listB, int countB)
+{
+    int i, j, copy_countA = 0, copy_countB = 0;
+    int copyA[100];
+    int copyB[100];
+    qsort(listA, countA, sizeof(int), cmpfunc);
+    qsort(listB, countB, sizeof(int), cmpfunc);
+
+    for (i = 0; i < countA; i++)
+        if (i)
+        {
+            if (listA[i] != copyA[copy_countA - 1])
+                copyA[copy_countA++] = listA[i];
+        }
+        else copyA[copy_countA++] = listA[i];
+
+    for (i = 0; i < countB; i++)
+        if (i)
+        {
+            if (listB[i] != copyB[copy_countB - 1])
+                copyB[copy_countB++] = listB[i];
+        }
+        else copyB[copy_countB++] = listA[i];
+
+    int counter = 0;
+    for (i = 0; i < copy_countA; i++)
+        for (j = 0; j < copy_countB; j++)
+        if (copyA[i] == copyB[j])
+            counter++;
+
+    return counter;
+}
+
 int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
 {
-    int i, j, k, l;
-    int max_size = 0, size;
-    int max_comb = 0;
-    int *best = NULL;
-    ENTRY temp_list[100];
+    int i, j, k;
+    int best[2] = {-1, -1};
+    int relatives1[1000], relatives2[1000];
+    int relative_count1, relative_count2;
+    // char temp[100];
 
-    for (i = 2; i < 3; i++)
+    int max = 0;
+
+    for (i = 0; i < chunk_count; i++)
     {
-        int counter = 0;
-        int index = 0;
+        int size1 = 0;
+        int count1 = 0;
+        relative_count1 = 0;
 
-        int **combinations = NULL;
-        getCombinations(chunks, chunk_count, i, &combinations, &counter);
-
-        for (j = 0; j < counter; j++)
-        {
-            size = 0x14;
-            index = 0;
-            for (k = 0; k < i; k++)
-                for (l = 0; l < entry_count; l++)
-                    if (elist[l].chunk == combinations[j][k])
-                    {
-                        size += 4 + elist[l].esize;
-                        temp_list[index++] = elist[l];
-                    }
-
-
-            if (size <= CHUNKSIZE && size > max_size)
+        for (j = 0; j < entry_count; j++)
+            if (elist[j].chunk == chunks[i])
             {
-                max_size = size;
-                free(best);
-                best = (int *) malloc(i * sizeof(int));
-                for (k = 0; k < i; k++)
-                    best[k] = combinations[j][k];
-                max_comb = i;
+                size1 += elist[j].esize;
+                count1++;
+                relatives1[relative_count1++] = elist[j].EID;
+                if (elist[j].related != NULL)
+                    for (k = 0; (unsigned ) k < elist[j].related[0]; k++)
+                    relatives1[relative_count1++] = elist[j].related[k + 1];
+            }
+
+
+        for (j = i + 1; j < chunk_count; j++)
+        {
+            int size2 = 0;
+            int count2 = 0;
+            relative_count2 = 0;
+            for (k = 0; k < entry_count; k++)
+                if (elist[k].chunk == chunks[j])
+                {
+                    size2 += elist[k].esize;
+                    count2++;
+                    relatives2[relative_count2++] = elist[j].EID;
+                    /*if (elist[k].related != NULL)
+                        for (l = 0; (unsigned) l < elist[k].related[0]; l++)
+                        relatives2[relative_count2++] = elist[k].related[l + 1];*/
+                }
+
+            if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
+            {
+                int common_count = get_common(relatives1, relative_count1, relatives2, relative_count2);
+                if (common_count > max)
+                {
+                    max = common_count;
+                    best[0] = chunks[i];
+                    best[1] = chunks[j];
+                }
             }
         }
-
-        for (j = 0; j < counter; j++)
-            free(combinations[j]);
-        free(combinations);
     }
 
-    if (max_size != 0)
+    if (best[0] != -1 && best[0] != -1)
     {
-        chunk_merge(elist, entry_count, best, max_comb);
+        // printf("%d %d\n", best[0], best[1]);
+        chunk_merge(elist, entry_count, best, 2);
         return 1;
     }
 
     return 0;
 }
 
+int get_entry_index(int searched_eid, int* entries, int valid_entry_count)
+{
+    for (int i = 0; i < valid_entry_count; i++)
+        if (entries[i] == searched_eid)
+            return i;
+
+    return -1;
+}
+
+void increment_common(LIST list, int *entries, int valid_entry_count, int **entry_matrix)
+{
+    for (int i = 0; i < list.count; i++)
+        for (int j = i + 1; j < list.count; j++)
+        {
+            int indexA = get_entry_index(list.eids[i], entries, valid_entry_count);
+            int indexB = get_entry_index(list.eids[j], entries, valid_entry_count);
+
+            if (indexA < indexB)
+                swap_ints(&indexA, &indexB);
+
+            if (indexA == -1 || indexB == -1) continue;
+
+            entry_matrix[indexA][indexB]++;
+        }
+}
+
+int waren_merge(int **entry_matrix, int valid_entry_count, ENTRY *elist, int entry_count, int *entries)
+{
+    int max_value = 0, i, j;
+    int max_index1 = -1, max_index2 = -1;
+
+    for (i = 0; i < valid_entry_count; i++)
+        for (j = 0; j < i; j++)
+            if (entry_matrix[i][j] > max_value)
+            {
+                max_value = entry_matrix[i][j];
+                max_index1 = i;
+                max_index2 = j;
+            }
+
+    if (max_index1 != -1)
+    {
+        entry_matrix[max_index1][max_index2] = 0;
+
+        int elist_index1 = get_index(entries[max_index1], elist, entry_count);
+        int elist_index2 = get_index(entries[max_index2], elist, entry_count);
+        int chunk_index1 = elist[elist_index1].chunk;
+        int chunk_index2 = elist[elist_index2].chunk;
+
+        int size = 0x14;
+        for (i = 0; i < entry_count; i++)
+            if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
+                size += elist[i].esize + 4;
+
+        if (size < CHUNKSIZE)
+            for (i = 0; i < entry_count; i++)
+                if (elist[i].chunk == chunk_index2)
+                    elist[i].chunk = chunk_index1;
+        return 1;
+    }
+
+    return 0;
+}
+
+void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count)
+{
+    int i, j, k, l, m, valid_entry_count = 0;
+    int entries[1000];
+
+    for (i = 0; i < entry_count; i++)
+    {
+        switch (entry_type(elist[i]))
+        {
+            case -1:
+            case 5:
+            case 6:
+            case 12:
+            case 14:
+            case 20:
+            case 21:
+                continue;
+            default: ;
+        }
+
+        entries[valid_entry_count] = elist[i].EID;
+        valid_entry_count++;
+    }
+
+    int **entry_matrix = (int **) malloc(valid_entry_count * sizeof(int*));
+    for (i = 0; i < valid_entry_count; i++)
+    {
+        entry_matrix[i] = (int *) calloc((i), sizeof(int));
+    }
+
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        {
+            int item1off = from_u32(elist[i].data + 0x10);
+            int cam_count = from_u32(elist[i].data + item1off + 0x188) / 3;
+
+            for (j = 0; j < cam_count; j++)
+            {
+                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
+                LOAD_LIST load_list = init_load_list();
+                LIST list = init_list();
+                for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
+                {
+                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
+                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
+                    if (code == 0x208 || code == 0x209)
+                    {
+                        int sub_list_offset = offset + 4 * list_count;
+                        int point;
+                        int load_list_item_count;
+                        for (l = 0; l < list_count; l++, sub_list_offset += load_list_item_count * 4)
+                        {
+                            load_list_item_count = from_u16(elist[i].data + offset + l * 2);
+                            point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
+
+                            load_list.array[load_list.count].list_length = load_list_item_count;
+                            load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
+                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
+                            if (code == 0x208)
+                                load_list.array[load_list.count].type = 'A';
+                            else
+                                load_list.array[load_list.count].type = 'B';
+                            load_list.array[load_list.count].index = point;
+                            load_list.count++;
+                            qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
+                        }
+                    }
+                }
+
+
+                for (l = 0; l < load_list.count; l++)
+                {
+                        if (load_list.array[l].type == 'A')
+                            for (m = 0; m < load_list.array[l].list_length; m++)
+                                list_add(&list, load_list.array[l].list[m]);
+
+                        if (load_list.array[l].type == 'B')
+                            for (m = 0; m < load_list.array[l].list_length; m++)
+                                list_rem(&list, load_list.array[l].list[m]);
+
+                    increment_common(list, entries, valid_entry_count, entry_matrix);
+                }
+            }
+        }
+
+    while (1)
+    {
+        if (!waren_merge(entry_matrix, valid_entry_count, elist, entry_count, entries))
+            break;
+    }
+
+    for (i = 0; i < valid_entry_count; i++)
+        free(entry_matrix[i]);
+    free(entry_matrix);
+}
+
+
 void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count)
 {
-    unsigned int prev = 0;
-    int payload = 0;
 
-    for (int x = 0; x < 1000; x++)
+    for (int x = 0; ; x++)
     {
-        //printf("AAAAAAAAAAAA\n");
-        PAYLOADS payloads = max_payload(elist, entry_count);
-        // qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
+        PAYLOADS payloads = get_payload_ladder(elist, entry_count, chunk_min);
+        qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
-        if (payloads.arr[0].count < 20) break;
-            print_payload(payloads.arr[0]);
-
-        if (prev == payloads.arr[0].zone && payload == payloads.arr[0].count)
-            break;
-
-        prev = payloads.arr[0].zone;
-        payload = payloads.arr[0].count;
+        if (payloads.arr[0].count < 19) break;
+        printf("%3d  ", x);
+        print_payload(payloads.arr[0], 0);
 
         qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmpfunc);
 
@@ -1029,13 +1161,12 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
             printf("%3d ", payloads.arr[0].chunks[i] * 2 + 1);
         printf("\n");
 
-        int chunks[100];
+        int chunks[1000];
         int count;
         int check = 0;
 
         for (int i = 0; i < payloads.count && check != 1; i++)
         {
-            check = 0;
             count = 0;
 
             for (int j = 0; j < payloads.arr[i].count; j++)
@@ -1048,6 +1179,7 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
             if (merge_thing(elist, entry_count, chunks, count))
                 check = 1;
 
+            if (check)
             for (int j = chunk_min; j < *chunk_count; j++)
             {
                 int empty = 1;
@@ -1064,178 +1196,83 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
                 }
             }
         }
+
+        if (check == 0) break;
     }
+
+    dumb_merge(elist, chunk_min, chunk_count, entry_count);
 }
 
-void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
+void create_proto_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
 {
-    DIR *df = NULL;
-    FILE *nsf = NULL, *nsfnew = NULL;
-    SPAWNS spawns = init_spawns();
+    int i, j;
+    int size;
+    int counter;
+    int relative_index;
+    int chunk_count = *real_chunk_count;
 
-    char temp[MAX], lcltemp[MAX];
-    unsigned int gool_table[0x40];
-    for (int i = 0; i < 0x40; i++)
-        gool_table[i] = NONE;
-
-    unsigned char *chunks[512];
-    ENTRY elist[2500];
-
-    int i, j, level_ID;
-    int chunk_border_base       = 0,
-        chunk_border_texture    = 0,
-        chunk_border_gool       = 0,
-        chunk_border_instruments= 0,
-        chunk_count             = 0,
-        entry_count_base        = 0,
-        entry_count             = 0,
-        chunk_border_sounds;
-
-
-    // opening and stuff
-    if ((nsf = fopen(nsfpath,"rb")) == NULL)
+    switch(grouping_flag)
     {
+        case 0:  // group gool with its kids
         {
-            printf("[ERROR] Could not open selected NSF\n");
-            return;
-        }
-    }
-
-    if ((df = opendir(dirpath)) == NULL)
-    {
-        printf("[ERROR] Could not open selected directory\n");
-        fclose(nsf);
-        return;
-    }
-
-    printf("\nWhat ID do you want your level to have? [CAN OVERWRITE EXISTING FILES!]\n");
-    scanf("%x", &level_ID);
-    if (level_ID < 0 || level_ID > 0x3F)
-    {
-        printf("Invalid ID, defaulting to 0\n");
-        level_ID = 0;
-    }
-
-    fseek(nsf, 0, SEEK_END);
-    chunk_border_base = ftell(nsf) / CHUNKSIZE;
-    rewind(nsf);
-
-    printf("\nReading from the NSF.\n");
-    read_nsf(elist, chunk_border_base, chunks, &chunk_border_texture, &entry_count, nsf, gool_table);
-    entry_count_base = entry_count;
-
-    printf("Reading from the folder.\n");
-    read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
-
-    printf("Getting model references.\n");
-    get_model_references(elist, entry_count, entry_count_base);
-
-    printf("Removing invalid references.\n");
-    remove_invalid_references(elist, entry_count, entry_count_base);
-    chunk_count = chunk_border_texture;
-    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry);
-
-     // include instrument entries
-    for (i = 0; i < entry_count; i++)
-        if (entry_type(elist[i]) == ENTRY_TYPE_INST)
-            elist[i].chunk = chunk_count++;
-    chunk_border_instruments = chunk_count;
-
-    // include sounds, merge sound chunks
-    for (i = 0; i < entry_count; i++)
-        if (entry_type(elist[i]) == ENTRY_TYPE_SOUND)
-            elist[i].chunk = chunk_count++;
-    dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
-
-    chunk_border_sounds = chunk_count;
-
-    printf("Building T11s' chunks.\n");
-    // tries to do T11 and their relatives' chunk assignment
-    for (i = 0; i < entry_count; i++)
-    {
-        int size;
-        int counter;
-        int relative_index;
-        if (entry_type(elist[i]) == ENTRY_TYPE_GOOL)
-        {
-            elist[i].chunk = chunk_count;
-            size = elist[i].esize;
-            counter = 0;
-            if (elist[i].related != NULL)
-            for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+            for (i = 0; i < entry_count; i++)
             {
-                relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
-                if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
+                if (entry_type(elist[i]) == ENTRY_TYPE_GOOL)
                 {
-                    chunk_count++;
+                    elist[i].chunk = chunk_count;
+                    size = elist[i].esize;
                     counter = 0;
-                    size = 0;
+                    if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1) continue;
+                        if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
+                        {
+                            chunk_count++;
+                            counter = 0;
+                            size = 0;
+                        }
+                        elist[relative_index].chunk = chunk_count;
+                        size += elist[relative_index].esize;
+                        counter++;
+                    }
+                    chunk_count++;
                 }
-                elist[relative_index].chunk = chunk_count;
-                size += elist[relative_index].esize;
-                counter++;
             }
-            chunk_count++;
+            break;
         }
-    }
-
-    // include demo and vcol entries, merge into gool_chunks
-    for (i = 0; i < entry_count; i++)
-    {
-        int type = entry_type(elist[i]);
-        if (type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_VCOL)
-            elist[i].chunk = chunk_count++;
-    }
-
-    // gool_merge(elist, chunk_border_texture, &chunk_count, entry_count);
-    // dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
-    // chunk_border_gool = chunk_count;
-
-
-    printf("Building zones' chunks.\n");
-    // tries to do zones and their relatives' chunk assignment
-    for (i = 0; i < entry_count; i++)
-        if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
+        case 1: // one by one
         {
-            if (elist[i].chunk != -1) continue;
-            elist[i].chunk = chunk_count++;
-            int size = elist[i].esize;
-            int counter = 1;
-            if (elist[i].related != NULL)
-                for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                {
-                    int relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
-                    if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
-                    elist[relative_index].chunk = chunk_count++;
-                    size += elist[relative_index].esize;
-                    counter++;
-                }
-        }
+            for (i = 0; i < entry_count; i++)
+            {
 
-    // include demo and vcol entries, merge into normal chunks
-    for (i = 0; i < entry_count; i++)
-    {
-        int type = entry_type(elist[i]);
-        if (type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_VCOL)
-            elist[i].chunk = chunk_count++;
+                if (entry_type(elist[i]) == ENTRY_TYPE_GOOL)
+                {
+                    elist[i].chunk = chunk_count++;
+
+                    if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1) continue;
+
+                        elist[relative_index].chunk = chunk_count++;
+                    }
+                }
+            }
+            break;
+        }
+        default: break;
     }
 
-
-    load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
-    //dumb_merge(elist, chunk_border_gool, &chunk_count, entry_count);
-
+    *real_chunk_count = chunk_count;
+}
 
 
-    // only opens the nsf, does not write yet
-    *(strrchr(nsfpath,'\\') + 1) = '\0';
-    sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
-    nsfnew = fopen(lcltemp, "wb");
-
-    // opens nsd, writes it, sorts load lists
-    *(strchr(lcltemp, '\0') - 1) = 'D';
-    write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
-
-    printf("Building actual chunks.\n");
+void write_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
+{
+    int i, j;
     for (i = chunk_border_texture; i < chunk_count; i++)
     {
         int chunk_no = 2 * i + 1;
@@ -1284,6 +1321,190 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         // writes checksum
         *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);
     }
+}
+
+void create_proto_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
+{
+    int i, j;
+    int chunk_count = *real_chunk_count;
+    int size;
+    int counter;
+
+    switch(grouping_flag)
+    {
+        case 0: // group all relatives together
+        {
+            for (i = 0; i < entry_count; i++)
+            if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
+            {
+                if (elist[i].chunk != -1) continue;
+                elist[i].chunk = chunk_count;
+                size = elist[i].esize;
+                counter = 0;
+                if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        int relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
+                        if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
+                        {
+                            chunk_count++;
+                            counter = 0;
+                            size = 0;
+                        }
+                        elist[relative_index].chunk = chunk_count;
+                        size += elist[relative_index].esize;
+                        counter++;
+                    }
+                chunk_count++;
+            }
+            break;
+        }
+        case 1: // one by one
+        {
+            for (i = 0; i < entry_count; i++)
+            if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
+            {
+                if (elist[i].chunk != -1) continue;
+                elist[i].chunk = chunk_count++;
+                if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        int relative_index = get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
+                        elist[relative_index].chunk = chunk_count++;
+                    }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    *real_chunk_count = chunk_count;
+}
+
+void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
+{
+    DIR *df = NULL;
+    FILE *nsf = NULL, *nsfnew = NULL;
+    SPAWNS spawns = init_spawns();
+
+    char temp[MAX], lcltemp[MAX];
+    unsigned int gool_table[0x40];
+    for (int i = 0; i < 0x40; i++)
+        gool_table[i] = NONE;
+
+    ENTRY elist[2500];
+    unsigned char *chunks[512];
+
+    int i, level_ID;
+    int chunk_border_base       = 0,
+        chunk_border_texture    = 0,
+        chunk_border_gool       = 0,
+        chunk_border_instruments= 0,
+        chunk_count             = 0,
+        entry_count_base        = 0,
+        entry_count             = 0,
+        chunk_border_sounds;
+
+
+    // opening and stuff
+    if ((nsf = fopen(nsfpath,"rb")) == NULL)
+    {
+        printf("[ERROR] Could not open selected NSF\n");
+        return;
+        }
+
+    if ((df = opendir(dirpath)) == NULL)
+    {
+        printf("[ERROR] Could not open selected directory\n");
+        fclose(nsf);
+        return;
+    }
+
+    printf("\nWhat ID do you want your level to have? [CAN OVERWRITE EXISTING FILES!]\n");
+    scanf("%x", &level_ID);
+    if (level_ID < 0 || level_ID > 0x3F)
+    {
+        printf("Invalid ID, defaulting to 0\n");
+        level_ID = 0;
+    }
+
+    fseek(nsf, 0, SEEK_END);
+    chunk_border_base = ftell(nsf) / CHUNKSIZE;
+    rewind(nsf);
+
+    printf("\nReading from the NSF.\n");
+    read_nsf(elist, chunk_border_base, chunks, &chunk_border_texture, &entry_count, nsf, gool_table);
+    entry_count_base = entry_count;
+
+    printf("Reading from the folder.\n");
+    read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
+
+    printf("Getting model references.\n");
+    get_model_references(elist, entry_count, entry_count_base);
+
+    printf("Removing invalid references.\n");
+    remove_invalid_references(elist, entry_count, entry_count_base);
+    chunk_count = chunk_border_texture;
+    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry);
+
+    // include instrument entries
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_INST)
+            elist[i].chunk = chunk_count++;
+    chunk_border_instruments = chunk_count;
+
+    // include sounds, merge sound chunks
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+            elist[i].chunk = chunk_count++;
+
+    dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
+    chunk_border_sounds = chunk_count;
+
+    printf("Building T11s' chunks.\n");
+    // tries to do T11 and their relatives' chunk assignment
+    // 0 - grouped, 1 - one by one
+    create_proto_chunks_gool(elist, entry_count, &chunk_count, 0);
+
+    // include demo and vcol entries, merge into gool_chunks
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_DEMO || entry_type(elist[i]) == ENTRY_TYPE_VCOL)
+            elist[i].chunk = chunk_count++;
+
+    // gool_merge(elist, chunk_border_texture, &chunk_count, entry_count);
+    // dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
+    // chunk_border_gool = chunk_count;
+
+
+    printf("Building zones' chunks.\n");
+    // tries to do zones and their relatives' chunk assignment
+    // 0 - grouped, 1 - one by one
+    create_proto_chunks_zones(elist, entry_count, &chunk_count, 1);
+
+    printf("Merging protochunks");
+    int BT = GetTickCount();
+    waren_load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
+
+    load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+
+    int ET = GetTickCount();
+    printf("%.3f\n", ((double) ET - BT) / 1000);
+
+    // only opens the nsf, does not write yet
+    *(strrchr(nsfpath,'\\') + 1) = '\0';
+    sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
+    nsfnew = fopen(lcltemp, "wb");
+
+    // opens nsd, writes it, sorts load lists
+    *(strchr(lcltemp, '\0') - 1) = 'D';
+    write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
+
+    printf("Building actual chunks.\n");
+    write_chunks(elist, entry_count, chunk_border_texture, chunk_border_sounds, chunk_count, chunks);
 
     // prints entries and their stats and relatives, then chunks and their EIDs
     if (PRINTING)

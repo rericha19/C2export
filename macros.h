@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <math.h>
+#include "windows.h"
 
 // idk why i made any of these macros now that i think about it, maybe to get rid of magic numbers,
 // but there's still a ton of magic numbers everywhere
@@ -164,3 +165,9 @@ unsigned int* GOOL_relatives(unsigned char *entry);
 int get_index(unsigned int eid, ENTRY elist[1500], int counter);
 void prop_main(char* path);
 long long int fact(int n);
+int cmpfunc(const void *a, const void *b);
+int comp(const void *a, const void *b);
+int pay_cmp(const void *a, const void *b);
+int load_list_sort(const void *a, const void *b);
+int list_comp(const void *a, const void *b);
+void swap_ints(int *a, int *b);
