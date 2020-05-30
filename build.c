@@ -1,5 +1,5 @@
 #include "macros.h"
-#define PRINTING 1
+#define PRINTING 0
 
 int to_enum(const void *a)
 {
@@ -990,7 +990,7 @@ int get_entry_index(int searched_eid, int* entries, int valid_entry_count)
     return -1;
 }
 
-void increment_common(LIST list, int *entries, int valid_entry_count, int **entry_matrix)
+void increment_common(LIST list, int *entries, int valid_entry_count, int **entry_matrix, int rating)
 {
     for (int i = 0; i < list.count; i++)
         for (int j = i + 1; j < list.count; j++)
@@ -1003,7 +1003,7 @@ void increment_common(LIST list, int *entries, int valid_entry_count, int **entr
 
             if (indexA == -1 || indexB == -1) continue;
 
-            entry_matrix[indexA][indexB]++;
+            entry_matrix[indexA][indexB] += rating;
         }
 }
 
@@ -1118,15 +1118,20 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
 
                 for (l = 0; l < load_list.count; l++)
                 {
-                        if (load_list.array[l].type == 'A')
-                            for (m = 0; m < load_list.array[l].list_length; m++)
-                                list_add(&list, load_list.array[l].list[m]);
+                    if (load_list.array[l].type == 'A')
+                        for (m = 0; m < load_list.array[l].list_length; m++)
+                            list_add(&list, load_list.array[l].list[m]);
 
-                        if (load_list.array[l].type == 'B')
-                            for (m = 0; m < load_list.array[l].list_length; m++)
-                                list_rem(&list, load_list.array[l].list[m]);
+                    if (load_list.array[l].type == 'B')
+                        for (m = 0; m < load_list.array[l].list_length; m++)
+                            list_rem(&list, load_list.array[l].list[m]);
 
-                    increment_common(list, entries, valid_entry_count, entry_matrix);
+                    int rating = 10000;
+                    if (!(l == 0 || l == load_list.count - 2))
+                        rating = (rating * 2)/(load_list.count + 2);
+
+                    if (list.count)
+                        increment_common(list, entries, valid_entry_count, entry_matrix, rating);
                 }
             }
         }
@@ -1467,7 +1472,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     printf("Building T11s' chunks.\n");
     // tries to do T11 and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
-    create_proto_chunks_gool(elist, entry_count, &chunk_count, 0);
+    create_proto_chunks_gool(elist, entry_count, &chunk_count, 1);
 
     // include demo and vcol entries, merge into gool_chunks
     for (i = 0; i < entry_count; i++)
@@ -1482,9 +1487,9 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     printf("Building zones' chunks.\n");
     // tries to do zones and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
-    create_proto_chunks_zones(elist, entry_count, &chunk_count, 1);
+    create_proto_chunks_zones(elist, entry_count, &chunk_count, 0);
 
-    printf("Merging protochunks");
+    printf("Merging protochunks\n");
     int BT = GetTickCount();
     waren_load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
     dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
