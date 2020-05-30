@@ -184,7 +184,7 @@ int* seek_spawn(unsigned char *item)
             coords_offset = offset;
     }
 
-    if ((!type && !subtype && coords_offset != -1) || (type == 34 && subtype == 4 && coords_offset != -1))
+    if ((!type && !subtype && coords_offset != -1)) // || (type == 34 && subtype == 4 && coords_offset != -1))
     {
         int *coords = (int*) malloc(3 * sizeof(int));
         for (i = 0; i < 3; i++)
@@ -681,7 +681,7 @@ SPAWNS init_spawns()
 
 PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min)
 {
-    int chunks[1000];
+    int chunks[1024];
     int count = 0;
     int curr_chunk;
     int is_there;
@@ -918,7 +918,7 @@ int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
 {
     int i, j, k;
     int best[2] = {-1, -1};
-    int relatives1[1000], relatives2[1000];
+    int relatives1[1024], relatives2[1024];
     int relative_count1, relative_count2;
     // char temp[100];
 
@@ -1045,10 +1045,10 @@ int waren_merge(int **entry_matrix, int valid_entry_count, ENTRY *elist, int ent
     return 0;
 }
 
-void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count)
+void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag)
 {
     int i, j, k, l, m, valid_entry_count = 0;
-    int entries[1000];
+    int entries[1024];
 
     for (i = 0; i < entry_count; i++)
     {
@@ -1071,9 +1071,7 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
 
     int **entry_matrix = (int **) malloc(valid_entry_count * sizeof(int*));
     for (i = 0; i < valid_entry_count; i++)
-    {
         entry_matrix[i] = (int *) calloc((i), sizeof(int));
-    }
 
     for (i = 0; i < entry_count; i++)
         if (entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
@@ -1086,6 +1084,7 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
                 int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
                 LOAD_LIST load_list = init_load_list();
                 LIST list = init_list();
+                int cam_length = 0;
                 for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
                 {
                     int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
@@ -1113,25 +1112,55 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
                             qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
                         }
                     }
+
+                    if (code == 0x4B)
+                        cam_length = from_u32(elist[i].data + offset);
                 }
 
-
-                for (l = 0; l < load_list.count; l++)
+                switch(merge_flag)
                 {
-                    if (load_list.array[l].type == 'A')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_add(&list, load_list.array[l].list[m]);
+                    case 1:     // per point
+                    {
+                        int sublist_index = 0;
+                        for (l = 0; l < cam_length; l++)
+                        {
+                            if (load_list.array[sublist_index].index == l)
+                            {
+                                if (load_list.array[sublist_index].type == 'A')
+                                    for (m = 0; m < load_list.array[sublist_index].list_length; m++)
+                                        list_add(&list, load_list.array[sublist_index].list[m]);
 
-                    if (load_list.array[l].type == 'B')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_rem(&list, load_list.array[l].list[m]);
+                                if (load_list.array[sublist_index].type == 'B')
+                                    for (m = 0; m < load_list.array[sublist_index].list_length; m++)
+                                        list_rem(&list, load_list.array[sublist_index].list[m]);
 
-                    int rating = 10000;
-                    if (!(l == 0 || l == load_list.count - 2))
-                        rating = (rating * 2)/(load_list.count + 2);
+                                sublist_index++;
+                            }
 
-                    if (list.count)
-                        increment_common(list, entries, valid_entry_count, entry_matrix, rating);
+                            if (list.count)
+                                increment_common(list, entries, valid_entry_count, entry_matrix, 1);
+                        }
+                        break;
+                    }
+                    case 0:     // per delta item
+                    {
+                        for (l = 0; l < load_list.count; l++)
+                        {
+                            if (load_list.array[l].type == 'A')
+                                for (m = 0; m < load_list.array[l].list_length; m++)
+                                    list_add(&list, load_list.array[l].list[m]);
+
+                            if (load_list.array[l].type == 'B')
+                                for (m = 0; m < load_list.array[l].list_length; m++)
+                                    list_rem(&list, load_list.array[l].list[m]);
+
+                            if (list.count)
+                                increment_common(list, entries, valid_entry_count, entry_matrix, 1);
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
         }
@@ -1142,9 +1171,9 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
             break;
     }
 
-    for (i = 0; i < valid_entry_count; i++)
+    /*for (i = 0; i < valid_entry_count; i++)
         free(entry_matrix[i]);
-    free(entry_matrix);
+    free(entry_matrix);*/
 }
 
 
@@ -1156,9 +1185,10 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
         PAYLOADS payloads = get_payload_ladder(elist, entry_count, chunk_min);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
-        if (payloads.arr[0].count < 19) break;
         printf("%3d  ", x);
         print_payload(payloads.arr[0], 0);
+
+        if (payloads.arr[0].count < 19) break;
 
         qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmpfunc);
 
@@ -1166,7 +1196,7 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
             printf("%3d ", payloads.arr[0].chunks[i] * 2 + 1);
         printf("\n");
 
-        int chunks[1000];
+        int chunks[1024];
         int count;
         int check = 0;
 
@@ -1401,7 +1431,13 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         gool_table[i] = NONE;
 
     ENTRY elist[2500];
-    unsigned char *chunks[512];
+    unsigned char *chunks[1024];
+
+    // config:
+    // [gool initial merge flag]    0 - group       |   1 - one by one
+    // [zone initial merge flag]    0 - group       |   1 - one by one
+    // [merge type flag]            0 - per delta   |   1 - per point
+    int config[] = {1, 1, 1};
 
     int i, level_ID;
     int chunk_border_base       = 0,
@@ -1472,7 +1508,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     printf("Building T11s' chunks.\n");
     // tries to do T11 and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
-    create_proto_chunks_gool(elist, entry_count, &chunk_count, 1);
+    create_proto_chunks_gool(elist, entry_count, &chunk_count, config[0]);
 
     // include demo and vcol entries, merge into gool_chunks
     for (i = 0; i < entry_count; i++)
@@ -1487,13 +1523,15 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     printf("Building zones' chunks.\n");
     // tries to do zones and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
-    create_proto_chunks_zones(elist, entry_count, &chunk_count, 0);
+    create_proto_chunks_zones(elist, entry_count, &chunk_count, config[1]);
 
     printf("Merging protochunks\n");
     int BT = GetTickCount();
-    waren_load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    // 0 - per delta load list check, 1 - per point load list check
+    waren_load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
     dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
 
+    // used just as a metric
     load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
 
     int ET = GetTickCount();
