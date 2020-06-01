@@ -228,6 +228,24 @@ char* eid_conv(unsigned int m_value, char *eid)
     return eid;
 }
 
+unsigned int eid_to_int(char *eid)
+{
+    unsigned int result = 0;
+    static const char charset[] =
+    "0123456789"
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "_!";
+
+    for (int i = 0; i < 5; i++)
+        for (int j = 0; j < 0x40; j++)
+            if (charset[j] == eid[i])
+                result = (result << 6) + j;
+
+    result = 1 + (result << 1);
+    return result;
+}
+
 
 unsigned int nsfChecksum(const unsigned char *data)
 // calculates chunk checksum
@@ -377,3 +395,47 @@ void getCombinations(int arr[], int n, int r, int ***res, int *counter)
     combinationUtil(arr, data, 0, n - 1, 0, r, res, counter);
 }
 
+int to_enum(const void *a)
+{
+    ENTRY x = *((ENTRY *) a);
+    int result = 0;
+
+    if (x.data == NULL) return 0;
+
+    switch(*(int *)(x.data + 0x8))
+    {
+        case 0xB:
+            result += 1;
+            break;
+        case 0x2:
+            result += 2;
+            break;
+        case 0x1:
+            result += 3;
+            break;
+        case 0x7:
+            result += 4;
+            break;
+        case 0x4:
+            result += 5;
+            break;
+        case 0x3:
+            result += 6;
+            break;
+        default:
+            result += MAX;
+            break;
+    }
+
+    return result;
+}
+
+int cmp_entry(const void *a, const void *b)
+{
+    int x = to_enum(a);
+    int y = to_enum(b);
+
+    if (x != y) return (x - y);
+
+    return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
+}

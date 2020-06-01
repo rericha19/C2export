@@ -171,3 +171,6 @@ int pay_cmp(const void *a, const void *b);
 int load_list_sort(const void *a, const void *b);
 int list_comp(const void *a, const void *b);
 void swap_ints(int *a, int *b);
+int cmp_entry(const void *a, const void *b);
+unsigned int eid_to_int(char *eid);
+

@@ -1,50 +1,6 @@
 #include "macros.h"
 #define PRINTING 0
 
-int to_enum(const void *a)
-{
-    ENTRY x = *((ENTRY *) a);
-    int result = 0;
-
-    if (x.data == NULL) return 0;
-
-    switch(*(int *)(x.data + 0x8))
-    {
-        case 0xB:
-            result += 1;
-            break;
-        case 0x2:
-            result += 2;
-            break;
-        case 0x1:
-            result += 3;
-            break;
-        case 0x7:
-            result += 4;
-            break;
-        case 0x4:
-            result += 5;
-            break;
-        case 0x3:
-            result += 6;
-            break;
-        default:
-            result += MAX;
-            break;
-    }
-
-    return result;
-}
-
-int cmp_entry(const void *a, const void *b)
-{
-    int x = to_enum(a);
-    int y = to_enum(b);
-
-    if (x != y) return (x - y);
-
-    return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
-}
 
 unsigned int get_model(unsigned char *anim)
 // gets a model from an animation (from the first frame)
@@ -195,21 +151,46 @@ int* seek_spawn(unsigned char *item)
     return NULL;
 }
 
-unsigned int* getrelatives(unsigned char *entry, SPAWNS *spawns)
+int get_neighbour_count(unsigned char *entry)
+{
+    int item1off = from_u32(entry + 0x10);
+    return entry[item1off + 0x190];
+}
+
+int get_cam_count(unsigned char *entry)
+{
+    int item1off = from_u32(entry + 0x10);
+    return entry[item1off + 0x188];
+}
+
+int get_scen_count(unsigned char *entry)
+{
+    int item1off = from_u32(entry + 0x10);
+    return entry[item1off];
+}
+
+int get_entity_count(unsigned char *entry)
+{
+    int item1off = from_u32(entry + 0x10);
+    return entry[item1off + 0x18C];
+}
+
+unsigned int* get_relatives(unsigned char *entry, SPAWNS *spawns)
 // gets zone's relatives
 {
-    int item1len, relcount, item1off, camcount, neighbourcount, scencount, i, entry_count = 0;
+    int entity_count, item1len, relcount, item1off, camcount, neighbourcount, scencount, i, entry_count = 0;
     unsigned int* relatives;
 
     item1off = from_u32(entry + 0x10);
     item1len = from_u32(entry + 0x14) - item1off;
     if (!(item1len == 0x358 || item1len == 0x318)) return NULL;
 
-    camcount = entry[item1off + 0x188];
-    int entity_count = entry[item1off + 0x18C];
-    scencount = entry[item1off];
+    camcount = get_cam_count(entry);
     if (camcount == 0) return NULL;
-    neighbourcount = entry[item1off + 0x190];
+
+    entity_count = get_entity_count(entry);
+    scencount = get_scen_count(entry);
+    neighbourcount = get_neighbour_count(entry);
     relcount = camcount/3 + neighbourcount + scencount + 1;
 
     if (relcount == 1) return NULL;
@@ -521,7 +502,7 @@ void read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, i
         elist[*entry_count].esize = fsize;
 
         if (entry[8] == 7)
-            elist[*entry_count].related = getrelatives(entry, spawns);
+            elist[*entry_count].related = get_relatives(entry, spawns);
         if (entry[8] == 11 && entry[0xC] == 6)
             elist[*entry_count].related = GOOL_relatives(entry, fsize);
 
@@ -1139,6 +1120,7 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
 
                             if (list.count)
                                 increment_common(list, entries, valid_entry_count, entry_matrix, 1);
+
                         }
                         break;
                     }
@@ -1307,7 +1289,7 @@ void create_proto_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_cou
 
 void write_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
 {
-    int i, j;
+    int i, j, sum = 0;
     for (i = chunk_border_texture; i < chunk_count; i++)
     {
         int chunk_no = 2 * i + 1;
@@ -1349,13 +1331,20 @@ void write_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int c
                 memcpy(chunks[i] + curr_offset, elist[j].data, elist[j].esize);
                 curr_offset += elist[j].esize;
             }
+
+            // if its an instrument entry/chunk
             if (entry_type(elist[j]) == ENTRY_TYPE_INST && elist[j].chunk == i)
                 *(short int*)(chunks[i] + 2) = 4;
         }
 
+        if (i >= chunk_border_sounds)
+                sum += curr_offset;
+
         // writes checksum
         *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);
     }
+
+    printf("AVG: %.3f\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE);
 }
 
 void create_proto_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
@@ -1419,6 +1408,364 @@ void create_proto_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_co
     *real_chunk_count = chunk_count;
 }
 
+int get_entity_type(unsigned char *entity)
+{
+    unsigned int i;
+    for (i = 0; i < from_u32(entity + 0xC); i++)
+    {
+        int code = from_u16(entity + 0x10 + 8 * i);
+        int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
+
+        if (code == 0xA9)
+            return from_u32(entity + offset + 4);
+    }
+
+    return -1;
+}
+
+void add_texture_refs(unsigned char *scenery, LIST *list)
+{
+    int item1off = from_u32(scenery + 0x10);
+    int texture_count = from_u32(scenery + item1off + 0x28);
+    for (int i = 0; i < texture_count; i++)
+    {
+        unsigned int eid = from_u32(scenery + item1off + 0x2C + 4 * i);
+        if (list_find(*list, eid) == -1)
+            list_add(list, eid);
+    }
+}
+
+
+void ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table)
+{
+    int i, j;
+    int index = get_index(eid, elist, entry_count);
+    if (index == -1) return;
+
+    if (elist[index].related != NULL)
+        for (i = 0; (unsigned) i < elist[index].related[0]; i++)
+            if (list_find(*list, elist[index].related[i + 1]) == -1)
+                list_add(list, elist[index].related[i + 1]);
+
+    if (list_find(*list, elist[index].EID) == -1)
+        list_add(list, elist[index].EID);
+
+    if (entry_type(elist[index]) == ENTRY_TYPE_ZONE)
+    {
+        int item1off = from_u32(elist[index].data + 0x10);
+        int neighbourcount = get_neighbour_count(elist[index].data);
+
+        for (i = 0; i < neighbourcount; i++)
+        {
+            int neighbour_index = get_index(from_u32(elist[index].data + item1off + 0x194 + 4*i), elist, entry_count);
+            if (neighbour_index == -1) continue;
+
+            int entity_count = get_entity_count(elist[neighbour_index].data);
+            int cam_count = get_cam_count(elist[neighbour_index].data);
+
+            for (j = 0; j < entity_count; j++)
+            {
+                int entity_type = get_entity_type(elist[neighbour_index].data + from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j));
+                ll_add_children(gool_table[entity_type], elist, entry_count, list, gool_table);
+            }
+        }
+
+        int scenery_count = get_scen_count(elist[index].data);
+        for (i = 0; i < scenery_count; i++)
+        {
+            int scenery_index = get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
+            add_texture_refs(elist[scenery_index].data, list);
+        }
+    }
+}
+
+unsigned char *add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
+{
+    int offset, i, property_count = from_u32(item + 0xC);
+    unsigned char property_headers[property_count + 1][8] = {0};
+    int property_sizes[property_count + 1];
+    unsigned char *properties[property_count + 1];
+
+    for (i = 0; i < property_count; i++)
+    {
+        if (from_u16(item + 0x10 + 8 * i) > code)
+            memcpy(property_headers[i + 1], item + 0x10 + 8 * i, 8);
+        else
+            memcpy(property_headers[i], item + 0x10 + 8 * i, 8);
+    }
+
+    int insertion_index;
+    for (i = 0; i < property_count + 1; i++)
+        if (from_u32(property_headers[i]) == 0 && from_u32(property_headers[i] + 4) == 0)
+            insertion_index = i;
+
+
+    for (i = 0; i < property_count + 1; i++)
+    {
+        if (i < insertion_index - 1)
+            property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+        if (i == insertion_index - 1)
+            property_sizes[i] = from_u16(property_headers[i + 2] + 2) - from_u16(property_headers[i] + 2);
+        if (i == insertion_index)
+            ;
+        if (i > insertion_index)
+        {
+            if (i == property_count)
+                property_sizes[i] = from_u16(item) - from_u16(property_headers[i] + 2);
+            else
+                property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+        }
+    }
+
+    offset = 0x10 + 8 * property_count;
+    for (i = 0; i < property_count + 1; i++)
+    {
+        if (i == insertion_index) continue;
+
+        properties[i] = (unsigned char *) malloc(property_sizes[i]);
+        memcpy(properties[i], item + offset, property_sizes[i]);
+        offset += property_sizes[i];
+    }
+
+    property_sizes[insertion_index] = 4 + list->count * 4;
+    *(short int*) property_headers[insertion_index] = code;
+    *(int *)(property_headers[insertion_index] + 4) = 0x00010424;
+
+    int pathlen = 0;
+    for (i = 0; i < property_count + 1; i++)
+        if (from_u16(property_headers[i]) == 0x4B)
+            pathlen = from_u32(properties[i]);
+
+    properties[insertion_index] = (unsigned char *) malloc(4 + list->count * 4);
+    *(short int *)(properties[insertion_index]) = list->count;
+    if (code == 0x209)
+        *(short int *)(properties[insertion_index] + 2) = pathlen - 1;
+    else
+        *(short int *)(properties[insertion_index] + 2) = 0;
+
+    for (i = 0; i < list->count; i++)
+        *(int *)(properties[insertion_index] + 4 + 4 * i) = list->eids[i];
+
+    int new_size = 0x10 + 8 * (property_count + 1);
+    for (i = 0; i < property_count + 1; i++)
+        new_size += property_sizes[i];
+
+
+    unsigned char *copy = (unsigned char *) malloc(new_size);
+    *(int *)(copy) = new_size - 0xC;
+    *(int *)(copy + 4) = 0;
+    *(int *)(copy + 8) = 0;
+    *(int *)(copy + 0xC) = property_count + 1;
+
+    offset = 0x10 + 8 * (property_count + 1);
+    for (i = 0; i < property_count + 1; i++)
+    {
+        *(short int*) (property_headers[i] + 2) = offset - 0xC;
+        memcpy(copy + 0x10 + 8 * i, property_headers[i], 8);
+        memcpy(copy + offset, properties[i], property_sizes[i]);
+        offset += property_sizes[i];
+    }
+
+    *item_size = new_size - 0xC;
+    free(item);
+    return copy;
+}
+
+unsigned char* remove_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
+{
+    int offset, i, property_count = from_u32(item + 0xC);
+    unsigned char property_headers[property_count][8];
+    int property_sizes[property_count];
+    unsigned char *properties[property_count];
+
+    int found = 0;
+    for (i = 0; i < property_count; i++)
+    {
+        memcpy(property_headers[i], item + 0x10 + 8 * i, 8);
+        if (from_u16(property_headers[i]) == code)
+            found++;
+    }
+
+    if (!found)
+        return item;
+
+    for (i = 0; i < property_count - 1; i++)
+        property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+    property_sizes[i] = from_u16(item) - 0xC - from_u16(property_headers[i] + 2);
+
+    offset = 0x10 + 8 * property_count;
+    for (i = 0; i < property_count; offset += property_sizes[i], i++)
+    {
+        properties[i] = (unsigned char *) malloc(property_sizes[i]);
+        memcpy(properties[i], item + offset, property_sizes[i]);
+    }
+
+    int new_size = 0x10 + 8 * (property_count - 1);
+    for (i = 0; i < property_count; i++)
+    {
+        if (from_u16(property_headers[i]) == code) continue;
+        new_size += property_sizes[i];
+    }
+
+    unsigned char *copy = (unsigned char *) malloc(new_size);
+    *(int *)(copy) = new_size;
+    *(int *)(copy + 4) = 0;
+    *(int *)(copy + 8) = 0;
+    *(int *)(copy + 0xC) = property_count - 1;
+
+    offset = 0x10 + 8 * (property_count - 1);
+    int indexer = 0;
+    for (i = 0; i < property_count; i++)
+    {
+        if (from_u16(property_headers[i]) != code)
+        {
+            *(short int*) (property_headers[i] + 2) = offset - 0xC;
+            memcpy(copy + 0x10 + 8 * indexer, property_headers[i], 8);
+            memcpy(copy + offset, properties[i], property_sizes[i]);
+            indexer++;
+            offset += property_sizes[i];
+        }
+    }
+
+    *item_size = new_size;
+    free(item);
+    return copy;
+}
+
+void camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, LIST *), LIST *list, int property_code)
+{
+    int i, offset;
+    int item_count = from_u32(zone->data + 0xC);
+
+    int item_lengths[item_count];
+    unsigned char *items[item_count];
+    for (i = 0; i < item_count; i++)
+        item_lengths[i] = from_u32(zone->data + 0x14 + 4 * i) - from_u32(zone->data + 0x10 + 4 * i);
+
+    offset = 0x10 + 4 * item_count + 4;
+    for (i = 0; i < item_count; i++)
+    {
+        items[i] = (unsigned char *) malloc(item_lengths[i]);
+        memcpy(items[i], zone->data + offset, item_lengths[i]);
+        offset += item_lengths[i];
+    }
+
+    items[item_index] = func_arg(property_code, items[item_index], &item_lengths[item_index], list);
+
+    int new_size = 0x14;
+    for (i = 0; i < item_count; i++)
+        new_size += 4 + item_lengths[i];
+
+    unsigned char *copy = (unsigned char *) malloc(new_size);
+    *(int *)(copy) = 0x100FFFF;
+    *(int *)(copy + 4) = zone->EID;
+    *(int *)(copy + 8) = 7;
+    *(int *)(copy + 0xC) = item_count;
+
+    for (offset = 0x10 + 4 * item_count + 4, i = 0; i < item_count + 1; offset += item_lengths[i], i++)
+        *(int *)(copy + 0x10 + i * 4) = offset;
+
+    for (offset = 0x10 + 4 * item_count + 4, i = 0; i < item_count; offset += item_lengths[i], i++)
+        memcpy(copy + offset, items[i], item_lengths[i]);
+
+    free(zone->data);
+    zone->data = copy;
+    zone->esize = new_size;
+
+    for (i = 0; i < item_count; i++)
+        free(items[i]);
+}
+
+void make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table)
+{
+    int i, j, k, l;
+
+    for (i = 0; i < entry_count; i++)
+        if (entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
+            int item1off = from_u32(elist[i].data + 0x10);
+            int cam_count = get_cam_count(elist[i].data) / 3;
+
+            for (j = 0; j < cam_count; j++)
+            {
+                LIST list = init_list();
+                char yes [] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_!";
+                char help[6] = "Wil_C";
+                for (k = 0; k < 0x40; k++)
+                {
+                    help[3] = yes[k];
+                    ll_add_children(eid_to_int(help), elist, entry_count, &list, gool_table);
+                }
+
+                ll_add_children(eid_to_int("WillC"), elist, entry_count, &list, gool_table);
+                ll_add_children(eid_to_int("DispC"), elist, entry_count, &list, gool_table);
+                ll_add_children(eid_to_int("PartC"), elist, entry_count, &list, gool_table);
+                ll_add_children(eid_to_int("BoxsC"), elist, entry_count, &list, gool_table);
+                ll_add_children(eid_to_int("ShadC"), elist, entry_count, &list, gool_table);
+                ll_add_children(eid_to_int("DoctC"), elist, entry_count, &list, gool_table);
+                ll_add_children(eid_to_int("FruiC"), elist, entry_count, &list, gool_table);
+                ll_add_children(elist[i].EID, elist, entry_count, &list, gool_table);
+
+                if (list_find(list, eid_to_int("Cr10T")) == -1)
+                    list_add(&list, eid_to_int("Cr10T"));
+
+                if (list_find(list, eid_to_int("Cr20T")) == -1)
+                    list_add(&list, eid_to_int("Cr20T"));
+
+                for (k = 0; k < entry_count; k++)
+                {
+                    if (entry_type(elist[k]) == ENTRY_TYPE_SOUND)
+                        if (list_find(list, elist[k].EID) == -1)
+                            list_add(&list, elist[k].EID);
+                }
+
+                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
+                int link_count = 0;
+                int *neighbour_indices;
+
+                for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
+                {
+                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
+                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+                    int prop_len = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
+
+                    if (code == 0x109)
+                    {
+                        if (prop_len == 1)
+                        {
+                            link_count = from_u16(elist[i].data + offset);
+                            neighbour_indices = (int *) malloc(link_count * sizeof(int));
+                            for (l = 0; l < link_count; l++)
+                                neighbour_indices[l] = *(elist[i].data + offset + 0x6);
+                        }
+                        else
+                        {
+                            link_count = max(1, from_u16(elist[i].data + offset)) + max(1, from_u16(elist[i].data + offset + 2));
+                            neighbour_indices = (int *) malloc(link_count * sizeof(int));
+                            for (l = 0; l < link_count; l++)
+                                neighbour_indices[l] = *(elist[i].data + offset + 0xA + 4 * l);
+                        }
+                    }
+                }
+
+                for (k = 0; k < link_count; k++)
+                {
+                    int eid = from_u32(elist[i].data + item1off + 0x194 + 4 * neighbour_indices[k]);
+                    if (neighbour_indices[k])
+                        ll_add_children(eid, elist, entry_count, &list, gool_table);
+                }
+
+
+                camera_alter(&elist[i], 2 + 3 * j, remove_property, &list, 0x208);
+                camera_alter(&elist[i], 2 + 3 * j, remove_property, &list, 0x209);
+                camera_alter(&elist[i], 2 + 3 * j, add_property, &list, 0x208);
+                camera_alter(&elist[i], 2 + 3 * j, add_property, &list, 0x209);
+            }
+        }
+}
+
+
+
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
 {
     DIR *df = NULL;
@@ -1442,7 +1789,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     int i, level_ID;
     int chunk_border_base       = 0,
         chunk_border_texture    = 0,
-        chunk_border_gool       = 0,
+        // chunk_border_gool       = 0,
         chunk_border_instruments= 0,
         chunk_count             = 0,
         entry_count_base        = 0,
@@ -1524,15 +1871,29 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     // tries to do zones and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
     create_proto_chunks_zones(elist, entry_count, &chunk_count, config[1]);
+    make_load_lists(elist, entry_count, gool_table);
 
     printf("Merging protochunks\n");
     int BT = GetTickCount();
     // 0 - per delta load list check, 1 - per point load list check
     waren_load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
-    dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
 
-    // used just as a metric
+
+    /*int lone_entry_counter = 0;
+    for (i = chunk_border_sounds; i < chunk_count; i++)
+    {
+        int entry_counter = 0;
+        for (int j = 0; j < entry_count; j++)
+            if (elist[j].chunk == i)
+                entry_counter++;
+        if (entry_counter == 1)
+            lone_entry_counter++;
+    }
+    printf("Lone chunk percentage: %.3f\n", ((double) (100 * lone_entry_counter)) / (chunk_count - chunk_border_sounds));*/
+
+    // load list merge used just as a metric
     load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
 
     int ET = GetTickCount();
     printf("%.3f\n", ((double) ET - BT) / 1000);
@@ -1556,7 +1917,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         for (i = 0; i < chunk_count; i++)
             printf("%03d: %s\n",i, eid_conv(from_u32(chunks[i] + 4), temp));
     }
-
 
     printf("Writing new NSF.\n");
     // writes into a new nsf
