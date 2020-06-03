@@ -431,11 +431,18 @@ int to_enum(const void *a)
 }
 
 int cmp_entry(const void *a, const void *b)
+// by entry type
 {
     int x = to_enum(a);
     int y = to_enum(b);
 
     if (x != y) return (x - y);
 
+    return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
+}
+
+int cmp_entry_eid(const void *a, const void *b)
+// by entry eid
+{
     return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
 }

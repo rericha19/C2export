@@ -110,7 +110,7 @@ typedef struct load {
 
 typedef struct load_list {
     int count;
-    LOAD array[100];
+    LOAD array[1000];
 } LOAD_LIST;
 
 //functional prototypes, also list of functions excluding main and main1, definitely outdated
@@ -173,4 +173,4 @@ int list_comp(const void *a, const void *b);
 void swap_ints(int *a, int *b);
 int cmp_entry(const void *a, const void *b);
 unsigned int eid_to_int(char *eid);
-
+int cmp_entry_eid(const void *a, const void *b);
