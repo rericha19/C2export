@@ -1,6 +1,0 @@
-#include "macros.h"
-
-void prop_main(char path)
-{
-
-}
