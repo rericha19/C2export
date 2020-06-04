@@ -11,15 +11,34 @@ unsigned int get_model(unsigned char *anim)
 int remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list)
 // shitty, dont use
 {
-    int i, j, is_occupied = 0, new_max = 0;
-    for (i = index_start; i < index_end; i++)
+    int i, j, is_occupied = 0, empty_chunk = 0;
+    while (1)
     {
-        is_occupied = 0;
-        for (j = 0; j < entry_count; j++)
-            if (entry_list[j].chunk == i) is_occupied++;
-        if (is_occupied) new_max = i;
+        for (i = index_start; i < index_end; i++)
+        {
+            is_occupied = 0;
+            empty_chunk = -1;
+            for (j = 0; j < entry_count; j++)
+                if (entry_list[j].chunk == i) is_occupied++;
+
+            if (!is_occupied)
+            {
+                empty_chunk = i;
+                break;
+            }
+        }
+
+        if (empty_chunk == -1)
+            break;
+
+        for (i = 0; i < entry_count; i++)
+            if (entry_list[i].chunk == index_end - 1)
+                entry_list[i].chunk = empty_chunk;
+
+        index_end--;
     }
-    return new_max + 1;
+
+    return index_end;
 }
 
 
@@ -125,17 +144,6 @@ int get_index(unsigned int eid, ENTRY *elist, int entry_count)
 
     return -1;
 }
-/*
-int get_index(unsigned int eid, ENTRY *elist, int entry_count)
-// returns entry_count of the struct whose EID is equal to searched EID
-{
-    int retrn = -1;
-
-    for (int i = 0; i < entry_count; i++)
-        if (elist[i].EID == eid) retrn = i;
-
-    return retrn;
-}*/
 
 unsigned int get_slst(unsigned char *item)
 // gets a slst from a camera item
@@ -157,19 +165,19 @@ int* seek_spawn(unsigned char *item)
     {
         code = from_u16(item + 0x10 + 8*i);
         offset = from_u16(item + 0x12 + 8*i) + OFFSET;
-        if (code == 0xA9)
+        if (code == ENTITY_PROP_TYPE)
             type = from_u32(item + offset + 4);
-        if (code == 0xAA)
+        if (code == ENTITY_PROP_SUBTYPE)
             subtype = from_u32(item + offset + 4);
-        if (code == 0x4B)
+        if (code == ENTITY_PROP_PATH)
             coords_offset = offset;
     }
 
-    if ((!type && !subtype && coords_offset != -1)) // || (type == 34 && subtype == 4 && coords_offset != -1))
+    if ((!type && !subtype && coords_offset != -1) || (type == 34 && subtype == 4 && coords_offset != -1))
     {
         int *coords = (int*) malloc(3 * sizeof(int));
         for (i = 0; i < 3; i++)
-            coords[i] = from_u16(item + coords_offset + 4 + 2 * i) * 4;
+            coords[i] = *(short int*)(item + coords_offset + 4 + 2 * i) * 4;
         return coords;
     }
 
@@ -251,9 +259,9 @@ unsigned int* get_relatives(unsigned char *entry, SPAWNS *spawns)
             spawns->spawn_count += 1;
             int cnt = spawns->spawn_count;
             spawns->spawns = (SPAWN *) realloc(spawns->spawns, cnt * sizeof(SPAWN));
-            spawns->spawns[cnt -1].x = coords_ptr[0] + from_u32(entry + from_u32(entry + 0x14));
-            spawns->spawns[cnt -1].y = coords_ptr[1] + from_u32(entry + from_u32(entry + 0x14) + 4);
-            spawns->spawns[cnt -1].z = coords_ptr[2] + from_u32(entry + from_u32(entry + 0x14) + 8);
+            spawns->spawns[cnt -1].x = coords_ptr[0] + *(int*)(entry + from_u32(entry + 0x14));
+            spawns->spawns[cnt -1].y = coords_ptr[1] + *(int*)(entry + from_u32(entry + 0x14) + 4);
+            spawns->spawns[cnt -1].z = coords_ptr[2] + *(int*)(entry + from_u32(entry + 0x14) + 8);
             spawns->spawns[cnt -1].zone = from_u32(entry + 0x4);
         }
     }
@@ -620,7 +628,7 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
 
     *(int *)(nsddata + 0x404) = x;
 
-    int end = 0x520 + x*8;
+    int end = 0x520 + x * 8;
     *(int *)(nsddata + end) = spawns.spawn_count;
     *(int *)(nsddata + end + 8) = level_ID;
     end += 0x10;
@@ -657,7 +665,7 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
                     int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
                     int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
                     int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == 0x208 || code == 0x209)
+                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_LOAD_LIST_B)
                     {
                         int sub_list_offset = offset + 4 * list_count;
                         for (int l = 0; l < list_count; l++)
@@ -849,7 +857,7 @@ PAYLOADS get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
                     int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
                     int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
                     int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == 0x208 || code == 0x209)
+                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
                     {
                         int sub_list_offset = offset + 4 * list_count;
                         int point;
@@ -862,7 +870,7 @@ PAYLOADS get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
                             load_list.array[load_list.count].list_length = load_list_item_count;
                             load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
                             memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
-                            if (code == 0x208)
+                            if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
                                 load_list.array[load_list.count].type = 'A';
                             else
                                 load_list.array[load_list.count].type = 'B';
@@ -1026,44 +1034,53 @@ void increment_common(LIST list, LIST entries, int **entry_matrix, int rating)
 }
 
 
-int waren_merge(int **entry_matrix, ENTRY *elist, int entry_count, LIST entries)
+void waren_merge(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries)
 // matrix method merge
 {
-    int max_value = 0, i, j;
-    int max_index1 = -1, max_index2 = -1;
-
-    for (i = 0; i < entries.count; i++)
-        for (j = 0; j < i; j++)
-            if (entry_matrix[i][j] > max_value)
-            {
-                max_value = entry_matrix[i][j];
-                max_index1 = i;
-                max_index2 = j;
-            }
-
-    if (max_index1 != -1)
+    for (int x = 0; x < relations.count; x++)
     {
-        entry_matrix[max_index1][max_index2] = 0;
+        int index1 = relations.relations[x].index1;
+        int index2 = relations.relations[x].index2;
 
-        int elist_index1 = get_index(entries.eids[max_index1], elist, entry_count);
-        int elist_index2 = get_index(entries.eids[max_index2], elist, entry_count);
+        int elist_index1 = get_index(entries.eids[index1], elist, entry_count);
+        int elist_index2 = get_index(entries.eids[index2], elist, entry_count);
+
         int chunk_index1 = elist[elist_index1].chunk;
         int chunk_index2 = elist[elist_index2].chunk;
 
         int size = 0x14;
-        for (i = 0; i < entry_count; i++)
+        for (int i = 0; i < entry_count; i++)
             if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
                 size += elist[i].esize + 4;
 
         if (size < CHUNKSIZE)
-            for (i = 0; i < entry_count; i++)
+            for (int i = 0; i < entry_count; i++)
                 if (elist[i].chunk == chunk_index2)
                     elist[i].chunk = chunk_index1;
-        return 1;
     }
-
-    return 0;
 }
+
+
+RELATIONS transform_matrix(LIST entries, int **entry_matrix)
+{
+    RELATIONS relations;
+    relations.count = (entries.count * (entries.count - 1)) / 2;
+    relations.relations = (RELATION *) malloc(relations.count * sizeof(RELATION));
+
+    int i, j, indexer = 0;
+    for (i = 0; i < entries.count; i++)
+        for (j = 0; j < i; j++)
+        {
+            relations.relations[indexer].value = entry_matrix[i][j];
+            relations.relations[indexer].index1 = i;
+            relations.relations[indexer].index2 = j;
+            indexer++;
+        }
+
+    qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);
+    return relations;
+}
+
 
 void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag)
 // matrix method merge for normal chunks' entries
@@ -1110,7 +1127,7 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
                     int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
                     int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
                     int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == 0x208 || code == 0x209)
+                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
                     {
                         int sub_list_offset = offset + 4 * list_count;
                         int point;
@@ -1123,7 +1140,7 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
                             load_list.array[load_list.count].list_length = load_list_item_count;
                             load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
                             memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
-                            if (code == 0x208)
+                            if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
                                 load_list.array[load_list.count].type = 'A';
                             else
                                 load_list.array[load_list.count].type = 'B';
@@ -1133,7 +1150,7 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
                         }
                     }
 
-                    if (code == 0x4B)
+                    if (code == ENTITY_PROP_PATH)
                         cam_length = from_u32(elist[i].data + offset);
                 }
 
@@ -1186,15 +1203,28 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
             }
         }
 
-    printf("Done constructing the relation matrix\n");
-
-    while (1)
-        if (!waren_merge(entry_matrix, elist, entry_count, entries))
-            break;
+    RELATIONS array_representation = transform_matrix(entries, entry_matrix);
+    /*FILE *out = fopen("C:\\Users\\samo1\\Desktop\\Matrix.txt", "w");
+    char temp[100];
+    fprintf(out, "     |");
+    for (i = 0; i < entries.count; i++)
+        fprintf(out, "%s|", eid_conv(entries.eids[i], temp));
+    fprintf(out, "\n");
+    for (i = 0; i < entries.count; i++)
+    {
+        fprintf(out, "%s|", eid_conv(entries.eids[i], temp));
+        for (j = 0; j < i; j++)
+            fprintf(out, "%5d ", entry_matrix[i][j]);
+        fprintf(out, "\n");
+    }*/
 
     for (i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
+
+    printf("Done constructing the relation matrix\n");
+    waren_merge(array_representation, elist, entry_count, entries);
+    printf("Done merging\n");
 }
 
 
@@ -1328,7 +1358,7 @@ void create_proto_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_cou
 
 
 void write_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
-// creates chunks from the entry list and entries' assigned chunks and writes
+// creates chunks from the entry list entries' assigned chunks and writes
 {
     int i, j, sum = 0;
     for (i = chunk_border_texture; i < chunk_count; i++)
@@ -1459,7 +1489,7 @@ int get_entity_type(unsigned char *entity)
         int code = from_u16(entity + 0x10 + 8 * i);
         int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
 
-        if (code == 0xA9)
+        if (code == ENTITY_PROP_TYPE)
             return from_u32(entity + offset + 4);
     }
 
@@ -1581,7 +1611,7 @@ unsigned char *add_property(unsigned int code, unsigned char *item, int* item_si
 
     properties[insertion_index] = (unsigned char *) malloc(4 + list->count * 4);
     *(short int *)(properties[insertion_index]) = list->count;
-    if (code == 0x209)
+    if (code == ENTITY_PROP_CAM_LOAD_LIST_B)
         *(short int *)(properties[insertion_index] + 2) = pathlen - 1;
     else
         *(short int *)(properties[insertion_index] + 2) = 0;
@@ -1734,7 +1764,7 @@ int *get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index)
         int offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
         int prop_len = from_u16(entry + cam_offset + 0x16 + 8 * k);
 
-        if (code == 0x109)
+        if (code == ENTITY_PROP_CAM_PATH_LINKS)
         {
             if (prop_len == 1)
             {
@@ -1913,8 +1943,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         if (entry_type(elist[i]) == ENTRY_TYPE_DEMO || entry_type(elist[i]) == ENTRY_TYPE_VCOL)
             elist[i].chunk = chunk_count++;
 
-    // gool_merge(elist, chunk_border_texture, &chunk_count, entry_count);
-    // dumb_merge(elist, chunk_border_texture, &chunk_count, entry_count);
     // chunk_border_gool = chunk_count;
 
 
@@ -1925,29 +1953,13 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     // make_load_lists(elist, entry_count, gool_table);
 
     printf("Merging protochunks\n");
-    int BT = GetTickCount();
     // 0 - per delta load list check, 1 - per point load list check
     waren_load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
-
-
-    /*int lone_entry_counter = 0;
-    for (i = chunk_border_sounds; i < chunk_count; i++)
-    {
-        int entry_counter = 0;
-        for (int j = 0; j < entry_count; j++)
-            if (elist[j].chunk == i)
-                entry_counter++;
-        if (entry_counter == 1)
-            lone_entry_counter++;
-    }
-    printf("Lone chunk percentage: %.3f\n", ((double) (100 * lone_entry_counter)) / (chunk_count - chunk_border_sounds));*/
+    chunk_count = remove_empty_chunks(chunk_border_sounds, chunk_count, entry_count, elist);
 
     // load list merge might be used just as a metric
-    load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
-    dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
-
-    int ET = GetTickCount();
-    printf("%.3f\n", ((double) ET - BT) / 1000);
+    //load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    //dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
 
     // only opens the nsf, does not write yet
     *(strrchr(nsfpath,'\\') + 1) = '\0';
@@ -1979,7 +1991,12 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         free(chunks[i]);
 
     for (i = 0; i < entry_count; i++)
-        if (elist[i].data != NULL) free(elist[i].data);
+    {
+        if (elist[i].data != NULL)
+            free(elist[i].data);
+        if (elist[i].related != NULL)
+            free(elist[i].related);
+    }
 
     fclose(nsfnew);
     fclose(nsf);

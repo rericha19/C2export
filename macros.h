@@ -49,6 +49,35 @@
 #define ENTRY_TYPE_DEMO 0x13
 #define ENTRY_TYPE_SOUND 0xC
 
+#define ENTITY_PROP_NAME                0x2C
+#define ENTITY_PROP_DEPTH_MODIFIER      0x32
+#define ENTITY_PROP_PATH                0x4B
+#define ENTITY_PROP_ID                  0x9F
+#define ENTITY_PROP_ARGUMENTS           0xA4
+#define ENTITY_PROP_TYPE                0xA9
+#define ENTITY_PROP_SUBTYPE             0xAA
+#define ENTITY_PROP_VICTIMS             0x287
+#define ENTITY_PROP_BOX_COUNT           28B
+
+#define ENTITY_PROP_CAMERA_MODE         0x29
+#define ENTITY_PROP_CAM_AVG_PT_DIST     0xC9
+#define ENTITY_PROP_CAM_SLST            0x103
+#define ENTITY_PROP_CAM_PATH_LINKS      0x109
+#define ENTITY_PROP_CAM_FOV             0x130
+#define ENTITY_PROP_CAM_DRAW_LIST_A     0x13B
+#define ENTITY_PROP_CAM_DRAW_LIST_B     0x13C
+#define ENTITY_PROP_CAM_INDEX           0x173
+#define ENTITY_PROP_CAM_SUBINDEX        0x174
+#define ENTITY_PROP_CAM_LINK_COUNT      0x176
+#define ENTITY_PROP_CAM_LOAD_LIST_A     0x208
+#define ENTITY_PROP_CAM_LOAD_LIST_B     0x209
+
+#define ENTITY_PROP_CAM_DISTANCE        0x142
+#define ENTITY_PROP_CAM_WARP_SWITCH     0x1A8
+#define ENTITY_PROP_CAM_BG_COLORS       0x1FA
+#define ENTITY_PROP_CAM_UPDATE_SCENERY  0x27F
+
+
 typedef struct info{
     int counter[22];    // counts entry types, counter[0] is total entry count
     int print_en;   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
@@ -113,6 +142,18 @@ typedef struct load_list {
     LOAD array[1000];
 } LOAD_LIST;
 
+typedef struct relation {
+    int value;
+    int index1;
+    int index2;
+} RELATION;
+
+typedef struct relations {
+    int count;
+    RELATION *relations;
+} RELATIONS;
+
+
 //functional prototypes, also list of functions excluding main and main1, definitely outdated
 void rot(unsigned int *x,unsigned int *y, double rotation);
 void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
@@ -174,3 +215,5 @@ void swap_ints(int *a, int *b);
 int cmp_entry(const void *a, const void *b);
 unsigned int eid_to_int(char *eid);
 int cmp_entry_eid(const void *a, const void *b);
+int relations_cmp(const void *a, const void *b);
+RELATIONS transform_matrix(LIST entries, int **entry_matrix);

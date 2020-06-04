@@ -446,3 +446,11 @@ int cmp_entry_eid(const void *a, const void *b)
 {
     return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
 }
+
+int relations_cmp(const void *a, const void *b)
+{
+    RELATION x = *(RELATION *) a;
+    RELATION y = *(RELATION *) b;
+
+    return y.value - x.value;
+}
