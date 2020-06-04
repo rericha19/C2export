@@ -13,3 +13,5 @@ MAIN BKUP1.cpp
 *.depend
 *.layout
 *.nsentry
+*.save-failed
+*.cscope_file_list
