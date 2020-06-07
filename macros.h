@@ -41,7 +41,7 @@
 #define BUILD 215559733u
 #define PROP 2089440550u
 
-
+#define ENTRY_TYPE_ANIM 0x1
 #define ENTRY_TYPE_ZONE 0x7
 #define ENTRY_TYPE_GOOL 0xB
 #define ENTRY_TYPE_INST 0xE
@@ -136,7 +136,6 @@ typedef struct load {
     unsigned int *list;
     int index;
 } LOAD;
-
 typedef struct load_list {
     int count;
     LOAD array[1000];
@@ -153,6 +152,16 @@ typedef struct relations {
     RELATION *relations;
 } RELATIONS;
 
+typedef struct inf {
+    int type;
+    int subtype;
+    LIST dependencies;
+} INF;
+
+typedef struct {
+    int count;
+    INF *array;
+} DEPENDENCIES;
 
 //functional prototypes, also list of functions excluding main and main1, definitely outdated
 void rot(unsigned int *x,unsigned int *y, double rotation);
@@ -203,7 +212,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 unsigned int* getrelatives(unsigned char *entry);
 unsigned int get_slst(unsigned char *item);
 unsigned int* GOOL_relatives(unsigned char *entry);
-int get_index(unsigned int eid, ENTRY elist[1500], int counter);
 void prop_main(char* path);
 long long int fact(int n);
 int cmpfunc(const void *a, const void *b);
@@ -217,3 +225,4 @@ unsigned int eid_to_int(char *eid);
 int cmp_entry_eid(const void *a, const void *b);
 int relations_cmp(const void *a, const void *b);
 RELATIONS transform_matrix(LIST entries, int **entry_matrix);
+int get_index(unsigned int eid, ENTRY *elist, int entry_count);

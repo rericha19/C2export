@@ -2,14 +2,29 @@
 #define PRINTING 0
 
 
-unsigned int get_model(unsigned char *anim)
-// gets a model from an animation (from the first frame)
-{
+/** \brief
+ *  Just returns the model reference of an animation.
+ *  Only looks at the first frame of the animation.
+ *
+ * \param anim unsigned char*           pointer to the data of the searched animation
+ * \return unsigned int                 EID of the animation's model reference (as unsigned int)
+ */
+unsigned int get_model(unsigned char *anim) {
     return from_u32(anim + 0x10 + from_u32(anim + 0x10));
 }
 
+
+/** \brief
+ *  If a chunk is empty it gets replaced with the last existing chunk.
+ *  This goes on until no further replacements are done (no chunks are empty).
+ *
+ * \param index_start int               start of the range of chunks to be fixed
+ * \param index_end int                 end of the range of chunks to be fixed (not in the range anymore)
+ * \param entry_count int               current amount of entries
+ * \param entry_list ENTRY*             entry list
+ * \return int                          new chunk count
+ */
 int remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list)
-// shitty, dont use
 {
     int i, j, is_occupied = 0, empty_chunk = 0;
     while (1)
@@ -42,8 +57,16 @@ int remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *
 }
 
 
+/** \brief
+ *  Removes references to entries that are only in the base level.
+ *  Might have become deprecate already.
+ *
+ * \param elist ENTRY*                  list of entries
+ * \param entry_count int               current amount of entries
+ * \param entry_count_base int
+ * \return void
+ */
 void remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base)
-// removes references to entries that do not exist
 {
     int i, j, k;
     unsigned int new_relatives[250];
@@ -82,18 +105,36 @@ void remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_ba
     }
 }
 
-int get_base_chunk_border(unsigned int textr, unsigned char **chunks, int counter)
-// returns entry_count of the chunk whose chunk EID is equal to searched texture EID
+/** \brief
+ *  Used during reading from the folder to prevent duplicate texture chunks.
+ *  Searches existing chunks (base level's chunks) and if the texture EID matches
+ *  it returns the index of the matching chunk, else returns -1
+ *
+ * \param textr unsigned int            searched texture chunk eid
+ * \param chunks unsigned char**        array of chunks to be searched, chunk is a 64kB array
+ * \param index_end int                 end index of the chunk array, aka current chunk count
+ * \return int                          index of a chunk that matches search, or -1
+ */
+int get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end)
 {
     int i, retrn = -1;
 
-    for (i = 0; i < counter; i++)
-        if (from_u32(chunks[i]+4) == textr) retrn = i;
+    for (i = 0; i < index_end; i++)
+        if (from_u32(chunks[i] + 4) == textr) retrn = i;
 
     return retrn;
 }
 
-void get_model_references(ENTRY *elist, int entry_count, int entry_count_base)
+
+/** \brief
+ *  For each gool entry it searches related animatons and adds the model entries
+ *  referenced by the animations to the gool entry's relatives.
+ *
+ * \param elist ENTRY*                  current entry list
+ * \param entry_count int               current amount of entries
+ * \return void
+ */
+void get_model_references(ENTRY *elist, int entry_count)
 // gets model references lmao
 {
     int i, j;
@@ -107,9 +148,7 @@ void get_model_references(ENTRY *elist, int entry_count, int entry_count_base)
             for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                 if ((relative_index = get_index(elist[i].related[j + 1], elist, entry_count)) >= 0)
                     if (elist[relative_index].data != NULL && (from_u32(elist[relative_index].data + 8) == 1))
-                    {
                         new_relatives[new_counter++] = get_model(elist[relative_index].data);
-                    }
 
             if (new_counter)
             {
@@ -124,6 +163,15 @@ void get_model_references(ENTRY *elist, int entry_count, int entry_count_base)
     }
 }
 
+/** \brief
+ *  Searches the entry list looking for the specified EID.
+ *  Binary search, entry list should be sorted by EID (ascending).
+ *
+ * \param eid unsigned int              searched EID
+ * \param elist ENTRY*                  list of entries
+ * \param entry_count int               amount of entries
+ * \return int                          index of the searched EID or -1
+ */
 int get_index(unsigned int eid, ENTRY *elist, int entry_count)
 {
     int first = 0;
@@ -145,20 +193,33 @@ int get_index(unsigned int eid, ENTRY *elist, int entry_count)
     return -1;
 }
 
+/** \brief
+ *  Searches the properties, finds the offset of the slst property,
+ *  returns EID of the slst.
+ *
+ * \param item unsigned char*           camera entity data
+ * \return unsigned int                 slst reference or 0 if theres no slst reference property
+ */
 unsigned int get_slst(unsigned char *item)
-// gets a slst from a camera item
 {
     int i, offset = 0;
     for (i = 0; i < item[0xC]; i++)
-        if ((from_u32(item + 0x10 + 8 * i) & 0xFFFF) == 0x103)
-            offset = 0xC + (((from_u32(item + 0x10 + 8 * i)) & 0xFFFF0000) >> 16);
+        if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_CAM_SLST)
+            offset = 0xC + from_u16(item + 0x10 + 8 * i + 4);
 
     if (offset) return from_u32(item + offset + 4);
         else return 0;
 }
 
+
+/** \brief
+ *  Searches the entity, if it has (correct) type and subtype and coords property,
+ *  returns them as int[3]. Usually set to accept willy and checkpoint entities.
+ *
+ * \param item unsigned char*           entity data
+ * \return int*                         int[3] with xyz coords the entity if it meets criteria or NULL
+ */
 int* seek_spawn(unsigned char *item)
-// seeks spawn in the item, rn it only considers a willy as spawn
 {
     int i, code, offset, type = -1, subtype = -1, coords_offset = -1;
     for (i = 0; (unsigned) i < from_u32(item + 0xC); i++)
@@ -184,36 +245,59 @@ int* seek_spawn(unsigned char *item)
     return NULL;
 }
 
-int get_neighbour_count(unsigned char *entry)
-// gets zone neighbour references count
-{
+
+/** \brief
+ *  Gets zone's neighbour count.
+ *
+ * \param entry unsigned char*          entry data
+ * \return int                          neighbour count
+ */
+int get_neighbour_count(unsigned char *entry){
     int item1off = from_u32(entry + 0x10);
     return entry[item1off + 0x190];
 }
 
-int get_cam_count(unsigned char *entry)
-// gets camera item count
-{
+/** \brief
+ *  Gets zone's camera entity count.
+ *
+ * \param entry unsigned char*          entry data
+ * \return int                          camera entity count (total count, not camera path count)
+ */
+int get_cam_count(unsigned char *entry){
     int item1off = from_u32(entry + 0x10);
     return entry[item1off + 0x188];
 }
 
-int get_scen_count(unsigned char *entry)
-// gets amount of scenery references
-{
+/** \brief
+ *  Gets zone's scenery reference count.
+ *
+ * \param entry unsigned char*          entry data
+ * \return int                          scenery reference count
+ */
+int get_scen_count(unsigned char *entry){
     int item1off = from_u32(entry + 0x10);
     return entry[item1off];
 }
 
-int get_entity_count(unsigned char *entry)
-// gets entity count
-{
+/** \brief
+ *  Gets zone's regular entity count.
+ *
+ * \param entry unsigned char*          entry data
+ * \return int                          entity count (not including camera entities)
+ */
+int get_entity_count(unsigned char *entry){
     int item1off = from_u32(entry + 0x10);
     return entry[item1off + 0x18C];
 }
 
+/** \brief
+ *  Gets relatives of zones.
+ *
+ * \param entry unsigned char*          entry data
+ * \param spawns SPAWNS*                during relative collection it searches for possible spawns
+ * \return unsigned int*                array of relatives relatives[count + 1], relatives[0] contains count or NULL
+ */
 unsigned int* get_relatives(unsigned char *entry, SPAWNS *spawns)
-// gets zone's relatives
 {
     int entity_count, item1len, relcount, item1off, camcount, neighbourcount, scencount, i, entry_count = 0;
     unsigned int* relatives;
@@ -268,15 +352,26 @@ unsigned int* get_relatives(unsigned char *entry, SPAWNS *spawns)
     return relatives;
 }
 
-int entry_type(ENTRY entry)
-// gets entry's type
-{
+/** \brief
+ *  Returns type of an entry.
+ *
+ * \param entry ENTRY                   entry struct
+ * \return int                          -1 if entry does not have data allocated, else real entry type
+ */
+int entry_type(ENTRY entry){
     if (entry.data == NULL) return -1;
     return *(int *)(entry.data + 8);
 }
 
+
+/** \brief
+ *  Gets gool relatives excluding models.
+ *
+ * \param entry unsigned char*          entry data
+ * \param entrysize int                 entry size
+ * \return unsigned int*                array of relatives relatives[count + 1], relatives[0] == count
+ */
 unsigned int* GOOL_relatives(unsigned char *entry, int entrysize)
-// gets gool relatives
 {
     int curr_off, type = 0, help;
     int i, counter = 0;
@@ -342,8 +437,20 @@ unsigned int* GOOL_relatives(unsigned char *entry, int entrysize)
     return relatives;
 }
 
+
+/** \brief
+ *  Reads the nsf, puts it straight into chunks, does not collect references or anything.
+ *
+ * \param elist ENTRY*                  list of entries
+ * \param chunk_border_base int         chunk count of the base nsf
+ * \param chunks unsigned char**        chunk array, base level gets put straight into them
+ * \param chunk_border_texture int*     index of the last texture chunk
+ * \param entry_count int*              entry count
+ * \param nsf FILE*                     nsf file
+ * \param gool_table unsigned int*      gool table gets created, contains GOOL entries associated with the type/index they are on
+ * \return void
+ */
 void read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture, int *entry_count, FILE *nsf, unsigned int *gool_table)
-// reads stuff from the nsf, considers chunks final
 {
     int i, j , offset;
     unsigned char chunk[CHUNKSIZE];
@@ -371,8 +478,17 @@ void read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *
     }
 }
 
+/** \brief
+ *  Merges chunks prioritising highest combined size.
+ *  Does not consider anything else.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param chunk_index_start int         start of the range
+ * \param chunk_index_end int*          end of the range
+ * \param entry_count int               entry count
+ * \return void
+ */
 void dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
-// merges chunks with no consideration except for final size
 {
     int i, j, k;
     while(1)
@@ -425,8 +541,17 @@ void dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int e
     *chunk_index_end = remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
 }
 
+
+/** \brief
+ *  Deprecate, was used in a bad merge method.
+ *  Checks whether a searched eid is a relative.
+ *
+ * \param searched unsigned int         searched eid
+ * \param array unsigned int*           relatives array
+ * \param count int                     length of relatives array
+ * \return int                          1 if its a relative, else 0
+ */
 int is_relative(unsigned int searched, unsigned int *array, int count)
-// idk frankly
 {
     for (int i = 0; i < count; i++)
         if (searched == array[i]) return 1; //(count - i)*(count - i)/2;
@@ -434,8 +559,17 @@ int is_relative(unsigned int searched, unsigned int *array, int count)
     return 0;
 }
 
+/** \brief
+ *  Deprecate merge method function based on common relative count.
+ *  Do not use.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param chunk_index_start int         start of the range
+ * \param chunk_index_end int*          end of the range (excl.)
+ * \param entry_count int               entry count
+ * \return void
+ */
 void gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
-// merges according to gool relatives, UNUSED
 {
     int i, j, k;
     while(1)
@@ -499,8 +633,22 @@ void gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int e
     *chunk_index_end = remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
 }
 
+
+/** \brief
+ *  For each valid file it adds it to the nsf(texture) or to the entry list.
+ *  Collects relatives.
+ *
+ * \param df DIR*                       directory/folder
+ * \param dirpath char*                 path to the directory/folder
+ * \param chunks unsigned char**        array of 64kB chunks
+ * \param elist ENTRY*                  entry list
+ * \param chunk_border_texture int*     max index of a texture chunk
+ * \param entry_count int*              entry count
+ * \param spawns SPAWNS*                spawns, spawns get updated here
+ * \param gool_table unsigned int*      table that contains GOOL entries on indexes that correspond to their types
+ * \return void
+ */
 void read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture, int *entry_count, SPAWNS *spawns, unsigned int* gool_table)
-// reads files from a folder one by one, collects references, etc
 {
     struct dirent *de;
     char temp[500];
@@ -563,6 +711,13 @@ void read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, i
 }
 
 
+/** \brief
+ *  Prints entries and their relatives.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \return void
+ */
 void print(ENTRY *elist, int entry_count)
 // prints entries and references, UNUSED
 {
@@ -584,16 +739,38 @@ void print(ENTRY *elist, int entry_count)
     }
 }
 
+/** \brief
+ *  Swaps spawns.
+ *
+ * \param spawns SPAWNS                 struct that contains all spanwns
+ * \param spawnA int                    index1
+ * \param spawnB int                    index2
+ * \return void
+ */
 void swap_spawns(SPAWNS spawns, int spawnA, int spawnB)
-// swaps spawns
 {
     SPAWN temp = spawns.spawns[spawnA];
     spawns.spawns[spawnA] = spawns.spawns[spawnB];
     spawns.spawns[spawnB] = temp;
 }
 
+/** \brief
+ *  Builds nsd, sorts load lists according to the nsd entry table order.
+ *  Saves at the specified path.
+ *  < 0x400 stays empty
+ *  The rest should be ok.
+ *  Lets you pick a primary spawn.
+ *
+ * \param path char*                    path to the nsd
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int               chunk count
+ * \param spawns SPAWNS                 spawns struct
+ * \param gool_table unsigned int*      table that contains gool eids on corresponding indices
+ * \param level_ID int                  level ID the user wanted
+ * \return void
+ */
 void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID)
-// writes nsd, sorts load lists
 {
     int i, x = 0, input;
     char temp[100];
@@ -665,7 +842,7 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
                     int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
                     int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
                     int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_LOAD_LIST_B)
+                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
                     {
                         int sub_list_offset = offset + 4 * list_count;
                         for (int l = 0; l < list_count; l++)
@@ -686,12 +863,14 @@ void write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWN
                 }
             }
         }
-
 }
 
-SPAWNS init_spawns()
-// spawns object init function
-{
+/** \brief
+ *  Spawns object init function.
+ *
+ * \return SPAWNS
+ */
+SPAWNS init_spawns(){
     SPAWNS temp;
     temp.spawn_count = 0;
     temp.spawns = NULL;
@@ -699,16 +878,24 @@ SPAWNS init_spawns()
     return temp;
 }
 
+/** \brief
+ *  Calculates the amount of normal chunks loaded by the zone, their list.
+ *  Used by a deprecate merge method.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param list LIST                     current load list
+ * \param zone unsigned int             current zone
+ * \param chunk_min int                 used to weed out sound and instrument entries (nsf structure this program produces is texture - wavebank - sound - normal)
+ * \return PAYLOAD                      payload object that contains a list of chunks that are loaded in this zone, their count and the current zone eid
+ */
 PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min)
-// gets payload ladder, used by load list sort, a deprecate merge function
 {
     int chunks[1024];
     int count = 0;
     int curr_chunk;
     int is_there;
     char help[100];
-
-    PAYLOAD temp;
 
     for (int i = 0; i < list.count; i++)
     {
@@ -725,17 +912,20 @@ PAYLOAD get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone,
         }
     }
 
+    PAYLOAD temp;
     temp.zone = zone;
     temp.count = count;
     temp.chunks = (int *) malloc(count * sizeof(int));
     memcpy(temp.chunks, chunks, sizeof(int) * count);
-
     return temp;
 }
 
-LIST init_list()
-// list object init function
-{
+/** \brief
+ *  List struct init function.
+ *
+ * \return LIST
+ */
+LIST init_list(){
     LIST list;
     list.count = 0;
     list.eids = NULL;
@@ -743,8 +933,14 @@ LIST init_list()
     return list;
 }
 
+/** \brief
+ *  Binary search in a sorted list.
+ *
+ * \param list LIST                     list to be searched
+ * \param searched unsigned int         searched item
+ * \return int                          index the item has or -1 if item wasnt found
+ */
 int list_find(LIST list, unsigned int searched)
-// searches in a list
 {
     int first = 0;
     int last = list.count - 1;
@@ -765,8 +961,14 @@ int list_find(LIST list, unsigned int searched)
     return -1;
 }
 
+/** \brief
+ *  Adds an item to the list.
+ *
+ * \param list LIST*                    list to be added into
+ * \param eid unsigned int              item to be added
+ * \return void
+ */
 void list_add(LIST *list, unsigned int eid)
-// adds to a list
 {
     list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int *));
     list->eids[list->count] = eid;
@@ -774,8 +976,14 @@ void list_add(LIST *list, unsigned int eid)
     qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
 }
 
+/** \brief
+ *  Removes given item from the list if it exists.
+ *
+ * \param list LIST*                    list to be removed from
+ * \param eid unsigned int              item to be removed
+ * \return void
+ */
 void list_rem(LIST *list, unsigned int eid)
-// removes from a list
 {
     int index = list_find(*list, eid);
     if (index == -1) return;
@@ -786,15 +994,26 @@ void list_rem(LIST *list, unsigned int eid)
     qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
 }
 
-void list_insert(LIST *list, unsigned int eid)
-// checks whether the item is in the list already, if it is not it gets added
-{
+/** \brief
+ *  Adds an item to the list if it's not there yet.
+ *
+ * \param list LIST*                    list to be inserted into
+ * \param eid unsigned int              item to be inserted
+ * \return void
+ */
+void list_insert(LIST *list, unsigned int eid){
     if (list_find(*list, eid) == -1)
         list_add(list, eid);
 }
 
+/** \brief
+ *  Prints payload.
+ *
+ * \param payload PAYLOAD               payload struct
+ * \param stopper int                   something dumb
+ * \return void
+ */
 void print_payload(PAYLOAD payload, int stopper)
-// prints payload
 {
     char temp[100];
     printf("Zone: %s; payload: %3d", eid_conv(payload.zone, temp), payload.count);
@@ -802,9 +1021,12 @@ void print_payload(PAYLOAD payload, int stopper)
     printf("\n");
 }
 
-LOAD_LIST init_load_list()
-// load list struct init function
-{
+/** \brief
+ *  Inits load list struct.
+ *
+ * \return LOAD_LIST
+ */
+LOAD_LIST init_load_list(){
     LOAD_LIST temp;
     temp.count = 0;
 
@@ -812,8 +1034,14 @@ LOAD_LIST init_load_list()
 }
 
 
+/** \brief
+ *  Adds a payload to a payloads struct, overwrites if its already there.
+ *
+ * \param payloads PAYLOADS*            payloads struct
+ * \param insertee PAYLOAD              payload struct
+ * \return void
+ */
 void insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
-// adds a payload into a payloads function
 {
     for (int i = 0; i < payloads->count; i++)
         if (payloads->arr[i].zone == insertee.zone)
@@ -833,8 +1061,16 @@ void insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
     (payloads->count)++;
 }
 
+/** \brief
+ *  Used by payload method, deprecate.
+ *  Creates a payloads object that contains each zone and chunks that zone loads.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_min int                 used to get rid of invalid chunks/entries
+ * \return PAYLOADS                     payloads struct
+ */
 PAYLOADS get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
-// nvm this is the payload ladder function
 {
     PAYLOADS payloads;
     payloads.count = 0;
@@ -900,20 +1136,35 @@ PAYLOADS get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
     return payloads;
 }
 
+
+/** \brief
+ *  Merges the chunks, usually 2.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunks int*                   array of chunks to be considered by the merge thing
+ * \param chunk_count int               amount of those chunks
+ * \return void
+ */
 void chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
-// used by some main merge function
 {
     for (int i = 0; i < entry_count; i++)
         for (int j = 0; j < chunk_count; j++)
             if (elist[i].chunk == chunks[j])
                 elist[i].chunk = chunks[0];
 
-    //for (int i = 0; i < chunk_count; i++)
-    //printf("%3d ", chunks)
 }
 
+/** \brief
+ *  Used by some payload merge method (deprecate).
+ *
+ * \param listA int*                    list of relatives A
+ * \param countA int                    count of relatives A
+ * \param listB int*                    list of relatives B
+ * \param countB int                    count of relatives B
+ * \return int                          amount of common items
+ */
 int get_common(int* listA, int countA, int *listB, int countB)
-// used by some deprecate main merge function
 {
     int i, j, copy_countA = 0, copy_countB = 0;
     int copyA[100];
@@ -946,14 +1197,22 @@ int get_common(int* listA, int countA, int *listB, int countB)
     return counter;
 }
 
+/** \brief
+ *  Merges chunks from the chunks list based on common relative count I think.
+ *  Deprecate, used by payload ladder method.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunks int*                   chunks array
+ * \param chunk_count int               chunk count
+ * \return int                          1 if a merge occured, else 0
+ */
 int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
-// used by some deprecate merge function
 {
     int i, j, k;
     int best[2] = {-1, -1};
     int relatives1[1024], relatives2[1024];
     int relative_count1, relative_count2;
-    // char temp[100];
 
     int max = 0;
 
@@ -986,9 +1245,6 @@ int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
                     size2 += elist[k].esize;
                     count2++;
                     relatives2[relative_count2++] = elist[j].EID;
-                    /*if (elist[k].related != NULL)
-                        for (l = 0; (unsigned) l < elist[k].related[0]; l++)
-                        relatives2[relative_count2++] = elist[k].related[l + 1];*/
                 }
 
             if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
@@ -1006,7 +1262,6 @@ int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
 
     if (best[0] != -1 && best[0] != -1)
     {
-        // printf("%d %d\n", best[0], best[1]);
         chunk_merge(elist, entry_count, best, 2);
         return 1;
     }
@@ -1015,8 +1270,16 @@ int merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
 }
 
 
+/** \brief
+ *  For each pair of entries it increments corresponding matrix tile.
+ *
+ * \param list LIST                     current load list
+ * \param entries LIST                  list of valid normal chunk entries
+ * \param entry_matrix int**            triangle matrix that contains amount of common load list occurences of entries[i], entries[j] on each tile [i][j]
+ * \param rating int                    increment value (used to properly consider all camera points without doing it for every single point)
+ * \return void
+ */
 void increment_common(LIST list, LIST entries, int **entry_matrix, int rating)
-// used by matrix method merge function
 {
     for (int i = 0; i < list.count; i++)
         for (int j = i + 1; j < list.count; j++)
@@ -1034,8 +1297,17 @@ void increment_common(LIST list, LIST entries, int **entry_matrix, int rating)
 }
 
 
+/** \brief
+ *  For each entry pair it finds out what chunk each is in and attempts to merge.
+ *  Starts with entries with highest common occurence count.
+ *
+ * \param relations RELATIONS           array form of the common load list matrix sorted high to low
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param entries LIST                  valid entries list
+ * \return void
+ */
 void waren_merge(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries)
-// matrix method merge
 {
     for (int x = 0; x < relations.count; x++)
     {
@@ -1061,6 +1333,13 @@ void waren_merge(RELATIONS relations, ENTRY *elist, int entry_count, LIST entrie
 }
 
 
+/** \brief
+ *  Creates an array representation of the common load list occurence matrix, sorts high to low.
+ *
+ * \param entries LIST                  valid entries list
+ * \param entry_matrix int**            matrix that contains common load list occurences
+ * \return RELATIONS
+ */
 RELATIONS transform_matrix(LIST entries, int **entry_matrix)
 {
     RELATIONS relations;
@@ -1082,8 +1361,19 @@ RELATIONS transform_matrix(LIST entries, int **entry_matrix)
 }
 
 
+/** \brief
+ *  Current best chunk merge method based on common load list occurence count of each pair of entries,
+ *  therefore relies on proper and good load lists ideally with delta items.
+ *  After the matrix is created and transformed into a sorted array it attemps to merge.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_border_sounds int       unused
+ * \param chunk_count int*              chunk count
+ * \param merge_flag int                per-point if 1, per-delta-item if 0
+ * \return void
+ */
 void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag)
-// matrix method merge for normal chunks' entries
 {
     int i, j, k, l, m;
     LIST entries = init_list();
@@ -1228,8 +1518,18 @@ void waren_load_list_merge(ENTRY *elist, int entry_count, int chunk_border_sound
 }
 
 
-void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count)
-// deprecate load list merge function
+/** \brief
+ *  Deprecate merge function based on payloads.
+ *  In each iteration gets a payload ladder and tries to merge chunks loaded by
+ *  the zone with highest payload, one at a time.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_min int                 start of normal chunk range
+ * \param chunk_count int*              end of normal chunk range
+ * \return void
+ */
+void payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count)
 {
     for (int x = 0; ; x++)
     {
@@ -1289,8 +1589,16 @@ void load_list_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_co
     dumb_merge(elist, chunk_min, chunk_count, entry_count);
 }
 
+/** \brief
+ *  Assigns gool entries and their relatives initial chunks.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param real_chunk_count int*         chunk count
+ * \param grouping_flag int             1 if one by one, 0 if pre-grouping
+ * \return void
+ */
 void create_proto_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
-// initial chunk assignment for gool entries and their relatives
 {
     int i, j;
     int size;
@@ -1357,8 +1665,19 @@ void create_proto_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_cou
 }
 
 
-void write_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
-// creates chunks from the entry list entries' assigned chunks and writes
+/** \brief
+ *  Builds chunks according to entries' assigned chunks, shouldnt require any
+ *  further patches.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_border_texture int      index where texture chunks end
+ * \param chunk_border_sounds int       index where sounds end
+ * \param chunk_count int               chunk count
+ * \param chunks unsigned char**        array of chunks
+ * \return void
+ */
+void build_real_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
 {
     int i, j, sum = 0;
     for (i = chunk_border_texture; i < chunk_count; i++)
@@ -1418,8 +1737,16 @@ void write_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int c
     printf("AVG: %.3f\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE);
 }
 
+/** \brief
+ *  Initial chunk assignment for zones and their relatives, either one-by-one or pre-grouped.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param real_chunk_count int*         chunk count
+ * \param grouping_flag int             one-by-one if 1, pre-groups if 0
+ * \return void
+ */
 void create_proto_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
-// initial chunk assignment for zone entries and their relatives
 {
     int i, j;
     int chunk_count = *real_chunk_count;
@@ -1480,8 +1807,14 @@ void create_proto_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_co
     *real_chunk_count = chunk_count;
 }
 
+
+/** \brief
+ *  Gets entity's type.
+ *
+ * \param entity unsigned char*         entity data
+ * \return int                          entity's type or -1
+ */
 int get_entity_type(unsigned char *entity)
-// gets entity type
 {
     unsigned int i;
     for (i = 0; i < from_u32(entity + 0xC); i++)
@@ -1496,8 +1829,36 @@ int get_entity_type(unsigned char *entity)
     return -1;
 }
 
+/** \brief
+ *  Gets entity's subtype.
+ *
+ * \param entity unsigned char*     entity data
+ * \return int                      entity's subtype or -1
+ */
+int get_entity_subtype(unsigned char *entity)
+{
+    unsigned int i;
+    for (i = 0; i < from_u32(entity + 0xC); i++)
+    {
+        int code = from_u16(entity + 0x10 + 8 * i);
+        int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
+
+        if (code == ENTITY_PROP_SUBTYPE)
+            return from_u32(entity + offset + 4);
+    }
+
+    return -1;
+}
+
+
+/** \brief
+ *  Gets texture references from a scenery entry and inserts them to the list.
+ *
+ * \param scenery unsigned char*            scenery data
+ * \param list LIST*                        current load list
+ * \return void
+ */
 void add_texture_refs(unsigned char *scenery, LIST *list)
-// gets texture references from a scenery entry
 {
     int item1off = from_u32(scenery + 0x10);
     int texture_count = from_u32(scenery + item1off + 0x28);
@@ -1509,10 +1870,21 @@ void add_texture_refs(unsigned char *scenery, LIST *list)
 }
 
 
-void ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table)
-// adds all children of a specific entry, either gool or zone, crude load list making method
+
+/** \brief
+ *  Inserts all stuff loaded by a zone (scenery dependencies, entity dependencies, its own relatives).
+ *
+ * \param eid unsigned int              entry whose children are to be added
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param list LIST*                    current load list
+ * \param gool_table unsigned int*      gool table
+ * \param dependencies DEPENDENCIES     stuff loaded when a certain type/subtype is used
+ * \return void
+ */
+void ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies)
 {
-    int i, j;
+    int i, j, k, l;
     int index = get_index(eid, elist, entry_count);
     if (index == -1) return;
 
@@ -1538,7 +1910,17 @@ void ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list
             for (j = 0; j < entity_count; j++)
             {
                 int entity_type = get_entity_type(elist[neighbour_index].data + from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j));
-                ll_add_children(gool_table[entity_type], elist, entry_count, list, gool_table);
+                int entity_subt = get_entity_subtype(elist[neighbour_index].data + from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j));
+                for (k = 0; k < dependencies.count; k++)
+                    if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt)
+                        for (l = 0; l < dependencies.array[k].dependencies.count; l++)
+                        {
+                            list_insert(list, dependencies.array[k].dependencies.eids[l]);
+                            int index = get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
+                            if (index == -1) continue;
+                            if (entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+                                list_insert(list, get_model(elist[index].data));
+                        }
             }
         }
 
@@ -1551,8 +1933,17 @@ void ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list
     }
 }
 
+
+/** \brief
+ *  Creates a load list and inserts it basically.
+ *
+ * \param code unsigned int             code of the property to be added
+ * \param item unsigned char*           data of item where the property will be added
+ * \param item_size int*                item size
+ * \param list LIST*                    load list to be added
+ * \return unsigned char*               new item data
+ */
 unsigned char *add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
-// adds a property to a specific item
 {
     int offset, i, property_count = from_u32(item + 0xC);
     unsigned char property_headers[property_count + 1][8] = {0};
@@ -1606,7 +1997,7 @@ unsigned char *add_property(unsigned int code, unsigned char *item, int* item_si
 
     int pathlen = 0;
     for (i = 0; i < property_count + 1; i++)
-        if (from_u16(property_headers[i]) == 0x4B)
+        if (from_u16(property_headers[i]) == ENTITY_PROP_PATH)
             pathlen = from_u32(properties[i]);
 
     properties[insertion_index] = (unsigned char *) malloc(4 + list->count * 4);
@@ -1644,8 +2035,16 @@ unsigned char *add_property(unsigned int code, unsigned char *item, int* item_si
     return copy;
 }
 
+/** \brief
+ *  Removes the specified property.
+ *
+ * \param code unsigned int             code of the property to be removed
+ * \param item unsigned char*           data of the item thats to be changed
+ * \param item_size int*                size of the item
+ * \param list LIST*                    unused
+ * \return unsigned char*               new item data
+ */
 unsigned char* remove_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
-// removes the specified property if it exists, argument list is unused
 {
     int offset, i, property_count = from_u32(item + 0xC);
     unsigned char property_headers[property_count][8];
@@ -1706,8 +2105,18 @@ unsigned char* remove_property(unsigned int code, unsigned char *item, int* item
     return copy;
 }
 
+
+/** \brief
+ *  Deconstructs the zone, alters specified item using the func_arg function, reconstructs zhe zone.
+ *
+ * \param zone ENTRY*                   zone data
+ * \param item_index int                index of the item to be altered
+ * \param func_arg unsigned char*       function to be used, either remove or add property
+ * \param list LIST*                    list to be added (might be unused)
+ * \param property_code int             property code
+ * \return void
+ */
 void camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, LIST *), LIST *list, int property_code)
-// takes the zone apart, then calls some function that alters a specified item and puts it back together
 {
     int i, offset;
     int item_count = from_u32(zone->data + 0xC);
@@ -1751,8 +2160,15 @@ void camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigne
         free(items[i]);
 }
 
+/** \brief
+ *  Gets indexes of camera linked neighbours specified in the camera link porperty.
+ *
+ * \param entry unsigned char*          entry data
+ * \param link_count int*               amount of links
+ * \param cam_index int                 index of the camera item
+ * \return int*                         array of indexes of neighbours
+ */
 int *get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index)
-// gets indexes of linked neighbours
 {
     int k, l;
     int *neighbour_indices;
@@ -1786,8 +2202,26 @@ int *get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index)
     return neighbour_indices;
 }
 
-void make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table)
-// for every zone's every camera it makes load lists and replaces the current ones with them
+
+/** \brief
+ *  A function that for each zone's each camera path creates new load lists using
+ *  the provided list of permanently loaded entries and
+ *  the provided list of dependencies of certain entitites, gets models from the animations.
+ *  For the zone itself and its linked neighbours it adds all relatives and their dependencies.
+ *  All sounds always get added, Cr10T and Cr20T always get added.
+ *  Load list properties get removed and then replaced by the provided list using 'camera_alter' function.
+ *  Load lists get sorted later during the nsd writing process.
+ *  Checks for invalid references and does not proceed if any are found.
+ *
+ * \param elist ENTRY*                  list of current entries, array of ENTRY
+ * \param entry_count int               current amount of entries
+ * \param gool_table unsigned int*      table that contains GOOL entries on their expected slot
+ * \param permaloaded LIST              list of permaloaded entries
+ * \param subtype_info DEPENDENCIES     list of {type, subtype, count, dependencies[count]}
+ *
+ * \return void
+ */
+void make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info)
 {
     int i, j, k;
 
@@ -1801,26 +2235,13 @@ void make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table)
             {
                 LIST list = init_list();
 
-                char help[6] = "Wil_C";
-                char set [] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_!";
-                for (k = 0; k < 0x40; k++)
-                {
-                    help[3] = set[k];
-                    ll_add_children(eid_to_int(help), elist, entry_count, &list, gool_table);
-                }
-
-                ll_add_children(eid_to_int("WillC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("DispC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("PartC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("BoxsC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("ShadC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("DoctC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("FruiC"), elist, entry_count, &list, gool_table);
-                ll_add_children(eid_to_int("LighC"), elist, entry_count, &list, gool_table);
-                ll_add_children(elist[i].EID,        elist, entry_count, &list, gool_table);
-
                 list_insert(&list, eid_to_int("Cr10T"));
                 list_insert(&list, eid_to_int("Cr20T"));
+
+                for (k = 0; k < permaloaded.count; k++)
+                    list_insert(&list, permaloaded.eids[k]);
+
+                ll_add_children(elist[i].EID, elist, entry_count, &list, gool_table, subtype_info);
 
                 for (k = 0; k < entry_count; k++)
                     if (entry_type(elist[k]) == ENTRY_TYPE_SOUND)
@@ -1833,9 +2254,8 @@ void make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table)
                 {
                     int eid = from_u32(elist[i].data + item1off + 0x194 + 4 * neighbour_indices[k]);
                     if (neighbour_indices[k] != 0)
-                        ll_add_children(eid, elist, entry_count, &list, gool_table);
+                        ll_add_children(eid, elist, entry_count, &list, gool_table, subtype_info);
                 }
-
 
                 camera_alter(&elist[i], 2 + 3 * j, remove_property, &list, 0x208);
                 camera_alter(&elist[i], 2 + 3 * j, remove_property, &list, 0x209);
@@ -1845,7 +2265,91 @@ void make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table)
         }
 }
 
+/** \brief
+ *  Reads the info from file the user has to provide, first part has permaloaded entries,
+ *  second has a list of type/subtype dependencies
+ *
+ * \param permaloaded LIST*             list of permaloaded entries (created here)
+ * \param subtype_info DEPENDENCIES*    list of type/subtype dependencies (created here)
+ * \param file_path char*               path of the input file
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \return int                          1 if all went good, 0 if something is wrong
+ */
+int get_info(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count)
+{
+    int i, j, perma_count, subcount, valid = 1;
+    char temp[6];
+    LIST perma = init_list();
 
+    FILE *file = fopen(file_path, "r");
+    if (file == NULL)
+        return 0;
+
+
+    fscanf(file, "%d", &perma_count);
+    for (i = 0; i < perma_count; i++)
+    {
+        fscanf(file, "%5s\n", temp);
+        list_insert(&perma, eid_to_int(temp));
+        int index = get_index(eid_to_int(temp), elist, entry_count);
+        if (index == -1)
+        {
+            printf("INVALID ENTRY REFERENCE:\t%s\n", temp);
+            valid = 0;
+            continue;
+        }
+
+        if (entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+            list_insert(&perma, get_model(elist[index].data));
+    }
+
+    fscanf(file, "%d", &subcount);
+
+    DEPENDENCIES subinfo;
+    subinfo.count = subcount;
+    subinfo.array = (INF *) malloc(subcount * sizeof(INF));
+    int type, subtype, counter;
+    for (i = 0; i < subcount; i++)
+    {
+        fscanf(file, "%d, %d, %d", &type, &subtype, &counter);
+        subinfo.array[i].type = type;
+        subinfo.array[i].subtype = subtype;
+        subinfo.array[i].dependencies = init_list();
+        for (j = 0; j < counter; j++)
+        {
+            fscanf(file, ", %5s", temp);
+            list_insert(&(subinfo.array[i].dependencies), eid_to_int(temp));
+            int index = get_index(eid_to_int(temp), elist, entry_count);
+            if (index == -1)
+            {
+                printf("INVALID ENTRY REFERENCE:\t%s", temp);
+                valid = 0;
+            }
+        }
+    }
+
+    *permaloaded = perma;
+    *subtype_info = subinfo;
+    if (!valid)
+    {
+        printf("Cannot proceed with invalid items, fix that\n");
+        return 0;
+    }
+    return 1;
+}
+
+
+/** \brief
+ *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
+ *
+ * \param nsfpath char*                 path to the base nsf
+ * \param dirpath char*                 path to the folder whose contents are to be added
+ * \param chunkcap int                  unused
+ * \param status INFO                   used for prints and stuff
+ * \param time char*                    string with time used for saving or not
+ * \return void
+ */
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
 // main function
 {
@@ -1912,7 +2416,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
 
     printf("Getting model references.\n");
-    get_model_references(elist, entry_count, entry_count_base);
+    get_model_references(elist, entry_count);
 
     printf("Removing invalid references.\n");
     remove_invalid_references(elist, entry_count, entry_count_base);
@@ -1933,6 +2437,24 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
     chunk_border_sounds = chunk_count;
 
+    char fpath[1000];
+    printf("Input the path to the file with permaloaded entries and type/subtype dependencies:\n");
+    scanf(" %[^\n]",fpath);
+    if (fpath[0]=='\"')
+    {
+        strcpy(fpath,fpath+1);
+        *(strchr(fpath,'\0')-1) = '\0';
+    }
+
+    LIST permaloaded;
+    DEPENDENCIES subtype_info;
+    if (!get_info(&permaloaded, &subtype_info, fpath, elist, entry_count))
+    {
+        printf("File could not be opened or a different error occured\n");
+        return;
+    }
+    make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info);
+
     printf("Building T11s' chunks.\n");
     // tries to do T11 and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
@@ -1950,7 +2472,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     // tries to do zones and their relatives' chunk assignment
     // 0 - grouped, 1 - one by one
     create_proto_chunks_zones(elist, entry_count, &chunk_count, config[1]);
-    // make_load_lists(elist, entry_count, gool_table);
 
     printf("Merging protochunks\n");
     // 0 - per delta load list check, 1 - per point load list check
@@ -1958,8 +2479,8 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     chunk_count = remove_empty_chunks(chunk_border_sounds, chunk_count, entry_count, elist);
 
     // load list merge might be used just as a metric
-    //load_list_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
-    //dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
+    payload_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
 
     // only opens the nsf, does not write yet
     *(strrchr(nsfpath,'\\') + 1) = '\0';
@@ -1971,7 +2492,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
 
     printf("Building actual chunks.\n");
-    write_chunks(elist, entry_count, chunk_border_texture, chunk_border_sounds, chunk_count, chunks);
+    build_real_chunks(elist, entry_count, chunk_border_texture, chunk_border_sounds, chunk_count, chunks);
 
     // prints entries and their stats and relatives, then chunks and their EIDs
     if (PRINTING)
