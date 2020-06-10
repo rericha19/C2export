@@ -1,5 +1,4 @@
 #include "macros.h"
-#define PRINTING 0
 
 int build_align_sound(int input)
 {
@@ -585,7 +584,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
         fsize = ftell(file);
         rewind(file);
         fread(entry, fsize, sizeof(unsigned char), file);
-        if (fsize == CHUNKSIZE && from_u32(entry) == MAGIC_TEXTURE)
+        if (fsize == CHUNKSIZE && from_u16(entry + 0x2) == CHUNK_TYPE_TEXTURE)
         {
             if (build_get_base_chunk_border(from_u32(entry + 4), chunks, *chunk_border_texture) > 0) continue;
             chunks[*chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
@@ -1027,6 +1026,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
     printf("Done constructing the relation matrix\n");
     build_matrix_merge_util(array_representation, elist, entry_count, entries);
     printf("Done merging\n");
+    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
 
@@ -1112,17 +1112,15 @@ void build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_c
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
- * \param chunk_border_texture int      index where texture chunks end
  * \param chunk_border_sounds int       index where sounds end
  * \param chunk_count int               chunk count
  * \param chunks unsigned char**        array of chunks
  * \return void
  */
-void build_real_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_instruments,
-                       int chunk_border_sounds, int chunk_count, unsigned char **chunks)
+void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
 {
     int i, j, sum = 0;
-    for (i = chunk_border_texture; i < chunk_count; i++)
+    for (i = chunk_border_sounds; i < chunk_count; i++)
     {
         int chunk_no = 2 * i + 1;
         int local_entry_count = 0;
@@ -1136,38 +1134,20 @@ void build_real_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, 
         *(unsigned short int *) chunks[i] = 0x1234;
         *((unsigned short int*) (chunks[i] + 4)) = chunk_no;
         *((unsigned short int*) (chunks[i] + 8)) = local_entry_count;
-        if (i < chunk_border_sounds) *(short int*)(chunks[i] + 2) = 3;
-
-        local_entry_count++;
 
         // calculates offsets
-        if (i < chunk_border_sounds && i >= chunk_border_instruments)
-        {
-            int indexer = 0;
-            offsets[indexer] = (0x10 + local_entry_count * 4);
+        int indexer = 0;
+        offsets[indexer] = 0x14 + local_entry_count * 4;
 
-            for (j = 0; j < entry_count; j++)
-            if (elist[j].chunk == i)
-            {
-                offsets[indexer + 1] = offsets[indexer] + elist[j].esize;
-                indexer++;
-            }
-        }
-        else
+        for (j = 0; j < entry_count; j++)
+        if (elist[j].chunk == i)
         {
-            int indexer = 0;
-            offsets[indexer] = 0x10 + local_entry_count * 4;
-
-            for (j = 0; j < entry_count; j++)
-            if (elist[j].chunk == i)
-            {
-                offsets[indexer + 1] = offsets[indexer] + elist[j].esize;
-                indexer++;
-            }
+            offsets[indexer + 1] = offsets[indexer] + elist[j].esize;
+            indexer++;
         }
 
         // writes offsets
-        for (j = 0; j < local_entry_count; j++)
+        for (j = 0; j < local_entry_count + 1; j++)
             *((unsigned int *) (chunks[i] + 0x10 + j * 4)) = offsets[j];
 
         // writes entries
@@ -1180,15 +1160,9 @@ void build_real_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, 
                 curr_offset += elist[j].esize;
             }
 
-            // if its an instrument entry/chunk
-            if (build_entry_type(elist[j]) == ENTRY_TYPE_INST && elist[j].chunk == i)
-                *(short int*)(chunks[i] + 2) = 4;
         }
 
-        if (i >= chunk_border_sounds)
-                sum += curr_offset;
-
-        // writes checksum
+        sum += curr_offset;
         *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);
     }
 
@@ -1843,6 +1817,68 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char 
     return 1;
 }
 
+int build_get_chunk_count_base(FILE *nsf)
+{
+    fseek(nsf, 0, SEEK_END);
+    int result = ftell(nsf) / CHUNKSIZE;
+    rewind(nsf);
+
+    return result;
+}
+
+int build_ask_ID()
+{
+    int level_ID;
+    printf("\nWhat ID do you want your level to have? (hex 0 - 3F) [CAN OVERWRITE EXISTING FILES!]\n");
+    scanf("%x", &level_ID);
+    if (level_ID < 0 || level_ID > 0x3F) {
+        printf("Invalid ID, defaulting to 1\n");
+        level_ID = 1;
+    }
+
+    return level_ID;
+}
+
+void build_ask_list_path(char *fpath)
+{
+    printf("Input the path to the file with permaloaded entries and type/subtype dependencies:\n");
+    scanf(" %[^\n]",fpath);
+    if (fpath[0]=='\"')
+    {
+        strcpy(fpath,fpath + 1);
+        *(strchr(fpath,'\0') - 1) = '\0';
+    }
+}
+
+void build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count)
+{
+    for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_DEMO || build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
+            elist[i].chunk = (*chunk_count)++;
+}
+
+void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks)
+{
+    int count = *chunk_count;
+    for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
+        {
+            chunks[count] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
+            *(unsigned short int *)(chunks[count]) = 0x1234;
+            *(unsigned short int *)(chunks[count] + 2) = 4;
+            *(unsigned short int *)(chunks[count] + 4) = 2 * count + 1;
+
+            *(unsigned int *)(chunks[count] + 8) = 1;
+            *(unsigned int *)(chunks[count] + 0x10) = 0x24;
+            *(unsigned int *)(chunks[count] + 0x14) = 0x24 + elist[i].esize;
+
+            memcpy(chunks[count] + 0x24, elist[i].data, elist[i].esize);
+            *((unsigned int *)(chunks[count] + 0xC)) = nsfChecksum(chunks[count]);
+            count++;
+        }
+
+    *chunk_count = count;
+}
 
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
@@ -1855,85 +1891,61 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char 
  * \return void
  */
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
-// main function
 {
+    char lcltemp[MAX], fpath[1000];
     DIR *df = NULL;
     FILE *nsf = NULL, *nsfnew = NULL;
     SPAWNS spawns = init_spawns();
-
-    char temp[MAX], lcltemp[MAX];
-    unsigned int gool_table[0x40];
-    for (int i = 0; i < 0x40; i++)
-        gool_table[i] = NONE;
-
     ENTRY elist[2500];
     unsigned char *chunks[1024];
+    LIST permaloaded;
+    DEPENDENCIES subtype_info;
+    int i, level_ID;
+    int chunk_border_base       = 0,
+        chunk_border_texture    = 0,
+        chunk_border_instruments= 0,
+        chunk_border_sounds     = 0,
+        chunk_count             = 0,
+        entry_count_base        = 0,
+        entry_count             = 0;
 
-    // config:
+    unsigned int gool_table[0x40];
+    for (i = 0; i < 0x40; i++)
+        gool_table[i] = NONE;
+
+    /* config: */
     // [gool initial merge flag]    0 - group       |   1 - one by one
     // [zone initial merge flag]    0 - group       |   1 - one by one
     // [merge type flag]            0 - per delta   |   1 - per point
     int config[] = {1, 1, 1};
 
-    int i, level_ID;
-    int chunk_border_base       = 0,
-        chunk_border_texture    = 0,
-        // chunk_border_gool       = 0,
-        chunk_border_instruments= 0,
-        chunk_count             = 0,
-        entry_count_base        = 0,
-        entry_count             = 0,
-        chunk_border_sounds;
 
-
-    // opening and stuff
-    if ((nsf = fopen(nsfpath,"rb")) == NULL)
-    {
+    if ((nsf = fopen(nsfpath,"rb")) == NULL) {
         printf("[ERROR] Could not open selected NSF\n");
         return;
     }
 
-    if ((df = opendir(dirpath)) == NULL)
-    {
+    if ((df = opendir(dirpath)) == NULL) {
         printf("[ERROR] Could not open selected directory\n");
         fclose(nsf);
         return;
     }
 
-    printf("\nWhat ID do you want your level to have? [CAN OVERWRITE EXISTING FILES!]\n");
-    scanf("%x", &level_ID);
-    if (level_ID < 0 || level_ID > 0x3F)
-    {
-        printf("Invalid ID, defaulting to 0\n");
-        level_ID = 0;
-    }
+    level_ID = build_ask_ID();
 
-    fseek(nsf, 0, SEEK_END);
-    chunk_border_base = ftell(nsf) / CHUNKSIZE;
-    rewind(nsf);
-
-    printf("\nReading from the NSF.\n");
+    chunk_border_base = build_get_chunk_count_base(nsf);
     //build_read_nsf(elist, chunk_border_base, chunks, &chunk_border_texture, &entry_count, nsf, gool_table);
     entry_count_base = entry_count;
-
-    printf("Reading from the folder.\n");
     build_read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
 
-    printf("Getting model references.\n");
     build_get_model_references(elist, entry_count);
-
-    printf("Removing invalid references.\n");
     build_remove_invalid_references(elist, entry_count, entry_count_base);
     chunk_count = chunk_border_texture;
     qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
 
-    // include instrument entries
-    for (i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
-            elist[i].chunk = chunk_count++;
+    build_instrument_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_instruments = chunk_count;
 
-    // include sounds, merge sound chunks
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             elist[i].chunk = chunk_count++;
@@ -1941,81 +1953,36 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
     chunk_border_sounds = chunk_count;
 
-    char fpath[1000];
-    printf("Input the path to the file with permaloaded entries and type/subtype dependencies:\n");
-    scanf(" %[^\n]",fpath);
-    if (fpath[0]=='\"')
-    {
-        strcpy(fpath,fpath+1);
-        *(strchr(fpath,'\0')-1) = '\0';
-    }
 
-    LIST permaloaded;
-    DEPENDENCIES subtype_info;
-    if (!build_read_entry_config(&permaloaded, &subtype_info, fpath, elist, entry_count))
-    {
+    build_ask_list_path(fpath);
+    if (!build_read_entry_config(&permaloaded, &subtype_info, fpath, elist, entry_count)) {
         printf("File could not be opened or a different error occured\n");
         return;
     }
+
     build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info);
-
-    printf("Building T11s' chunks.\n");
-    // tries to do T11 and their relatives' chunk assignment
-    // 0 - grouped, 1 - one by one
     build_assign_primary_chunks_gool(elist, entry_count, &chunk_count, config[0]);
-
-    // include demo and vcol entries, merge into gool_chunks
-    for (i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_DEMO || build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
-            elist[i].chunk = chunk_count++;
-
-    // chunk_border_gool = chunk_count;
-
-    printf("Building zones' chunks.\n");
-    // tries to do zones and their relatives' chunk assignment
-    // 0 - grouped, 1 - one by one
     build_assign_primary_chunks_zones(elist, entry_count, &chunk_count, config[1]);
+    build_assign_primary_chunks_rest(elist, entry_count, &chunk_count);
 
-    printf("Merging protochunks\n");
-    // 0 - per delta load list check, 1 - per point load list check
     build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
-    chunk_count = build_remove_empty_chunks(chunk_border_sounds, chunk_count, entry_count, elist);
-
-    // load list merge might be used just as a metric
-    //deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
     build_dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
 
-    // only opens the nsf, does not write yet
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
     nsfnew = fopen(lcltemp, "wb");
-
-    // opens nsd, writes it, sorts load lists
     *(strchr(lcltemp, '\0') - 1) = 'D';
+
     build_write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
+    build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
-    printf("Building actual chunks.\n");
-    build_real_chunks(elist, entry_count, chunk_border_texture, chunk_border_instruments, chunk_border_sounds, chunk_count, chunks);
-
-    // prints entries and their stats and relatives, then chunks and their EIDs
-    if (PRINTING)
-    {
-        build_print_relatives(elist, entry_count);
-        for (i = 0; i < chunk_count; i++)
-            printf("%03d: %s\n",i, eid_conv(from_u32(chunks[i] + 4), temp));
+    for (i = 0; i < chunk_count; i++) {
+        fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
+        free(chunks[i]);
     }
 
-    printf("Writing new NSF.\n");
-    // writes into a new nsf
-    for (i = 0; i < chunk_count; i++)
-        fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
-
-    // frees stuff and closes stuff
-    for (i = 0; i < chunk_count; i++)
-        free(chunks[i]);
-
-    for (i = 0; i < entry_count; i++)
-    {
+    for (i = 0; i < entry_count; i++) {
         if (elist[i].data != NULL)
             free(elist[i].data);
         if (elist[i].related != NULL)

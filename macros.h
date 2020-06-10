@@ -9,43 +9,48 @@
 #include "windows.h"
 
 
-#define OFFSET 0xC
-#define CHUNKSIZE 65536
-#define BYTE 256
-#define MAX 200
-#define PI 3.1415926535
+#define OFFSET                  0xC
+#define CHUNKSIZE               0x10000
+#define BYTE                    0x100
+#define MAX                     200
+#define PI                      3.1415926535
 
 // more dumb things
-#define C2_NEIGHBOURS_END 0x1B4
+#define C2_NEIGHBOURS_END       0x1B4
 #define C2_NEIGHBOURS_FLAGS_END 0x1D4
-#define MAGIC_ENTRY 0x100FFFF
-#define MAGIC_TEXTURE 0x11234
-#define C2_MUSIC_REF 0x2A4
-#define NONE 0x6396347Fu
+#define MAGIC_ENTRY             0x100FFFF
+#define MAGIC_CHUNK             0x1234
+#define CHUNK_TYPE_NORMAL       0
+#define CHUNK_TYPE_TEXTURE      1
+#define CHUNK_TYPE_PROTO_SOUND  2
+#define CHUNK_TYPE_SOUND        3
+#define CHUNK_TYPE_INSTRUMENT   4
+#define C2_MUSIC_REF            0x2A4
+#define NONE                    0x6396347Fu
 
 // commands
-#define KILL 2089250961u
-#define HELP 2089138798u
-#define EXPORT 2939723207u
-#define EXPORTALL 1522383616u
-#define CHANGEPRINT 2239644728u
-#define CHANGEMODE 588358864u
-#define STATUS 3482341513u
-#define WIPE 2089682330u
-#define IMPORT 3083219648u
-#define INTRO 223621809u
-#define RESIZE 3426052343u
-#define ROTATE 3437938580u
-#define BUILD 215559733u
-#define PROP 2089440550u
+#define KILL                    2089250961u
+#define HELP                    2089138798u
+#define EXPORT                  2939723207u
+#define EXPORTALL               1522383616u
+#define CHANGEPRINT             2239644728u
+#define CHANGEMODE              588358864u
+#define STATUS                  3482341513u
+#define WIPE                    2089682330u
+#define IMPORT                  3083219648u
+#define INTRO                   223621809u
+#define RESIZE                  3426052343u
+#define ROTATE                  3437938580u
+#define BUILD                   215559733u
+#define PROP                    2089440550u
 
-#define ENTRY_TYPE_ANIM 0x1
-#define ENTRY_TYPE_ZONE 0x7
-#define ENTRY_TYPE_GOOL 0xB
-#define ENTRY_TYPE_INST 0xE
-#define ENTRY_TYPE_VCOL 0xF
-#define ENTRY_TYPE_DEMO 0x13
-#define ENTRY_TYPE_SOUND 0xC
+#define ENTRY_TYPE_ANIM         0x1
+#define ENTRY_TYPE_ZONE         0x7
+#define ENTRY_TYPE_GOOL         0xB
+#define ENTRY_TYPE_INST         0xE
+#define ENTRY_TYPE_VCOL         0xF
+#define ENTRY_TYPE_DEMO         0x13
+#define ENTRY_TYPE_SOUND        0xC
 
 #define ENTITY_PROP_NAME                0x2C
 #define ENTITY_PROP_DEPTH_MODIFIER      0x32
@@ -55,7 +60,7 @@
 #define ENTITY_PROP_TYPE                0xA9
 #define ENTITY_PROP_SUBTYPE             0xAA
 #define ENTITY_PROP_VICTIMS             0x287
-#define ENTITY_PROP_BOX_COUNT           28B
+#define ENTITY_PROP_BOX_COUNT           0x28B
 
 #define ENTITY_PROP_CAMERA_MODE         0x29
 #define ENTITY_PROP_CAM_AVG_PT_DIST     0xC9
@@ -259,8 +264,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
 RELATIONS build_transform_matrix(LIST entries, int **entry_matrix);
 void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag);
 void build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
-void build_real_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_instruments,
-                       int chunk_border_sounds, int chunk_count, unsigned char **chunks);
+void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 void build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 int build_get_entity_type(unsigned char *entity);
 int build_get_entity_subtype(unsigned char *entity);
@@ -273,6 +277,11 @@ void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
 int *build_get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index);
 void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info);
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count);
+int build_get_chunk_count_base(FILE *nsf);
+int build_ask_ID();
+void build_ask_list_path(char *fpath);
+void build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
+void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
 
 PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);
