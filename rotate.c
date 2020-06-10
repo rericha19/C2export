@@ -66,7 +66,7 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     }
 
     for (i = 0; i < vertcount; i++)
-        rot(&verts[i][0],&verts[vertcount - 1 - i][1], rotation);
+        rotate_rotate(&verts[i][0],&verts[vertcount - 1 - i][1], rotation);
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
@@ -104,7 +104,7 @@ void rotate_zone(unsigned char *buffer, char *filepath, double rotation)
 }
 
 
-void rot(unsigned int *y,unsigned int *x, double rotation)
+void rotate_rotate(unsigned int *y,unsigned int *x, double rotation)
 {
     int temp1, temp2;
     int x_t = *x, y_t = *y;

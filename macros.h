@@ -8,8 +8,6 @@
 #include <math.h>
 #include "windows.h"
 
-// idk why i made any of these macros now that i think about it, maybe to get rid of magic numbers,
-// but there's still a ton of magic numbers everywhere
 
 #define OFFSET 0xC
 #define CHUNKSIZE 65536
@@ -79,14 +77,14 @@
 
 
 typedef struct info{
-    int counter[22];    // counts entry types, counter[0] is total entry count
-    int print_en;   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
-    FILE *flog;  // file where the logs are exported if file print is enabled
-    char temp[MAX]; // strings are written into this before being printed by condprint
-    int gamemode;   // 2 for C2, 3 for C3
-    int portmode;   // 0 for normal export, 1 for porting
-    unsigned int anim[1024][3];  // field one is model, field 3 is animation, field 2 is original animation when c3->c2
-    unsigned int animrefcount;   // count of animation references when porting c3 to c2
+    int counter[22];                // counts entry types, counter[0] is total entry count
+    int print_en;                   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
+    FILE *flog;                     // file where the logs are exported if file print is enabled
+    char temp[MAX];                 // strings are written into this before being printed by condprint
+    int gamemode;                   // 2 for C2, 3 for C3
+    int portmode;                   // 0 for normal export, 1 for porting
+    unsigned int anim[1024][3];     // field one is model, field 3 is animation, field 2 is original animation when c3->c2
+    unsigned int animrefcount;      // count of animation references when porting c3 to c2
 } INFO;
 
 typedef struct spawn{
@@ -106,7 +104,7 @@ typedef struct entry{
     int esize;
     int chunk;
     unsigned char *data;
-    unsigned int *related = NULL;
+    unsigned int *related;
 } ENTRY;
 
 typedef struct item {
@@ -163,66 +161,129 @@ typedef struct {
     INF *array;
 } DEPENDENCIES;
 
-//functional prototypes, also list of functions excluding main and main1, definitely outdated
-void rot(unsigned int *x,unsigned int *y, double rotation);
-void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
-void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
-void rotate_main(char *time);
-void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status);
-void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
-void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
-void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
-void resize_level(FILE *fpath, char *path, double scale[3], char *time, INFO status);
-void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status);
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
-void resize_main(char *time, INFO status);
-void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
-int camfix(unsigned char *cam, int length);
-void entitycoordfix(unsigned char *item, int itemlength);
-unsigned int from_u32(unsigned char *data);
-unsigned int from_u16(unsigned char *data);
-void scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-unsigned int nsfChecksum(const unsigned char *data);
-int filelister(char *path, FILE *base);
-int import(char *time, INFO status);
-void printstatus(INFO status);
-void clrscr();
-void askmode(int *zonetype, INFO *status);
-void condprint(INFO status);
-void askprint(INFO *status);
-void generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);
-void model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void countwipe(INFO *status);
-void countprint(INFO status);
-void animation(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void pathstring(char *finalpath, char *type, int eid, char *lvlid, char *date);
-char* eid_conv(unsigned int m_value, char *eid);
-int normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype);
-int texture_chunk(unsigned char *buffer, char *lvlid, char *date);
-int sound_chunk(unsigned char *buffer);
-int wavebank_chunk(unsigned char *buffer);
-int chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype);
-int exprt(int zone, char *fpath, char *date);
+
+void printstatus(int zonetype, int gamemode, int portmode);
 void intro_text();
 void print_help();
+void countprint(INFO status);
+void condprint(INFO status);
+void clrscr();
+unsigned int from_u32(unsigned char *data);
+unsigned int from_u16(unsigned char *data);
+void countwipe(INFO *status);
+void askprint(INFO *status);
 const unsigned long hash(const char *str);
-void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
-unsigned int* getrelatives(unsigned char *entry);
-unsigned int get_slst(unsigned char *item);
-unsigned int* GOOL_relatives(unsigned char *entry);
-void prop_main(char* path);
+int main1();
+void swap_ints(int *a, int *b);
+char* eid_conv(unsigned int m_value, char *eid);
+unsigned int eid_to_int(char *eid);
+unsigned int nsfChecksum(const unsigned char *data);
+void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status);
+void askmode(int *zonetype, INFO *status);
 long long int fact(int n);
 int cmpfunc(const void *a, const void *b);
 int comp(const void *a, const void *b);
 int pay_cmp(const void *a, const void *b);
-int load_list_sort(const void *a, const void *b);
 int list_comp(const void *a, const void *b);
-void swap_ints(int *a, int *b);
+int load_list_sort(const void *a, const void *b);
+void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int ***res, int *counter);
+void getCombinations(int arr[], int n, int r, int ***res, int *counter);
+int to_enum(const void *a);
 int cmp_entry(const void *a, const void *b);
-unsigned int eid_to_int(char *eid);
 int cmp_entry_eid(const void *a, const void *b);
 int relations_cmp(const void *a, const void *b);
-RELATIONS transform_matrix(LIST entries, int **entry_matrix);
-int get_index(unsigned int eid, ENTRY *elist, int entry_count);
+LIST init_list();
+SPAWNS init_spawns();
+int list_find(LIST list, unsigned int searched);
+void list_add(LIST *list, unsigned int eid);
+void list_rem(LIST *list, unsigned int eid);
+void list_insert(LIST *list, unsigned int eid);
+LOAD_LIST init_load_list();
+
+int export_main(int zone, char *fpath, char *date);
+int export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype);
+int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype);
+int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date);
+int export_camera_fix(unsigned char *cam, int length);
+void export_entity_coord_fix(unsigned char *item, int itemlength);
+void export_scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date);
+void export_generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date);
+void export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
+void export_zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);
+void export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
+void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date);
+
+int import_main(char *time, INFO status);
+int import_file_lister(char *path, FILE *fnew);
+void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
+
+void prop_main(char* path);
+
+void resize_main(char *time, INFO status);
+void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO status);
+void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
+void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status);
+void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
+void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
+void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
+
+void rotate_main(char *time);
+void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
+void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
+void rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
+
+int build_align_sound(int input);
+unsigned int build_get_model(unsigned char *anim);
+int build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
+void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base);
+int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end);
+void build_get_model_references(ENTRY *elist, int entry_count);
+int build_get_index(unsigned int eid, ENTRY *elist, int entry_count);
+unsigned int build_get_slst(unsigned char *item);
+int* build_seek_spawn(unsigned char *item);
+int build_get_neighbour_count(unsigned char *entry);
+int build_get_cam_count(unsigned char *entry);
+int build_get_scen_count(unsigned char *entry);
+int build_get_entity_count(unsigned char *entry);
+unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns);
+int build_entry_type(ENTRY entry);
+unsigned int* build_get_gool_relatives(unsigned char *entry, int entrysize);
+void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture, int *entry_count, FILE *nsf, unsigned int *gool_table);
+void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count);
+void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture, int *entry_count, SPAWNS *spawns, unsigned int* gool_table);
+void build_print_relatives(ENTRY *elist, int entry_count);
+void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
+void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
+void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
+void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries);
+RELATIONS build_transform_matrix(LIST entries, int **entry_matrix);
+void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag);
+void build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
+void build_real_chunks(ENTRY *elist, int entry_count, int chunk_border_texture, int chunk_border_instruments,
+                       int chunk_border_sounds, int chunk_count, unsigned char **chunks);
+void build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
+int build_get_entity_type(unsigned char *entity);
+int build_get_entity_subtype(unsigned char *entity);
+void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
+void build_add_model_textures_to_list(unsigned char *model, LIST *list);
+void build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
+unsigned char *build_add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
+unsigned char* build_remove_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
+void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, LIST *), LIST *list, int property_code);
+int *build_get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index);
+void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info);
+int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count);
+void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
+
+PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);
+void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count);
+void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
+void deprecate_build_print_payload(PAYLOAD payload, int stopper);
+int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count);
+int deprecate_build_get_common(int* listA, int countA, int *listB, int countB);
+void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count);
+PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min);
+void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count);
+int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int count);
+
+

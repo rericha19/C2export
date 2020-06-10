@@ -142,7 +142,6 @@ unsigned int from_u16(unsigned char *data)
 }
 
 
-
 void countwipe(INFO *status)
 // wipes the stats
 {
@@ -453,4 +452,119 @@ int relations_cmp(const void *a, const void *b)
     RELATION y = *(RELATION *) b;
 
     return y.value - x.value;
+}
+
+
+/** \brief
+ *  List struct init function.
+ *
+ * \return LIST
+ */
+LIST init_list(){
+    LIST list;
+    list.count = 0;
+    list.eids = NULL;
+
+    return list;
+}
+
+
+/** \brief
+ *  Spawns object init function.
+ *
+ * \return SPAWNS
+ */
+SPAWNS init_spawns(){
+    SPAWNS temp;
+    temp.spawn_count = 0;
+    temp.spawns = NULL;
+
+    return temp;
+}
+
+
+/** \brief
+ *  Binary search in a sorted list.
+ *
+ * \param list LIST                     list to be searched
+ * \param searched unsigned int         searched item
+ * \return int                          index the item has or -1 if item wasnt found
+ */
+int list_find(LIST list, unsigned int searched)
+{
+    int first = 0;
+    int last = list.count - 1;
+    int middle = (first + last)/2;
+
+    while (first <= last)
+    {
+        if (list.eids[middle] < searched)
+            first = middle + 1;
+        else if (list.eids[middle] == searched)
+            return middle;
+        else
+            last = middle - 1;
+
+        middle = (first + last)/2;
+    }
+
+    return -1;
+}
+
+
+/** \brief
+ *  Adds an item to the list.
+ *
+ * \param list LIST*                    list to be added into
+ * \param eid unsigned int              item to be added
+ * \return void
+ */
+void list_add(LIST *list, unsigned int eid)
+{
+    list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int *));
+    list->eids[list->count] = eid;
+    list->count++;
+    qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
+}
+
+/** \brief
+ *  Removes given item from the list if it exists.
+ *
+ * \param list LIST*                    list to be removed from
+ * \param eid unsigned int              item to be removed
+ * \return void
+ */
+void list_rem(LIST *list, unsigned int eid)
+{
+    int index = list_find(*list, eid);
+    if (index == -1) return;
+
+    list->eids[index] = list->eids[list->count - 1];
+    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int *));
+    list->count--;
+    qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
+}
+
+/** \brief
+ *  Adds an item to the list if it's not there yet.
+ *
+ * \param list LIST*                    list to be inserted into
+ * \param eid unsigned int              item to be inserted
+ * \return void
+ */
+void list_insert(LIST *list, unsigned int eid){
+    if (list_find(*list, eid) == -1)
+        list_add(list, eid);
+}
+
+/** \brief
+ *  Inits load list struct.
+ *
+ * \return LOAD_LIST
+ */
+LOAD_LIST init_load_list(){
+    LOAD_LIST temp;
+    temp.count = 0;
+
+    return temp;
 }

@@ -1,6 +1,6 @@
 #include "macros.h"
 
-int import(char *time, INFO status)
+int import_main(char *time, INFO status)
 // brute imports entries from a selected folder into a selected level
 {
     FILE *base, *importee;
@@ -51,7 +51,7 @@ int import(char *time, INFO status)
     importee = fopen(lcltemp,"wb");
     fwrite(basebase,sizeof(unsigned char),baselength,importee);
 
-    filelister(path, importee);
+    import_file_lister(path, importee);
     fclose(base);
     fclose(importee);
     sprintf(status.temp,"Done!\n");
@@ -60,7 +60,7 @@ int import(char *time, INFO status)
 }
 
 
-int filelister(char *path, FILE *fnew)
+int import_file_lister(char *path, FILE *fnew)
 // opens all files in a directory one by one and appends them onto a nsf crudely
 {
     // i have the arrays bigger than usual so i can do some dumb stuff with memcpy to make it easier for myself
@@ -143,7 +143,7 @@ int filelister(char *path, FILE *fnew)
                 entrysize = ftell(file);
                 rewind(file);
                 if (entrysize + curr_off + 0x16 + (index + 2) * 4 >= 65536)
-                    chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
+                    import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
                 offsets[index + 1] = offsets[index] + entrysize;
                 fread(nrmal + curr_off, sizeof(unsigned char), entrysize, file);
                 curr_off = curr_off + entrysize;
@@ -152,12 +152,12 @@ int filelister(char *path, FILE *fnew)
             fclose(file);
         }
     }
-    chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
+    import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
     closedir(dr);
     return 0;
 }
 
-void chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[])
+void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[])
 // saves the current chunk
 {
     char help[1024];
