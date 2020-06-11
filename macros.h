@@ -10,7 +10,7 @@
 
 
 #define OFFSET                  0xC
-#define CHUNKSIZE               0x10000
+#define CHUNKSIZE               65536
 #define BYTE                    0x100
 #define MAX                     200
 #define PI                      3.1415926535
@@ -196,6 +196,7 @@ void getCombinations(int arr[], int n, int r, int ***res, int *counter);
 int to_enum(const void *a);
 int cmp_entry(const void *a, const void *b);
 int cmp_entry_eid(const void *a, const void *b);
+int cmp_entry_size(const void *a, const void *b);
 int relations_cmp(const void *a, const void *b);
 LIST init_list();
 SPAWNS init_spawns();

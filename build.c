@@ -710,7 +710,7 @@ void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count,
         build_swap_spawns(spawns, 0, input - 1);
 
     for (i = 0; i < entry_count; i++)
-        if (elist[i].chunk != -1)
+        if (elist[i].chunk != -1 || build_entry_type(elist[i]) == ENTRY_TYPE_SOUND || build_entry_type(elist[i]) == ENTRY_TYPE_INST)
         {
             *(int *)(nsddata + 0x520 + 8*x) = elist[i].chunk * 2 + 1;
             *(int *)(nsddata + 0x524 + 8*x) = elist[i].EID;
@@ -1130,10 +1130,9 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
             if (elist[j].chunk == i) local_entry_count++;
 
         unsigned int offsets[local_entry_count + 2];
-
-        *(unsigned short int *) chunks[i] = 0x1234;
-        *((unsigned short int*) (chunks[i] + 4)) = chunk_no;
-        *((unsigned short int*) (chunks[i] + 8)) = local_entry_count;
+        *(unsigned short int*)  chunks[i] = MAGIC_CHUNK;
+        *(unsigned short int*) (chunks[i] + 4) = chunk_no;
+        *(unsigned short int*) (chunks[i] + 8) = local_entry_count;
 
         // calculates offsets
         int indexer = 0;
@@ -1148,7 +1147,7 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
 
         // writes offsets
         for (j = 0; j < local_entry_count + 1; j++)
-            *((unsigned int *) (chunks[i] + 0x10 + j * 4)) = offsets[j];
+            *(unsigned int *) (chunks[i] + 0x10 + j * 4) = offsets[j];
 
         // writes entries
         int curr_offset = offsets[0];
@@ -1841,7 +1840,7 @@ int build_ask_ID()
 
 void build_ask_list_path(char *fpath)
 {
-    printf("Input the path to the file with permaloaded entries and type/subtype dependencies:\n");
+    printf("\nInput the path to the file with permaloaded entries and type/subtype dependencies:\n");
     scanf(" %[^\n]",fpath);
     if (fpath[0]=='\"')
     {
@@ -1864,8 +1863,8 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
         if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
         {
             chunks[count] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
-            *(unsigned short int *)(chunks[count]) = 0x1234;
-            *(unsigned short int *)(chunks[count] + 2) = 4;
+            *(unsigned short int *)(chunks[count]) = MAGIC_CHUNK;
+            *(unsigned short int *)(chunks[count] + 2) = CHUNK_TYPE_INSTRUMENT;
             *(unsigned short int *)(chunks[count] + 4) = 2 * count + 1;
 
             *(unsigned int *)(chunks[count] + 8) = 1;
@@ -1879,6 +1878,92 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
 
     *chunk_count = count;
 }
+
+void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks)
+{
+    int indexer, i, j, count = *chunk_count;
+    int sound_entry_count = 0;
+
+    for (i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+            sound_entry_count++;
+
+    ENTRY sound_list[sound_entry_count];
+
+    indexer = 0;
+    for (i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+            sound_list[indexer++] = elist[i];
+
+
+    qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_entry_size);
+
+    int sizes[8];
+    for (i = 0; i < 8; i++)
+        sizes[i] = 0x14;
+
+    for (i = 0; i < sound_entry_count; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            if (sizes[j] + 4 + (((sound_list[i].esize + 15) >> 4) << 4) <= CHUNKSIZE)
+            {
+                sound_list[i].chunk = count + j;
+                sizes[j] += 4 + (((sound_list[i].esize + 15) >> 4) << 4);
+                break;
+            }
+        }
+    }
+
+
+    int snd_chunk_count;
+    for (i = 0; i < 8; i++)
+        if (sizes[i] > 0x14)
+            snd_chunk_count = i + 1;
+
+    for (i = 0; i < snd_chunk_count; i++)
+    {
+        int local_entry_count = 0;
+        int chunk_no = 2 * (count + i) + 1;
+        chunks[count + i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
+
+        for (j = 0; j < sound_entry_count; j++)
+            if (sound_list[j].chunk == count + i)
+                local_entry_count++;
+
+        unsigned int offsets[local_entry_count + 2];
+        *(unsigned short int *) chunks[count + i] = MAGIC_CHUNK;
+        *(unsigned short int *)(chunks[count + i] + 2) = CHUNK_TYPE_SOUND;
+        *(unsigned short int *)(chunks[count + i] + 4) = chunk_no;
+        *(unsigned short int *)(chunks[count + i] + 8) = local_entry_count;
+
+        indexer = 0;
+        offsets[indexer] = 0x14 + local_entry_count * 4;
+
+        for (j = 0; j < sound_entry_count; j++)
+        if (sound_list[j].chunk == count + i)
+        {
+            offsets[indexer + 1] = offsets[indexer] + (((sound_list[j].esize + 15) >> 4) << 4);
+            indexer++;
+        }
+
+        for (j = 0; j < local_entry_count + 1; j++)
+            *(unsigned int *) (chunks[count + i] + 0x10 + j * 4) = offsets[j];
+
+        indexer = 0;
+        for (j = 0; j < sound_entry_count; j++)
+            if (sound_list[j].chunk == count + i)
+            {
+                memcpy(chunks[count + i] + offsets[indexer], sound_list[j].data, sound_list[j].esize);
+                indexer++;
+            }
+
+        *(unsigned int*)(chunks[count + i] + 0xC) = nsfChecksum(chunks[count + i]);
+    }
+
+    *chunk_count = count + snd_chunk_count;
+}
+
 
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
@@ -1903,7 +1988,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     int i, level_ID;
     int chunk_border_base       = 0,
         chunk_border_texture    = 0,
-        chunk_border_instruments= 0,
         chunk_border_sounds     = 0,
         chunk_count             = 0,
         entry_count_base        = 0,
@@ -1944,13 +2028,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
 
     build_instrument_chunks(elist, entry_count, &chunk_count, chunks);
-    chunk_border_instruments = chunk_count;
-
-    for (i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
-            elist[i].chunk = chunk_count++;
-
-    build_dumb_merge(elist, chunk_border_instruments, &chunk_count, entry_count);
+    build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
 
