@@ -451,6 +451,22 @@ int cmp_entry_size(const void *a, const void *b)
     return ((*(ENTRY *) b).esize - (*(ENTRY *) a).esize);
 }
 
+int snd_cmp(const void *a, const void *b)
+{
+    ENTRY x = *(ENTRY *) a;
+    ENTRY y = *(ENTRY *) b;
+
+    if (build_entry_type(x) == ENTRY_TYPE_SOUND && build_entry_type(y) == ENTRY_TYPE_SOUND)
+    {
+        if (x.chunk == y.chunk)
+            return y.esize - x.esize;
+        else
+            return y.chunk - x.chunk;
+    }
+    else
+        return 0;
+
+}
 
 int relations_cmp(const void *a, const void *b)
 {

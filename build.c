@@ -710,7 +710,7 @@ void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count,
         build_swap_spawns(spawns, 0, input - 1);
 
     for (i = 0; i < entry_count; i++)
-        if (elist[i].chunk != -1 || build_entry_type(elist[i]) == ENTRY_TYPE_SOUND || build_entry_type(elist[i]) == ENTRY_TYPE_INST)
+        if (elist[i].chunk != -1)
         {
             *(int *)(nsddata + 0x520 + 8*x) = elist[i].chunk * 2 + 1;
             *(int *)(nsddata + 0x524 + 8*x) = elist[i].EID;
@@ -1862,6 +1862,7 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
     for (int i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
         {
+            elist[i].chunk = count;
             chunks[count] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
             *(unsigned short int *)(chunks[count]) = MAGIC_CHUNK;
             *(unsigned short int *)(chunks[count] + 2) = CHUNK_TYPE_INSTRUMENT;
@@ -1903,23 +1904,21 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
         sizes[i] = 0x14;
 
     for (i = 0; i < sound_entry_count; i++)
-    {
         for (j = 0; j < 8; j++)
-        {
             if (sizes[j] + 4 + (((sound_list[i].esize + 15) >> 4) << 4) <= CHUNKSIZE)
             {
                 sound_list[i].chunk = count + j;
                 sizes[j] += 4 + (((sound_list[i].esize + 15) >> 4) << 4);
                 break;
             }
-        }
-    }
 
 
     int snd_chunk_count;
     for (i = 0; i < 8; i++)
         if (sizes[i] > 0x14)
             snd_chunk_count = i + 1;
+
+    qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_entry_eid);
 
     for (i = 0; i < snd_chunk_count; i++)
     {
@@ -1960,6 +1959,11 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 
         *(unsigned int*)(chunks[count + i] + 0xC) = nsfChecksum(chunks[count + i]);
     }
+
+    for (i = 0; i < entry_count; i++)
+        for (j = 0; j < sound_entry_count; j++)
+            if (elist[i].EID == sound_list[j].EID)
+                elist[i].chunk = sound_list[j].chunk;
 
     *chunk_count = count + snd_chunk_count;
 }
@@ -2052,6 +2056,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     nsfnew = fopen(lcltemp, "wb");
     *(strchr(lcltemp, '\0') - 1) = 'D';
 
+    //qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_chunk);
     build_write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
