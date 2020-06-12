@@ -16,6 +16,7 @@
 #define PI                      3.1415926535
 
 // more dumb things
+#define C2_NEIGHBOURS_START     0x190
 #define C2_NEIGHBOURS_END       0x1B4
 #define C2_NEIGHBOURS_FLAGS_END 0x1D4
 #define MAGIC_ENTRY             0x100FFFF
@@ -104,6 +105,11 @@ typedef struct spawns{
     SPAWN *spawns;
 } SPAWNS;
 
+typedef struct list {
+    int count;
+    unsigned int *eids;
+} LIST;
+
 typedef struct entry{
     unsigned int EID;
     int esize;
@@ -127,11 +133,6 @@ typedef struct payloads {
     int count;
     PAYLOAD *arr;
 } PAYLOADS;
-
-typedef struct list {
-    int count;
-    unsigned int *eids;
-} LIST;
 
 typedef struct load {
     char type;
@@ -273,10 +274,10 @@ int build_get_entity_subtype(unsigned char *entity);
 void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void build_add_model_textures_to_list(unsigned char *model, LIST *list);
 void build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
-unsigned char *build_add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
-unsigned char* build_remove_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
+unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
+unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
 void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, LIST *), LIST *list, int property_code);
-int *build_get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index);
+void build_get_linked_neighbours(unsigned char *entry, int cam_index, LIST *back_links, LIST *forw_links);
 void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info);
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count);
 int build_get_chunk_count_base(FILE *nsf);
@@ -284,6 +285,7 @@ int build_ask_ID();
 void build_ask_list_path(char *fpath);
 void build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
+void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
 
 PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);

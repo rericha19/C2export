@@ -100,10 +100,6 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
 
         qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmpfunc);
 
-        for (int i = 0; i < payloads.arr[0].count; i++)
-            printf("%3d ", payloads.arr[0].chunks[i] * 2 + 1);
-        printf("\n");
-
         int chunks[1024];
         int count;
         int check = 0;

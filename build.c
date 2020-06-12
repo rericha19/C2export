@@ -1,9 +1,10 @@
 #include "macros.h"
+#define SLST_DISTANCE 10000
 
 int build_align_sound(int input)
 {
     for (int i = 0; i < 16; i++)
-        if (input + i % 16 == 8)
+        if ((input + i) % 16 == 8)
             return (input + i);
 
     return input;
@@ -217,6 +218,36 @@ unsigned int build_get_slst(unsigned char *item)
         else return 0;
 }
 
+unsigned int build_get_path_length(unsigned char *item)
+{
+    int i, offset = 0;
+    for (i = 0; i < item[0xC]; i++)
+        if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
+            offset = 0xC + from_u16(item + 0x10 + 8 * i + 2);
+
+    if (offset) return from_u32(item + offset);
+        else return 0;
+}
+
+short int *build_get_path(unsigned char *item, int *path_len)
+{
+    int i, offset = 0;
+    for (i = 0; i < item[0xC]; i++)
+        if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
+            offset = 0xC + from_u16(item + 0x10 + 8 * i + 2);
+
+    if (offset)
+        *path_len = from_u32(item + offset);
+    else
+    {
+        *path_len = 0;
+        return NULL;
+    }
+
+    short int* coords = (short int *) malloc(3 * sizeof(short int) * *path_len);
+    memcpy(coords, item + offset + 4, 6 * *path_len);
+    return coords;
+}
 
 /** \brief
  *  Searches the entity, if it has (correct) type and subtype and coords property,
@@ -260,7 +291,7 @@ int* build_seek_spawn(unsigned char *item)
  */
 int build_get_neighbour_count(unsigned char *entry){
     int item1off = from_u32(entry + 0x10);
-    return entry[item1off + 0x190];
+    return entry[item1off + C2_NEIGHBOURS_START];
 }
 
 /** \brief
@@ -1005,27 +1036,12 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
         }
 
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix);
-    /*FILE *out = fopen("C:\\Users\\samo1\\Desktop\\Matrix.txt", "w");
-    char temp[100];
-    fprintf(out, "     |");
-    for (i = 0; i < entries.count; i++)
-        fprintf(out, "%s|", eid_conv(entries.eids[i], temp));
-    fprintf(out, "\n");
-    for (i = 0; i < entries.count; i++)
-    {
-        fprintf(out, "%s|", eid_conv(entries.eids[i], temp));
-        for (j = 0; j < i; j++)
-            fprintf(out, "%5d ", entry_matrix[i][j]);
-        fprintf(out, "\n");
-    }*/
 
     for (i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
 
-    printf("Done constructing the relation matrix\n");
     build_matrix_merge_util(array_representation, elist, entry_count, entries);
-    printf("Done merging\n");
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
@@ -1411,7 +1427,7 @@ void build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST
  * \param code unsigned int             code of the property to be added
  * \param item unsigned char*           data of item where the property will be added
  * \param item_size int*                item size
- * \param list LIST*                    load list to be added
+ * \param list LIST *                   load list to be added
  * \return unsigned char*               new item data
  */
 unsigned char *build_add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
@@ -1512,10 +1528,10 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int* i
  * \param code unsigned int             code of the property to be removed
  * \param item unsigned char*           data of the item thats to be changed
  * \param item_size int*                size of the item
- * \param list LIST*                    unused
+ * \param list LIST *                   unused
  * \return unsigned char*               new item data
  */
-unsigned char* build_remove_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
+unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, LIST *list)
 {
     int offset, i, property_count = from_u32(item + 0xC);
     unsigned char property_headers[property_count][8];
@@ -1635,15 +1651,14 @@ void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
  *  Gets indexes of camera linked neighbours specified in the camera link porperty.
  *
  * \param entry unsigned char*          entry data
- * \param link_count int*               amount of links
  * \param cam_index int                 index of the camera item
- * \return int*                         array of indexes of neighbours
+ * \return void
  */
-int *build_get_linked_neighbours(unsigned char *entry, int *link_count, int cam_index)
+void build_get_linked_neighbours(unsigned char *entry, int cam_index, LIST *back_links, LIST *forw_links)
 {
-    int k, l;
-    int *neighbour_indices;
-    int cam_offset = from_u32(entry + 0x18 + 0xC * cam_index);
+    int i, k, l, link_count;
+    int *links;
+    int cam_offset = from_u32(entry + 0x10 + 4 * cam_index);
 
     for (k = 0; (unsigned) k < from_u32(entry + cam_offset + 0xC); k++)
     {
@@ -1655,24 +1670,104 @@ int *build_get_linked_neighbours(unsigned char *entry, int *link_count, int cam_
         {
             if (prop_len == 1)
             {
-                *link_count = from_u16(entry + offset);
-                neighbour_indices = (int *) malloc(*link_count * sizeof(int));
-                for (l = 0; l < *link_count; l++)
-                    neighbour_indices[l] = *(entry + offset + 0x6);
+                link_count = from_u16(entry + offset);
+                links = (int *) malloc(link_count * sizeof(int));
+                for (l = 0; l < link_count; l++)
+                    links[l] = from_u32(entry + offset + 4 + 4 * l);
             }
             else
             {
-                *link_count = max(1, from_u16(entry + offset)) + max(1, from_u16(entry + offset + 2));
-                neighbour_indices = (int *) malloc(*link_count * sizeof(int));
-                for (l = 0; l < *link_count; l++)
-                    neighbour_indices[l] = *(entry + offset + 0xA + 4 * l);
+                link_count = max(1, from_u16(entry + offset)) + max(1, from_u16(entry + offset + 2));
+                links = (int *) malloc(link_count * sizeof(int));
+                for (l = 0; l < link_count; l++)
+                    links[l] = from_u32(entry + offset + 0x8 + 4 * l);
             }
         }
     }
 
-    return neighbour_indices;
+    for (i = 0; i < link_count; i++)
+    {
+        if ((links[i] & 0xFF000000) >> 24 == 1)
+            if (back_links != NULL)
+                list_insert(back_links, links[i]);
+        if ((links[i] & 0xFF000000) >> 24 == 2)
+            if (forw_links != NULL)
+                list_insert(forw_links, links[i]);
+    }
 }
 
+void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count)
+{
+    int i, item1off = from_u32(elist[zone_index].data + 0x10);
+    LIST back_links = init_list();
+    LIST forw_links = init_list();
+
+
+    build_get_linked_neighbours(elist[zone_index].data, camera_index, &back_links, &forw_links);
+    int path_length;
+    short int *coords = build_get_path(elist[zone_index].data + from_u32(elist[zone_index].data + 0x10 + 4 * camera_index), &path_length);
+    int distance = 0;
+    for (i = 0; i < path_length - 1; i++)
+    {
+        short int x1, x2, y1, y2, z1, z2;
+        x1 = coords[i * 3 + 0];
+        y1 = coords[i * 3 + 1];
+        z1 = coords[i * 3 + 2];
+        x2 = coords[i * 3 + 3];
+        y2 = coords[i * 3 + 4];
+        z2 = coords[i * 3 + 5];
+
+        distance += pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2);
+    }
+
+    for (i = 0; i < back_links.count; i++)
+    {
+        int link_index = (back_links.eids[i] & 0xFF0000) >> 16;
+        int neighbour_cam_index = (back_links.eids[i] & 0xFF00) >> 8;
+        int link_flag = back_links.eids[i] & 0xFF;
+
+        unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link_index);
+        int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
+        int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * neighbour_cam_index));
+
+        unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
+        list_insert(&listA[0], slst);
+        list_insert(&listB[cam_length - 1], slst);
+
+        if (link_flag == 1)
+        {
+
+        }
+        if (link_flag == 2)
+        {
+
+        }
+    }
+
+    for (i = 0; i < forw_links.count; i++)
+    {
+        int link_index = (forw_links.eids[i] & 0xFF0000) >> 16;
+        int neighbour_cam_index = (forw_links.eids[i] & 0xFF00) >> 8;
+        int link_flag = forw_links.eids[i] & 0xFF;
+
+        unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link_index);
+        int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
+        int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * neighbour_cam_index));
+
+        unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
+        list_insert(&listA[0], slst);
+        list_insert(&listB[cam_length - 1], slst);
+
+        if (link_flag == 1)
+        {
+
+        }
+        if (link_flag == 2)
+        {
+
+        }
+    }
+}
 
 /** \brief
  *  A function that for each zone's each camera path creates new load lists using
@@ -1704,31 +1799,56 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
             for (j = 0; j < cam_count; j++)
             {
-                LIST list = init_list();
+                int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
+                LIST listA[cam_length];
+                LIST listB[cam_length];
 
-                for (k = 0; k < permaloaded.count; k++)
-                    list_insert(&list, permaloaded.eids[k]);
-
-                build_ll_add_children(elist[i].EID, elist, entry_count, &list, gool_table, subtype_info);
-
-                for (k = 0; k < entry_count; k++)
-                    if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND)
-                        list_insert(&list, elist[k].EID);
-
-                int link_count = 0;
-                int *neighbour_indices = build_get_linked_neighbours(elist[i].data, &link_count, j);
-
-                for (k = 0; k < link_count; k++)
-                {
-                    int eid = from_u32(elist[i].data + item1off + 0x194 + 4 * neighbour_indices[k]);
-                    if (neighbour_indices[k] != 0)
-                        build_ll_add_children(eid, elist, entry_count, &list, gool_table, subtype_info);
+                for (k = 0; k < cam_length; k++) {
+                    listA[k] = init_list();
+                    listB[k] = init_list();
                 }
 
-                build_camera_alter(&elist[i], 2 + 3 * j, build_remove_property, &list, 0x208);
-                build_camera_alter(&elist[i], 2 + 3 * j, build_remove_property, &list, 0x209);
-                build_camera_alter(&elist[i], 2 + 3 * j, build_add_property, &list, 0x208);
-                build_camera_alter(&elist[i], 2 + 3 * j, build_add_property, &list, 0x209);
+                for (k = 0; k < permaloaded.count; k++) {
+                    list_insert(&listA[0], permaloaded.eids[k]);
+                    list_insert(&listB[cam_length - 1], permaloaded.eids[k]);
+                }
+
+                if (elist[i].related != NULL)
+                for (k = 0; (unsigned) k < elist[i].related[0]; k++)
+                {
+                    list_insert(&listA[0], elist[i].related[k + 1]);
+                    list_insert(&listB[cam_length - 1], elist[i].related[k + 1]);
+                }
+
+                for (k = 0; k < entry_count; k++)
+                    if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
+                        list_insert(&listA[0], elist[k].EID);
+                        list_insert(&listB[cam_length - 1], elist[k].EID);
+                    }
+
+
+                int neighbour_count = build_get_neighbour_count(elist[i].data);
+                for (k = 0; k < neighbour_count; k++)
+                {
+                    int neighbour_eid = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * k);
+                    list_insert(&listA[0], neighbour_eid);
+                    list_insert(&listB[cam_length - 1], neighbour_eid);
+                }
+
+                int scenery_count = build_get_scen_count(elist[i].data);
+                for (k = 0; k < scenery_count; k++)
+                {
+                    int scenery_index = build_get_index(from_u32(elist[i].data + item1off + 0x4 + 0x30 * k), elist, entry_count);
+                    build_add_scen_textures_to_list(elist[scenery_index].data, &listA[0]);
+                    build_add_scen_textures_to_list(elist[scenery_index].data, &listB[cam_length - 1]);
+                }
+
+                build_load_list_util(i, 2 + 3 * j, listA, listB, cam_length, elist, entry_count);
+
+                build_camera_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x208);
+                build_camera_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x209);
+                build_camera_alter(&elist[i], 2 + 3 * j, build_add_property, &listA[0], 0x208);
+                build_camera_alter(&elist[i], 2 + 3 * j, build_add_property, &listB[cam_length - 1], 0x209);
             }
         }
 }
@@ -1937,12 +2057,12 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
         *(unsigned short int *)(chunks[count + i] + 8) = local_entry_count;
 
         indexer = 0;
-        offsets[indexer] = 0x14 + local_entry_count * 4;
+        offsets[indexer] = build_align_sound(0x14 + local_entry_count * 4);
 
         for (j = 0; j < sound_entry_count; j++)
         if (sound_list[j].chunk == count + i)
         {
-            offsets[indexer + 1] = offsets[indexer] + (((sound_list[j].esize + 15) >> 4) << 4);
+            offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
             indexer++;
         }
 
@@ -2035,7 +2155,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
-
     build_ask_list_path(fpath);
     if (!build_read_entry_config(&permaloaded, &subtype_info, fpath, elist, entry_count)) {
         printf("File could not be opened or a different error occured\n");
@@ -2056,7 +2175,6 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     nsfnew = fopen(lcltemp, "wb");
     *(strchr(lcltemp, '\0') - 1) = 'D';
 
-    //qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_chunk);
     build_write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
