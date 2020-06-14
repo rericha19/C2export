@@ -590,3 +590,8 @@ LOAD_LIST init_load_list(){
 
     return temp;
 }
+
+int point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2)
+{
+    return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
+}

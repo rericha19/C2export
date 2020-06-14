@@ -167,6 +167,11 @@ typedef struct {
     INF *array;
 } DEPENDENCIES;
 
+typedef struct property {
+    unsigned char header[8];
+    unsigned char *data;
+    int length;
+} PROPERTY;
 
 void printstatus(int zonetype, int gamemode, int portmode);
 void intro_text();
@@ -207,6 +212,7 @@ void list_add(LIST *list, unsigned int eid);
 void list_rem(LIST *list, unsigned int eid);
 void list_insert(LIST *list, unsigned int eid);
 LOAD_LIST init_load_list();
+int point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
 
 int export_main(int zone, char *fpath, char *date);
 int export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype);
@@ -274,9 +280,9 @@ int build_get_entity_subtype(unsigned char *entity);
 void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void build_add_model_textures_to_list(unsigned char *model, LIST *list);
 void build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
-unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
-unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, LIST *list);
-void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, LIST *), LIST *list, int property_code);
+unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
+unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
+void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code);
 void build_get_linked_neighbours(unsigned char *entry, int cam_index, LIST *back_links, LIST *forw_links);
 void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info);
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count);
