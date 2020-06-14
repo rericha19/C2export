@@ -1713,14 +1713,31 @@ void build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, in
 
     for (j = 0; j < additions.count; j++)
     {
-        int is_there = 0;
+        int old_start = -1, temp, old_end = -1;
         for (k = 0; k < cam_length; k++)
-            if (list_find(listA[k], additions.eids[j]) != -1 || list_find(listB[k], additions.eids[j]) != -1)
-                is_there = 1;
+        {
+            temp = list_find(listA[k], additions.eids[j]);
+            if (temp != -1)
+                old_start = k;
+            temp = list_find(listB[k], additions.eids[j]);
+            if (temp != -1)
+                old_end = k;
+        }
 
-        if (is_there) continue;
+
+        if (old_end != -1 && old_end < end_index)
+        {
+            list_rem(&listB[old_end], additions.eids[j]);
+            list_insert(&listB[end_index], additions.eids[j]);
+        }
+        if (old_end != -1 && old_end >= end_index)
+            ;
+        if (old_end == -1)
+            list_insert(&listB[end_index], additions.eids[j]);
+
+        if (old_start != -1)
+            list_rem(&listA[old_start], additions.eids[j]);
         list_insert(&listA[0], additions.eids[j]);
-        list_insert(&listB[end_index], additions.eids[j]);
     }
 }
 
@@ -1748,20 +1765,36 @@ void build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, in
 
     for (j = 0; j < additions.count; j++)
     {
-        int is_there = -1;
+        int old_start = -1, temp, old_end = -1;
         for (k = 0; k < cam_length; k++)
-            if (list_find(listA[k], additions.eids[j]) != -1 || list_find(listB[k], additions.eids[j]) != -1)
-                is_there = 1;
+        {
+            temp = list_find(listA[k], additions.eids[j]);
+            if (temp != -1)
+                old_start = k;
+            temp = list_find(listB[k], additions.eids[j]);
+            if (temp != -1)
+                old_end = k;
+        }
 
-        if (is_there != -1) continue;
-        list_insert(&listA[start_index], additions.eids[j]);
+        if (old_start != -1 && old_start > start_index)
+        {
+            list_insert(&listA[start_index], additions.eids[j]);
+            list_rem(&listA[old_start], additions.eids[j]);
+        }
+        if (old_start != -1 && old_start <= start_index)
+            ;
+        if (old_start == -1)
+            list_insert(&listA[start_index], additions.eids[j]);
+
+        if (old_end != -1)
+            list_rem(&listB[old_end], additions.eids[j]);
         list_insert(&listB[cam_length - 1], additions.eids[j]);
     }
 }
 
 void build_load_list_util_util(int zone_index, int cam_index, unsigned int link, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count)
 {
-    int i, item1off = from_u32(elist[zone_index].data + 0x10);
+    int i, j, item1off = from_u32(elist[zone_index].data + 0x10);
     short int* coords;
     int path_length, distance = 0;
 
@@ -1773,6 +1806,19 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
     unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link_index);
     int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
     int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * neighbour_cam_index));
+
+    if (elist[neighbour_index].related != NULL)
+        for (i = 0; (unsigned) i < elist[neighbour_index].related[0]; i++)
+        {
+            for (j = 0; j < cam_length; j++)
+            {
+                list_rem(&listA[j], elist[neighbour_index].related[i + 1]);
+                list_rem(&listB[j], elist[neighbour_index].related[i + 1]);
+            }
+
+            list_insert(&listA[0], elist[neighbour_index].related[i + 1]);
+            list_insert(&listB[cam_length - 1], elist[neighbour_index].related[i + 1]);
+        }
 
     unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
     list_insert(&listA[0], slst);
