@@ -180,7 +180,7 @@ void askprint(INFO *status)
 }
 
 
-const unsigned long hash(const char *str)
+unsigned long hash(const char *str)
 //changes the input string to a number, i just copied this over
 {
     unsigned long hash = 5381;

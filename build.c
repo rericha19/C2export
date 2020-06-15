@@ -1,6 +1,4 @@
 #include "macros.h"
-#define SLST_DISTANCE 7500
-#define NEIG_DISTANCE 10000
 
 int build_align_sound(int input)
 {
@@ -228,8 +226,9 @@ unsigned int build_get_path_length(unsigned char *item)
         else return 0;
 }
 
-short int *build_get_path(unsigned char *item, int *path_len)
+short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len)
 {
+    unsigned char *item = elist[zone_index].data + from_u32(elist[zone_index].data + 0x10 + 4 * item_index);
     int i, offset = 0;
     for (i = 0; i < item[0xC]; i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
@@ -916,6 +915,41 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix)
     return relations;
 }
 
+LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_offset)
+{
+    int k, l;
+    LOAD_LIST load_list = init_load_list();
+    for (k = 0; (unsigned) k < from_u32(entry + cam_offset + 0xC); k++)
+    {
+        int code = from_u16(entry + cam_offset + 0x10 + 8 * k);
+        int offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+        int list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
+        if (code == prop_code || code == prop_code + 1)
+        {
+            int sub_list_offset = offset + 4 * list_count;
+            int point;
+            int load_list_item_count;
+            for (l = 0; l < list_count; l++, sub_list_offset += load_list_item_count * 4)
+            {
+                load_list_item_count = from_u16(entry + offset + l * 2);
+                point = from_u16(entry + offset + l * 2 + list_count * 2);
+
+                load_list.array[load_list.count].list_length = load_list_item_count;
+                load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
+                memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
+                if (code == prop_code)
+                    load_list.array[load_list.count].type = 'A';
+                else
+                    load_list.array[load_list.count].type = 'B';
+                load_list.array[load_list.count].index = point;
+                load_list.count++;
+                qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
+            }
+        }
+    }
+
+    return load_list;
+}
 
 /** \brief
  *  Current best chunk merge method based on common load list occurence count of each pair of entries,
@@ -931,7 +965,7 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix)
  */
 void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag)
 {
-    int i, j, k, l, m;
+    int i, j, l, m;
     LIST entries = init_list();
 
     for (i = 0; i < entry_count; i++)
@@ -964,42 +998,12 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
             for (j = 0; j < cam_count; j++)
             {
-                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
-                LOAD_LIST load_list = init_load_list();
+                int cam_offset = from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j));
+                LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
+                int cam_length = build_get_path_length(elist[i].data + cam_offset);
+
+
                 LIST list = init_list();
-                int cam_length = 0;
-                for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
-                {
-                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
-                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
-                    {
-                        int sub_list_offset = offset + 4 * list_count;
-                        int point;
-                        int load_list_item_count;
-                        for (l = 0; l < list_count; l++, sub_list_offset += load_list_item_count * 4)
-                        {
-                            load_list_item_count = from_u16(elist[i].data + offset + l * 2);
-                            point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
-
-                            load_list.array[load_list.count].list_length = load_list_item_count;
-                            load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
-                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
-                            if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
-                                load_list.array[load_list.count].type = 'A';
-                            else
-                                load_list.array[load_list.count].type = 'B';
-                            load_list.array[load_list.count].index = point;
-                            load_list.count++;
-                            qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
-                        }
-                    }
-
-                    if (code == ENTITY_PROP_PATH)
-                        cam_length = from_u32(elist[i].data + offset);
-                }
-
                 switch(merge_flag)
                 {
                     case 1:     // per point
@@ -1697,7 +1701,7 @@ void build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, in
     int j, k, distance2 = 0;
     for (j = 0; j < path_length - 1; j++)
     {
-        if (distance + distance2 >= SLST_DISTANCE) continue;
+        if (distance + distance2 >= final_distance) continue;
         short int x1 = coords[j * 3 + 0];
         short int y1 = coords[j * 3 + 1];
         short int z1 = coords[j * 3 + 2];
@@ -1708,7 +1712,7 @@ void build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, in
         end_index = j;
     }
 
-    if (distance + distance2 < SLST_DISTANCE) end_index++;
+    if (distance + distance2 < final_distance) end_index++;
     if (end_index == 0) return;
 
     for (j = 0; j < additions.count; j++)
@@ -1824,7 +1828,7 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
     list_insert(&listA[0], slst);
     list_insert(&listB[cam_length - 1], slst);
 
-    coords = build_get_path(elist[neighbour_index].data + from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * neighbour_cam_index)), &path_length);
+    coords = build_get_path(elist, neighbour_index, 2 + 3 * neighbour_cam_index, &path_length);
     for (i = 0; i < path_length - 1; i++)
     {
         short int x1 = coords[i * 3 + 0];
@@ -1854,7 +1858,7 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
         LIST slst_list = init_list();
         list_insert(&slst_list, slst2);
 
-        coords = build_get_path(elist[zone_index].data + from_u32(elist[zone_index].data + 0x10 + 4 * cam_index), &path_length);
+        coords = build_get_path(elist, zone_index, cam_index, &path_length);
         if ((link_type == 2 && link_flag == 2 && link_type2 == 1) || (link_type == 2 && link_flag == 1 && link_type2 == 2))
         {
             build_load_list_util_util_back(cam_length, listA, listB, distance, SLST_DISTANCE, coords, path_length, slst_list);
@@ -1868,13 +1872,133 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
     }
 }
 
+LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length)
+{
+    int i, m;
+    LIST *draw_list = (LIST *) malloc(cam_length * sizeof(LIST));
+    LIST list = init_list();
+    for (i = 0; i < cam_length; i++)
+        draw_list[i] = init_list();
+
+    int cam_offset = from_u32(elist[zone_index].data + 0x10 + 4 * cam_index);
+    LOAD_LIST draw_list2 = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, elist[zone_index].data, cam_offset);
+
+    int sublist_index = 0;
+    for (i = 0; i < cam_length; i++)
+    {
+        if (draw_list2.array[sublist_index].index == i)
+        {
+            if (draw_list2.array[sublist_index].type == 'B')
+                for (m = 0; m < draw_list2.array[sublist_index].list_length; m++)
+                    list_insert(&list, (draw_list2.array[sublist_index].list[m] & 0xFFFF00) >> 8);
+
+            if (draw_list2.array[sublist_index].type == 'A')
+                for (m = 0; m < draw_list2.array[sublist_index].list_length; m++)
+                    list_rem(&list, (draw_list2.array[sublist_index].list[m] & 0xFFFF00) >> 8);
+
+            sublist_index++;
+        }
+
+        for (m = 0; m < list.count; m++)
+            list_insert(&draw_list[i], list.eids[m]);
+    }
+
+    return draw_list;
+}
+
+LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count)
+{
+    LIST entity_list = init_list();
+    int i, j, k, coord_count;
+
+    LIST *draw_list_zone = build_get_complete_draw_list(elist, zone_index, camera_index, cam_length);
+    short int *coords = build_get_path(elist, zone_index, camera_index, &coord_count);
+    LIST links = build_get_linked_neighbours(elist[zone_index].data, camera_index);
+
+    for (i = 0; i < cam_length; i++)
+        for (j = 0; j < draw_list_zone[i].count; j++)
+            list_insert(&entity_list, draw_list_zone[i].eids[j]);
+
+    for (i = 0; i < links.count; i++)
+    {
+        unsigned int link = links.eids[i];
+        int link_type = (link & 0xFF000000) >> 24;
+        int link_index = (link & 0xFF0000) >> 16;
+        int neighbour_cam_index = (link & 0xFF00) >> 8;
+        int link_flag = link & 0xFF;
+
+        int distance = 0;
+        if (link_type == 1)
+            for (j = point_index - 1; j > 0; j--)
+            {
+                short int x1 = coords[3 * j + 0];
+                short int y1 = coords[3 * j + 1];
+                short int z1 = coords[3 * j + 2];
+                short int x2 = coords[3 * j - 3];
+                short int y2 = coords[3 * j - 2];
+                short int z2 = coords[3 * j - 1];
+                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+            }
+        if (link_type == 2)
+            for (j = point_index; j < cam_length - 1; j++)
+            {
+                short int x1 = coords[3 * j + 0];
+                short int y1 = coords[3 * j + 1];
+                short int z1 = coords[3 * j + 2];
+                short int x2 = coords[3 * j + 3];
+                short int y2 = coords[3 * j + 4];
+                short int z2 = coords[3 * j + 5];
+                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+            }
+
+        unsigned int eid_offset = from_u32(elist[zone_index].data + 0x10) + 4 + link_index * 4 + C2_NEIGHBOURS_START;
+        unsigned int neighbour_eid = from_u32(elist[zone_index].data + eid_offset);
+        int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
+
+        int neighbour_cam_length;
+        short int *coords2 = build_get_path(elist, neighbour_index, 2 + 3 * neighbour_cam_index, &neighbour_cam_length);
+        LIST* draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * neighbour_cam_index, neighbour_cam_length);
+        LIST list = build_get_linked_neighbours(elist[neighbour_index].data, 2 + 3 * neighbour_cam_index);
+
+        for (j = 0; j < neighbour_cam_length - 1; j++)
+        {
+            short int x1 = coords2[3 * j + 0];
+            short int y1 = coords2[3 * j + 1];
+            short int z1 = coords2[3 * j + 2];
+            short int x2 = coords2[3 * j + 3];
+            short int y2 = coords2[3 * j + 4];
+            short int z2 = coords2[3 * j + 5];
+            distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+        }
+
+        char temp[100], temp2[100];
+        printf("%s - %s distance %5d\n", eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2), distance);
+
+        for (j = 0; j < neighbour_cam_length; j++)
+            for (k = 0; k < draw_list_neighbour1[j].count; k++)
+                list_insert(&entity_list, draw_list_neighbour1[j].eids[k]);
+
+    }
+
+    return entity_list;
+}
+
 void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count)
 {
-    int i;
+    int i, j;
 
     LIST links = build_get_linked_neighbours(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
         build_load_list_util_util(zone_index, camera_index, links.eids[i], listA, listB, cam_length, elist, entry_count);
+
+    for (i = 0; i < cam_length; i++)
+    {
+        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count);
+        char temp[100];
+        printf("%s point %2d\n", eid_conv(elist[zone_index].EID, temp), i);
+        for (j = 0; j < entity_list.count; j++)
+            printf("%3d\n", entity_list.eids[j]);
+    }
 }
 
 PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
