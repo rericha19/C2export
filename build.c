@@ -1356,6 +1356,7 @@ void build_add_model_textures_to_list(unsigned char *model, LIST *list)
 
 /** \brief
  *  Inserts all stuff loaded by a zone (scenery dependencies, entity dependencies, its own relatives) to the list.
+ *  DEPRECATE.
  *
  * \param eid unsigned int              entry whose children are to be added
  * \param elist ENTRY*                  entry list
@@ -1899,26 +1900,29 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
             sublist_index++;
         }
 
-        for (m = 0; m < list.count; m++)
-            list_insert(&draw_list[i], list.eids[m]);
+        list_copy_in(&draw_list[i], list);
     }
 
     return draw_list;
 }
 
-LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count)
+LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list)
+{
+    return init_list();
+}
+
+LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours)
 {
     LIST entity_list = init_list();
-    int i, j, k, coord_count;
+    int i, j, coord_count;
 
+    list_copy_in(neighbours, build_get_neighbours(elist[zone_index].data));
     LIST *draw_list_zone = build_get_complete_draw_list(elist, zone_index, camera_index, cam_length);
+    for (i = 0; i < cam_length; i++)
+        list_copy_in(&entity_list, draw_list_zone[i]);
+
     short int *coords = build_get_path(elist, zone_index, camera_index, &coord_count);
     LIST links = build_get_linked_neighbours(elist[zone_index].data, camera_index);
-
-    for (i = 0; i < cam_length; i++)
-        for (j = 0; j < draw_list_zone[i].count; j++)
-            list_insert(&entity_list, draw_list_zone[i].eids[j]);
-
     for (i = 0; i < links.count; i++)
     {
         unsigned int link = links.eids[i];
@@ -1975,9 +1979,9 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         printf("%s - %s distance %5d\n", eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2), distance);
 
         for (j = 0; j < neighbour_cam_length; j++)
-            for (k = 0; k < draw_list_neighbour1[j].count; k++)
-                list_insert(&entity_list, draw_list_neighbour1[j].eids[k]);
+            list_copy_in(&entity_list, draw_list_neighbour1[j]);
 
+        list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index].data));
     }
 
     return entity_list;
@@ -1985,7 +1989,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
 
 void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count)
 {
-    int i, j;
+    int i;
 
     LIST links = build_get_linked_neighbours(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
@@ -1993,11 +1997,9 @@ void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* l
 
     for (i = 0; i < cam_length; i++)
     {
-        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count);
-        char temp[100];
-        printf("%s point %2d\n", eid_conv(elist[zone_index].EID, temp), i);
-        for (j = 0; j < entity_list.count; j++)
-            printf("%3d\n", entity_list.eids[j]);
+        LIST neighbour_list = init_list();
+        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list);
+        LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
     }
 }
 
@@ -2075,10 +2077,9 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                     listB[k] = init_list();
                 }
 
-                for (k = 0; k < permaloaded.count; k++) {
-                    list_insert(&listA[0], permaloaded.eids[k]);
-                    list_insert(&listB[cam_length - 1], permaloaded.eids[k]);
-                }
+                list_copy_in(&listA[0], permaloaded);
+                list_copy_in(&listB[cam_length - 1], permaloaded);
+
 
                 if (elist[i].related != NULL)
                 for (k = 0; (unsigned) k < elist[i].related[0]; k++)
@@ -2093,14 +2094,10 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         list_insert(&listB[cam_length - 1], elist[k].EID);
                     }
 
-
                 LIST neighbours = build_get_neighbours(elist[i].data);
-                for (k = 0; k < neighbours.count; k++)
-                {
-                    int neighbour_eid = neighbours.eids[k];
-                    list_insert(&listA[0], neighbour_eid);
-                    list_insert(&listB[cam_length - 1], neighbour_eid);
-                }
+                list_copy_in(&listA[0], neighbours);
+                list_copy_in(&listB[cam_length - 1], neighbours);
+
 
                 int scenery_count = build_get_scen_count(elist[i].data);
                 for (k = 0; k < scenery_count; k++)
