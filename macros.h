@@ -296,6 +296,7 @@ void         build_load_list_util_util_back(int cam_length, LIST *listA, LIST *l
 void         build_load_list_util_util(int zone_index, int cam_index, unsigned int link, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count);
 LIST *       build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length);
 LIST         build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list);
+int          build_get_distance(short int *coords, int start_index, int end_index, int cap, int *final_index);
 LIST         build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours);
 void         build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count);
 PROPERTY     build_make_load_list_prop(LIST *list_array, int cam_length, int code);

@@ -1672,20 +1672,10 @@ void build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, in
 {
     int end_index = 0;
     int j, k, distance2 = 0;
-    for (j = 0; j < path_length - 1; j++)
-    {
-        if (distance + distance2 >= final_distance) continue;
-        short int x1 = coords[j * 3 + 0];
-        short int y1 = coords[j * 3 + 1];
-        short int z1 = coords[j * 3 + 2];
-        short int x2 = coords[j * 3 + 3];
-        short int y2 = coords[j * 3 + 4];
-        short int z2 = coords[j * 3 + 5];
-        distance2 += point_distance_3D(x1, x2, y1, y2, z1, z2);
-        end_index = j;
-    }
 
     if (distance + distance2 < final_distance) end_index++;
+    build_get_distance(coords, 0, path_length, final_distance - distance, &end_index);
+
     if (end_index == 0) return;
 
     for (j = 0; j < additions.count; j++)
@@ -1722,22 +1712,9 @@ void build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, in
 void build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int start_index = cam_length - 1;
-    int j, k, distance2 = 0;
+    int j, k;
 
-    for (j = path_length - 1; j > 0; j--)
-    {
-        if (distance + distance2 >= final_distance) continue;
-        short int x1 = coords[j * 3 - 3];
-        short int y1 = coords[j * 3 - 2];
-        short int z1 = coords[j * 3 - 1];
-        short int x2 = coords[j * 3 + 0];
-        short int y2 = coords[j * 3 + 1];
-        short int z2 = coords[j * 3 + 2];
-        distance2 += point_distance_3D(x1, x2, y1, y2, z1, z2);
-        start_index = j;
-    }
-
-    if (distance + distance2 < final_distance) start_index--;
+    build_get_distance(coords, path_length, 0, final_distance - distance, &start_index);
     if (start_index == cam_length - 1) return;
 
     for (j = 0; j < additions.count; j++)
@@ -1802,16 +1779,8 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
     list_insert(&listB[cam_length - 1], slst);
 
     coords = build_get_path(elist, neighbour_index, 2 + 3 * neighbour_cam_index, &path_length);
-    for (i = 0; i < path_length - 1; i++)
-    {
-        short int x1 = coords[i * 3 + 0];
-        short int y1 = coords[i * 3 + 1];
-        short int z1 = coords[i * 3 + 2];
-        short int x2 = coords[i * 3 + 3];
-        short int y2 = coords[i * 3 + 4];
-        short int z2 = coords[i * 3 + 5];
-        distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
-    }
+    distance += build_get_distance(coords, 0, path_length, -1, NULL);
+
 
     LIST layer2 = build_get_linked_neighbours(elist[neighbour_index].data, 2 + 3 * neighbour_cam_index);
     for (i = 0; i < layer2.count; i++)
@@ -1903,12 +1872,90 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
     return type_subtype_list;
 }
 
+int build_get_distance(short int *coords, int start_index, int end_index, int cap, int *final_index)
+{
+    int j, distance = 0;
+    int index = start_index;
+
+    if (cap == -1 && final_index == NULL)
+    {
+        if (start_index < end_index)
+            for (j = start_index; j < end_index - 1; j++)
+            {
+                short int x1 = coords[3 * j + 0];
+                short int y1 = coords[3 * j + 1];
+                short int z1 = coords[3 * j + 2];
+                short int x2 = coords[3 * j + 3];
+                short int y2 = coords[3 * j + 4];
+                short int z2 = coords[3 * j + 5];
+                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+            }
+
+        if (start_index > end_index)
+            for (j = start_index - 1; j > end_index; j--)
+            {
+                short int x1 = coords[3 * j + 0];
+                short int y1 = coords[3 * j + 1];
+                short int z1 = coords[3 * j + 2];
+                short int x2 = coords[3 * j - 3];
+                short int y2 = coords[3 * j - 2];
+                short int z2 = coords[3 * j - 1];
+                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+            }
+    }
+
+    if (cap != -1 && final_index != NULL)
+    {
+        if (start_index > end_index)
+        {
+            index = end_index - 1;
+            for (j = start_index - 1; j > end_index; j--)
+            {
+                if (distance >= cap) break;
+                short int x1 = coords[j * 3 - 3];
+                short int y1 = coords[j * 3 - 2];
+                short int z1 = coords[j * 3 - 1];
+                short int x2 = coords[j * 3 + 0];
+                short int y2 = coords[j * 3 + 1];
+                short int z2 = coords[j * 3 + 2];
+                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+                index = j;
+            }
+
+            if (distance < cap) index--;
+        }
+        if (start_index < end_index)
+        {
+            index = start_index;
+            for (j = start_index; j < end_index - 1; j++)
+            {
+                if (distance >= cap) break;
+                short int x1 = coords[j * 3 + 0];
+                short int y1 = coords[j * 3 + 1];
+                short int z1 = coords[j * 3 + 2];
+                short int x2 = coords[j * 3 + 3];
+                short int y2 = coords[j * 3 + 4];
+                short int z2 = coords[j * 3 + 5];
+                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
+                index = j;
+            }
+
+            if (distance < cap) index++;
+        }
+    }
+
+    if (final_index != NULL)
+        *final_index = index;
+    return distance;
+}
+
 LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours)
 {
     LIST entity_list = init_list();
     int i, j, coord_count;
 
     list_copy_in(neighbours, build_get_neighbours(elist[zone_index].data));
+
     LIST *draw_list_zone = build_get_complete_draw_list(elist, zone_index, camera_index, cam_length);
     for (i = 0; i < cam_length; i++)
         list_copy_in(&entity_list, draw_list_zone[i]);
@@ -1925,27 +1972,10 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
 
         int distance = 0;
         if (link_type == 1)
-            for (j = point_index - 1; j > 0; j--)
-            {
-                short int x1 = coords[3 * j + 0];
-                short int y1 = coords[3 * j + 1];
-                short int z1 = coords[3 * j + 2];
-                short int x2 = coords[3 * j - 3];
-                short int y2 = coords[3 * j - 2];
-                short int z2 = coords[3 * j - 1];
-                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
-            }
+            distance += build_get_distance(coords, point_index, 0, -1, NULL);
+
         if (link_type == 2)
-            for (j = point_index; j < cam_length - 1; j++)
-            {
-                short int x1 = coords[3 * j + 0];
-                short int y1 = coords[3 * j + 1];
-                short int z1 = coords[3 * j + 2];
-                short int x2 = coords[3 * j + 3];
-                short int y2 = coords[3 * j + 4];
-                short int z2 = coords[3 * j + 5];
-                distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
-            }
+            distance += build_get_distance(coords, point_index, cam_length, -1, NULL);
 
         unsigned int eid_offset = from_u32(elist[zone_index].data + 0x10) + 4 + link_index * 4 + C2_NEIGHBOURS_START;
         unsigned int neighbour_eid = from_u32(elist[zone_index].data + eid_offset);
@@ -1953,19 +1983,11 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
 
         int neighbour_cam_length;
         short int *coords2 = build_get_path(elist, neighbour_index, 2 + 3 * neighbour_cam_index, &neighbour_cam_length);
+        distance += build_get_distance(coords2, 0, neighbour_cam_length, -1, NULL);
+
         LIST* draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * neighbour_cam_index, neighbour_cam_length);
         LIST list = build_get_linked_neighbours(elist[neighbour_index].data, 2 + 3 * neighbour_cam_index);
 
-        for (j = 0; j < neighbour_cam_length - 1; j++)
-        {
-            short int x1 = coords2[3 * j + 0];
-            short int y1 = coords2[3 * j + 1];
-            short int z1 = coords2[3 * j + 2];
-            short int x2 = coords2[3 * j + 3];
-            short int y2 = coords2[3 * j + 4];
-            short int z2 = coords2[3 * j + 5];
-            distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
-        }
 
         /*char temp[100], temp2[100];
         printf("%s - %s distance %5d\n", eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2), distance);*/
