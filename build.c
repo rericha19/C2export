@@ -1272,14 +1272,7 @@ void build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_
     *real_chunk_count = chunk_count;
 }
 
-
-/** \brief
- *  Gets entity's type.
- *
- * \param entity unsigned char*         entity data
- * \return int                          entity's type or -1
- */
-int build_get_entity_type(unsigned char *entity)
+int build_get_entity_prop(unsigned char *entity, int prop_code)
 {
     unsigned int i;
     for (i = 0; i < from_u32(entity + 0xC); i++)
@@ -1287,34 +1280,12 @@ int build_get_entity_type(unsigned char *entity)
         int code = from_u16(entity + 0x10 + 8 * i);
         int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
 
-        if (code == ENTITY_PROP_TYPE)
+        if (code == prop_code)
             return from_u32(entity + offset + 4);
     }
 
     return -1;
 }
-
-/** \brief
- *  Gets entity's subtype.
- *
- * \param entity unsigned char*     entity data
- * \return int                      entity's subtype or -1
- */
-int build_get_entity_subtype(unsigned char *entity)
-{
-    unsigned int i;
-    for (i = 0; i < from_u32(entity + 0xC); i++)
-    {
-        int code = from_u16(entity + 0x10 + 8 * i);
-        int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
-
-        if (code == ENTITY_PROP_SUBTYPE)
-            return from_u32(entity + offset + 4);
-    }
-
-    return -1;
-}
-
 
 /** \brief
  *  Gets texture references from a scenery entry and inserts them to the list.
@@ -1393,9 +1364,10 @@ void build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST
 
             for (j = 0; j < entity_count; j++)
             {
-                int entity_type = build_get_entity_type(elist[neighbour_index].data + from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j));
+                int entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
+                int entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
                 list_insert(list, gool_table[entity_type]);
-                int entity_subt = build_get_entity_subtype(elist[neighbour_index].data + from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j));
+                int entity_subt = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
                 int match_found = 0;
 
                 for (k = 0; k < dependencies.count; k++)
@@ -1607,7 +1579,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
  * \param property_code int             property code
  * \return void
  */
-void build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code)
+void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code)
 {
     int i, offset;
     int item_count = from_u32(zone->data + 0xC);
@@ -1908,7 +1880,19 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
 
 LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list)
 {
-    return init_list();
+    int i, j;
+    for (i = 0; i < neighbour_list.count; i++)
+    {
+        int curr_index = build_get_index(neighbour_list.eids[i], elist, entry_count);
+        int cam_count = build_get_cam_count(elist[curr_index].data);
+        int entity_count = build_get_entity_count(elist[curr_index].data);
+        int ID;
+        for (j = 0; j < entity_count; j++)
+        {
+            int entity_offset = from_u32(elist[curr_index].data + 0x10 + 4 * (cam_count + j));
+            ID = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_ID);
+        }
+    }
 }
 
 LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours)
@@ -2112,10 +2096,10 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
 
-                build_camera_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x208);
-                build_camera_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x209);
-                build_camera_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x208, 0x208);
-                build_camera_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x209, 0x209);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x208);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x209);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x208, 0x208);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x209, 0x209);
             }
         }
 }

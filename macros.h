@@ -8,53 +8,53 @@
 #include <math.h>
 #include "windows.h"
 
-#define SLST_DISTANCE 7500
-#define NEIG_DISTANCE 9000
-#define DRAW_DISTANCE 8000
+#define SLST_DISTANCE                   7500
+#define NEIG_DISTANCE                   9000
+#define DRAW_DISTANCE                   8000
 
-#define OFFSET                  0xC
-#define CHUNKSIZE               65536
-#define BYTE                    0x100
-#define MAX                     200
-#define PI                      3.1415926535
+#define OFFSET                          0xC
+#define CHUNKSIZE                       65536
+#define BYTE                            0x100
+#define MAX                             200
+#define PI                              3.1415926535
 
 // more dumb things
-#define C2_NEIGHBOURS_START     0x190
-#define C2_NEIGHBOURS_END       0x1B4
-#define C2_NEIGHBOURS_FLAGS_END 0x1D4
-#define MAGIC_ENTRY             0x100FFFF
-#define MAGIC_CHUNK             0x1234
-#define CHUNK_TYPE_NORMAL       0
-#define CHUNK_TYPE_TEXTURE      1
-#define CHUNK_TYPE_PROTO_SOUND  2
-#define CHUNK_TYPE_SOUND        3
-#define CHUNK_TYPE_INSTRUMENT   4
-#define C2_MUSIC_REF            0x2A4
-#define NONE                    0x6396347Fu
+#define C2_NEIGHBOURS_START             0x190
+#define C2_NEIGHBOURS_END               0x1B4
+#define C2_NEIGHBOURS_FLAGS_END         0x1D4
+#define MAGIC_ENTRY                     0x100FFFF
+#define MAGIC_CHUNK                     0x1234
+#define CHUNK_TYPE_NORMAL               0
+#define CHUNK_TYPE_TEXTURE              1
+#define CHUNK_TYPE_PROTO_SOUND          2
+#define CHUNK_TYPE_SOUND                3
+#define CHUNK_TYPE_INSTRUMENT           4
+#define C2_MUSIC_REF                    0x2A4
+#define NONE                            0x6396347Fu
 
 // commands
-#define KILL                    2089250961u
-#define HELP                    2089138798u
-#define EXPORT                  2939723207u
-#define EXPORTALL               1522383616u
-#define CHANGEPRINT             2239644728u
-#define CHANGEMODE              588358864u
-#define STATUS                  3482341513u
-#define WIPE                    2089682330u
-#define IMPORT                  3083219648u
-#define INTRO                   223621809u
-#define RESIZE                  3426052343u
-#define ROTATE                  3437938580u
-#define BUILD                   215559733u
-#define PROP                    2089440550u
+#define KILL                            2089250961u
+#define HELP                            2089138798u
+#define EXPORT                          2939723207u
+#define EXPORTALL                       1522383616u
+#define CHANGEPRINT                     2239644728u
+#define CHANGEMODE                      588358864u
+#define STATUS                          3482341513u
+#define WIPE                            2089682330u
+#define IMPORT                          3083219648u
+#define INTRO                           223621809u
+#define RESIZE                          3426052343u
+#define ROTATE                          3437938580u
+#define BUILD                           215559733u
+#define PROP                            2089440550u
 
-#define ENTRY_TYPE_ANIM         0x1
-#define ENTRY_TYPE_ZONE         0x7
-#define ENTRY_TYPE_GOOL         0xB
-#define ENTRY_TYPE_INST         0xE
-#define ENTRY_TYPE_VCOL         0xF
-#define ENTRY_TYPE_DEMO         0x13
-#define ENTRY_TYPE_SOUND        0xC
+#define ENTRY_TYPE_ANIM                 0x1
+#define ENTRY_TYPE_ZONE                 0x7
+#define ENTRY_TYPE_GOOL                 0xB
+#define ENTRY_TYPE_INST                 0xE
+#define ENTRY_TYPE_VCOL                 0xF
+#define ENTRY_TYPE_DEMO                 0x13
+#define ENTRY_TYPE_SOUND                0xC
 
 #define ENTITY_PROP_NAME                0x2C
 #define ENTITY_PROP_DEPTH_MODIFIER      0x32
@@ -283,14 +283,13 @@ void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_bo
 void         build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 void         build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
-int          build_get_entity_type(unsigned char *entity);
-int          build_get_entity_subtype(unsigned char *entity);
+int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void         build_add_model_textures_to_list(unsigned char *model, LIST *list);
 void         build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
 unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
-void         build_camera_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code);
+void         build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code);
 LIST         build_get_linked_neighbours(unsigned char *entry, int cam_index);
 void         build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
 void         build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
