@@ -307,6 +307,9 @@ void         build_ask_list_path(char *fpath);
 void         build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
+void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config);
+void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2);
+void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
 
 PAYLOADS     deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);

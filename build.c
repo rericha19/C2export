@@ -1880,19 +1880,27 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
 
 LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list)
 {
+    LIST type_subtype_list = init_list();
     int i, j;
     for (i = 0; i < neighbour_list.count; i++)
     {
         int curr_index = build_get_index(neighbour_list.eids[i], elist, entry_count);
         int cam_count = build_get_cam_count(elist[curr_index].data);
         int entity_count = build_get_entity_count(elist[curr_index].data);
-        int ID;
         for (j = 0; j < entity_count; j++)
         {
             int entity_offset = from_u32(elist[curr_index].data + 0x10 + 4 * (cam_count + j));
-            ID = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_ID);
+            int ID = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_ID);
+            if (list_find(entity_list, ID) != -1)
+            {
+                int type = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_TYPE);
+                int subtype = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
+                list_insert(&type_subtype_list, (type << 16) + subtype);
+            }
         }
     }
+
+    return type_subtype_list;
 }
 
 LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours)
@@ -1959,8 +1967,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
         }
 
-        char temp[100], temp2[100];
-        printf("%s - %s distance %5d\n", eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2), distance);
+        /*char temp[100], temp2[100];
+        printf("%s - %s distance %5d\n", eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2), distance);*/
 
         for (j = 0; j < neighbour_cam_length; j++)
             list_copy_in(&entity_list, draw_list_neighbour1[j]);
@@ -1984,6 +1992,13 @@ void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* l
         LIST neighbour_list = init_list();
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list);
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
+        for (int j = 0; j < types_subtypes.count; j++)
+        {
+            int type = types_subtypes.eids[j] >> 16;
+            int subtype = types_subtypes.eids[j] & 0xFF;
+            char temp[100];
+            printf("zone %s point %2d count %2d: %2d %2d\n", eid_conv(elist[zone_index].EID, temp), i, types_subtypes.count, type, subtype);
+        }
     }
 }
 
@@ -2339,6 +2354,36 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     *chunk_count = count + snd_chunk_count;
 }
 
+void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config)
+{
+    build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[0]);
+    build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
+    build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
+}
+
+void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2)
+{
+    build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config2);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+}
+
+void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count)
+{
+    for (int i = 0; i < chunk_count; i++)
+        free(chunks[i]);
+
+    for (int i = 0; i < entry_count; i++) {
+        if (elist[i].data != NULL)
+            free(elist[i].data);
+        if (elist[i].related != NULL)
+            free(elist[i].related);
+    }
+
+    fclose(nsfnew);
+    fclose(nsf);
+    closedir(df);
+}
 
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
@@ -2413,13 +2458,8 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     }
 
     build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info);
-    build_assign_primary_chunks_gool(elist, entry_count, &chunk_count, config[0]);
-    build_assign_primary_chunks_zones(elist, entry_count, &chunk_count, config[1]);
-    build_assign_primary_chunks_rest(elist, entry_count, &chunk_count);
-
-    build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, &chunk_count);
-    build_dumb_merge(elist, chunk_border_sounds, &chunk_count, entry_count);
+    build_assign_primary_chunks_all(elist, entry_count, &chunk_count, config);
+    build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
 
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
@@ -2428,21 +2468,10 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
 
     build_write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
-
-    for (i = 0; i < chunk_count; i++) {
+    for (i = 0; i < chunk_count; i++)
         fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
-        free(chunks[i]);
-    }
 
-    for (i = 0; i < entry_count; i++) {
-        if (elist[i].data != NULL)
-            free(elist[i].data);
-        if (elist[i].related != NULL)
-            free(elist[i].related);
-    }
+    build_final_cleanup(nsf, nsfnew, df, elist, entry_count, chunks, chunk_count);
 
-    fclose(nsfnew);
-    fclose(nsf);
-    closedir(df);
 }
 
