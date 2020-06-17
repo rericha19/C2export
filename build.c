@@ -273,7 +273,7 @@ int* build_seek_spawn(unsigned char *item)
     {
         int *coords = (int*) malloc(3 * sizeof(int));
         for (i = 0; i < 3; i++)
-            coords[i] = *(short int*)(item + coords_offset + 4 + 2 * i) * 4;
+            coords[i] = (*(short int*)(item + coords_offset + 4 + 2 * i)) * 4;
         return coords;
     }
 
@@ -744,8 +744,7 @@ void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count,
         printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
     scanf("%d", &input);
-    if (input - 1 > spawns.spawn_count || input <= 0)
-    {
+    if (input - 1 > spawns.spawn_count || input <= 0) {
         printf("No such spawn, defaulting to first one\n");
         input = 1;
     }
@@ -1840,7 +1839,6 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
 
             sublist_index++;
         }
-
         list_copy_in(&draw_list[i], list);
     }
 
@@ -1877,7 +1875,6 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
     int j, distance = 0;
     int index = start_index;
 
-
     if (start_index > end_index)
     {
         index = start_index;
@@ -1894,8 +1891,8 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
             distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
             index = j;
         }
-
-        if (distance < cap) index--;
+        if (distance < cap)
+            index--;
     }
     if (start_index < end_index)
     {
@@ -1913,13 +1910,12 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
             distance += point_distance_3D(x1, x2, y1, y2, z1, z2);
             index = j;
         }
-
-        if (distance < cap) index++;
+        if (distance < cap)
+            index++;
     }
 
 
-    if (final_index != NULL)
-        *final_index = index;
+    if (final_index != NULL) *final_index = index;
     return distance;
 }
 
@@ -2064,13 +2060,8 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             for (j = 0; j < cam_count; j++)
             {
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
-                LIST listA[cam_length];
-                LIST listB[cam_length];
-
-                for (k = 0; k < cam_length; k++) {
-                    listA[k] = init_list();
-                    listB[k] = init_list();
-                }
+                LIST listA[cam_length] = {init_list()};
+                LIST listB[cam_length] = {init_list()};
 
                 list_copy_in(&listA[0], permaloaded);
                 list_copy_in(&listB[cam_length - 1], permaloaded);
@@ -2281,9 +2272,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 
     qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_entry_size);
 
-    int sizes[8];
-    for (i = 0; i < 8; i++)
-        sizes[i] = 0x14;
+    int sizes[8] = {0x14};
 
     for (i = 0; i < sound_entry_count; i++)
         for (j = 0; j < 8; j++)
@@ -2319,14 +2308,15 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
         *(unsigned short int *)(chunks[count + i] + 8) = local_entry_count;
 
         indexer = 0;
-        offsets[indexer] = build_align_sound(0x14 + local_entry_count * 4);
+        offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
 
         for (j = 0; j < sound_entry_count; j++)
-        if (sound_list[j].chunk == count + i)
-        {
-            offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
-            indexer++;
-        }
+            if (sound_list[j].chunk == count + i)
+            {
+                offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
+                indexer++;
+            }
+
 
         for (j = 0; j < local_entry_count + 1; j++)
             *(unsigned int *) (chunks[count + i] + 0x10 + j * 4) = offsets[j];
@@ -2334,10 +2324,8 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
         indexer = 0;
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == count + i)
-            {
-                memcpy(chunks[count + i] + offsets[indexer], sound_list[j].data, sound_list[j].esize);
-                indexer++;
-            }
+                memcpy(chunks[count + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
+
 
         *(unsigned int*)(chunks[count + i] + 0xC) = nsfChecksum(chunks[count + i]);
     }
