@@ -601,3 +601,14 @@ int point_distance_3D(short int x1, short int x2, short int y1, short int y2, sh
 {
     return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
 }
+
+LINK int_to_link(unsigned int link)
+{
+    LINK result;
+    result.type = (link & 0xFF000000) >> 24;
+    result.zone_index = (link & 0xFF0000) >> 16;
+    result.cam_index = (link & 0xFF00) >> 8;
+    result.flag = link & 0xFF;
+
+    return result;
+}

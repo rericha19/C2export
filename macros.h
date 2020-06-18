@@ -170,6 +170,13 @@ typedef struct {
     INF *array;
 } DEPENDENCIES;
 
+typedef struct link {
+    char type;
+    char zone_index;
+    char cam_index;
+    char flag;
+}   LINK;
+
 typedef struct property {
     unsigned char header[8];
     unsigned char *data;
@@ -217,6 +224,7 @@ void         list_insert(LIST *list, unsigned int eid);
 void         list_copy_in(LIST *destination, LIST source);
 LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
+LINK         int_to_link(unsigned int link);
 
 int          export_main(int zone, char *fpath, char *date);
 int          export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype);
@@ -290,7 +298,7 @@ void         build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_cou
 unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 void         build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code);
-LIST         build_get_linked_neighbours(unsigned char *entry, int cam_index);
+LIST         build_get_links(unsigned char *entry, int cam_index);
 void         build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
 void         build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
 void         build_load_list_util_util(int zone_index, int cam_index, unsigned int link, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count);

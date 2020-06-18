@@ -1,5 +1,12 @@
 #include "macros.h"
 
+
+/** \brief
+ *  Returns a value that makes sound entries aligned as they should be.
+ *
+ * \param input int                     input offset
+ * \return int                          aligned offset
+ */
 int build_align_sound(int input)
 {
     for (int i = 0; i < 16; i++)
@@ -139,7 +146,6 @@ int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int 
  * \return void
  */
 void build_get_model_references(ENTRY *elist, int entry_count)
-// gets model references lmao
 {
     int i, j;
     unsigned int new_relatives[250];
@@ -215,6 +221,12 @@ unsigned int build_get_slst(unsigned char *item)
         else return 0;
 }
 
+/** \brief
+ *  Returns path length of the input item.
+ *
+ * \param item unsigned char*           item whose length it returns
+ * \return unsigned int                 path length
+ */
 unsigned int build_get_path_length(unsigned char *item)
 {
     int i, offset = 0;
@@ -226,6 +238,15 @@ unsigned int build_get_path_length(unsigned char *item)
         else return 0;
 }
 
+/** \brief
+ *  Returns path the entity has & its length.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param zone_index int                index of entry in the list
+ * \param item_index int                index of item of the entry whose path it will return
+ * \param path_len int*                 path length return value
+ * \return short int*                   path
+ */
 short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len)
 {
     unsigned char *item = elist[zone_index].data + from_u32(elist[zone_index].data + 0x10 + 4 * item_index);
@@ -292,6 +313,12 @@ int build_get_neighbour_count(unsigned char *entry){
     return entry[item1off + C2_NEIGHBOURS_START];
 }
 
+/** \brief
+ *  Returns a list of neighbours the entry (zone) has.
+ *
+ * \param entry unsigned char*         entry data
+ * \return LIST                        list containing neighbour eids
+ */
 LIST build_get_neighbours(unsigned char *entry)
 {
     int item1off = from_u32(entry + 0x10);
@@ -490,6 +517,7 @@ unsigned int* build_get_gool_relatives(unsigned char *entry, int entrysize)
 
 /** \brief
  *  Reads the nsf, puts it straight into chunks, does not collect references or anything.
+ *  Collects relatives.
  *
  * \param elist ENTRY*                  list of entries
  * \param chunk_border_base int         chunk count of the base nsf
@@ -717,7 +745,7 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB)
  *  Saves at the specified path.
  *  < 0x400 stays empty
  *  The rest should be ok.
- *  Lets you pick a primary spawn.
+ *  Lets you pick the main spawn.
  *
  * \param path char*                    path to the nsd
  * \param elist ENTRY*                  entry list
@@ -914,6 +942,14 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix)
     return relations;
 }
 
+/** \brief
+ *  Deconstructs the load or draw lists and saves into a convenient struct.
+ *
+ * \param prop_code int                 first of the two list properties (either 0x13B or 0x208)
+ * \param entry unsigned char*          entry data
+ * \param cam_offset int                offset of the camera item
+ * \return LOAD_LIST                    load or draw list struct
+ */
 LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_offset)
 {
     int k, l;
@@ -1271,6 +1307,13 @@ void build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_
     *real_chunk_count = chunk_count;
 }
 
+/** \brief
+ *  Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
+ *
+ * \param entity unsigned char*         entity data
+ * \param prop_code int                 property to return
+ * \return int                          property value
+ */
 int build_get_entity_prop(unsigned char *entity, int prop_code)
 {
     unsigned int i;
@@ -1629,7 +1672,7 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
  * \param cam_index int                 index of the camera item
  * \return void
  */
-LIST build_get_linked_neighbours(unsigned char *entry, int cam_index)
+LIST build_get_links(unsigned char *entry, int cam_index)
 {
     int i, k, l, link_count;
     int *links;
@@ -1745,20 +1788,30 @@ void build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, in
     }
 }
 
-void build_load_list_util_util(int zone_index, int cam_index, unsigned int link, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count)
+/** \brief
+ *  Deals with slst and neighbour/scenery references of path linked entries.
+ *
+ * \param zone_index int                zone entry index
+ * \param cam_index int                 camera item index
+ * \param link_int unsigned int         link item int
+ * \param listA LIST*                   representation of load list A
+ * \param listB LIST*                   representation of laod list B
+ * \param cam_length int                length of the camera's path
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \return void
+ */
+void build_load_list_util_util(int zone_index, int cam_index, unsigned int link_int, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count)
 {
     int i, j, item1off = from_u32(elist[zone_index].data + 0x10);
     short int* coords;
     int path_length, distance = 0;
 
-    int link_type = (link & 0xFF000000) >> 24;
-    int link_index = (link & 0xFF0000) >> 16;
-    int neighbour_cam_index = (link & 0xFF00) >> 8;
-    int link_flag = link & 0xFF;
+    LINK link = int_to_link(link_int);
 
-    unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link_index);
+    unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index);
     int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
-    int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * neighbour_cam_index));
+    int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * link.cam_index));
 
     if (elist[neighbour_index].related != NULL)
         for (i = 0; (unsigned) i < elist[neighbour_index].related[0]; i++)
@@ -1777,22 +1830,19 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
     list_insert(&listA[0], slst);
     list_insert(&listB[cam_length - 1], slst);
 
-    coords = build_get_path(elist, neighbour_index, 2 + 3 * neighbour_cam_index, &path_length);
+    coords = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &path_length);
     distance += build_get_distance(coords, 0, path_length - 1, -1, NULL);
 
 
-    LIST layer2 = build_get_linked_neighbours(elist[neighbour_index].data, 2 + 3 * neighbour_cam_index);
+    LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
     for (i = 0; i < layer2.count; i++)
     {
         int item1off2 = from_u32(elist[neighbour_index].data + 0x10);
+        LINK link2 = int_to_link(layer2.eids[i]);
 
-        int link_type2 = (layer2.eids[i] & 0xFF000000) >> 24;
-        int link_index2 = (layer2.eids[i] & 0xFF0000) >> 16;
-        int neighbour_cam_index2 = (layer2.eids[i] & 0xFF00) >> 8;
-
-        unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link_index2);
+        unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index);
         int neighbour_index2 = build_get_index(neighbour_eid2, elist, entry_count);
-        int offset2 = from_u32(elist[neighbour_index2].data + 0x10 + 4 * (2 + 3 * neighbour_cam_index2));
+        int offset2 = from_u32(elist[neighbour_index2].data + 0x10 + 4 * (2 + 3 * link2.cam_index));
         unsigned int slst2 = build_get_slst(elist[neighbour_index2].data + offset2);
 
         LIST neig_list = build_get_neighbours(elist[neighbour_index2].data);
@@ -1800,12 +1850,12 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
         list_insert(&slst_list, slst2);
 
         coords = build_get_path(elist, zone_index, cam_index, &path_length);
-        if ((link_type == 2 && link_flag == 2 && link_type2 == 1) || (link_type == 2 && link_flag == 1 && link_type2 == 2))
+        if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
         {
             build_load_list_util_util_back(cam_length, listA, listB, distance, SLST_DISTANCE, coords, path_length, slst_list);
             build_load_list_util_util_back(cam_length, listA, listB, distance, NEIG_DISTANCE, coords, path_length, neig_list);
         }
-        if ((link_type == 1 && link_flag == 2 && link_type2 == 1) || (link_type == 1 && link_flag == 1 && link_type == 2))
+        if ((link.type == 1 && link.flag == 2 && link2.type == 1) || (link.type == 1 && link.flag == 1 && link2.type == 2))
         {
             build_load_list_util_util_forw(cam_length, listA, listB, distance, SLST_DISTANCE, coords, path_length, slst_list);
             build_load_list_util_util_forw(cam_length, listA, listB, distance, NEIG_DISTANCE, coords, path_length, neig_list);
@@ -1813,6 +1863,15 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link,
     }
 }
 
+/** \brief
+ *  Reads draw lists of the camera of the zone, returns in a non-delta form.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param zone_index int                index of the zone entry
+ * \param cam_index int                 index of the camera item
+ * \param cam_length int                length of the path of the camera item
+ * \return LIST*                        array of lists as a representation of the draw list (changed to full draw list instead of delta-based)
+ */
 LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length)
 {
     int i, m;
@@ -1845,6 +1904,15 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
     return draw_list;
 }
 
+/** \brief
+ *  Retrieves a list of types & subtypes from the IDs and zones.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param entity_list LIST              list of entity IDs
+ * \param neighbour_list LIST           list of entries to look into
+ * \return LIST                         list of [2B] type & [2B] subtype items
+ */
 LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list)
 {
     LIST type_subtype_list = init_list();
@@ -1870,6 +1938,17 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
     return type_subtype_list;
 }
 
+/** \brief
+ *  Calculates total distance the path has between given points, if cap is set it stop at given cap and returns
+ *  index at which it stopped (final distance).
+ *
+ * \param coords short int*             path
+ * \param start_index int               start point of the path to be considered
+ * \param end_index int                 end point of the path to be considered
+ * \param cap int                       distance at which to stop
+ * \param final_index int*              index of point where it reached the distance cap
+ * \return int                          reached distance
+ */
 int build_get_distance(short int *coords, int start_index, int end_index, int cap, int *final_index)
 {
     int j, distance = 0;
@@ -1919,10 +1998,23 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
     return distance;
 }
 
+/** \brief
+ *  Collects list of IDs using draw lists of neighbouring camera paths, depth max 2, distance less than DRAW_DISTANCE-
+ *  Another function handles retrieving entry/subtype list from the ID list.
+ *
+ * \param point_index int               index of the point currently considered
+ * \param zone_index int                index of the entry in the entry list
+ * \param camera_index int              index of the camera item currently considered
+ * \param cam_length int                length of the camera
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param neighbours LIST*              list of entries it stumbled upon (used later to find types/subtypes of collected IDs)
+ * \return LIST                         list of IDs it came across during the search
+ */
 LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours)
 {
     LIST entity_list = init_list();
-    int i, j, coord_count;
+    int i, j, k, coord_count;
 
     list_copy_in(neighbours, build_get_neighbours(elist[zone_index].data));
 
@@ -1931,51 +2023,109 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         list_copy_in(&entity_list, draw_list_zone[i]);
 
     short int *coords = build_get_path(elist, zone_index, camera_index, &coord_count);
-    LIST links = build_get_linked_neighbours(elist[zone_index].data, camera_index);
+    LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
     {
-        unsigned int link = links.eids[i];
-        int link_type = (link & 0xFF000000) >> 24;
-        int link_index = (link & 0xFF0000) >> 16;
-        int neighbour_cam_index = (link & 0xFF00) >> 8;
-        int link_flag = link & 0xFF;
-
         int distance = 0;
-        if (link_type == 1)
+        LINK link = int_to_link(links.eids[i]);
+        if (link.type == 1)
             distance += build_get_distance(coords, point_index, 0, -1, NULL);
-
-        if (link_type == 2)
+        if (link.type == 2)
             distance += build_get_distance(coords, point_index, cam_length - 1, -1, NULL);
 
-        unsigned int eid_offset = from_u32(elist[zone_index].data + 0x10) + 4 + link_index * 4 + C2_NEIGHBOURS_START;
+        unsigned int eid_offset = from_u32(elist[zone_index].data + 0x10) + 4 + link.zone_index * 4 + C2_NEIGHBOURS_START;
         unsigned int neighbour_eid = from_u32(elist[zone_index].data + eid_offset);
         int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
+        list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index].data));
 
         int neighbour_cam_length;
-        short int *coords2 = build_get_path(elist, neighbour_index, 2 + 3 * neighbour_cam_index, &neighbour_cam_length);
-        distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, -1, NULL);
-
-        LIST* draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * neighbour_cam_index, neighbour_cam_length);
-        LIST list = build_get_linked_neighbours(elist[neighbour_index].data, 2 + 3 * neighbour_cam_index);
+        short int *coords2 = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &neighbour_cam_length);
+        LIST* draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * link.cam_index, neighbour_cam_length);
 
 
-        /*char temp[100], temp2[100];
-        printf("%s - %s distance %5d\n", eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2), distance);*/
+        int point_index2;
+        if (link.flag == 1)
+        {
+            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, DRAW_DISTANCE - distance, &point_index2);
+            for (j = 0; j < point_index2; j++)
+                list_copy_in(&entity_list, draw_list_neighbour1[j]);
+        }
+        if (link.flag == 2)
+        {
+            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, DRAW_DISTANCE - distance, &point_index2);
+            for (j = point_index2; j < neighbour_cam_length - 1; j++)
+                list_copy_in(&entity_list, draw_list_neighbour1[j]);
+        }
 
-        for (j = 0; j < neighbour_cam_length; j++)
-            list_copy_in(&entity_list, draw_list_neighbour1[j]);
+        char temp[100], temp2[100];
+        printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
+               eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index].EID, temp2), point_index2 + 1, neighbour_cam_length);
 
-        list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index].data));
+        if (distance >= DRAW_DISTANCE)
+            continue;
+
+        LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
+        for (j = 0; j < layer2.count; j++)
+        {
+            LINK link2 = int_to_link(layer2.eids[j]);
+            unsigned int eid_offset2 = from_u32(elist[neighbour_index].data + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
+            unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + eid_offset2);
+            int neighbour_index2 = build_get_index(neighbour_eid2, elist, entry_count);
+            list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index2].data));
+
+            int neighbour_cam_length2;
+            short int *coords3 = build_get_path(elist, neighbour_index2, 2 + 3 * link2.cam_index, &neighbour_cam_length2);
+            LIST* draw_list_neighbour2 = build_get_complete_draw_list(elist, neighbour_index2, 2 + 3 * link2.cam_index, neighbour_cam_length2);
+
+
+            int point_index3 = -2;
+            // start to end
+            if ((link.flag == 1 && link2.type == 2 && link2.flag == 1) ||
+                (link.flag == 2 && link2.type == 1 && link2.flag == 1))
+            {
+                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, DRAW_DISTANCE - distance, &point_index3);
+                for (k = 0; k < point_index3; k++)
+                    list_copy_in(&entity_list, draw_list_neighbour2[k]);
+            }
+
+            // end to start
+            if ((link.flag == 1 && link2.type == 2 && link2.flag == 2) ||
+                (link.flag == 2 && link2.type == 1 && link2.flag == 2))
+            {
+                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, DRAW_DISTANCE - distance, &point_index3);
+                for (k = point_index3; k < neighbour_cam_length2; k++)
+                    list_copy_in(&entity_list, draw_list_neighbour2[k]);
+            }
+
+            char temp[100], temp2[100];
+            if (point_index3 != -2)
+                printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
+                   eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index2].EID, temp2), point_index3 + 1, neighbour_cam_length2);
+        }
     }
 
     return entity_list;
 }
 
+/** \brief
+ *  Handles most load list creating, except for permaloaded and sound entries.
+ *  First part is used for neighbours & scenery & slsts.
+ *  Second part is used for draw lists.
+ *
+ * \param zone_index int                index of the zone in the entry list
+ * \param camera_index int              index of the camera item in the zone
+ * \param listA LIST*                   load list A, later transformed into actual load list data etc
+ * \param listB LIST*                   load list B, later transformed into actual load list data and placed into the entry
+ * \param cam_length int                length of the camera
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \return void
+ */
 void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count)
 {
     int i;
 
-    LIST links = build_get_linked_neighbours(elist[zone_index].data, camera_index);
+    LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
         build_load_list_util_util(zone_index, camera_index, links.eids[i], listA, listB, cam_length, elist, entry_count);
 
@@ -1989,11 +2139,19 @@ void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* l
             int type = types_subtypes.eids[j] >> 16;
             int subtype = types_subtypes.eids[j] & 0xFF;
             char temp[100];
-            printf("zone %s point %2d count %2d: %2d %2d\n", eid_conv(elist[zone_index].EID, temp), i, types_subtypes.count, type, subtype);
+            //printf("zone %s point %2d count %2d: %2d %2d\n", eid_conv(elist[zone_index].EID, temp), i, types_subtypes.count, type, subtype);
         }
     }
 }
 
+/** \brief
+ *  Makes a load list property from the input arrays, later its put into the item.
+ *
+ * \param list_array LIST*              array of lists containing the full load list (already in delta form)
+ * \param cam_length int                length of the camera and so the array too
+ * \param code int                      property code
+ * \return PROPERTY                     property with game's format
+ */
 PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
 {
     int i, j, delta_counter = 0, total_length = 0;
@@ -2189,6 +2347,12 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char 
     return 1;
 }
 
+/** \brief
+ *  Just calculates the amount of chunks in the provided nsf file.
+ *
+ * \param nsf FILE*                     provided nsf
+ * \return int                          amount of chunks
+ */
 int build_get_chunk_count_base(FILE *nsf)
 {
     fseek(nsf, 0, SEEK_END);
@@ -2198,6 +2362,11 @@ int build_get_chunk_count_base(FILE *nsf)
     return result;
 }
 
+/** \brief
+ *  Asks the user for built level's ID.
+ *
+ * \return int                          picked level ID
+ */
 int build_ask_ID()
 {
     int level_ID;
@@ -2211,6 +2380,12 @@ int build_ask_ID()
     return level_ID;
 }
 
+/** \brief
+ *  Asks for path to the list with the permaloaded stuff and type/subtype info.
+ *
+ * \param fpath char*                   path to the file
+ * \return void
+ */
 void build_ask_list_path(char *fpath)
 {
     printf("\nInput the path to the file with permaloaded entries and type/subtype dependencies:\n");
@@ -2222,6 +2397,14 @@ void build_ask_list_path(char *fpath)
     }
 }
 
+/** \brief
+ *  Just assigns the rest of the entries initial chunks, which is  necessary for the merges.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int*              chunk count
+ * \return void
+ */
 void build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count)
 {
     for (int i = 0; i < entry_count; i++)
@@ -2229,6 +2412,15 @@ void build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_
             elist[i].chunk = (*chunk_count)++;
 }
 
+/** \brief
+ *  Creates and builds chunks for the instrument entries according to their format.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int*              chunk count
+ * \param chunks unsigned char**        chunks, array of ptrs to data, allocated here
+ * \return void
+ */
 void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks)
 {
     int count = *chunk_count;
@@ -2253,6 +2445,15 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
     *chunk_count = count;
 }
 
+/** \brief
+ *  Creates and builds sound chunks, formats accordingly.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int*              chunk count
+ * \param chunks unsigned char**        chunks, array of ptrs to data, allocated here
+ * \return void
+ */
 void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks)
 {
     int indexer, i, j, count = *chunk_count;
@@ -2272,7 +2473,9 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 
     qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_entry_size);
 
-    int sizes[8] = {0x14};
+    int sizes[8];
+    for (i = 0; i < 8; i++)
+        sizes[i] = 0x14;
 
     for (i = 0; i < sound_entry_count; i++)
         for (j = 0; j < 8; j++)
@@ -2338,6 +2541,15 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     *chunk_count = count + snd_chunk_count;
 }
 
+/** \brief
+ *  Assigns primary chunks to all entries, merges need them.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int*              chunk count
+ * \param config int*                   config
+ * \return void
+ */
 void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config)
 {
     build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[0]);
@@ -2345,6 +2557,16 @@ void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_c
     build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
 }
 
+/** \brief
+ *  Calls merge functions.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_border_sounds int       index of last sound chunk
+ * \param chunk_count int*              chunk count
+ * \param config2 int                   0/1, determines whether each point of cam paths or only main/deltas are considered
+ * \return void
+ */
 void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2)
 {
     build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config2);
@@ -2352,6 +2574,18 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
+/** \brief
+ *  Gets rid of some dynamically allocated stuff and closes files.
+ *
+ * \param nsf FILE*                     nsf file
+ * \param nsfnew FILE*                  created nsf file
+ * \param df DIR*                       directory with the entries
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunks unsigned char**        built chunks
+ * \param chunk_count int               chunk count
+ * \return void
+ */
 void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count)
 {
     for (int i = 0; i < chunk_count; i++)
