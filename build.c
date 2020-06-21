@@ -1099,80 +1099,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 }
 
 
-/** \brief
- *  Assigns gool entries and their relatives initial chunks.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param real_chunk_count int*         chunk count
- * \param grouping_flag int             1 if one by one, 0 if pre-grouping
- * \return void
- */
-void build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
-{
-    int i, j;
-    int size;
-    int counter;
-    int relative_index;
-    int chunk_count = *real_chunk_count;
 
-    switch(grouping_flag)
-    {
-        case 0:  // group gool with its kids
-        {
-            for (i = 0; i < entry_count; i++)
-            {
-                if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL)
-                {
-                    elist[i].chunk = chunk_count;
-                    size = elist[i].esize;
-                    counter = 0;
-                    if (elist[i].related != NULL)
-                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                    {
-                        relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
-                        if (elist[relative_index].chunk != -1) continue;
-                        if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
-                        {
-                            chunk_count++;
-                            counter = 0;
-                            size = 0;
-                        }
-                        elist[relative_index].chunk = chunk_count;
-                        size += elist[relative_index].esize;
-                        counter++;
-                    }
-                    chunk_count++;
-                }
-            }
-            break;
-        }
-        case 1: // one by one
-        {
-            for (i = 0; i < entry_count; i++)
-            {
-
-                if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL)
-                {
-                    elist[i].chunk = chunk_count++;
-
-                    if (elist[i].related != NULL)
-                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                    {
-                        relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
-                        if (elist[relative_index].chunk != -1) continue;
-
-                        elist[relative_index].chunk = chunk_count++;
-                    }
-                }
-            }
-            break;
-        }
-        default: break;
-    }
-
-    *real_chunk_count = chunk_count;
-}
 
 
 /** \brief
@@ -1238,76 +1165,6 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
 }
 
 /** \brief
- *  Initial chunk assignment for zones and their relatives, either one-by-one or pre-grouped.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param real_chunk_count int*         chunk count
- * \param grouping_flag int             one-by-one if 1, pre-groups if 0
- * \return void
- */
-void build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
-{
-    int i, j;
-    int chunk_count = *real_chunk_count;
-    int size;
-    int counter;
-
-    switch(grouping_flag)
-    {
-        case 0: // group all relatives together
-        {
-            for (i = 0; i < entry_count; i++)
-            if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
-            {
-                if (elist[i].chunk != -1) continue;
-                elist[i].chunk = chunk_count;
-                size = elist[i].esize;
-                counter = 0;
-                if (elist[i].related != NULL)
-                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                    {
-                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
-                        if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
-                        if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
-                        {
-                            chunk_count++;
-                            counter = 0;
-                            size = 0;
-                        }
-                        elist[relative_index].chunk = chunk_count;
-                        size += elist[relative_index].esize;
-                        counter++;
-                    }
-                chunk_count++;
-            }
-            break;
-        }
-        case 1: // one by one
-        {
-            for (i = 0; i < entry_count; i++)
-            if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
-            {
-                if (elist[i].chunk != -1) continue;
-                elist[i].chunk = chunk_count++;
-                if (elist[i].related != NULL)
-                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                    {
-                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
-                        if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
-                        elist[relative_index].chunk = chunk_count++;
-                    }
-            }
-            break;
-        }
-        default:
-            break;
-    }
-
-    *real_chunk_count = chunk_count;
-}
-
-/** \brief
  *  Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
  *
  * \param entity unsigned char*         entity data
@@ -1363,93 +1220,6 @@ void build_add_model_textures_to_list(unsigned char *model, LIST *list)
         unsigned int reference = from_u32(model + item1off + 0xC + 0x4 * i);
         if (reference)
             list_insert(list, reference);
-    }
-}
-
-
-/** \brief
- *  Inserts all stuff loaded by a zone (scenery dependencies, entity dependencies, its own relatives) to the list.
- *  DEPRECATE.
- *
- * \param eid unsigned int              entry whose children are to be added
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param list LIST*                    current load list
- * \param gool_table unsigned int*      gool table
- * \param dependencies DEPENDENCIES     stuff loaded when a certain type/subtype is used
- * \return void
- */
-void build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies)
-{
-    int i, j, k, l;
-    int index = build_get_index(eid, elist, entry_count);
-    if (index == -1) return;
-
-    if (elist[index].related != NULL)
-        for (i = 0; (unsigned) i < elist[index].related[0]; i++)
-            list_insert(list, elist[index].related[i + 1]);
-
-    list_insert(list, elist[index].EID);
-
-    if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE)
-    {
-        int item1off = from_u32(elist[index].data + 0x10);
-        LIST neighbours = build_get_neighbours(elist[index].data);
-
-        for (i = 0; i < neighbours.count; i++)
-        {
-            int neighbour_index = build_get_index(neighbours.eids[i], elist, entry_count);
-            if (neighbour_index == -1) continue;
-
-            int entity_count = build_get_entity_count(elist[neighbour_index].data);
-            int cam_count = build_get_cam_count(elist[neighbour_index].data);
-
-            for (j = 0; j < entity_count; j++)
-            {
-                int entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
-                int entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
-                list_insert(list, gool_table[entity_type]);
-                int entity_subt = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
-                int match_found = 0;
-
-                for (k = 0; k < dependencies.count; k++)
-                    if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt)
-                    {
-                        for (l = 0; l < dependencies.array[k].dependencies.count; l++)
-                        {
-                            list_insert(list, dependencies.array[k].dependencies.eids[l]);
-                            int index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
-                            if (index2 == -1) continue;
-                            if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM)
-                            {
-                                unsigned int model = build_get_model(elist[index2].data);
-                                list_insert(list, model);
-
-                                int model_index = build_get_index(model, elist, entry_count);
-                                if (model_index == -1) continue;
-
-                                build_add_model_textures_to_list(elist[model_index].data, list);
-                                /*char temp[100];
-                                char temp2[100];
-                                for (int i = 0; i < list->count; i++)
-                                    printf("%s, %d %d %s\n", eid_conv(elist[index].EID, temp2), entity_type, entity_subt, eid_conv(list->eids[i], temp));
-                                printf("\n");*/
-                            }
-                        }
-                        match_found++;
-                    }
-
-                if (!match_found)
-                    printf("Entity type/subtype with no known dependencies [%2d;%2d]\n", entity_type, entity_subt);
-            }
-        }
-
-        int scenery_count = build_get_scen_count(elist[index].data);
-        for (i = 0; i < scenery_count; i++)
-        {
-            int scenery_index = build_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
-            build_add_scen_textures_to_list(elist[scenery_index].data, list);
-        }
     }
 }
 
@@ -1710,81 +1480,54 @@ LIST build_get_links(unsigned char *entry, int cam_index)
     return links_list;
 }
 
-void build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions)
+void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int end_index = 0;
-    int j, k, distance2 = 0;
+    int j, distance2 = 0;
 
     if (distance + distance2 < final_distance) end_index++;
     build_get_distance(coords, 0, path_length - 1, final_distance - distance, &end_index);
 
     if (end_index == 0) return;
 
-    for (j = 0; j < additions.count; j++)
-    {
-        int old_start = -1, temp, old_end = -1;
-        for (k = 0; k < cam_length; k++)
-        {
-            temp = list_find(listA[k], additions.eids[j]);
-            if (temp != -1)
-                old_start = k;
-            temp = list_find(listB[k], additions.eids[j]);
-            if (temp != -1)
-                old_end = k;
-        }
-
-
-        if (old_end != -1 && old_end < end_index)
-        {
-            list_rem(&listB[old_end], additions.eids[j]);
-            list_insert(&listB[end_index], additions.eids[j]);
-        }
-        if (old_end != -1 && old_end >= end_index)
-            ;
-        if (old_end == -1)
-            list_insert(&listB[end_index], additions.eids[j]);
-
-        if (old_start != -1)
-            list_rem(&listA[old_start], additions.eids[j]);
-        list_insert(&listA[0], additions.eids[j]);
-    }
+    for (j = 0; j < end_index; j++)
+        list_copy_in(&full_list[j], additions);
 }
 
 
-void build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions)
+void build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int start_index = cam_length - 1;
-    int j, k;
+    int j;
 
     build_get_distance(coords, path_length - 1, 0, final_distance - distance, &start_index);
     if (start_index == cam_length - 1) return;
 
-    for (j = 0; j < additions.count; j++)
+    for (j = start_index; j < cam_length; j++)
+        list_copy_in(&full_list[j], additions);
+}
+
+void build_add_collision_dependencies(LIST *full_list, int start_index, int end_index, unsigned char *entry, DEPENDENCIES collisisons, ENTRY *elist, int entry_count)
+{
+    int x, i, j, k;
+    LIST neighbours = build_get_neighbours(entry);
+
+    for (x = 0; x < neighbours.count; x++)
     {
-        int old_start = -1, temp, old_end = -1;
-        for (k = 0; k < cam_length; k++)
+        int index = build_get_index(neighbours.eids[x], elist, entry_count);
+        int item2off = from_u32(elist[index].data + 0x14);
+        unsigned char *item = elist[index].data + item2off;
+        int count = *(int *) item + 0x18;
+        for (i = 0; i < count + 2; i++)
         {
-            temp = list_find(listA[k], additions.eids[j]);
-            if (temp != -1)
-                old_start = k;
-            temp = list_find(listB[k], additions.eids[j]);
-            if (temp != -1)
-                old_end = k;
-        }
+            short int type = *(short int *) item + 0x24 + 2 * i;
+            if (type % 2 == 0) continue;
 
-        if (old_start != -1 && old_start > start_index)
-        {
-            list_insert(&listA[start_index], additions.eids[j]);
-            list_rem(&listA[old_start], additions.eids[j]);
+            for (j = 0; j < collisisons.count; j++)
+                if (type == collisisons.array[j].type)
+                    for (k = start_index; k < end_index; k++)
+                        list_copy_in(&full_list[k], collisisons.array[j].dependencies);
         }
-        if (old_start != -1 && old_start <= start_index)
-            ;
-        if (old_start == -1)
-            list_insert(&listA[start_index], additions.eids[j]);
-
-        if (old_end != -1)
-            list_rem(&listB[old_end], additions.eids[j]);
-        list_insert(&listB[cam_length - 1], additions.eids[j]);
     }
 }
 
@@ -1801,7 +1544,7 @@ void build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, in
  * \param entry_count int               entry count
  * \return void
  */
-void build_load_list_util_util(int zone_index, int cam_index, unsigned int link_int, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count)
+void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST *full_list, int cam_length, ENTRY * elist, int entry_count, int* config, DEPENDENCIES collisisons)
 {
     int i, j, item1off = from_u32(elist[zone_index].data + 0x10);
     short int* coords;
@@ -1813,22 +1556,37 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link_
     int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
     int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * link.cam_index));
 
-    if (elist[neighbour_index].related != NULL)
-        for (i = 0; (unsigned) i < elist[neighbour_index].related[0]; i++)
+    int scenery_count = build_get_scen_count(elist[neighbour_index].data);
+    for (i = 0; i < scenery_count; i++)
+    {
+        int item1off_neigh = from_u32(elist[neighbour_index].data + 0x10);
+        int scenery_index = build_get_index(from_u32(elist[neighbour_index].data + item1off_neigh + 0x4 + 0x30 * i), elist, entry_count);
+        if (link.type == 1)
         {
-            for (j = 0; j < cam_length; j++)
-            {
-                list_rem(&listA[j], elist[neighbour_index].related[i + 1]);
-                list_rem(&listB[j], elist[neighbour_index].related[i + 1]);
-            }
-
-            list_insert(&listA[0], elist[neighbour_index].related[i + 1]);
-            list_insert(&listB[cam_length - 1], elist[neighbour_index].related[i + 1]);
+            int end = (cam_length - 1)/2 - 1;
+            for (j = 0; j < end; j++)
+                build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
         }
 
+        if (link.type == 2)
+        {
+            int start = (cam_length - 1)/2 + 1;
+            for (j = start; j < cam_length; j++)
+                build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
+        }
+    }
+
+    if (elist[neighbour_index].related != NULL)
+        for (i = 0; (unsigned) i < elist[neighbour_index].related[0]; i++)
+            for (j = 0; j < cam_length; j++)
+                list_insert(&full_list[j], elist[neighbour_index].related[i + 1]);
+
+
     unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
-    list_insert(&listA[0], slst);
-    list_insert(&listB[cam_length - 1], slst);
+    for (i = 0; i < cam_length; i++)
+        list_insert(&full_list[i], slst);
+    build_add_collision_dependencies(full_list, 0, cam_length, elist[zone_index].data, collisisons, elist, entry_count);
+    build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index].data, collisisons, elist, entry_count);
 
     coords = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &path_length);
     distance += build_get_distance(coords, 0, path_length - 1, -1, NULL);
@@ -1849,16 +1607,17 @@ void build_load_list_util_util(int zone_index, int cam_index, unsigned int link_
         LIST slst_list = init_list();
         list_insert(&slst_list, slst2);
 
+        build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index2].data, collisisons, elist, entry_count);
         coords = build_get_path(elist, zone_index, cam_index, &path_length);
         if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_back(cam_length, listA, listB, distance, SLST_DISTANCE, coords, path_length, slst_list);
-            build_load_list_util_util_back(cam_length, listA, listB, distance, NEIG_DISTANCE, coords, path_length, neig_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, config[3], coords, path_length, slst_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, config[4], coords, path_length, neig_list);
         }
         if ((link.type == 1 && link.flag == 2 && link2.type == 1) || (link.type == 1 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_forw(cam_length, listA, listB, distance, SLST_DISTANCE, coords, path_length, slst_list);
-            build_load_list_util_util_forw(cam_length, listA, listB, distance, NEIG_DISTANCE, coords, path_length, neig_list);
+            build_load_list_util_util_forw(cam_length, full_list, distance, config[3], coords, path_length, slst_list);
+            build_load_list_util_util_forw(cam_length, full_list, distance, config[4], coords, path_length, neig_list);
         }
     }
 }
@@ -1924,7 +1683,7 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
         int entity_count = build_get_entity_count(elist[curr_index].data);
         for (j = 0; j < entity_count; j++)
         {
-            int entity_offset = from_u32(elist[curr_index].data + 0x10 + 4 * (cam_count + j));
+            int entity_offset = from_u32(elist[curr_index].data + 0x10 + 4 * (2 + cam_count + j));
             int ID = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_ID);
             if (list_find(entity_list, ID) != -1)
             {
@@ -2011,7 +1770,7 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
  * \param neighbours LIST*              list of entries it stumbled upon (used later to find types/subtypes of collected IDs)
  * \return LIST                         list of IDs it came across during the search
  */
-LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours)
+LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int *config)
 {
     LIST entity_list = init_list();
     int i, j, k, coord_count;
@@ -2046,22 +1805,22 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         int point_index2;
         if (link.flag == 1)
         {
-            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, DRAW_DISTANCE - distance, &point_index2);
+            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, config[5] - distance, &point_index2);
             for (j = 0; j < point_index2; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
         if (link.flag == 2)
         {
-            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, DRAW_DISTANCE - distance, &point_index2);
+            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, config[5] - distance, &point_index2);
             for (j = point_index2; j < neighbour_cam_length - 1; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
 
-        char temp[100], temp2[100];
+        /*char temp[100], temp2[100];
         printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
-               eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index].EID, temp2), point_index2 + 1, neighbour_cam_length);
+               eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index].EID, temp2), point_index2 + 1, neighbour_cam_length);*/
 
-        if (distance >= DRAW_DISTANCE)
+        if (distance >= config[5])
             continue;
 
         LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
@@ -2083,7 +1842,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if ((link.flag == 1 && link2.type == 2 && link2.flag == 1) ||
                 (link.flag == 2 && link2.type == 1 && link2.flag == 1))
             {
-                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, DRAW_DISTANCE - distance, &point_index3);
+                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, config[5] - distance, &point_index3);
                 for (k = 0; k < point_index3; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
@@ -2092,15 +1851,15 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if ((link.flag == 1 && link2.type == 2 && link2.flag == 2) ||
                 (link.flag == 2 && link2.type == 1 && link2.flag == 2))
             {
-                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, DRAW_DISTANCE - distance, &point_index3);
+                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, config[5] - distance, &point_index3);
                 for (k = point_index3; k < neighbour_cam_length2; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
 
-            char temp[100], temp2[100];
+            /*char temp[100], temp2[100];
             if (point_index3 != -2)
                 printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
-                   eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index2].EID, temp2), point_index3 + 1, neighbour_cam_length2);
+                   eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index2].EID, temp2), point_index3 + 1, neighbour_cam_length2);*/
         }
     }
 
@@ -2121,27 +1880,33 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
  * \param entry_count int               entry count
  * \return void
  */
-void build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count)
+void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config)
 {
-    int i;
+    int i, j, k;
 
     LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
-        build_load_list_util_util(zone_index, camera_index, links.eids[i], listA, listB, cam_length, elist, entry_count);
+        build_load_list_util_util(zone_index, camera_index, links.eids[i], full_list, cam_length, elist, entry_count, config, collisions);
 
     for (i = 0; i < cam_length; i++)
     {
         LIST neighbour_list = init_list();
-        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list);
+        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
-        for (int j = 0; j < types_subtypes.count; j++)
+
+        for (j = 0; j < types_subtypes.count; j++)
         {
             int type = types_subtypes.eids[j] >> 16;
             int subtype = types_subtypes.eids[j] & 0xFF;
-            char temp[100];
-            //printf("zone %s point %2d count %2d: %2d %2d\n", eid_conv(elist[zone_index].EID, temp), i, types_subtypes.count, type, subtype);
+
+            // char temp[100];
+            // printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
+            for (k = 0; k < sub_info.count; k++)
+                if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type)
+                    list_copy_in(&full_list[i], sub_info.array[k].dependencies);
         }
     }
+
 }
 
 /** \brief
@@ -2187,6 +1952,69 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
     return prop;
 }
 
+void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info)
+{
+    int i, j, k;
+    LIST considered = init_list();
+    for (i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
+            int cam_count = build_get_cam_count(elist[i].data);
+            int entity_count = build_get_entity_count(elist[i].data);
+            for (j = 0; j < entity_count; j++)
+            {
+                unsigned char *entity = elist[i].data + from_u32(elist[i].data + 0x10 + (2 + cam_count + j) * 4);
+                int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+                int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+                if (list_find(considered, (type << 16) + subt) != -1)
+                    continue;
+
+                list_insert(&considered, (type << 16) + subt);
+
+                int found = 0;
+                for (k = 0; k < sub_info.count; k++)
+                    if (sub_info.array[k].subtype == subt && sub_info.array[k].type == type)
+                        found = 1;
+                if (!found)
+                    printf("Entity with type %2d subtype %2d has no specified dependency list!\n", type, subt);
+            }
+        }
+}
+
+void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length)
+{
+    int i, j;
+    list_copy_in(&listA[0], full_load[0]);
+    list_copy_in(&listB[cam_length - 1], full_load[cam_length - 1]);
+
+    for (i = 1; i < cam_length; i++)
+    {
+        for (j = 0; j < full_load[i].count; j++)
+            if (list_find(full_load[i - 1], full_load[i].eids[j]) == -1)
+                list_insert(&listA[i], full_load[i].eids[j]);
+
+        for (j = 0; j < full_load[i - 1].count; j++)
+            if (list_find(full_load[i], full_load[i - 1].eids[j]) == -1)
+                list_insert(&listB[i - 1], full_load[i  - 1].eids[j]);
+    }
+
+
+    for (i = 0; i < cam_length; i++)
+    {
+        LIST copy = init_list();
+        list_copy_in(&copy, listA[i]);
+
+        for (j = 0; j < copy.count; j++)
+            if (list_find(listB[i], copy.eids[j] != -1))
+            {
+                list_rem(&listA[i], copy.eids[j]);
+                list_rem(&listB[i], copy.eids[j]);
+            }
+    }
+
+}
+
+
 /** \brief
  *  A function that for each zone's each camera path creates new load lists using
  *  the provided list of permanently loaded entries and
@@ -2205,9 +2033,9 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
  *
  * \return void
  */
-void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info)
+void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config)
 {
-    int i, j, k;
+    int i, j, k, l;
 
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
@@ -2218,40 +2046,42 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             for (j = 0; j < cam_count; j++)
             {
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
-                LIST listA[cam_length] = {init_list()};
-                LIST listB[cam_length] = {init_list()};
+                LIST full_load[cam_length] = {init_list()};
 
-                list_copy_in(&listA[0], permaloaded);
-                list_copy_in(&listB[cam_length - 1], permaloaded);
+                for (k = 0; k < cam_length; k++)
+                    list_copy_in(&full_load[k], permaloaded);
 
 
                 if (elist[i].related != NULL)
                 for (k = 0; (unsigned) k < elist[i].related[0]; k++)
-                {
-                    list_insert(&listA[0], elist[i].related[k + 1]);
-                    list_insert(&listB[cam_length - 1], elist[i].related[k + 1]);
-                }
+                    for (l = 0; l < cam_length; l++)
+                        list_insert(&full_load[l], elist[i].related[k + 1]);
+
 
                 for (k = 0; k < entry_count; k++)
-                    if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
-                        list_insert(&listA[0], elist[k].EID);
-                        list_insert(&listB[cam_length - 1], elist[k].EID);
-                    }
+                if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
+                    for (l = 0; l < cam_length; l++)
+                        list_insert(&full_load[l], elist[k].EID);
+                }
 
                 LIST neighbours = build_get_neighbours(elist[i].data);
-                list_copy_in(&listA[0], neighbours);
-                list_copy_in(&listB[cam_length - 1], neighbours);
+                for (k = 0; k < cam_length; k++)
+                    list_copy_in(&full_load[k], neighbours);
 
 
                 int scenery_count = build_get_scen_count(elist[i].data);
                 for (k = 0; k < scenery_count; k++)
                 {
                     int scenery_index = build_get_index(from_u32(elist[i].data + item1off + 0x4 + 0x30 * k), elist, entry_count);
-                    build_add_scen_textures_to_list(elist[scenery_index].data, &listA[0]);
-                    build_add_scen_textures_to_list(elist[scenery_index].data, &listB[cam_length - 1]);
+                    for (l = 0; l < cam_length; l++)
+                        build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
-                build_load_list_util(i, 2 + 3 * j, listA, listB, cam_length, elist, entry_count);
+                build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
+
+                LIST listA[cam_length] = {init_list()};
+                LIST listB[cam_length] = {init_list()};
+                build_load_list_to_delta(full_load, listA, listB, cam_length);
 
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
@@ -2262,6 +2092,8 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x209, 0x209);
             }
         }
+
+    build_find_unspecified_entities(elist, entry_count, subtype_info);
 }
 
 /** \brief
@@ -2275,13 +2107,13 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
  * \param entry_count int               entry count
  * \return int                          1 if all went good, 0 if something is wrong
  */
-int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count)
+int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, char fpaths[FPATH_COUNT][MAX], ENTRY *elist, int entry_count, unsigned int *gool_table)
 {
     int i, j, perma_count, subcount, valid = 1;
     char temp[6];
     LIST perma = init_list();
 
-    FILE *file = fopen(file_path, "r");
+    FILE *file = fopen(fpaths[0], "r");
     if (file == NULL)
         return 0;
 
@@ -2293,7 +2125,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char 
         int index = build_get_index(eid_to_int(temp), elist, entry_count);
         if (index == -1)
         {
-            printf("INVALID ENTRY REFERENCE:\t%s\n", temp);
+            printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", temp);
             valid = 0;
             continue;
         }
@@ -2312,6 +2144,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char 
         }
     }
 
+    fclose(file);
+    file = fopen(fpaths[1], "r");
+    if (file == NULL)
+        return 0;
     fscanf(file, "%d", &subcount);
 
     DEPENDENCIES subinfo;
@@ -2324,21 +2160,78 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char 
         subinfo.array[i].type = type;
         subinfo.array[i].subtype = subtype;
         subinfo.array[i].dependencies = init_list();
+        list_insert(&subinfo.array[i].dependencies, gool_table[type]);
         for (j = 0; j < counter; j++)
         {
             fscanf(file, ", %5s", temp);
             int index = build_get_index(eid_to_int(temp), elist, entry_count);
             if (index == -1)
             {
-                printf("INVALID ENTRY REFERENCE:\t%s\n", temp);
+                printf("[warning] unknown entry reference, will be skipped:\t%s\n", temp);
                 continue;
             }
             list_insert(&(subinfo.array[i].dependencies), eid_to_int(temp));
+
+            if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+            {
+                unsigned int model = build_get_model(elist[index].data);
+                list_insert(&subinfo.array[i].dependencies, model);
+
+                int model_index = build_get_index(model, elist, entry_count);
+                if (model_index == -1) continue;
+
+                build_add_model_textures_to_list(elist[model_index].data, &subinfo.array[i].dependencies);
+            }
         }
+    }
+
+    fclose(file);
+    file = fopen(fpaths[2], "r");
+    if (file == NULL)
+        return 0;
+
+    int coll_count;
+    fscanf(file,"%d", &coll_count);
+    DEPENDENCIES coll;
+    coll.count = coll_count;
+    coll.array = (INF *) malloc(coll_count * sizeof(INT));
+    for (i = 0; i < coll_count; i++)
+    {
+        int code;
+        fscanf(file, "%x, %d", &code, &counter);
+        coll.array[i].type = code;
+        coll.array[i].subtype = -1;
+        coll.array[i].dependencies = init_list();
+        for (j = 0; j < counter; j++)
+        {
+            fscanf(file, ", %5s", temp);
+            int index = build_get_index(eid_to_int(temp), elist, entry_count);
+            if (index == -1)
+            {
+                printf("[warning] unknown entry reference, will be skipped:\t%s\n", temp);
+                continue;
+            }
+
+            list_insert(&(coll.array[i].dependencies), eid_to_int(temp));
+
+            if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+            {
+                unsigned int model = build_get_model(elist[index].data);
+                list_insert(&coll.array[i].dependencies, model);
+
+                int model_index = build_get_index(model, elist, entry_count);
+                if (model_index == -1) continue;
+
+                build_add_model_textures_to_list(elist[model_index].data, &coll.array[i].dependencies);
+            }
+        }
+
     }
 
     *permaloaded = perma;
     *subtype_info = subinfo;
+    *collisions = coll;
+    fclose(file);
     if (!valid)
     {
         printf("Cannot proceed with invalid items, fix that\n");
@@ -2386,30 +2279,25 @@ int build_ask_ID()
  * \param fpath char*                   path to the file
  * \return void
  */
-void build_ask_list_path(char *fpath)
+void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX])
 {
-    printf("\nInput the path to the file with permaloaded entries and type/subtype dependencies:\n");
-    scanf(" %[^\n]",fpath);
-    if (fpath[0]=='\"')
+    printf("\nInput the path to the file with permaloaded entries:\n");
+    scanf(" %[^\n]",fpaths[0]);
+    if (fpaths[0][0]=='\"')
     {
-        strcpy(fpath,fpath + 1);
-        *(strchr(fpath,'\0') - 1) = '\0';
+        strcpy(fpaths[0],fpaths[0] + 1);
+        *(strchr(fpaths[0],'\0') - 1) = '\0';
     }
-}
 
-/** \brief
- *  Just assigns the rest of the entries initial chunks, which is  necessary for the merges.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_count int*              chunk count
- * \return void
- */
-void build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count)
-{
-    for (int i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_DEMO || build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
-            elist[i].chunk = (*chunk_count)++;
+    /*printf("\nInput the path to the file with type/subtype dependencies:\n");
+    scanf(" %[^\n]",fpath2);
+    if (fpath2[0]=='\"')
+    {
+        strcpy(fpath2,fpath2 + 1);
+        *(strchr(fpath2,'\0') - 1) = '\0';
+    }*/
+    strcpy(fpaths[1], "complete entity list vanilla.txt");
+    strcpy(fpaths[2], "collision list.txt");
 }
 
 /** \brief
@@ -2552,9 +2440,72 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
  */
 void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config)
 {
-    build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[0]);
-    build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
-    build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
+    for (int i = 0; i < entry_count; i++)
+        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1)
+            elist[i].chunk = (*chunk_count)++;
+}
+
+int build_is_normal_chunk_entry(ENTRY entry)
+{
+    int type = build_entry_type(entry);
+    if (type == ENTRY_TYPE_ANIM ||
+        type == ENTRY_TYPE_DEMO ||
+        type == ENTRY_TYPE_ZONE ||
+        type == ENTRY_TYPE_MODEL ||
+        type == ENTRY_TYPE_SCENERY ||
+        type == ENTRY_TYPE_SLST ||
+        type == ENTRY_TYPE_DEMO ||
+        type == ENTRY_TYPE_VCOL ||
+        type == ENTRY_TYPE_MIDI ||
+        type == ENTRY_TYPE_GOOL )
+    return 1;
+
+    return 0;
+}
+
+void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded)
+{
+    int i, j;
+    int count = *chunk_count;
+    int perma_normal_entry_count = 0;
+
+    for (i = 0; i < entry_count; i++)
+        if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
+            perma_normal_entry_count++;
+
+    ENTRY list[perma_normal_entry_count];
+    int indexer = 0;
+    for (i = 0; i < entry_count; i++)
+        if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
+            list[indexer++] = elist[i];
+
+    qsort(list, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
+
+    int perma_chunk_count = 250;
+    int sizes[perma_chunk_count];
+    for (i = 0; i < perma_chunk_count; i++)
+        sizes[i] = 0x14;
+
+    for (i = 0; i < perma_normal_entry_count; i++)
+        for (j = 0; j < MAX; j++)
+            if (sizes[j] + 4 + list[i].esize <= CHUNKSIZE)
+            {
+                list[i].chunk = count + j;
+                sizes[j] += 4 + list[i].esize;
+                break;
+            }
+
+    for (i = 0; i < entry_count; i++)
+        for (j = 0; j < perma_normal_entry_count; j++)
+            if (elist[i].EID == list[j].EID)
+                elist[i].chunk = list[j].chunk;
+
+    int counter;
+    for (i = 0; i < 8; i++)
+        if (sizes[i] > 0x14)
+            counter = i + 1;
+
+    *chunk_count = count + counter;
 }
 
 /** \brief
@@ -2567,7 +2518,7 @@ void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_c
  * \param config2 int                   0/1, determines whether each point of cam paths or only main/deltas are considered
  * \return void
  */
-void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2)
+void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2, LIST permaloaded)
 {
     build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config2);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
@@ -2603,6 +2554,22 @@ void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int ent
     closedir(df);
 }
 
+void build_ask_distances(int *config)
+{
+    int temp;
+    printf("\nSLST distance? (recommended is approx 6000)\n");
+    scanf("%d", &temp);
+    config[3] = temp;
+
+    printf("\nNeighbour distance? (recommended is approx 6000)\n");
+    scanf("%d", &temp);
+    config[4] = temp;
+
+    printf("\nDraw list distance? (recommended is approx 6000)\n");
+    scanf("%d", &temp);
+    config[5] = temp;
+}
+
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
  *
@@ -2615,7 +2582,7 @@ void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int ent
  */
 void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
 {
-    char lcltemp[MAX], fpath[1000];
+    char lcltemp[MAX], fpaths[FPATH_COUNT][MAX] = {0};
     DIR *df = NULL;
     FILE *nsf = NULL, *nsfnew = NULL;
     SPAWNS spawns = init_spawns();
@@ -2623,6 +2590,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     unsigned char *chunks[1024];
     LIST permaloaded;
     DEPENDENCIES subtype_info;
+    DEPENDENCIES collisions;
     int i, level_ID;
     int chunk_border_base       = 0,
         chunk_border_texture    = 0,
@@ -2636,10 +2604,13 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         gool_table[i] = NONE;
 
     /* config: */
-    // [gool initial merge flag]    0 - group       |   1 - one by one
-    // [zone initial merge flag]    0 - group       |   1 - one by one
-    // [merge type flag]            0 - per delta   |   1 - per point
-    int config[] = {1, 1, 1};
+    // 0 - [gool initial merge flag]    0 - group       |   1 - one by one
+    // 1 - [zone initial merge flag]    0 - group       |   1 - one by one
+    // 2 - [merge type flag]            0 - per delta   |   1 - per point
+    // 3 - [slst distance]
+    // 4 - [neighbour distance]
+    // 5 - [draw list distance]
+    int config[6] = {1, 1, 1, 0, 0, 0};
 
 
     if ((nsf = fopen(nsfpath,"rb")) == NULL) {
@@ -2669,20 +2640,24 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
-    build_ask_list_path(fpath);
-    if (!build_read_entry_config(&permaloaded, &subtype_info, fpath, elist, entry_count)) {
+    build_ask_list_paths(fpaths);
+    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, fpaths, elist, entry_count, gool_table)) {
         printf("File could not be opened or a different error occured\n");
         return;
     }
 
-    build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info);
+    build_ask_distances(config);
+    build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, &chunk_count, permaloaded);
     build_assign_primary_chunks_all(elist, entry_count, &chunk_count, config);
-    build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2]);
+    build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2], permaloaded);
 
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
     nsfnew = fopen(lcltemp, "wb");
     *(strchr(lcltemp, '\0') - 1) = 'D';
+
+    // build_print_relatives(elist, entry_count);
 
     build_write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
@@ -2690,6 +2665,4 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
         fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
 
     build_final_cleanup(nsf, nsfnew, df, elist, entry_count, chunks, chunk_count);
-
 }
-

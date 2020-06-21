@@ -456,3 +456,250 @@ int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int 
 
     return 0;
 }
+
+/** \brief
+ *  Inserts all stuff loaded by a zone (scenery dependencies, entity dependencies, its own relatives) to the list.
+ *  DEPRECATE.
+ *
+ * \param eid unsigned int              entry whose children are to be added
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param list LIST*                    current load list
+ * \param gool_table unsigned int*      gool table
+ * \param dependencies DEPENDENCIES     stuff loaded when a certain type/subtype is used
+ * \return void
+ */
+void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies)
+{
+    int i, j, k, l;
+    int index = build_get_index(eid, elist, entry_count);
+    if (index == -1) return;
+
+    if (elist[index].related != NULL)
+        for (i = 0; (unsigned) i < elist[index].related[0]; i++)
+            list_insert(list, elist[index].related[i + 1]);
+
+    list_insert(list, elist[index].EID);
+
+    if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE)
+    {
+        int item1off = from_u32(elist[index].data + 0x10);
+        LIST neighbours = build_get_neighbours(elist[index].data);
+
+        for (i = 0; i < neighbours.count; i++)
+        {
+            int neighbour_index = build_get_index(neighbours.eids[i], elist, entry_count);
+            if (neighbour_index == -1) continue;
+
+            int entity_count = build_get_entity_count(elist[neighbour_index].data);
+            int cam_count = build_get_cam_count(elist[neighbour_index].data);
+
+            for (j = 0; j < entity_count; j++)
+            {
+                int entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
+                int entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
+                list_insert(list, gool_table[entity_type]);
+                int entity_subt = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
+                int match_found = 0;
+
+                for (k = 0; k < dependencies.count; k++)
+                    if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt)
+                    {
+                        for (l = 0; l < dependencies.array[k].dependencies.count; l++)
+                        {
+                            list_insert(list, dependencies.array[k].dependencies.eids[l]);
+                            int index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
+                            if (index2 == -1) continue;
+                            if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM)
+                            {
+                                unsigned int model = build_get_model(elist[index2].data);
+                                list_insert(list, model);
+
+                                int model_index = build_get_index(model, elist, entry_count);
+                                if (model_index == -1) continue;
+
+                                build_add_model_textures_to_list(elist[model_index].data, list);
+                                /*char temp[100];
+                                char temp2[100];
+                                for (int i = 0; i < list->count; i++)
+                                    printf("%s, %d %d %s\n", eid_conv(elist[index].EID, temp2), entity_type, entity_subt, eid_conv(list->eids[i], temp));
+                                printf("\n");*/
+                            }
+                        }
+                        match_found++;
+                    }
+
+                if (!match_found)
+                    printf("Entity type/subtype with no known dependencies [%2d;%2d]\n", entity_type, entity_subt);
+            }
+        }
+
+        int scenery_count = build_get_scen_count(elist[index].data);
+        for (i = 0; i < scenery_count; i++)
+        {
+            int scenery_index = build_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
+            build_add_scen_textures_to_list(elist[scenery_index].data, list);
+        }
+    }
+}
+
+/** \brief
+ *  Assigns gool entries and their relatives initial chunks.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param real_chunk_count int*         chunk count
+ * \param grouping_flag int             1 if one by one, 0 if pre-grouping
+ * \return void
+ */
+void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
+{
+    int i, j;
+    int size;
+    int counter;
+    int relative_index;
+    int chunk_count = *real_chunk_count;
+
+    switch(grouping_flag)
+    {
+        case 0:  // group gool with its kids
+        {
+            for (i = 0; i < entry_count; i++)
+            {
+                if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL)
+                {
+                    elist[i].chunk = chunk_count;
+                    size = elist[i].esize;
+                    counter = 0;
+                    if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1) continue;
+                        if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
+                        {
+                            chunk_count++;
+                            counter = 0;
+                            size = 0;
+                        }
+                        elist[relative_index].chunk = chunk_count;
+                        size += elist[relative_index].esize;
+                        counter++;
+                    }
+                    chunk_count++;
+                }
+            }
+            break;
+        }
+        case 1: // one by one
+        {
+            for (i = 0; i < entry_count; i++)
+            {
+
+                if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL)
+                {
+                    elist[i].chunk = chunk_count++;
+
+                    if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1) continue;
+
+                        elist[relative_index].chunk = chunk_count++;
+                    }
+                }
+            }
+            break;
+        }
+        default: break;
+    }
+
+    *real_chunk_count = chunk_count;
+}
+
+
+/** \brief
+ *  Just assigns the rest of the entries initial chunks, which is  necessary for the merges.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int*              chunk count
+ * \return void
+ */
+void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count)
+{
+    for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_DEMO || build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
+            elist[i].chunk = (*chunk_count)++;
+}
+
+/** \brief
+ *  Initial chunk assignment for zones and their relatives, either one-by-one or pre-grouped.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param real_chunk_count int*         chunk count
+ * \param grouping_flag int             one-by-one if 1, pre-groups if 0
+ * \return void
+ */
+void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
+{
+    int i, j;
+    int chunk_count = *real_chunk_count;
+    int size;
+    int counter;
+
+    switch(grouping_flag)
+    {
+        case 0: // group all relatives together
+        {
+            for (i = 0; i < entry_count; i++)
+            if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
+            {
+                if (elist[i].chunk != -1) continue;
+                elist[i].chunk = chunk_count;
+                size = elist[i].esize;
+                counter = 0;
+                if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
+                        if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
+                        {
+                            chunk_count++;
+                            counter = 0;
+                            size = 0;
+                        }
+                        elist[relative_index].chunk = chunk_count;
+                        size += elist[relative_index].esize;
+                        counter++;
+                    }
+                chunk_count++;
+            }
+            break;
+        }
+        case 1: // one by one
+        {
+            for (i = 0; i < entry_count; i++)
+            if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].related != NULL)
+            {
+                if (elist[i].chunk != -1) continue;
+                elist[i].chunk = chunk_count++;
+                if (elist[i].related != NULL)
+                    for (j = 0; (unsigned) j < elist[i].related[0]; j++)
+                    {
+                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
+                        elist[relative_index].chunk = chunk_count++;
+                    }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    *real_chunk_count = chunk_count;
+}

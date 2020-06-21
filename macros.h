@@ -8,14 +8,15 @@
 #include <math.h>
 #include "windows.h"
 
-#define SLST_DISTANCE                   7500
-#define NEIG_DISTANCE                   9000
-#define DRAW_DISTANCE                   8000
+#define SLST_DISTANCE                   7000
+#define NEIG_DISTANCE                   7000
+#define DRAW_DISTANCE                   6000
 
+#define FPATH_COUNT                     3
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
 #define BYTE                            0x100
-#define MAX                             200
+#define MAX                             500
 #define PI                              3.1415926535
 
 // more dumb things
@@ -49,12 +50,16 @@
 #define PROP                            2089440550u
 
 #define ENTRY_TYPE_ANIM                 0x1
+#define ENTRY_TYPE_MODEL                0x2
+#define ENTRY_TYPE_SCENERY              0x3
+#define ENTRY_TYPE_SLST                 0x4
 #define ENTRY_TYPE_ZONE                 0x7
 #define ENTRY_TYPE_GOOL                 0xB
+#define ENTRY_TYPE_SOUND                0xC
+#define ENTRY_TYPE_MIDI                 0xD
 #define ENTRY_TYPE_INST                 0xE
 #define ENTRY_TYPE_VCOL                 0xF
 #define ENTRY_TYPE_DEMO                 0x13
-#define ENTRY_TYPE_SOUND                0xC
 
 #define ENTITY_PROP_NAME                0x2C
 #define ENTITY_PROP_DEPTH_MODIFIER      0x32
@@ -288,35 +293,33 @@ void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entr
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix);
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag);
-void         build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
-void         build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void         build_add_model_textures_to_list(unsigned char *model, LIST *list);
-void         build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
 unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 void         build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code);
 LIST         build_get_links(unsigned char *entry, int cam_index);
 void         build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
-void         build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
-void         build_load_list_util_util(int zone_index, int cam_index, unsigned int link, LIST *listA, LIST* listB, int cam_length, ENTRY * elist, int entry_count);
+void         build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions);
+void         build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST *full_list, int cam_length, ENTRY * elist, int entry_count, int* config, DEPENDENCIES collisisons);
 LIST *       build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length);
 LIST         build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list);
 int          build_get_distance(short int *coords, int start_index, int end_index, int cap, int *final_index);
 LIST         build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours);
-void         build_load_list_util(int zone_index, int camera_index, LIST* listA, LIST* listB, int cam_length, ENTRY *elist, int entry_count);
+void         build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config);
 PROPERTY     build_make_load_list_prop(LIST *list_array, int cam_length, int code);
-void         build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info);
-int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, char *file_path, ENTRY *elist, int entry_count);
+void         build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info);
+void         build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
+int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, char fpaths[FPATH_COUNT][MAX], ENTRY *elist, int entry_count, unsigned int *gool_table);
 int          build_get_chunk_count_base(FILE *nsf);
 int          build_ask_ID();
-void         build_ask_list_path(char *fpath);
-void         build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
+void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]);
 void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config);
+int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
@@ -331,5 +334,10 @@ void         deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chu
 PAYLOAD      deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min);
 void         deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count);
 int          deprecate_build_is_relative(unsigned int searched, unsigned int *array, int count);
+void         deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
+void         deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
+void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
+void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
+
 
 
