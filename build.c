@@ -705,7 +705,6 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
  * \return void
  */
 void build_print_relatives(ENTRY *elist, int entry_count)
-// prints entries and references, UNUSED
 {
     int i, j;
     char temp[100];
@@ -1100,8 +1099,6 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
 
 
-
-
 /** \brief
  *  Builds chunks according to entries' assigned chunks, shouldnt require any
  *  further patches.
@@ -1480,6 +1477,20 @@ LIST build_get_links(unsigned char *entry, int cam_index)
     return links_list;
 }
 
+
+/** \brief
+ *  Starting from the 0th index it finds a path index at which the distance reaches cap distance and loads
+ *  the entries specified by the additions list from point 0 to end index.
+ *
+ * \param cam_length int                length of the considered camera path
+ * \param full_list LIST*               load list
+ * \param distance int                  distance so far
+ * \param final_distance int            distance cap
+ * \param coords short int*             path of the camera
+ * \param path_length int               length of the camera
+ * \param additions LIST                list with entries to add
+ * \return void
+ */
 void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int end_index = 0;
@@ -1494,7 +1505,19 @@ void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distanc
         list_copy_in(&full_list[j], additions);
 }
 
-
+/** \brief
+ *  Starting from the n-1th index it finds a path index at which the distance reaches cap distance and loads
+ *  the entries specified by the additions list from point start index n - 1.
+ *
+ * \param cam_length int                length of the considered camera path
+ * \param full_list LIST*               load list
+ * \param distance int                  distance so far
+ * \param final_distance int            distance cap
+ * \param coords short int*             path of the camera
+ * \param path_length int               length of the camera
+ * \param additions LIST                list with entries to add
+ * \return void
+ */
 void build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int start_index = cam_length - 1;
@@ -1507,7 +1530,21 @@ void build_load_list_util_util_back(int cam_length, LIST *full_list, int distanc
         list_copy_in(&full_list[j], additions);
 }
 
-void build_add_collision_dependencies(LIST *full_list, int start_index, int end_index, unsigned char *entry, DEPENDENCIES collisisons, ENTRY *elist, int entry_count)
+
+/** \brief
+ *  Searches the entry and for each collision type it adds its dependencies (if there are any)
+ *  to the list, copies it into items start_index to end_index (exc.).
+ *
+ * \param full_list LIST*               current load list
+ * \param start_index int               camera point index from which the additions are copied in
+ * \param end_index int                 camera point index until which the additions are copied in
+ * \param entry unsigned char*          entry in which it searches collision types
+ * \param collisions DEPENDENCIES       list that contains list of entries tied to a specific collision type
+ * \param elist ENTRY*                  entry_list
+ * \param entry_count int               entry_count
+ * \return void
+ */
+void build_add_collision_dependencies(LIST *full_list, int start_index, int end_index, unsigned char *entry, DEPENDENCIES collisions, ENTRY *elist, int entry_count)
 {
     int x, i, j, k;
     LIST neighbours = build_get_neighbours(entry);
@@ -1523,10 +1560,10 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
             short int type = *(short int *) item + 0x24 + 2 * i;
             if (type % 2 == 0) continue;
 
-            for (j = 0; j < collisisons.count; j++)
-                if (type == collisisons.array[j].type)
+            for (j = 0; j < collisions.count; j++)
+                if (type == collisions.array[j].type)
                     for (k = start_index; k < end_index; k++)
-                        list_copy_in(&full_list[k], collisisons.array[j].dependencies);
+                        list_copy_in(&full_list[k], collisions.array[j].dependencies);
         }
     }
 }
@@ -1952,6 +1989,14 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
     return prop;
 }
 
+/** \brief
+ *  Lets the user know whether there are any entities whose type/subtype has no specified dependencies.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param sub_info DEPENDENCIES         list of types and subtypes and their potential dependencies
+ * \return void
+ */
 void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info)
 {
     int i, j, k;
@@ -1981,6 +2026,15 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
         }
 }
 
+/** \brief
+ *  Converts the full load list into delta form.
+ *
+ * \param full_load LIST*               full form of load list
+ * \param listA LIST*                   new delta based load list, A side
+ * \param listB LIST*                   new delta based load list, B side
+ * \param cam_length int                length of the current camera
+ * \return void
+ */
 void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length)
 {
     int i, j;
@@ -2445,6 +2499,12 @@ void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_c
             elist[i].chunk = (*chunk_count)++;
 }
 
+/** \brief
+ *  Checks whether the entry is meant to be placed into a normal chunk.
+ *
+ * \param entry ENTRY                   entry to be tested
+ * \return int                          1 if it belongs to a normal chunk, else 0
+ */
 int build_is_normal_chunk_entry(ENTRY entry)
 {
     int type = build_entry_type(entry);
@@ -2463,6 +2523,17 @@ int build_is_normal_chunk_entry(ENTRY entry)
     return 0;
 }
 
+/** \brief
+ *  Specially merges permaloaded entries as they dont require any association.
+ *  Works similarly to the sound chunk one.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_border_sounds int       index from which normal chunks start
+ * \param chunk_count int*              current chunk count
+ * \param permaloaded LIST              list with permaloaded entries
+ * \return void
+ */
 void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded)
 {
     int i, j;
