@@ -11,6 +11,7 @@
 #define SLST_DISTANCE                   7000
 #define NEIG_DISTANCE                   7000
 #define DRAW_DISTANCE                   6000
+#define BACKWARDS_PENALTY               0
 
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
@@ -48,6 +49,7 @@
 #define ROTATE                          3437938580u
 #define BUILD                           215559733u
 #define PROP                            2089440550u
+#define TEXTURE                         3979833526u
 
 #define ENTRY_TYPE_ANIM                 0x1
 #define ENTRY_TYPE_MODEL                0x2
@@ -339,5 +341,6 @@ void         deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_
 void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 
+int          texture_copy_main();
 
 

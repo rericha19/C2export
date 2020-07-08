@@ -161,6 +161,9 @@ int main()
             }
             prop_main(fpath);
             break;
+        case TEXTURE:
+            texture_copy_main();
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;

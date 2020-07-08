@@ -1497,9 +1497,9 @@ void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distanc
     int j, distance2 = 0;
 
     if (distance + distance2 < final_distance) end_index++;
-    build_get_distance(coords, 0, path_length - 1, final_distance - distance, &end_index);
+    build_get_distance(coords, 0, path_length - 1, final_distance - (distance + BACKWARDS_PENALTY), &end_index);
 
-    if (end_index == 0) return;
+    if (end_index <= 0) return;
 
     for (j = 0; j < end_index; j++)
         list_copy_in(&full_list[j], additions);
@@ -1807,7 +1807,7 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
  * \param neighbours LIST*              list of entries it stumbled upon (used later to find types/subtypes of collected IDs)
  * \return LIST                         list of IDs it came across during the search
  */
-LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int *config)
+LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int draw_dist)
 {
     LIST entity_list = init_list();
     int i, j, k, coord_count;
@@ -1842,13 +1842,13 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         int point_index2;
         if (link.flag == 1)
         {
-            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, config[5] - distance, &point_index2);
+            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, draw_dist - (distance + BACKWARDS_PENALTY), &point_index2);
             for (j = 0; j < point_index2; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
         if (link.flag == 2)
         {
-            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, config[5] - distance, &point_index2);
+            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, draw_dist - distance, &point_index2);
             for (j = point_index2; j < neighbour_cam_length - 1; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
@@ -1857,7 +1857,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
                eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index].EID, temp2), point_index2 + 1, neighbour_cam_length);*/
 
-        if (distance >= config[5])
+        if (distance >= draw_dist)
             continue;
 
         LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
@@ -1879,7 +1879,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if ((link.flag == 1 && link2.type == 2 && link2.flag == 1) ||
                 (link.flag == 2 && link2.type == 1 && link2.flag == 1))
             {
-                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, config[5] - distance, &point_index3);
+                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, draw_dist - distance, &point_index3);
                 for (k = 0; k < point_index3; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
@@ -1888,7 +1888,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if ((link.flag == 1 && link2.type == 2 && link2.flag == 2) ||
                 (link.flag == 2 && link2.type == 1 && link2.flag == 2))
             {
-                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, config[5] - distance, &point_index3);
+                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, draw_dist - (distance + BACKWARDS_PENALTY), &point_index3);
                 for (k = point_index3; k < neighbour_cam_length2; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
@@ -1928,7 +1928,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
     for (i = 0; i < cam_length; i++)
     {
         LIST neighbour_list = init_list();
-        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
+        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config[5]);
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 
         for (j = 0; j < types_subtypes.count; j++)
@@ -2059,7 +2059,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
         list_copy_in(&copy, listA[i]);
 
         for (j = 0; j < copy.count; j++)
-            if (list_find(listB[i], copy.eids[j] != -1))
+            if (list_find(listB[i], copy.eids[j]) != -1)
             {
                 list_rem(&listA[i], copy.eids[j]);
                 list_rem(&listB[i], copy.eids[j]);
