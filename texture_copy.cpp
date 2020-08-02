@@ -67,4 +67,6 @@ int texture_copy_main()
 
     fclose(file1);
     fclose(file2);
+
+    return 0;
 }
