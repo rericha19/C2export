@@ -2774,8 +2774,8 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, &chunk_count, permaloaded);
     build_assign_primary_chunks_all(elist, entry_count, &chunk_count, config);
     build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2], permaloaded);
-    //build_get_box_count(elist, entry_count);
-    // build_get_nitroboom_victims(elist, entry_count);
+
+    //build_get_box_count(elist, entry_count); // snow no bullshit
 
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
