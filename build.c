@@ -2677,13 +2677,15 @@ void build_get_box_count(ENTRY *elist, int entry_count)
                 {
                     counter++;
                     char temp[100];
-                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, ID);
+                     printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, ID);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18)
                 {
                     nitro_counter++;
-                    printf("NITRO %3d\n", ID);
+                    if (type == 43)
+                        printf("gotem %d\n", ID);
+                     printf("NITRO %3d\n", ID);
                 }
             }
         }
@@ -2775,7 +2777,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_assign_primary_chunks_all(elist, entry_count, &chunk_count, config);
     build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2], permaloaded);
 
-    //build_get_box_count(elist, entry_count); // snow no bullshit
+    // build_get_box_count(elist, entry_count); // snow no bullshit
 
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
