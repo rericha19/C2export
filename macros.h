@@ -91,6 +91,8 @@
 #define ENTITY_PROP_CAM_BG_COLORS       0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY  0x27F
 
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 
 typedef struct info{
     int counter[22];                // counts entry types, counter[0] is total entry count
