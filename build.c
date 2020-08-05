@@ -1084,6 +1084,8 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
                     default:
                         break;
                 }
+
+                delete_load_list(load_list);
             }
         }
 

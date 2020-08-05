@@ -152,6 +152,7 @@ typedef struct load {
     unsigned int *list;
     int index;
 } LOAD;
+
 typedef struct load_list {
     int count;
     LOAD array[1000];
@@ -192,6 +193,8 @@ typedef struct property {
     int length;
 } PROPERTY;
 
+
+// misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
 void         intro_text();
 void         print_help();
@@ -234,7 +237,9 @@ void         list_copy_in(LIST *destination, LIST source);
 LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
 LINK         int_to_link(unsigned int link);
+void         delete_load_list(LOAD_LIST load_list)
 
+// export.c
 int          export_main(int zone, char *fpath, char *date);
 int          export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype);
 int          export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype);
@@ -248,12 +253,15 @@ void         export_zone(unsigned char *buffer, int entrysize,char *lvlid, char 
 void         export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
 void         export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date);
 
+// import.c
 int          import_main(char *time, INFO status);
 int          import_file_lister(char *path, FILE *fnew);
 void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 
+// propthing.c
 void         prop_main(char* path);
 
+// resize.c
 void         resize_main(char *time, INFO status);
 void         resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO status);
 void         resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
@@ -262,11 +270,13 @@ void         resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO
 void         resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
 void         resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
 
+// rotate.c
 void         rotate_main(char *time);
 void         rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
 void         rotate_zone(unsigned char *buffer, char *filepath, double rotation);
 void         rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
 
+// build.c
 int          build_align_sound(int input);
 unsigned int build_get_model(unsigned char *anim);
 int          build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
@@ -328,6 +338,7 @@ void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_so
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
 
+// deprecate_build.c
 PAYLOADS     deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);
 void         deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count);
 void         deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
@@ -343,6 +354,7 @@ void         deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_
 void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 
+// texture_copy.c
 int          texture_copy_main();
 
 

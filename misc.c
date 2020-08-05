@@ -612,3 +612,9 @@ LINK int_to_link(unsigned int link)
 
     return result;
 }
+
+void delete_load_list(LOAD_LIST load_list)
+{
+    for (int i = 0; i < load_list.count; i++)
+        free(load_list.array[i].list);
+}
