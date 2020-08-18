@@ -44,7 +44,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
 
                             load_list.array[load_list.count].list_length = load_list_item_count;
                             load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
-                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
+                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                             if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
                                 load_list.array[load_list.count].type = 'A';
                             else

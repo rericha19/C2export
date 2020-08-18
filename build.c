@@ -970,18 +970,19 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_offset)
 
                 load_list.array[load_list.count].list_length = load_list_item_count;
                 load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
-                memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int*));
+                memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                 if (code == prop_code)
                     load_list.array[load_list.count].type = 'A';
                 else
                     load_list.array[load_list.count].type = 'B';
                 load_list.array[load_list.count].index = point;
-                load_list.count++;
+                (load_list.count)++;
                 qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
             }
         }
     }
 
+    // printf("lived\n");
     return load_list;
 }
 
@@ -1033,6 +1034,8 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
             for (j = 0; j < cam_count; j++)
             {
                 int cam_offset = from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j));
+                char temp[100];
+                // printf("zone: %s\n", eid_conv(elist[i].EID, temp));
                 LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
@@ -1683,6 +1686,7 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
         draw_list[i] = init_list();
 
     int cam_offset = from_u32(elist[zone_index].data + 0x10 + 4 * cam_index);
+    char temp[5];
     LOAD_LIST draw_list2 = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, elist[zone_index].data, cam_offset);
 
     int sublist_index = 0;
@@ -1702,6 +1706,8 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
         }
         list_copy_in(&draw_list[i], list);
     }
+
+    delete_load_list(draw_list2);
 
     return draw_list;
 }
@@ -1938,6 +1944,8 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
     for (i = 0; i < cam_length; i++)
     {
         LIST neighbour_list = init_list();
+        char temp[100];
+        // printf("gonna do %s\n", eid_conv(elist[zone_index].EID, temp));
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config[5]);
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 
@@ -2112,8 +2120,11 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             int item1off = from_u32(elist[i].data + 0x10);
             int cam_count = build_get_cam_count(elist[i].data) / 3;
 
+            char temp[100];
+            printf("Doing load lists for zone %s\n", eid_conv(elist[i].EID, temp));
             for (j = 0; j < cam_count; j++)
             {
+                printf("\t cam path %d\n", j);
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
                 LIST full_load[cam_length] = {init_list()};
 
@@ -2676,10 +2687,11 @@ void build_get_box_count(ENTRY *elist, int entry_count)
                 if ((type >= 34 && type <= 43) &&
                     (subt == 0 || subt == 2 || subt == 3 || subt == 4 || subt == 6 || subt == 8 || subt == 9 ||
                      subt == 10 || subt == 11 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
+                /*if (ID != -1)*/
                 {
                     counter++;
                     char temp[100];
-                     printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, ID);
+                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, ID);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18)
@@ -2687,7 +2699,7 @@ void build_get_box_count(ENTRY *elist, int entry_count)
                     nitro_counter++;
                     if (type == 43)
                         printf("gotem %d\n", ID);
-                     printf("NITRO %3d\n", ID);
+                    printf("NITRO %3d\n", ID);
                 }
             }
         }
@@ -2779,7 +2791,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_assign_primary_chunks_all(elist, entry_count, &chunk_count, config);
     build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2], permaloaded);
 
-    // build_get_box_count(elist, entry_count); // snow no bullshit
+    //build_get_box_count(elist, entry_count); // snow no bullshit
 
     *(strrchr(nsfpath,'\\') + 1) = '\0';
     sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);

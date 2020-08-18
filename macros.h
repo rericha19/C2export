@@ -237,7 +237,7 @@ void         list_copy_in(LIST *destination, LIST source);
 LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
 LINK         int_to_link(unsigned int link);
-void         delete_load_list(LOAD_LIST load_list)
+void         delete_load_list(LOAD_LIST load_list);
 
 // export.c
 int          export_main(int zone, char *fpath, char *date);
