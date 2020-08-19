@@ -2165,15 +2165,14 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             printf("Doing load lists for zone %s\n", eid_conv(elist[i].EID, temp));
             for (j = 0; j < cam_count; j++)
             {
-                printf("\t cam path %d\n", j);
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
+                printf("\t cam path %d length %2d\n", j, cam_length);
 
                 LIST full_load[cam_length];
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
 
                 printf("1111\n");
-                // printf("111113\n");
 
                 /*char temp[100];
                 for(k = 0; k < permaloaded.count; k++)
