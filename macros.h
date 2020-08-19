@@ -24,6 +24,7 @@
 #define C2_NEIGHBOURS_START             0x190
 #define C2_NEIGHBOURS_END               0x1B4
 #define C2_NEIGHBOURS_FLAGS_END         0x1D4
+#define C2_SPECIAL_METADATA_OFFSET      0x1DC
 #define MAGIC_ENTRY                     0x100FFFF
 #define MAGIC_CHUNK                     0x1234
 #define CHUNK_TYPE_NORMAL               0
@@ -50,6 +51,8 @@
 #define PROP                            2089440550u
 #define TEXTURE                         3979833526u
 #define HASH                            2089134665u
+#define A                               177638
+#define P                               177653
 
 #define STATUS                          3482341513u
 #define ANGLE                           214120076u
@@ -261,23 +264,6 @@ int          import_main(char *time, INFO status);
 int          import_file_lister(char *path, FILE *fnew);
 void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 
-// propthing.c
-void         prop_main(char* path);
-
-// resize.c
-void         resize_main(char *time, INFO status);
-void         resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO status);
-void         resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
-void         resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status);
-void         resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
-void         resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
-void         resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
-
-// rotate.c
-void         rotate_main(char *time);
-void         rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
-void         rotate_zone(unsigned char *buffer, char *filepath, double rotation);
-void         rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
 
 // build.c
 int          build_align_sound(int input);
@@ -316,7 +302,7 @@ void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list)
 void         build_add_model_textures_to_list(unsigned char *model, LIST *list);
 unsigned char* build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
-void         build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code);
+void         build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), int property_code, PROPERTY *prop);
 LIST         build_get_links(unsigned char *entry, int cam_index);
 void         build_load_list_util_util_forw(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
 void         build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions);
@@ -328,6 +314,9 @@ LIST         build_get_entity_list(int point_index, int zone_index, int camera_i
 void         build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config);
 PROPERTY     build_make_load_list_prop(LIST *list_array, int cam_length, int code);
 void         build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info);
+void         build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count);
+LIST         build_read_special_entries(unsigned char *zone);
+void         build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone);
 void         build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
 int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, char fpaths[FPATH_COUNT][MAX], ENTRY *elist, int entry_count, unsigned int *gool_table);
 int          build_get_chunk_count_base(FILE *nsf);
@@ -357,7 +346,18 @@ void         deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_
 void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 
-// texture_copy.c
+// side_scripts.cpp
 int          texture_copy_main();
-
-
+void         prop_main(char* path);
+void         resize_main(char *time, INFO status);
+void         resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO status);
+void         resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
+void         resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status);
+void         resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
+void         resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
+void         resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
+void         rotate_main(char *time);
+void         rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
+void         rotate_zone(unsigned char *buffer, char *filepath, double rotation);
+void         rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
+void         crate_rotation_angle();

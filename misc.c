@@ -48,7 +48,7 @@ void print_help()
     printf("RESIZE\n");
     printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
     printf("\t parameters are according to games' orientation, Y is vertical and Z depth\n");
-    printf("\t changes dimensions of the zones and scenery according to given parameters, messes up warps\n\n");
+    printf("\t changes dimensions of the zones and scenery according to given parameters, messes up warps\n");
 
     printf("ROTATE\n");
     printf("\t rotates scenery or objects in a zone you specified\n");
@@ -58,6 +58,9 @@ void print_help()
 
     printf("BUILD\n");
     printf("\t builds a level from stuff that it asks from you\n");
+
+    printf("A <value>\n");
+    printf("\t for crate rotation shenanigans\n");
 
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");

@@ -1391,7 +1391,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
  * \param property_code int             property code
  * \return void
  */
-void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), PROPERTY *prop, int property_code)
+void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), int property_code, PROPERTY *prop)
 {
     int i, offset;
     int item_count = from_u32(zone->data + 0xC);
@@ -2088,6 +2088,51 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
 
 
 /** \brief
+ *  Gets list of special entries in the zone's first item. For more info see function below.
+ *
+ * \param zone unsigned char*           zone to get the stuff from
+ * \return LIST                         list of special entries
+ */
+LIST build_read_special_entries(unsigned char *zone)
+{
+    LIST special_entries = init_list();
+    int item1off = from_u32(zone + 0x10);
+    unsigned char *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
+    int special_entry_count = from_u32(metadata_ptr);
+
+    for (int i = 1; i <= special_entry_count; i++)
+    {
+        unsigned int entry = from_u32(metadata_ptr + i * 4);
+        *(unsigned int *)(metadata_ptr + i * 4) = 0;
+        list_insert(&special_entries, entry);
+    }
+
+    *(unsigned int *)metadata_ptr = 0;
+    return special_entries;
+}
+
+
+/** \brief
+ *  Adds entries specified in the zone's first item by the user. Usually entries that cannot be tied to a specific object or collision.
+ *
+ * \param full_load LIST*               non-delta load lists
+ * \param cam_length int                length of the camera path and load list array
+ * \param zone ENTRY                    zone to get the stuff from
+ * \return void
+ */
+void build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone)
+{
+    LIST special_entries = build_read_special_entries(zone.data);
+    for (int i = 0; i < cam_length; i++)
+        list_copy_in(&full_load[i], special_entries);
+
+    char temp[100], temp2[100];
+    for (int i = 0; i < special_entries.count; i++)
+        printf("Zone %s: special load %s\n", eid_conv(zone.EID, temp), eid_conv(special_entries.eids[i],temp2));
+}
+
+
+/** \brief
  *  A function that for each zone's each camera path creates new load lists using
  *  the provided list of permanently loaded entries and
  *  the provided list of dependencies of certain entitites, gets models from the animations.
@@ -2126,12 +2171,10 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], permaloaded);
 
-
                 if (elist[i].related != NULL)
                 for (k = 0; (unsigned) k < elist[i].related[0]; k++)
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[i].related[k + 1]);
-
 
                 for (k = 0; k < entry_count; k++)
                 if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
@@ -2145,13 +2188,13 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
 
                 int scenery_count = build_get_scen_count(elist[i].data);
-                for (k = 0; k < scenery_count; k++)
-                {
+                for (k = 0; k < scenery_count; k++) {
                     int scenery_index = build_get_index(from_u32(elist[i].data + item1off + 0x4 + 0x30 * k), elist, entry_count);
                     for (l = 0; l < cam_length; l++)
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
+                build_add_special_entries(full_load, cam_length, elist[i]);
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
 
                 LIST listA[cam_length] = {init_list()};
@@ -2161,10 +2204,10 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
 
-                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x208);
-                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, NULL, 0x209);
-                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x208, 0x208);
-                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, &prop_0x209, 0x209);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x208, NULL);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x209, NULL);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x208, &prop_0x208);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x209, &prop_0x209);
             }
         }
 

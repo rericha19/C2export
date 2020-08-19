@@ -658,3 +658,25 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
         buffer[i] = group % 256;
     }
 }
+
+void crate_rotation_angle()
+{
+    int angle;
+    scanf("%d", &angle);
+    while (angle < 0)
+        angle += 360;
+    while (angle > 360)
+        angle -= 360;
+
+    int game_angle = (0x1000 * angle) / 360;
+    int b_value = game_angle >> 8;
+    printf("A: %3d\n", game_angle & 0xFF);
+    printf("B: %3d", game_angle >> 8);
+    while(1)
+    {
+        b_value += 16;
+        if (b_value > 105) break;
+        printf(" | %3d", b_value);
+    }
+    printf(" (for rewards)\n\n");
+}

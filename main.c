@@ -165,6 +165,9 @@ int main()
         case TEXTURE:
             texture_copy_main();
             break;
+        case A:
+            crate_rotation_angle();
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;
