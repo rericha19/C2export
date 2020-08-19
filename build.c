@@ -1034,8 +1034,6 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
             for (j = 0; j < cam_count; j++)
             {
                 int cam_offset = from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j));
-                char temp[100];
-                // printf("zone: %s\n", eid_conv(elist[i].EID, temp));
                 LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
@@ -2365,18 +2363,18 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX])
     scanf(" %[^\n]",fpaths[0]);
     if (fpaths[0][0]=='\"')
     {
-        strcpy(fpaths[0],fpaths[0] + 1);
+        strcpy(fpaths[0], fpaths[0] + 1);
         *(strchr(fpaths[0],'\0') - 1) = '\0';
     }
 
-    /*printf("\nInput the path to the file with type/subtype dependencies:\n");
-    scanf(" %[^\n]",fpath2);
-    if (fpath2[0]=='\"')
+    printf("\nInput the path to the file with type/subtype dependencies:\n");
+    scanf(" %[^\n]",fpaths[1]);
+    if (fpaths[1][0]=='\"')
     {
-        strcpy(fpath2,fpath2 + 1);
-        *(strchr(fpath2,'\0') - 1) = '\0';
-    }*/
-    strcpy(fpaths[1], "complete entity list vanilla.txt");
+        strcpy(fpaths[1], fpaths[1] + 1);
+        *(strchr(fpaths[1],'\0') - 1) = '\0';
+    }
+    //strcpy(fpaths[1], "complete entity list manni.txt");
     strcpy(fpaths[2], "collision list.txt");
 }
 
