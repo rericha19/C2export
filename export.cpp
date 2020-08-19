@@ -2,6 +2,8 @@
 
 extern INFO status;
 
+// convoluted, but does the thing (i think)
+
 int export_main(int zone, char *fpath, char *date)
 // does the thing yea
 {

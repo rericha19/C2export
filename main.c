@@ -3,35 +3,6 @@
 // Crash 2 levels' entry exporter made by Averso
 // half the stuff barely works so dont touch it much
 
-/*
-In main loop it waits for a command thats hashed and etc and called, before that it fetches the current time and keeps it until the next command.
-There are couple commands that can get called, help and info and stuff arent really interesting, just print some helping messages for at least some UX.
-
-The actual commands are EXPORT, EXPORTALL and IMPORT.
-EXPORTALL and EXPORT are fundamentally the same command, both hand file(s) to the "exprt" function.
-EXPORTALL hands them one by one from a folder thats specified by the user, theres some basic check on whether its a .NSF file.
-
-"exprt" function opens a file with a level, creates some folders and then chunk by chunk hands the level to "chunk_handler" function, then prints stuff and ends.
-"chunk_handler" decides what kind of a chunk it got, either a texture one or not, then hands it to "texture_chunk" or "normal_chunk".
-
-"texture_chunk" increases given entry counter and saves it to given location, no changes made to it at all
-"normal_chunk" reads the chunk entry by entry and depending on the entry type hands the entry to another functions, generic or specific
-
-"generic" receives a generic entry and just saves it with a certain name, no changes made to it at all
-"zone", "gool", "model" and "animation" make changes based on gamemode, zonemode and portmode to change the files to a given format if needed
-
-IMPORT
-stuffs all files from a chosen folder into a chosen .nsf
-*/
-
-// TODO
-// animations when porting
-// t11s when porting C2 TO C3
-// write a function for chunk saving
-// fix scenery change
-// rewrite all times you read big endian stuff, make a from_u16 function, use from_u32 more
-
-
 INFO status;
 
 int main()

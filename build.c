@@ -2744,6 +2744,12 @@ void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int ent
     closedir(df);
 }
 
+/** \brief
+ *  Asks the user what distances to use for load list building.
+ *
+ * \param config int*                   config array
+ * \return void
+ */
 void build_ask_distances(int *config)
 {
     int temp;
@@ -2760,6 +2766,7 @@ void build_ask_distances(int *config)
     config[5] = temp;
 }
 
+// dumb thing for snow no or whatever convoluted level its configured for rn
 void build_get_box_count(ENTRY *elist, int entry_count)
 {
     int counter = 0;

@@ -1,5 +1,6 @@
 #include "macros.h"
 
+// for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
 int scenery_recolor_main()
 {
     char fpath[1000];
@@ -63,6 +64,7 @@ int scenery_recolor_main()
 }
 
 
+// garbage, probably doesnt work properly
 void rotate_main(char *time)
 {
     double rotation;
@@ -183,6 +185,11 @@ void rotate_rotate(unsigned int *y,unsigned int *x, double rotation)
 }
 
 
+/** \brief
+ *  Copies texture from one texture chunk to another, doesnt include cluts.
+ *
+ * \return int                          unused
+ */
 int texture_copy_main()
 {
     char fpath[1000];
@@ -253,6 +260,12 @@ int texture_copy_main()
     return 0;
 }
 
+/** \brief
+ *  Prints out properties present in the file.
+ *
+ * \param path char*                    path to the property file
+ * \return void
+ */
 void prop_main(char* path)
 {
     FILE *file = NULL;
@@ -363,6 +376,7 @@ void prop_main(char* path)
     printf("\n");
 }
 
+// im not gonna comment the resize stuff cuz it looks atrocious
 void resize_main(char *time, INFO status)
 {
     FILE *level = NULL;
@@ -659,6 +673,12 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO stat
     }
 }
 
+
+/** \brief
+ *  Rotations and rewards share one argument, this is for finding reasonable reward settings with specified angle.
+ *
+ * \return void
+ */
 void crate_rotation_angle()
 {
     int angle;
