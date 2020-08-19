@@ -2131,6 +2131,49 @@ void build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone)
         printf("Zone %s: special load %s\n", eid_conv(zone.EID, temp), eid_conv(special_entries.eids[i],temp2));
 }
 
+/** \brief
+ *  Checks for whether the current camera isnt trying to load more than 8 textures, if it does it lets the user know.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param full_load LIST*               full load list
+ * \param cam_length int                length of the current camera
+ * \param i int                         index of the current entry
+ * \param j int                         current camera path
+ * \return void
+ */
+void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j)
+{
+    char temp[100];
+    int k, l;
+    int over_count = 0;
+    unsigned int over_textures[20];
+    int point = 0;
+
+    for (k = 0; k < cam_length; k++)
+    {
+        int texture_count = 0;
+        unsigned int textures[20];
+        for (l = 0; l < full_load[k].count; l++)
+            if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],temp)[4] == 'T')
+                textures[texture_count++] = full_load[k].eids[l];
+
+        if (texture_count > over_count)
+        {
+            over_count = texture_count;
+            point = k;
+            memcpy(over_textures, textures, texture_count * sizeof(unsigned int));
+        }
+    }
+
+    if (over_count > 8)
+    {
+        printf("[warning] Zone %s cam path %d loads %d texture chunks! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
+        for (k = 0; k < over_count; k++)
+            printf("\t%s", eid_conv(over_textures[k], temp));
+        printf("\n");
+    }
+}
 
 /** \brief
  *  A function that for each zone's each camera path creates new load lists using
@@ -2162,7 +2205,7 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
             char temp[100];
             if (cam_count)
-                printf("Doing load lists for zone %s\n", eid_conv(elist[i].EID, temp));
+                printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
             for (j = 0; j < cam_count; j++)
             {
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
@@ -2207,36 +2250,7 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
                 build_add_special_entries(full_load, cam_length, elist[i]);
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
-
-
-                int over_count = 0;
-                unsigned int over_textures[20];
-                int point = 0;
-
-                for (k = 0; k < cam_length; k++)
-                {
-                    int texture_count = 0;
-                    unsigned int textures[20];
-                    for (l = 0; l < full_load[k].count; l++)
-                        if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],temp)[4] == 'T')
-                            textures[texture_count++] = full_load[k].eids[l];
-
-                    if (texture_count > over_count)
-                    {
-                        over_count = texture_count;
-                        point = k;
-                        memcpy(over_textures, textures, texture_count * sizeof(unsigned int));
-                    }
-                }
-
-                if (over_count > 8)
-                {
-                   //char temp[100];
-                    printf("Zone %s cam path %d loads %d texture chunks! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
-                    for (k = 0; k < over_count; k++)
-                        printf("\t%s", eid_conv(over_textures[k], temp));
-                    printf("\n");
-                }
+                build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 
                 LIST listA[cam_length] = {init_list()};
                 LIST listB[cam_length] = {init_list()};
