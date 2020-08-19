@@ -12,7 +12,7 @@ void intro_text()
     for (int i = 0; i < 100; i++) printf("*");
     printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
     printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
-    printf("If printing to file is on, its printing into 'log.txt' located in folder of the current export.\n");
+    // printf("If printing to file is on, its printing into 'log.txt' located in folder of the current export.\n");
     printf("Type \"HELP\" for list of commands and their format. ");
     printf("Commands >ARE NOT< case sensitive.\n");
     printf("I don't really check much whether the files are valid, so make sure they actually are.\n");
@@ -28,8 +28,6 @@ void print_help()
     for (int i = 0; i < 75; i++) printf("-");
     printf("\nCommand list:\n");
     printf("HELP\n\t prints a list of commands\n");
-
-    printf("INTRO\n\t prints the intro text\n");
 
     printf("WIPE\n\t wipes current screen\n");
 
@@ -55,9 +53,15 @@ void print_help()
     printf("ROTATE\n");
     printf("\t rotates scenery or objects in a zone you specified\n");
 
+    printf("TEXTURE\n");
+    printf("\t copies from one texture chunk to another (doesnt include CLUTs)\n");
+
+    printf("BUILD\n");
+    printf("\t builds a level from stuff that it asks from you\n");
+
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
-    printf("\tan error that could not be handled, the program skipped some action\n");
+    printf("\tan error that could not be handled, the program skipped some action or gave up\n");
     printf("[error] error message\n");
     printf("\tan error that was handled\n");
     for (int i = 0; i < 75; i++) printf("-");
@@ -155,7 +159,7 @@ void askprint(INFO *status)
 {
     char dest[4][10] = {"to both", "to file", "here", "nowhere"};
     char pc;
-    printf("Where to print status messages? [N - nowhere|F - file|H - here|B - both] (from fastest to slowest)\n");
+    printf("Where to print status messages? [N - nowhere|F - file|H - here|B - both] (from fastest to slowest)[broken rn, doesnt write to file]\n");
     scanf(" %c",&pc);
     switch (toupper(pc))
     {
@@ -191,15 +195,14 @@ unsigned long hash(const char *str)
     return hash;
 }
 
-int main1()
+int hash_main()
  //changes a string to hash, this is just for me to find the values of the expected strings
 {
     char s[MAX];
-    while (1)
-    {
-        scanf("%s",s);
-        printf("%lu\n",hash(s));
-    }
+
+    scanf("%s",s);
+    printf("%lu\n",hash(s));
+
     return 0;
 }
 

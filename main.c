@@ -85,7 +85,6 @@ int main()
             export_main(zonetype,fpath,lcltemp);
             printf("\n");
             break;
-
         case EXPORTALL:
             {
             askmode(&zonetype, &status);
@@ -121,6 +120,9 @@ int main()
         case CHANGEPRINT:
             askprint(&status);
             break;
+        case HASH:
+            hash_main();
+            break;
         case WIPE:
             clrscr();
             intro_text();
@@ -131,8 +133,7 @@ int main()
         case ROTATE:
             rotate_main(lcltemp);
             break;
-        case BUILD:
-            {
+        case BUILD: {
             printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
             scanf(" %[^\n]",fpath);
             if (fpath[0]=='\"')

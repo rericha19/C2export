@@ -1684,7 +1684,6 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
         draw_list[i] = init_list();
 
     int cam_offset = from_u32(elist[zone_index].data + 0x10 + 4 * cam_index);
-    char temp[5];
     LOAD_LIST draw_list2 = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, elist[zone_index].data, cam_offset);
 
     int sublist_index = 0;
@@ -1942,8 +1941,6 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
     for (i = 0; i < cam_length; i++)
     {
         LIST neighbour_list = init_list();
-        char temp[100];
-        // printf("gonna do %s\n", eid_conv(elist[zone_index].EID, temp));
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config[5]);
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 

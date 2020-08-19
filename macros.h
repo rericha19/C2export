@@ -41,7 +41,6 @@
 #define EXPORTALL                       1522383616u
 #define CHANGEPRINT                     2239644728u
 #define CHANGEMODE                      588358864u
-#define STATUS                          3482341513u
 #define WIPE                            2089682330u
 #define IMPORT                          3083219648u
 #define INTRO                           223621809u
@@ -50,6 +49,10 @@
 #define BUILD                           215559733u
 #define PROP                            2089440550u
 #define TEXTURE                         3979833526u
+#define HASH                            2089134665u
+
+#define STATUS                          3482341513u
+#define ANGLE                           214120076u
 
 #define ENTRY_TYPE_ANIM                 0x1
 #define ENTRY_TYPE_MODEL                0x2
@@ -206,7 +209,7 @@ unsigned int from_u16(unsigned char *data);
 void         countwipe(INFO *status);
 void         askprint(INFO *status);
 unsigned long hash(const char *str);
-int          main1();
+int          hash_main();
 void         swap_ints(int *a, int *b);
 char*        eid_conv(unsigned int m_value, char *eid);
 unsigned int eid_to_int(char *eid);
