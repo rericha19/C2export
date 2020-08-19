@@ -2067,7 +2067,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
                 list_insert(&listA[i], full_load[i].eids[j]);
 
         for (j = 0; j < full_load[i - 1].count; j++)
-            if ((list_find(full_load[i], full_load[i - 1].eids[j]) == -1) && build_get_index( full_load[i - 1].eids[j], elist, entry_count) != -1)
+            if ((list_find(full_load[i], full_load[i - 1].eids[j]) == -1) && build_get_index(full_load[i - 1].eids[j], elist, entry_count) != -1)
                 list_insert(&listB[i - 1], full_load[i - 1].eids[j]);
     }
 
@@ -2096,9 +2096,10 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
 LIST build_read_special_entries(unsigned char *zone)
 {
     LIST special_entries = init_list();
-    int item1off = from_u32(zone + 0x10);
+    /*int item1off = from_u32(zone + 0x10);
     unsigned char *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
     int special_entry_count = from_u32(metadata_ptr);
+    printf("special entry count: %d", special_entry_count);
 
     for (int i = 1; i <= special_entry_count; i++)
     {
@@ -2107,7 +2108,7 @@ LIST build_read_special_entries(unsigned char *zone)
         list_insert(&special_entries, entry);
     }
 
-    *(unsigned int *)metadata_ptr = 0;
+    *(unsigned int *)metadata_ptr = 0;*/
     return special_entries;
 }
 
@@ -2166,15 +2167,30 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             {
                 printf("\t cam path %d\n", j);
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
-                LIST full_load[cam_length] = {init_list()};
+
+                LIST full_load[cam_length];
+                for (k = 0; k < cam_length; k++)
+                    full_load[k] = init_list();
+
+                printf("1111\n");
+                // printf("111113\n");
+
+                /*char temp[100];
+                for(k = 0; k < permaloaded.count; k++)
+                    printf("%2d %s\n", k, eid_conv(permaloaded.eids[k], temp));*/
 
                 for (k = 0; k < cam_length; k++)
-                    list_copy_in(&full_load[k], permaloaded);
+                    for (l = 0; l < permaloaded.count; l++)
+                        list_insert(&full_load[k], permaloaded.eids[l]);
+
+                printf("1112q\n");
 
                 if (elist[i].related != NULL)
                 for (k = 0; (unsigned) k < elist[i].related[0]; k++)
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[i].related[k + 1]);
+
+                //printf("1122\n");
 
                 for (k = 0; k < entry_count; k++)
                 if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
@@ -2182,10 +2198,13 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         list_insert(&full_load[l], elist[k].EID);
                 }
 
+                //printf("2222\n");
+
                 LIST neighbours = build_get_neighbours(elist[i].data);
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], neighbours);
 
+                //printf("3333\n");
 
                 int scenery_count = build_get_scen_count(elist[i].data);
                 for (k = 0; k < scenery_count; k++) {
@@ -2194,12 +2213,16 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
-                build_add_special_entries(full_load, cam_length, elist[i]);
+                //printf("4444\n");
+
+                // build_add_special_entries(full_load, cam_length, elist[i]);
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
 
                 LIST listA[cam_length] = {init_list()};
                 LIST listB[cam_length] = {init_list()};
                 build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count);
+
+                //printf("5555\n");
 
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
@@ -2692,15 +2715,15 @@ void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int ent
 void build_ask_distances(int *config)
 {
     int temp;
-    printf("\nSLST distance? (recommended is approx 6000)\n");
+    printf("\nSLST distance?      (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[3] = temp;
 
-    printf("\nNeighbour distance? (recommended is approx 6000)\n");
+    printf("\nNeighbour distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[4] = temp;
 
-    printf("\nDraw list distance? (recommended is approx 6000)\n");
+    printf("\nDraw list distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[5] = temp;
 }
