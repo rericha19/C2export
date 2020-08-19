@@ -52,15 +52,15 @@
 #define TEXTURE                         3979833526u
 #define HASH                            2089134665u
 #define A                               177638
-#define P                               177653
+#define SCEN_RECOLOR                    2919463267u
 
 #define STATUS                          3482341513u
-#define ANGLE                           214120076u
 
 #define ENTRY_TYPE_ANIM                 0x1
 #define ENTRY_TYPE_MODEL                0x2
 #define ENTRY_TYPE_SCENERY              0x3
 #define ENTRY_TYPE_SLST                 0x4
+#define ENTRY_TYPE_TEXTURE              0x5
 #define ENTRY_TYPE_ZONE                 0x7
 #define ENTRY_TYPE_GOOL                 0xB
 #define ENTRY_TYPE_SOUND                0xC
@@ -347,6 +347,7 @@ void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_
 void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 
 // side_scripts.cpp
+int          scenery_recolor_main();
 int          texture_copy_main();
 void         prop_main(char* path);
 void         resize_main(char *time, INFO status);

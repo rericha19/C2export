@@ -59,6 +59,9 @@ void print_help()
     printf("BUILD\n");
     printf("\t builds a level from stuff that it asks from you\n");
 
+    printf("SCEN_RECOLOR\n");
+    printf("\t recolors scenery to the color user specifies (kinda sucks but w/e)\n");
+
     printf("A <value>\n");
     printf("\t for crate rotation shenanigans\n");
 
@@ -549,7 +552,10 @@ int list_find(LIST list, unsigned int searched)
  */
 void list_add(LIST *list, unsigned int eid)
 {
-    list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int *));
+    if (list->count)
+        list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int));
+    else
+        list->eids = (unsigned int *) malloc(sizeof(unsigned int));
     list->eids[list->count] = eid;
     list->count++;
     qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
@@ -568,7 +574,7 @@ void list_rem(LIST *list, unsigned int eid)
     if (index == -1) return;
 
     list->eids[index] = list->eids[list->count - 1];
-    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int *));
+    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int));
     list->count--;
     qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
 }

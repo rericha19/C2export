@@ -165,6 +165,9 @@ int main()
         case TEXTURE:
             texture_copy_main();
             break;
+        case SCEN_RECOLOR:
+            scenery_recolor_main();
+            break;
         case A:
             crate_rotation_angle();
             break;

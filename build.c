@@ -2096,10 +2096,9 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
 LIST build_read_special_entries(unsigned char *zone)
 {
     LIST special_entries = init_list();
-    /*int item1off = from_u32(zone + 0x10);
+    int item1off = from_u32(zone + 0x10);
     unsigned char *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
     int special_entry_count = from_u32(metadata_ptr);
-    printf("special entry count: %d", special_entry_count);
 
     for (int i = 1; i <= special_entry_count; i++)
     {
@@ -2108,7 +2107,7 @@ LIST build_read_special_entries(unsigned char *zone)
         list_insert(&special_entries, entry);
     }
 
-    *(unsigned int *)metadata_ptr = 0;*/
+    *(unsigned int *)metadata_ptr = 0;
     return special_entries;
 }
 
@@ -2162,17 +2161,16 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             int cam_count = build_get_cam_count(elist[i].data) / 3;
 
             char temp[100];
-            printf("Doing load lists for zone %s\n", eid_conv(elist[i].EID, temp));
+            if (cam_count)
+                printf("Doing load lists for zone %s\n", eid_conv(elist[i].EID, temp));
             for (j = 0; j < cam_count; j++)
             {
                 int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
-                printf("\t cam path %d length %2d\n", j, cam_length);
+                printf("\t cam path %d\n", j);
 
                 LIST full_load[cam_length];
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
-
-                printf("1111\n");
 
                 /*char temp[100];
                 for(k = 0; k < permaloaded.count; k++)
@@ -2182,14 +2180,12 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                     for (l = 0; l < permaloaded.count; l++)
                         list_insert(&full_load[k], permaloaded.eids[l]);
 
-                printf("1112q\n");
 
                 if (elist[i].related != NULL)
                 for (k = 0; (unsigned) k < elist[i].related[0]; k++)
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
-                //printf("1122\n");
 
                 for (k = 0; k < entry_count; k++)
                 if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
@@ -2197,13 +2193,9 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         list_insert(&full_load[l], elist[k].EID);
                 }
 
-                //printf("2222\n");
-
                 LIST neighbours = build_get_neighbours(elist[i].data);
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], neighbours);
-
-                //printf("3333\n");
 
                 int scenery_count = build_get_scen_count(elist[i].data);
                 for (k = 0; k < scenery_count; k++) {
@@ -2212,16 +2204,43 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
-                //printf("4444\n");
 
-                // build_add_special_entries(full_load, cam_length, elist[i]);
+                build_add_special_entries(full_load, cam_length, elist[i]);
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
+
+
+                int over_count = 0;
+                unsigned int over_textures[20];
+                int point = 0;
+
+                for (k = 0; k < cam_length; k++)
+                {
+                    int texture_count = 0;
+                    unsigned int textures[20];
+                    for (l = 0; l < full_load[k].count; l++)
+                        if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],temp)[4] == 'T')
+                            textures[texture_count++] = full_load[k].eids[l];
+
+                    if (texture_count > over_count)
+                    {
+                        over_count = texture_count;
+                        point = k;
+                        memcpy(over_textures, textures, texture_count * sizeof(unsigned int));
+                    }
+                }
+
+                if (over_count > 8)
+                {
+                   //char temp[100];
+                    printf("Zone %s cam path %d loads %d texture chunks! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
+                    for (k = 0; k < over_count; k++)
+                        printf("\t%s", eid_conv(over_textures[k], temp));
+                    printf("\n");
+                }
 
                 LIST listA[cam_length] = {init_list()};
                 LIST listB[cam_length] = {init_list()};
                 build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count);
-
-                //printf("5555\n");
 
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
@@ -2334,7 +2353,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     fscanf(file,"%d", &coll_count);
     DEPENDENCIES coll;
     coll.count = coll_count;
-    coll.array = (INF *) malloc(coll_count * sizeof(INT));
+    coll.array = (INF *) malloc(coll_count * sizeof(INF));
     for (i = 0; i < coll_count; i++)
     {
         int code;
