@@ -2,7 +2,7 @@
 
 
 /** \brief
- *  Returns a value that makes sound entries aligned as they should be.
+ *  Returns a value that makes sound entries aligned as they should be (hopefully).
  *
  * \param input int                     input offset
  * \return int                          aligned offset
@@ -2128,21 +2128,54 @@ LIST build_read_special_entries(unsigned char *zone)
 
 /** \brief
  *  Adds entries specified in the zone's first item by the user. Usually entries that cannot be tied to a specific object or collision.
+ *  Similar to the permaloaded and dependency list, it also checks whether the items are valid and in the case of animations adds their model
+ *  and the model's texture to the list.
  *
  * \param full_load LIST*               non-delta load lists
  * \param cam_length int                length of the camera path and load list array
  * \param zone ENTRY                    zone to get the stuff from
  * \return void
  */
-void build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone)
+void build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone, ENTRY *elist, int entry_count)
 {
     LIST special_entries = build_read_special_entries(zone.data);
+    LIST iteration_clone = init_list();
+    list_copy_in(&iteration_clone, special_entries);
+
+    for (int i = 0; i < iteration_clone.count; i++)
+    {
+        char temp[100], temp2[100], temp3[100];
+        int item = iteration_clone.eids[i];
+        int index = build_get_index(item, elist, entry_count);
+        if (index == -1)
+        {
+            printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.EID, temp), eid_conv(item, temp2));
+            list_rem(&special_entries, item);
+            continue;
+        }
+
+        if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+        {
+            unsigned int model = build_get_model(elist[index].data);
+            int model_index = build_get_index(model, elist, entry_count);
+            if (model_index == -1 || build_entry_type(elist[model_index]) != ENTRY_TYPE_MODEL)
+            {
+                printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
+                       eid_conv(zone.EID, temp), eid_conv(item, temp2), eid_conv(model, temp3));
+                continue;
+            }
+
+            list_insert(&special_entries, model);
+            build_add_model_textures_to_list(elist[model_index].data, &special_entries);
+        }
+    }
+
     for (int i = 0; i < cam_length; i++)
         list_copy_in(&full_load[i], special_entries);
 
-    char temp[100], temp2[100];
+    /*char temp[100], temp2[100];
     for (int i = 0; i < special_entries.count; i++)
-        printf("Zone %s: special load %s\n", eid_conv(zone.EID, temp), eid_conv(special_entries.eids[i],temp2));
+        printf("Zone %s: special load %s\n", eid_conv(zone.EID, temp), eid_conv(special_entries.eids[i],temp2));*/
 }
 
 /** \brief
@@ -2262,7 +2295,7 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 }
 
 
-                build_add_special_entries(full_load, cam_length, elist[i]);
+                build_add_special_entries(full_load, cam_length, elist[i], elist, entry_count);
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 

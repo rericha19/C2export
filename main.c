@@ -120,7 +120,7 @@ int main()
                 *(strchr(dpath,'\0')-1) = '\0';
             }
             build_main(fpath, dpath, 21, status, lcltemp);
-            printf("Done.\n\n");
+            printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
             break;
             }
         case PROP:
@@ -151,6 +151,7 @@ int main()
                 *(strchr(fpath,'\0')-1) = '\0';
             }
             nsd_gool_table_print(fpath);
+            printf("Done.\n\n");
             break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);

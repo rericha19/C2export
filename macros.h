@@ -320,7 +320,7 @@ PROPERTY     build_make_load_list_prop(LIST *list_array, int cam_length, int cod
 void         build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info);
 void         build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count);
 LIST         build_read_special_entries(unsigned char *zone);
-void         build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone);
+void         build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone, ENTRY *elist, int entry_count);
 void         build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
 int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, char fpaths[FPATH_COUNT][MAX], ENTRY *elist, int entry_count, unsigned int *gool_table);
 int          build_get_chunk_count_base(FILE *nsf);
