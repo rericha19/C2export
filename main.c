@@ -142,6 +142,16 @@ int main()
         case A:
             crate_rotation_angle();
             break;
+        case NSD:
+            printf("Input the path to the NSD file:\n");
+            scanf(" %[^\n]",fpath);
+            if (fpath[0]=='\"')
+            {
+                strcpy(fpath,fpath+1);
+                *(strchr(fpath,'\0')-1) = '\0';
+            }
+            nsd_gool_table_print(fpath);
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;

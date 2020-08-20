@@ -25,6 +25,9 @@
 #define C2_NEIGHBOURS_END               0x1B4
 #define C2_NEIGHBOURS_FLAGS_END         0x1D4
 #define C2_SPECIAL_METADATA_OFFSET      0x1DC
+#define C2_NSD_CHUNK_COUNT              0x400
+#define C2_NSD_ENTRY_COUNT              0x404
+#define C2_NSD_ENTRY_TABLE              0x520
 #define MAGIC_ENTRY                     0x100FFFF
 #define MAGIC_CHUNK                     0x1234
 #define CHUNK_TYPE_NORMAL               0
@@ -51,8 +54,9 @@
 #define PROP                            2089440550u
 #define TEXTURE                         3979833526u
 #define HASH                            2089134665u
-#define A                               177638
+#define A                               177638u
 #define SCEN_RECOLOR                    2919463267u
+#define NSD                             193464746u
 
 #define STATUS                          3482341513u
 
@@ -362,3 +366,4 @@ void         rotate_scenery(unsigned char *buffer, char *filepath, double rotati
 void         rotate_zone(unsigned char *buffer, char *filepath, double rotation);
 void         rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
 void         crate_rotation_angle();
+void         nsd_gool_table_print(char *fpath);

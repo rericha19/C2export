@@ -687,7 +687,13 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
         if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && *(elist[*entry_count].data + 8) > 3)
         {
             int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
-            gool_table[*(int*)(elist[*entry_count].data + item1_offset)] = elist[*entry_count].EID;
+            int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
+            char temp[100];
+            if (gool_type > 63 || gool_type < 0) {
+                printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);
+                continue;
+            }
+            gool_table[gool_type] = elist[*entry_count].EID;
         }
         (*entry_count)++;
         qsort(elist, *entry_count, sizeof(ENTRY), cmp_entry_eid);
@@ -763,7 +769,7 @@ void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count,
     if (nsd == NULL) return;
 
     unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);
-    *(int *)(nsddata + 0x400) = chunk_count;
+    *(int *)(nsddata + C2_NSD_CHUNK_COUNT) = chunk_count;
 
     // lets u pick a spawn point
     printf("Pick a spawn:\n");
@@ -782,14 +788,14 @@ void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count,
     for (i = 0; i < entry_count; i++)
         if (elist[i].chunk != -1)
         {
-            *(int *)(nsddata + 0x520 + 8*x) = elist[i].chunk * 2 + 1;
-            *(int *)(nsddata + 0x524 + 8*x) = elist[i].EID;
+            *(int *)(nsddata + C2_NSD_ENTRY_TABLE + 8*x) = elist[i].chunk * 2 + 1;
+            *(int *)(nsddata + C2_NSD_ENTRY_TABLE + 4 + 8*x) = elist[i].EID;
             x++;
         }
 
-    *(int *)(nsddata + 0x404) = x;
+    *(int *)(nsddata + C2_NSD_ENTRY_COUNT) = x;
 
-    int end = 0x520 + x * 8;
+    int end = C2_NSD_ENTRY_TABLE + x * 8;
     *(int *)(nsddata + end) = spawns.spawn_count;
     *(int *)(nsddata + end + 8) = level_ID;
     end += 0x10;
@@ -2013,6 +2019,7 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
 void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info)
 {
     int i, j, k;
+    char temp[100];
     LIST considered = init_list();
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
@@ -2024,6 +2031,12 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                 unsigned char *entity = elist[i].data + from_u32(elist[i].data + 0x10 + (2 + cam_count + j) * 4);
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+                if (type > 64 || type < 0 || subt < 0)
+                {
+                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].EID, temp), j, type, subt);
+                    continue;
+                }
+
                 if (list_find(considered, (type << 16) + subt) != -1)
                     continue;
 
@@ -2034,7 +2047,8 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                     if (sub_info.array[k].subtype == subt && sub_info.array[k].type == type)
                         found = 1;
                 if (!found)
-                    printf("Entity with type %2d subtype %2d has no specified dependency list!\n", type, subt);
+                    printf("[warning] Entity with type %2d subtype %2d has no specified dependency list! (e.g. Zone %s entity %2d)\n",
+                            type, subt, eid_conv(elist[i].EID, temp), j);
             }
         }
 }
@@ -2340,7 +2354,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             int index = build_get_index(eid_to_int(temp), elist, entry_count);
             if (index == -1)
             {
-                printf("[warning] unknown entry reference, will be skipped:\t%s\n", temp);
+                printf("[warning] unknown entry reference in object dependency list, will be skipped:\t%s\n", temp);
                 continue;
             }
             list_insert(&(subinfo.array[i].dependencies), eid_to_int(temp));
@@ -2381,7 +2395,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             int index = build_get_index(eid_to_int(temp), elist, entry_count);
             if (index == -1)
             {
-                printf("[warning] unknown entry reference, will be skipped:\t%s\n", temp);
+                printf("[warning] unknown entry reference in collision dependency list, will be skipped:\t%s\n", temp);
                 continue;
             }
 
@@ -2764,6 +2778,7 @@ void build_ask_distances(int *config)
     printf("\nDraw list distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[5] = temp;
+    printf("\n");
 }
 
 // dumb thing for snow no or whatever convoluted level its configured for rn

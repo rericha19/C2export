@@ -65,6 +65,9 @@ void print_help()
     printf("A <value>\n");
     printf("\t for crate rotation shenanigans\n");
 
+    printf("NSD");
+    printf("\t prints gool table from the nsd");
+
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
     printf("\tan error that could not be handled, the program skipped some action or gave up\n");

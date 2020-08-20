@@ -700,3 +700,31 @@ void crate_rotation_angle()
     }
     printf(" (for rewards)\n\n");
 }
+
+void nsd_gool_table_print(char *fpath)
+{
+    FILE *file = NULL;
+    if ((file = fopen(fpath, "rb")) == NULL)
+    {
+        printf("File could not be opened\n\n");
+        return;
+    }
+
+    fseek(file,0,SEEK_END);
+    int filesize = ftell(file);
+    rewind(file);
+
+    unsigned char buffer[filesize];
+    fread(buffer, sizeof(unsigned char), filesize, file);
+
+    int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT);
+    char temp[100];
+    for (int i = 0; i < 64; i++)
+    {
+        int eid = from_u32(buffer + C2_NSD_ENTRY_TABLE + 0x10 + 8 * entry_count + 4 * i);
+        printf("%2d: %s  ", i, eid_conv(eid, temp));
+        if (i % 4 == 3)
+            putchar('\n');
+    }
+    fclose(file);
+}
