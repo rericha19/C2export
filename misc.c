@@ -65,14 +65,18 @@ void print_help()
     printf("A <value>\n");
     printf("\t for crate rotation shenanigans\n");
 
-    printf("NSD");
-    printf("\t prints gool table from the nsd");
+    printf("NSD\n");
+    printf("\t prints gool table from the nsd\n");
 
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
     printf("\tan error that could not be handled, the program skipped some action or gave up\n");
+
     printf("[error] error message\n");
     printf("\tan error that was handled\n");
+
+    printf("[warning] error message\n");
+    printf("\tjust a warning, something may or may not be wrong\n");
     for (int i = 0; i < 75; i++) printf("-");
     printf("\n\n");
 }
