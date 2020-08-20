@@ -17,6 +17,7 @@ void intro_text()
     printf("Commands >ARE NOT< case sensitive.\n");
     printf("I don't really check much whether the files are valid, so make sure they actually are.\n");
     printf("You can drag & drop the files and folders to this window instead of copying in the paths\n");
+    printf("Most stuff works only for Crash 2 !!!!\n");
     for (int i = 0; i < 100; i++) printf("*");
     printf("\n\n");
 }
@@ -35,7 +36,7 @@ void print_help()
 
     printf("CHANGEPRINT\n\t triggers the print selection\n");
 
-    printf("IMPORT\n\t prompts an import screen thing for import of entries into C2 base level\n");
+    printf("IMPORT\n\t prompts an import screen thing for import of entries into a C2 level\n");
 
     printf("PROP\n\t prints a list of properties and values the specified item has\n");
 
@@ -43,7 +44,7 @@ void print_help()
     printf("\t exports level's contents with given settings\n");
 
     printf("EXPORTALL\n");
-    printf("\t exports contents of all levels in the with given settings.\n");
+    printf("\t exports contents of all levels in the folder with given settings.\n");
 
     printf("RESIZE\n");
     printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
