@@ -2137,7 +2137,7 @@ LIST build_read_special_entries(unsigned char *zone)
  * \param zone ENTRY                    zone to get the stuff from
  * \return void
  */
-void build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone, ENTRY *elist, int entry_count)
+LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count)
 {
     LIST special_entries = build_read_special_entries(zone.data);
     LIST iteration_clone = init_list();
@@ -2171,12 +2171,7 @@ void build_add_special_entries(LIST *full_load, int cam_length, ENTRY zone, ENTR
         }
     }
 
-    for (int i = 0; i < cam_length; i++)
-        list_copy_in(&full_load[i], special_entries);
-
-    /*char temp[100], temp2[100];
-    for (int i = 0; i < special_entries.count; i++)
-        printf("Zone %s: special load %s\n", eid_conv(zone.EID, temp), eid_conv(special_entries.eids[i],temp2));*/
+    return special_entries;
 }
 
 /** \brief
@@ -2216,7 +2211,7 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
 
     if (over_count > 8)
     {
-        printf("[warning] Zone %s cam path %d loads %d texture chunks! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
+        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
         for (k = 0; k < over_count; k++)
             printf("\t%s", eid_conv(over_textures[k], temp));
         printf("\n");
@@ -2254,10 +2249,15 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             char temp[100];
             if (cam_count)
                 printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
+            else
+                continue;
+
+            LIST special_entries = build_get_special_entries(elist[i], elist, entry_count);
+
             for (j = 0; j < cam_count; j++)
             {
-                int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
                 printf("\t cam path %d\n", j);
+                int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
 
                 LIST full_load[cam_length];
                 for (k = 0; k < cam_length; k++)
@@ -2295,13 +2295,17 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
-
-                build_add_special_entries(full_load, cam_length, elist[i], elist, entry_count);
+                for (k = 0; k < cam_length; k++)
+                    list_copy_in(&full_load[k], special_entries);
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 
-                LIST listA[cam_length] = {init_list()};
-                LIST listB[cam_length] = {init_list()};
+                LIST listA[cam_length];
+                LIST listB[cam_length];
+                for (k = 0; k < cam_length; k++) {
+                    listA[k] = init_list();
+                    listB[k] = init_list();
+                }
                 build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count);
 
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
