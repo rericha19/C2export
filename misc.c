@@ -605,6 +605,7 @@ void list_copy_in(LIST *destination, LIST source)
     for (int i = 0; i < source.count; i++)
         list_insert(destination, source.eids[i]);
 }
+
 /** \brief
  *  Inits load list struct.
  *

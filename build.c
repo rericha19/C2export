@@ -2031,6 +2031,7 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                 unsigned char *entity = elist[i].data + from_u32(elist[i].data + 0x10 + (2 + cam_count + j) * 4);
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+                int enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
                 if (type > 64 || type < 0 || subt < 0)
                 {
                     printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].EID, temp), j, type, subt);
@@ -2047,8 +2048,8 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                     if (sub_info.array[k].subtype == subt && sub_info.array[k].type == type)
                         found = 1;
                 if (!found)
-                    printf("[warning] Entity with type %2d subtype %2d has no specified dependency list! (e.g. Zone %s entity %2d)\n",
-                            type, subt, eid_conv(elist[i].EID, temp), j);
+                    printf("[warning] Entity with type %2d subtype %2d has no dependency list! (e.g. Zone %s entity %2d ID %3d)\n",
+                            type, subt, eid_conv(elist[i].EID, temp), j, enID);
             }
         }
 }
@@ -2587,10 +2588,10 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 
     for (i = 0; i < sound_entry_count; i++)
         for (j = 0; j < 8; j++)
-            if (sizes[j] + 4 + (((sound_list[i].esize + 15) >> 4) << 4) <= CHUNKSIZE)
+            if (sizes[j] + 4 + (((sound_list[i].esize + 16) >> 4) << 4) <= CHUNKSIZE)
             {
                 sound_list[i].chunk = count + j;
-                sizes[j] += 4 + (((sound_list[i].esize + 15) >> 4) << 4);
+                sizes[j] += 4 + (((sound_list[i].esize + 16) >> 4) << 4);
                 break;
             }
 
