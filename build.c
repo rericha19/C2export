@@ -1601,9 +1601,16 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     LINK link = int_to_link(link_int);
 
     unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index);
+    unsigned int neighbour_flg = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index + 0x20);
+
     int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
-    if (neighbour_index == -1) return;
-    int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * link.cam_index));
+    if (neighbour_index == -1)
+        return;
+
+    // if not preloading for transitions
+    if (config[6] == 0 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+        return;
+
 
     int scenery_count = build_get_scen_count(elist[neighbour_index].data);
     for (i = 0; i < scenery_count; i++)
@@ -1630,7 +1637,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
             for (j = 0; j < cam_length; j++)
                 list_insert(&full_list[j], elist[neighbour_index].related[i + 1]);
 
-
+    int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * link.cam_index));
     unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
     for (i = 0; i < cam_length; i++)
         list_insert(&full_list[i], slst);
@@ -1648,8 +1655,15 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         LINK link2 = int_to_link(layer2.eids[i]);
 
         unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index);
+        unsigned int neighbour_flg2 = from_u32(elist[neighbour_index].data + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);
+
         int neighbour_index2 = build_get_index(neighbour_eid2, elist, entry_count);
-        if (neighbour_index2 == -1) continue;
+        if (neighbour_index2 == -1)
+            continue;
+
+        if (config[6] == 0 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
+            continue;
+
         int offset2 = from_u32(elist[neighbour_index2].data + 0x10 + 4 * (2 + 3 * link2.cam_index));
         unsigned int slst2 = build_get_slst(elist[neighbour_index2].data + offset2);
 
@@ -1823,7 +1837,7 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
  * \param neighbours LIST*              list of entries it stumbled upon (used later to find types/subtypes of collected IDs)
  * \return LIST                         list of IDs it came across during the search
  */
-LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int draw_dist)
+LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int draw_dist, int preloading_flag)
 {
     LIST entity_list = init_list();
     int i, j, k, coord_count;
@@ -1847,9 +1861,16 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
 
         unsigned int eid_offset = from_u32(elist[zone_index].data + 0x10) + 4 + link.zone_index * 4 + C2_NEIGHBOURS_START;
         unsigned int neighbour_eid = from_u32(elist[zone_index].data + eid_offset);
+        unsigned int neighbour_flg = from_u32(elist[zone_index].data + eid_offset + 0x20);
+
         int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
         if (neighbour_index == -1)
             continue;
+
+        // preloading check
+        if (preloading_flag == 0 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+            continue;
+
         list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index].data));
 
         int neighbour_cam_length;
@@ -1884,8 +1905,15 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             LINK link2 = int_to_link(layer2.eids[j]);
             unsigned int eid_offset2 = from_u32(elist[neighbour_index].data + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
             unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + eid_offset2);
+            unsigned int neighbour_flg2 = from_u32(elist[neighbour_index].data + eid_offset2 + 0x20);
+
             int neighbour_index2 = build_get_index(neighbour_eid2, elist, entry_count);
-            if (neighbour_index2 == -1) continue;
+            if (neighbour_index2 == -1)
+                continue;
+
+            if (preloading_flag == 0 && (neighbour_flg2 == 0xF ||neighbour_flg2 == 0x1F))
+                continue;
+
             list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index2].data));
 
             int neighbour_cam_length2;
@@ -1947,7 +1975,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
     for (i = 0; i < cam_length; i++)
     {
         LIST neighbour_list = init_list();
-        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config[5]);
+        LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config[5], config[6]);
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 
         for (j = 0; j < types_subtypes.count; j++)
@@ -2297,6 +2325,7 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], special_entries);
+
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 
@@ -2805,6 +2834,7 @@ void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int ent
 void build_ask_distances(int *config)
 {
     int temp;
+    char ans;
     printf("\nSLST distance?      (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[3] = temp;
@@ -2816,7 +2846,18 @@ void build_ask_distances(int *config)
     printf("\nDraw list distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[5] = temp;
-    printf("\n");
+
+    printf("\nPre-load stuff for transitions? (not pre-loading is safer) [y/n]\n");
+    scanf("%c", &ans);
+    scanf("%c", &ans);
+    if (ans == 'y' || ans == 'Y') {
+        config[6] = 1;
+        printf("Pre-loading\n\n");
+    }
+    else {
+        config[6] = 0;
+        printf("Not pre-loading\n\n");
+    }
 }
 
 // dumb thing for snow no or whatever convoluted level its configured for rn
@@ -2902,7 +2943,7 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     // 3 - [slst distance]
     // 4 - [neighbour distance]
     // 5 - [draw list distance]
-    int config[6] = {1, 1, 1, 0, 0, 0};
+    int config[7] = {1, 1, 1, 0, 0, 0, 0};
 
 
     if ((nsf = fopen(nsfpath,"rb")) == NULL) {
