@@ -48,11 +48,7 @@ int main()
             askmode(&zonetype,&status);
             printf("Input the path to the file whose contents you want to export:\n");
             scanf(" %[^\n]",fpath);
-            if (fpath[0]=='\"')
-            {
-                strcpy(fpath,fpath+1);
-                *(strchr(fpath,'\0')-1) = '\0';
-            }
+            path_fix(fpath);
             export_main(zonetype,fpath,lcltemp);
             printf("\n");
             break;
@@ -61,11 +57,7 @@ int main()
             askmode(&zonetype, &status);
             printf("\nInput the path to the folder whose NSFs you want to export:\n");
             scanf(" %[^\n]",dpath);
-            if (dpath[0]=='\"')
-            {
-                strcpy(dpath,dpath+1);
-                *(strchr(dpath,'\0')-1) = '\0';
-            }
+            path_fix(dpath);
             // opendir() returns a pointer of DIR type.
             DIR *df = opendir(dpath);
 
@@ -104,33 +96,18 @@ int main()
         case ROTATE:
             rotate_main(lcltemp);
             break;
-        case BUILD: {
-            printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
-            scanf(" %[^\n]",fpath);
-            if (fpath[0]=='\"')
-            {
-                strcpy(fpath,fpath+1);
-                *(strchr(fpath,'\0')-1) = '\0';
-            }
-            printf("\nInput the path to the folder whose contents you want to import:\n");
-            scanf(" %[^\n]",dpath);
-            if (dpath[0]=='\"')
-            {
-                strcpy(dpath,dpath+1);
-                *(strchr(dpath,'\0')-1) = '\0';
-            }
-            build_main(fpath, dpath, 21, status, lcltemp);
+        case BUILD:
+            build_main(FUNCTION_BUILD);
             printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
             break;
-            }
+        case REBUILD:
+            build_main(FUNCTION_REBUILD);
+            printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
+            break;
         case PROP:
             printf("Input the path to the file:\n");
             scanf(" %[^\n]",fpath);
-            if (fpath[0]=='\"')
-            {
-                strcpy(fpath,fpath+1);
-                *(strchr(fpath,'\0')-1) = '\0';
-            }
+            path_fix(fpath);
             prop_main(fpath);
             break;
         case TEXTURE:
@@ -145,11 +122,7 @@ int main()
         case NSD:
             printf("Input the path to the NSD file:\n");
             scanf(" %[^\n]",fpath);
-            if (fpath[0]=='\"')
-            {
-                strcpy(fpath,fpath+1);
-                *(strchr(fpath,'\0')-1) = '\0';
-            }
+            path_fix(fpath);
             nsd_gool_table_print(fpath);
             printf("Done.\n\n");
             break;

@@ -15,12 +15,7 @@ int import_main(char *time, INFO status)
     printf("Input the path to the .NSF you want the files to be imported into\n");
     printf("(it won't be overwritten, a new file will be created in the same folder)\n");
     scanf(" %[^\n]",nsfpath);
-
-    if (nsfpath[0]=='\"')
-    {
-        strcpy(nsfpath,nsfpath+1);
-        *(strchr(nsfpath,'\0')-1) = '\0';
-    }
+    path_fix(nsfpath);
 
     strncpy(nsfcheck,strchr(nsfpath,'\0')-3,3);
     if ((base = fopen(nsfpath,"rb")) == NULL || strcmp("NSF",nsfcheck))
@@ -43,12 +38,7 @@ int import_main(char *time, INFO status)
     sprintf(lcltemp,"%s\\%s_%s",nsfpath,time,help2);
     printf("\nInput the path to the folder with the files you want to import:\n");
     scanf(" %[^\n]",path);
-
-    if (path[0]=='\"')
-    {
-        strcpy(path,path+1);
-        *(strchr(path,'\0')-1) = '\0';
-    }
+    path_fix(path);
 
     importee = fopen(lcltemp,"wb");
     fwrite(basebase,sizeof(unsigned char),baselength,importee);

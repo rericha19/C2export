@@ -57,8 +57,12 @@
 #define A                               177638u
 #define SCEN_RECOLOR                    2919463267u
 #define NSD                             193464746u
+#define REBUILD                         1370829996u
 
 #define STATUS                          3482341513u
+
+#define FUNCTION_BUILD                  1
+#define FUNCTION_REBUILD                2
 
 #define ENTRY_TYPE_ANIM                 0x1
 #define ENTRY_TYPE_MODEL                0x2
@@ -248,6 +252,7 @@ LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
 LINK         int_to_link(unsigned int link);
 void         delete_load_list(LOAD_LIST load_list);
+void         path_fix(char *fpath);
 
 // export.c
 int          export_main(int zone, char *fpath, char *date);
@@ -294,7 +299,7 @@ void         build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_in
 void         build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture, int *entry_count, SPAWNS *spawns, unsigned int* gool_table);
 void         build_print_relatives(ENTRY *elist, int entry_count);
 void         build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
-void         build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
+void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
@@ -332,7 +337,7 @@ void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int 
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
-void         build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time);
+void         build_main(int build_rebuild_flag);
 
 // deprecate_build.c
 PAYLOADS     deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);

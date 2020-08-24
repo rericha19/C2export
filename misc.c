@@ -639,3 +639,12 @@ void delete_load_list(LOAD_LIST load_list)
     for (int i = 0; i < load_list.count; i++)
         free(load_list.array[i].list);
 }
+
+void path_fix(char *fpath)
+{
+    if (fpath[0]=='\"')
+    {
+        strcpy(fpath,fpath + 1);
+        *(strchr(fpath,'\0')-1) = '\0';
+    }
+}

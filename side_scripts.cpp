@@ -6,11 +6,13 @@ int scenery_recolor_main()
     char fpath[1000];
     printf("Path to color item:\n");
     scanf(" %[^\n]",fpath);
-    if (fpath[0]=='\"')    {
-        strcpy(fpath,fpath+1);
-        *(strchr(fpath,'\0')-1) = '\0';
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("Couldn't open file.\n\n");
+        return 0;
     }
-    FILE* file1 = fopen(fpath, "rb+");
 
     int r_wanted, g_wanted, b_wanted;
     printf("R G B? [hex]\n");
@@ -86,11 +88,7 @@ void rotate_main(char *time)
 
     printf("Input the path to the ENTRY you want to export:\n");
     scanf(" %[^\n]",path);
-    if (path[0]=='\"')
-    {
-        strcpy(path,path+1);
-        *(strchr(path,'\0')-1) = '\0';
-    }
+    path_fix(path);
 
     if ((file = fopen(path, "rb")) == NULL)
     {
@@ -195,20 +193,14 @@ int texture_copy_main()
     char fpath[1000];
     printf("Path to source texture:\n");
     scanf(" %[^\n]",fpath);
-    if (fpath[0]=='\"')    {
-        strcpy(fpath,fpath+1);
-        *(strchr(fpath,'\0')-1) = '\0';
-    }
+    path_fix(fpath);
     FILE* file1 = fopen(fpath, "rb");
     unsigned char texture1[65536];
     fread(texture1, 65536, 1, file1);
 
     printf("Path to destination texture:\n");
     scanf(" %[^\n]",fpath);
-    if (fpath[0]=='\"')    {
-        strcpy(fpath,fpath+1);
-        *(strchr(fpath,'\0')-1) = '\0';
-    }
+    path_fix(fpath);
     FILE* file2 = fopen(fpath, "rwb+");
     unsigned char texture2[65536];
     fread(texture2, 65536, 1, file2);
@@ -393,12 +385,7 @@ void resize_main(char *time, INFO status)
     }
     printf("Input the path to the directory or level whose contents you want to resize:\n");
     scanf(" %[^\n]",path);
-
-    if (path[0]=='\"')
-    {
-        strcpy(path,path+1);
-        *(strchr(path,'\0')-1) = '\0';
-    }
+    path_fix(path);
 
     if ((df = opendir(path)) != NULL)  // opendir returns NULL if couldn't open directory
         resize_folder(df,path,scale,time,status);

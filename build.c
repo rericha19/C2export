@@ -619,6 +619,17 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
     *chunk_index_end = build_remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
 }
 
+void build_check_item_count(unsigned char *zone, int EID)
+{
+    int item_count = from_u32(zone + 0xC);
+    int cam_count = build_get_cam_count(zone);
+    int entity_count = build_get_entity_count(zone);
+
+    char temp[100];
+    if (item_count != (2 + cam_count + entity_count))
+        printf("[warning] %s's item count (%d) doesn't match item counts in the first item (2 + %d + %d)\n",
+               eid_conv(EID, temp), item_count, cam_count, entity_count);
+}
 
 /** \brief
  *  For each valid file it adds it to the nsf(texture) or to the entry list.
@@ -677,9 +688,11 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
         elist[*entry_count].chunk = -1;
         elist[*entry_count].esize = fsize;
 
-        if (entry[8] == 7)
+        if (entry[8] == ENTRY_TYPE_ZONE)
+            build_check_item_count(entry, elist[*entry_count].EID);
+        if (entry[8] == ENTRY_TYPE_ZONE)
             elist[*entry_count].related = build_get_zone_relatives(entry, spawns);
-        if (entry[8] == 11 && entry[0xC] == 6)
+        if (entry[8] == ENTRY_TYPE_GOOL && entry[0xC] == 6)
             elist[*entry_count].related = build_get_gool_relatives(entry, fsize);
 
         elist[*entry_count].data = (unsigned char *) malloc(fsize * sizeof(unsigned char));
@@ -749,7 +762,7 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB)
  *  Builds nsd, sorts load lists according to the nsd entry table order.
  *  Saves at the specified path.
  *  < 0x400 stays empty
- *  The rest should be ok.
+ *  The rest should be ok. (its not)
  *  Lets you pick the main spawn.
  *
  * \param path char*                    path to the nsd
@@ -761,12 +774,10 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB)
  * \param level_ID int                  level ID the user wanted
  * \return void
  */
-void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID)
+void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID)
 {
     int i, x = 0, input;
     char temp[100];
-    FILE *nsd = fopen(path, "wb");
-    if (nsd == NULL) return;
 
     unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);
     *(int *)(nsddata + C2_NSD_CHUNK_COUNT) = chunk_count;
@@ -776,6 +787,7 @@ void build_write_nsd(char *path, ENTRY *elist, int entry_count, int chunk_count,
     for (i = 0; i < spawns.spawn_count; i++)
         printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
+    scanf("%d", &input);
     scanf("%d", &input);
     if (input - 1 > spawns.spawn_count || input <= 0) {
         printf("No such spawn, defaulting to first one\n");
@@ -877,7 +889,8 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
             if (indexA < indexB)
                 swap_ints(&indexA, &indexB);
 
-            if (indexA == -1 || indexB == -1) continue;
+            if (indexA == -1 || indexB == -1)
+                continue;
 
             entry_matrix[indexA][indexB] += rating;
         }
@@ -2291,10 +2304,6 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
 
-                /*char temp[100];
-                for(k = 0; k < permaloaded.count; k++)
-                    printf("%2d %s\n", k, eid_conv(permaloaded.eids[k], temp));*/
-
                 for (k = 0; k < cam_length; k++)
                     for (l = 0; l < permaloaded.count; l++)
                         list_insert(&full_load[k], permaloaded.eids[l]);
@@ -2537,19 +2546,12 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX])
 {
     printf("\nInput the path to the file with permaloaded entries:\n");
     scanf(" %[^\n]",fpaths[0]);
-    if (fpaths[0][0]=='\"')
-    {
-        strcpy(fpaths[0], fpaths[0] + 1);
-        *(strchr(fpaths[0],'\0') - 1) = '\0';
-    }
+    path_fix(fpaths[0]);
 
     printf("\nInput the path to the file with type/subtype dependencies:\n");
     scanf(" %[^\n]",fpaths[1]);
-    if (fpaths[1][0]=='\"')
-    {
-        strcpy(fpaths[1], fpaths[1] + 1);
-        *(strchr(fpaths[1],'\0') - 1) = '\0';
-    }
+    path_fix(fpaths[1]);
+
     //strcpy(fpaths[1], "complete entity list manni.txt");
     strcpy(fpaths[2], "collision list.txt");
 }
@@ -2808,7 +2810,7 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
  * \param chunk_count int               chunk count
  * \return void
  */
-void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count)
+void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count)
 {
     for (int i = 0; i < chunk_count; i++)
         free(chunks[i]);
@@ -2819,10 +2821,6 @@ void build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int ent
         if (elist[i].related != NULL)
             free(elist[i].related);
     }
-
-    fclose(nsfnew);
-    fclose(nsf);
-    closedir(df);
 }
 
 /** \brief
@@ -2903,23 +2901,26 @@ void build_get_box_count(ENTRY *elist, int entry_count)
 }
 
 
+void build_rebuild_main()
+{
+
+}
+
+
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
  *
  * \param nsfpath char*                 path to the base nsf
  * \param dirpath char*                 path to the folder whose contents are to be added
- * \param chunkcap int                  unused
- * \param status INFO                   used for prints and stuff
- * \param time char*                    string with time used for saving or not
  * \return void
  */
-void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *time)
+void build_main(int build_rebuild_flag)
 {
-    char lcltemp[MAX], fpaths[FPATH_COUNT][MAX] = {0};
-    DIR *df = NULL;
-    FILE *nsf = NULL, *nsfnew = NULL;
+    char fpaths[FPATH_COUNT][MAX] = {0}, nsfpath[MAX], dirpath[MAX], lcltemp[MAX];
+    FILE *nsf = NULL, *nsfnew = NULL, *nsd = NULL;
     SPAWNS spawns = init_spawns();
     ENTRY elist[2500];
+    DIR *df;
     unsigned char *chunks[1024];
     LIST permaloaded;
     DEPENDENCIES subtype_info;
@@ -2940,29 +2941,122 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     // 0 - [gool initial merge flag]    0 - group       |   1 - one by one
     // 1 - [zone initial merge flag]    0 - group       |   1 - one by one
     // 2 - [merge type flag]            0 - per delta   |   1 - per point
-    // 3 - [slst distance]
-    // 4 - [neighbour distance]
-    // 5 - [draw list distance]
+    // 3 - [slst distance]              defined by user
+    // 4 - [neighbour distance]         defined by user
+    // 5 - [draw list distance]         defined by user
+    // 6 - transition pre-load flag     defined by user
     int config[7] = {1, 1, 1, 0, 0, 0, 0};
 
 
-    if ((nsf = fopen(nsfpath,"rb")) == NULL) {
-        printf("[ERROR] Could not open selected NSF\n");
-        return;
+    if (build_rebuild_flag == FUNCTION_BUILD)
+    {
+        printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
+        scanf(" %[^\n]", nsfpath);
+        path_fix(nsfpath);
+
+        printf("\nInput the path to the folder whose contents you want to import:\n");
+        scanf(" %[^\n]", dirpath);
+        path_fix(dirpath);
+
+        if ((nsf = fopen(nsfpath,"rb")) == NULL) {
+            printf("[ERROR] Could not open selected NSF\n");
+            return;
+        }
+
+        if ((df = opendir(dirpath)) == NULL) {
+            printf("[ERROR] Could not open selected directory\n");
+            fclose(nsf);
+            return;
+        }
+
+        level_ID = build_ask_ID();
+
+        *(strrchr(nsfpath,'\\') + 1) = '\0';
+        sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
+        nsfnew = fopen(lcltemp, "wb");
+        *(strchr(lcltemp, '\0') - 1) = 'D';
+        nsd = fopen(lcltemp, "wb");
+
+        chunk_border_base = build_get_chunk_count_base(nsf);
+        //build_read_nsf(elist, chunk_border_base, chunks, &chunk_border_texture, &entry_count, nsf, gool_table);
+        entry_count_base = entry_count;
+        build_read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
     }
 
-    if ((df = opendir(dirpath)) == NULL) {
-        printf("[ERROR] Could not open selected directory\n");
-        fclose(nsf);
-        return;
+    if (build_rebuild_flag == FUNCTION_REBUILD)
+    {
+        printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
+        scanf(" %[^\n]", nsfpath);
+        path_fix(nsfpath);
+
+        if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
+            printf("[ERROR] Could not open selected NSF\n");
+            return;
+        }
+
+        level_ID = build_ask_ID();
+
+        *(strrchr(nsfpath,'\\') + 1) = '\0';
+        sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
+        nsfnew = fopen(lcltemp, "wb");
+        *(strchr(lcltemp, '\0') - 1) = 'D';
+        nsd = fopen(lcltemp, "wb");
+
+        int nsf_chunk_count = build_get_chunk_count_base(nsf);
+
+        unsigned char buffer[CHUNKSIZE];
+        for (int i = 0; i < nsf_chunk_count; i++)
+        {
+            fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf);
+            int chunk_entry_count = from_u32(buffer + 0x8);
+            if (from_u16(buffer + 0x2) == CHUNK_TYPE_TEXTURE)
+            {
+                chunks[chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
+                memcpy(chunks[chunk_border_texture], buffer, CHUNKSIZE);
+                elist[entry_count].EID = from_u32(buffer + 4);
+                elist[entry_count].chunk = chunk_border_texture;
+                elist[entry_count].data = NULL;
+                elist[entry_count].related = NULL;
+                entry_count++;
+                chunk_border_texture++;
+            }
+            else for (int j = 0; j < chunk_entry_count; j++)
+            {
+                int start_offset = from_u32(buffer + 0x10 + 4 * j);
+                int end_offset = from_u32(buffer + 0x14 + 4 * j);
+                int entry_size = end_offset - start_offset;
+
+                elist[entry_count].chunk = -1;
+                elist[entry_count].EID = from_u32(buffer + start_offset + 0x4);
+                elist[entry_count].esize = entry_size;
+                elist[entry_count].related = NULL;
+                elist[entry_count].data = (unsigned char *) malloc(entry_size);
+                memcpy(elist[entry_count].data, buffer + start_offset, entry_size);
+
+                if (elist[entry_count].data[8] == ENTRY_TYPE_ZONE)
+                    build_check_item_count(elist[entry_count].data, elist[entry_count].EID);
+                if (elist[entry_count].data[8] == ENTRY_TYPE_ZONE)
+                    elist[entry_count].related = build_get_zone_relatives(elist[entry_count].data, &spawns);
+                if (elist[entry_count].data[8] == ENTRY_TYPE_GOOL && elist[entry_count].data[0xC] == 6)
+                    elist[entry_count].related = build_get_gool_relatives(elist[entry_count].data, entry_size);
+
+                if (build_entry_type(elist[entry_count]) == ENTRY_TYPE_GOOL && *(elist[entry_count].data + 8) > 3)
+                {
+                    int item1_offset = *(int *)(elist[entry_count].data + 0x10);
+                    int gool_type = *(int*)(elist[entry_count].data + item1_offset);
+                    char temp[100];
+                    if (gool_type > 63 || gool_type < 0) {
+                        printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[entry_count].EID, temp), gool_type);
+                        continue;
+                    }
+                    gool_table[gool_type] = elist[entry_count].EID;
+                }
+
+                entry_count++;
+                qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
+            }
+        }
     }
-
-    level_ID = build_ask_ID();
-
-    chunk_border_base = build_get_chunk_count_base(nsf);
-    //build_read_nsf(elist, chunk_border_base, chunks, &chunk_border_texture, &entry_count, nsf, gool_table);
-    entry_count_base = entry_count;
-    build_read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
 
     build_get_model_references(elist, entry_count);
     build_remove_invalid_references(elist, entry_count, entry_count_base);
@@ -2984,20 +3078,13 @@ void build_main(char *nsfpath, char *dirpath, int chunkcap, INFO status, char *t
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, &chunk_count, permaloaded);
     build_assign_primary_chunks_all(elist, entry_count, &chunk_count, config);
     build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config[2], permaloaded);
-
     //build_get_box_count(elist, entry_count); // snow no bullshit
 
-    *(strrchr(nsfpath,'\\') + 1) = '\0';
-    sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, level_ID);
-    nsfnew = fopen(lcltemp, "wb");
-    *(strchr(lcltemp, '\0') - 1) = 'D';
-
-    // build_print_relatives(elist, entry_count);
-
-    build_write_nsd(lcltemp, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
+    build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
     for (i = 0; i < chunk_count; i++)
         fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
 
-    build_final_cleanup(nsf, nsfnew, df, elist, entry_count, chunks, chunk_count);
+    build_final_cleanup(elist, entry_count, chunks, chunk_count);
+    fclose(nsfnew);
 }
