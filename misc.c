@@ -57,8 +57,10 @@ void print_help()
     printf("TEXTURE\n");
     printf("\t copies from one texture chunk to another (doesnt include CLUTs)\n");
 
-    printf("BUILD\n");
-    printf("\t builds a level from stuff that it asks from you\n");
+    printf("BUILD or REBUILD\n");
+    printf("\t builds a level from stuff that it asks from you.\n");
+    printf("\t somehow rebuild may give slightly different results than build, not inevitably worse though.\n");
+
 
     printf("SCEN_RECOLOR\n");
     printf("\t recolors scenery to the color user specifies (kinda sucks but w/e)\n");

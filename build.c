@@ -783,7 +783,7 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     *(int *)(nsddata + C2_NSD_CHUNK_COUNT) = chunk_count;
 
     // lets u pick a spawn point
-    printf("Pick a spawn:\n");
+    printf("Pick a spawn (type it second time if it doesnt work):\n");
     for (i = 0; i < spawns.spawn_count; i++)
         printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
@@ -1650,6 +1650,16 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
             for (j = 0; j < cam_length; j++)
                 list_insert(&full_list[j], elist[neighbour_index].related[i + 1]);
 
+    int neighbour_cam_count = build_get_cam_count(elist[neighbour_index].data);
+    if (link.cam_index >= neighbour_cam_count)
+    {
+        char temp[100], temp2[100];
+        printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
+               eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2),
+               link.cam_index, neighbour_cam_count);
+        return;
+    }
+
     int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * link.cam_index));
     unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
     for (i = 0; i < cam_length; i++)
@@ -1686,6 +1696,17 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
 
         build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index2].data, collisisons, elist, entry_count);
         coords = build_get_path(elist, zone_index, cam_index, &path_length);
+
+        int neighbour_cam_count2 = build_get_cam_count(elist[neighbour_index2].data);
+        if (link2.cam_index >= neighbour_cam_count2)
+        {
+            char temp[100], temp2[100];
+            printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
+                   eid_conv(elist[neighbour_index].EID, temp), eid_conv(elist[neighbour_index2].EID, temp2),
+                   link2.cam_index, neighbour_cam_count2);
+            continue;
+        }
+
         if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
         {
             build_load_list_util_util_back(cam_length, full_list, distance, config[3], coords, path_length, slst_list);
@@ -2985,7 +3006,7 @@ void build_main(int build_rebuild_flag)
 
     if (build_rebuild_flag == FUNCTION_REBUILD)
     {
-        printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
+        printf("Input the path to the level (.nsf)[CAN BE A BLANK FILE]:\n");
         scanf(" %[^\n]", nsfpath);
         path_fix(nsfpath);
 
@@ -3033,11 +3054,11 @@ void build_main(int build_rebuild_flag)
                 elist[entry_count].data = (unsigned char *) malloc(entry_size);
                 memcpy(elist[entry_count].data, buffer + start_offset, entry_size);
 
-                if (elist[entry_count].data[8] == ENTRY_TYPE_ZONE)
+                if (build_entry_type(elist[entry_count]) == ENTRY_TYPE_ZONE)
                     build_check_item_count(elist[entry_count].data, elist[entry_count].EID);
-                if (elist[entry_count].data[8] == ENTRY_TYPE_ZONE)
+                if (build_entry_type(elist[entry_count]) == ENTRY_TYPE_ZONE)
                     elist[entry_count].related = build_get_zone_relatives(elist[entry_count].data, &spawns);
-                if (elist[entry_count].data[8] == ENTRY_TYPE_GOOL && elist[entry_count].data[0xC] == 6)
+                if (build_entry_type(elist[entry_count]) == ENTRY_TYPE_GOOL && from_u32(elist[entry_count].data + 0xC) == 6)
                     elist[entry_count].related = build_get_gool_relatives(elist[entry_count].data, entry_size);
 
                 if (build_entry_type(elist[entry_count]) == ENTRY_TYPE_GOOL && *(elist[entry_count].data + 8) > 3)
