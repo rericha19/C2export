@@ -93,8 +93,12 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, chunk_min);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
-        printf("%3d  ", x);
-        deprecate_build_print_payload(payloads.arr[0], 0);
+        printf("\n");
+        for (int k = 0; k < 10; k++) {
+            printf("%3d  ", k);
+            deprecate_build_print_payload(payloads.arr[k], 0);
+        }
+        printf("\n");
 
         if (payloads.arr[0].count < 19) break;
 

@@ -1,5 +1,6 @@
 #include "macros.h"
 
+#define PENALTY_MULT_CONSTANT   1000000
 
 /** \brief
  *  Returns a value that makes sound entries aligned as they should be (hopefully).
@@ -353,6 +354,19 @@ int build_get_cam_count(unsigned char *entry){
 int build_get_scen_count(unsigned char *entry){
     int item1off = from_u32(entry + 0x10);
     return entry[item1off];
+}
+
+LIST build_get_sceneries(unsigned char *entry)
+{
+    int scen_count = build_get_scen_count(entry);
+    int item1off = from_u32(entry + 0x10);
+    LIST list = init_list();
+    for (int i = 0; i < scen_count; i++) {
+        unsigned int scen = from_u32(entry + item1off + 0x4 + 0x30 * i);
+        list_insert(&list, scen);
+    }
+
+    return list;
 }
 
 /** \brief
@@ -1513,15 +1527,15 @@ LIST build_get_links(unsigned char *entry, int cam_index)
  * \param additions LIST                list with entries to add
  * \return void
  */
-void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
+void build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int end_index = 0;
-    int j, distance2 = 0;
+    int j;
 
-    if (distance + distance2 < final_distance) end_index++;
     build_get_distance(coords, 0, path_length - 1, final_distance - distance, &end_index);
 
-    if (end_index <= 0) return;
+    if (end_index == 0)
+        return;
 
     for (j = 0; j < end_index; j++)
         list_copy_in(&full_list[j], additions);
@@ -1540,13 +1554,14 @@ void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distanc
  * \param additions LIST                list with entries to add
  * \return void
  */
-void build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
+void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions)
 {
     int start_index = cam_length - 1;
     int j;
 
     build_get_distance(coords, path_length - 1, 0, final_distance - distance, &start_index);
-    if (start_index == cam_length - 1) return;
+    if (start_index == cam_length - 1)
+        return;
 
     for (j = start_index; j < cam_length; j++)
         list_copy_in(&full_list[j], additions);
@@ -1592,6 +1607,11 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
     }
 }
 
+int build_dist_w_penalty(int distance, int backwards_penalty)
+{
+    return ((int) ((1.0 - ((double) backwards_penalty) / PENALTY_MULT_CONSTANT) * distance));
+}
+
 /** \brief
  *  Deals with slst and neighbour/scenery references of path linked entries.
  *
@@ -1610,6 +1630,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     int slst_distance = config[3];
     int draw_distance = config[4];
     int preloading_flag = config[6];
+    int backwards_penalty = config[7];
 
     int i, j, item1off = from_u32(elist[zone_index].data + 0x10);
     short int* coords;
@@ -1634,6 +1655,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     {
         int item1off_neigh = from_u32(elist[neighbour_index].data + 0x10);
         int scenery_index = build_get_index(from_u32(elist[neighbour_index].data + item1off_neigh + 0x4 + 0x30 * i), elist, entry_count);
+        // kinda sucks but i cbf to make it better rn
         if (link.type == 1)
         {
             int end = (cam_length - 1)/2 - 1;
@@ -1696,6 +1718,8 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         unsigned int slst2 = build_get_slst(elist[neighbour_index2].data + offset2);
 
         LIST neig_list = build_get_neighbours(elist[neighbour_index2].data);
+        list_copy_in(&neig_list, build_get_sceneries(elist[neighbour_index2].data));
+
         LIST slst_list = init_list();
         list_insert(&slst_list, slst2);
 
@@ -1714,13 +1738,13 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
 
         if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_back(cam_length, full_list, distance, slst_distance, coords, path_length, slst_list);
-            build_load_list_util_util_back(cam_length, full_list, distance, draw_distance, coords, path_length, neig_list);
+            build_load_list_util_util_forw(cam_length, full_list, distance, slst_distance, coords, path_length, slst_list);
+            build_load_list_util_util_forw(cam_length, full_list, distance, draw_distance, coords, path_length, neig_list);
         }
         if ((link.type == 1 && link.flag == 2 && link2.type == 1) || (link.type == 1 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_forw(cam_length, full_list, distance, slst_distance, coords, path_length, slst_list);
-            build_load_list_util_util_forw(cam_length, full_list, distance, draw_distance, coords, path_length, neig_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, build_dist_w_penalty(slst_distance, backwards_penalty), coords, path_length, slst_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, build_dist_w_penalty(draw_distance, backwards_penalty), coords, path_length, neig_list);
         }
     }
 }
@@ -1930,14 +1954,10 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         if (link.flag == 2)
         {
             // this is backwards i think
-            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, 1 - draw_dist - distance, &point_index2);
+            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, build_dist_w_penalty(draw_dist, backwards_penalty) - distance, &point_index2);
             for (j = point_index2; j < neighbour_cam_length - 1; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
-
-        /*char temp[100], temp2[100];
-        printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
-               eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index].EID, temp2), point_index2 + 1, neighbour_cam_length);*/
 
         if (distance >= draw_dist)
             continue;
@@ -1963,8 +1983,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             short int *coords3 = build_get_path(elist, neighbour_index2, 2 + 3 * link2.cam_index, &neighbour_cam_length2);
             LIST* draw_list_neighbour2 = build_get_complete_draw_list(elist, neighbour_index2, 2 + 3 * link2.cam_index, neighbour_cam_length2);
 
+            int point_index3;
 
-            int point_index3 = -2;
             // start to end
             if ((link.flag == 1 && link2.type == 2 && link2.flag == 1) ||
                 (link.flag == 2 && link2.type == 1 && link2.flag == 1))
@@ -1978,15 +1998,10 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if ((link.flag == 1 && link2.type == 2 && link2.flag == 2) ||
                 (link.flag == 2 && link2.type == 1 && link2.flag == 2))
             {
-                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, draw_dist - distance, &point_index3);
+                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, build_dist_w_penalty(draw_dist, backwards_penalty) - distance, &point_index3);
                 for (k = point_index3; k < neighbour_cam_length2; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
-
-            /*char temp[100], temp2[100];
-            if (point_index3 != -2)
-                printf("%s point %2d neighbour %s: got to point %2d / %2d\n",
-                   eid_conv(elist[zone_index].EID, temp), point_index, eid_conv(elist[neighbour_index2].EID, temp2), point_index3 + 1, neighbour_cam_length2);*/
         }
     }
 
@@ -2011,10 +2026,12 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
 {
     int i, j, k;
 
+    // neighbours, slsts, scenery
     LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
         build_load_list_util_util(zone_index, camera_index, links.eids[i], full_list, cam_length, elist, entry_count, config, collisions);
 
+    // draw lists
     for (i = 0; i < cam_length; i++)
     {
         LIST neighbour_list = init_list();
@@ -2318,11 +2335,10 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             int cam_count = build_get_cam_count(elist[i].data) / 3;
 
             char temp[100];
-            if (cam_count)
-                printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
-            else
+            if (!cam_count)
                 continue;
 
+            printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
             LIST special_entries = build_get_special_entries(elist[i], elist, entry_count);
 
             for (j = 0; j < cam_count; j++)
@@ -2831,9 +2847,6 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
 /** \brief
  *  Gets rid of some dynamically allocated stuff and closes files.
  *
- * \param nsf FILE*                     nsf file
- * \param nsfnew FILE*                  created nsf file
- * \param df DIR*                       directory with the entries
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
  * \param chunks unsigned char**        built chunks
@@ -2894,8 +2907,7 @@ void build_ask_distances(int *config)
         printf("Invalid, defaulting to 0\n");
         backw = 0;
     }
-    config[7] = (int) (1000000 * backw);
-    printf("config[7]: %d\n", config[7]);
+    config[7] = (int) (PENALTY_MULT_CONSTANT * backw);
 }
 
 // dumb thing for snow no or whatever convoluted level its configured for rn
@@ -2979,7 +2991,7 @@ void build_main(int build_rebuild_flag)
     // 4 - [neighbour distance]         defined by user
     // 5 - [draw list distance]         defined by user
     // 6 - transition pre-load flag     defined by user
-    // 7 - backwards penalty            defined by user | is 1M times the float value because yes
+    // 7 - backwards penalty            defined by user | is 1M times the float value because yes, range 0 - 0.5
     int config[8] = {1, 1, 1, 0, 0, 0, 0, 0};
 
 
