@@ -8,11 +8,6 @@
 #include <math.h>
 #include "windows.h"
 
-#define SLST_DISTANCE                   7000
-#define NEIG_DISTANCE                   7000
-#define DRAW_DISTANCE                   6000
-#define BACKWARDS_PENALTY               0
-
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
@@ -319,7 +314,7 @@ void         build_load_list_util_util(int zone_index, int cam_index, int link_i
 LIST *       build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length);
 LIST         build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list);
 int          build_get_distance(short int *coords, int start_index, int end_index, int cap, int *final_index);
-LIST         build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int draw_dist, int preloading_flag);
+LIST         build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist, int entry_count, LIST *neighbours, int *config);
 void         build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config);
 PROPERTY     build_make_load_list_prop(LIST *list_array, int cam_length, int code);
 void         build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info);
