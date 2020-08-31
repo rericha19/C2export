@@ -361,7 +361,10 @@ int comp(const void *a, const void *b)
     LOAD x = *(LOAD *) a;
     LOAD y = *(LOAD *) b;
 
-    return (x.index - y.index);
+    if (x.index != y.index)
+        return (x.index - y.index);
+    else
+        return (x.type - y.type);
 }
 
 int comp2(const void *a, const void *b)
@@ -661,3 +664,39 @@ void path_fix(char *fpath)
         *(strchr(fpath,'\0')-1) = '\0';
     }
 }
+
+QUEUE graph_init()
+{
+    QUEUE queue;
+    queue.add_index = 0;
+    queue.pop_index = 0;
+    for (int i = 0; i < QUEUE_ITEM_COUNT; i++) {
+        queue.zone_indices[i] = -1;
+        queue.camera_indices[i] = -1;
+    }
+
+    return queue;
+}
+
+void graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index)
+{
+    int n = graph->add_index;
+    graph->zone_indices[n] = zone_index;
+    graph->camera_indices[n] = camera_index;
+    (graph->add_index)++;
+
+    elist[zone_index].distances[camera_index] = n;
+    elist[zone_index].visited[camera_index] = 1;
+
+    /*char temp[100];
+    printf("Zone %s campath %d distance %d\n", eid_conv(elist[zone_index].EID, temp), camera_index, n);*/
+}
+
+void graph_pop(QUEUE *graph, int *zone_index, int *cam_index)
+{
+    int n = graph->pop_index;
+    *zone_index = graph->zone_indices[n];
+    *cam_index = graph->camera_indices[n];
+    (graph->pop_index)++;
+}
+

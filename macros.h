@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <math.h>
+#include <limits.h>
 #include "windows.h"
 
 #define FPATH_COUNT                     3
@@ -14,6 +15,7 @@
 #define BYTE                            0x100
 #define MAX                             1000
 #define PI                              3.1415926535
+#define QUEUE_ITEM_COUNT                2500
 
 // more dumb things
 #define C2_NEIGHBOURS_START             0x190
@@ -103,6 +105,7 @@
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
 
+// in export script used to keep track of status stuff
 typedef struct info{
     int counter[22];                // counts entry types, counter[0] is total entry count
     int print_en;                   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
@@ -114,6 +117,7 @@ typedef struct info{
     unsigned int animrefcount;      // count of animation references when porting c3 to c2
 } INFO;
 
+// in build scripts, used to store spawns
 typedef struct spawn{
     int x;
     int y;
@@ -126,35 +130,44 @@ typedef struct spawns{
     SPAWN *spawns;
 } SPAWNS;
 
+
+// list struct
 typedef struct list {
     int count;
     unsigned int *eids;
 } LIST;
 
+// used to store entry information in the build script
 typedef struct entry{
     unsigned int EID;
     int esize;
     int chunk;
     unsigned char *data;
     unsigned int *related = NULL;
+    unsigned int *distances = NULL;
+    unsigned int *visited = NULL;
 } ENTRY;
 
+// used to sort load lists
 typedef struct item {
     int eid;
     int index;
 } ITEM;
 
+// used to store payload information
 typedef struct payload {
     int *chunks;
     int count;
     unsigned int zone;
 } PAYLOAD;
 
+// used to store payload ladder
 typedef struct payloads {
     int count;
     PAYLOAD *arr;
 } PAYLOADS;
 
+// used to store load or draw list in its non-delta form
 typedef struct load {
     char type;
     int list_length;
@@ -162,33 +175,39 @@ typedef struct load {
     int index;
 } LOAD;
 
+// used to keep the entire non-delta load/draw list
 typedef struct load_list {
     int count;
     LOAD array[1000];
 } LOAD_LIST;
 
+// used in matrix merge to store what entries are loaded simultaneously and how much/often
 typedef struct relation {
     int value;
     int index1;
     int index2;
 } RELATION;
 
+// used to keep all relations
 typedef struct relations {
     int count;
     RELATION *relations;
 } RELATIONS;
 
+// used to store type & subtype dependencies in the build script (and collision dependencies too)
 typedef struct inf {
     int type;
     int subtype;
     LIST dependencies;
 } INF;
 
+// all dependencies
 typedef struct {
     int count;
     INF *array;
 } DEPENDENCIES;
 
+// stores a camera path link
 typedef struct link {
     char type;
     char zone_index;
@@ -196,12 +215,20 @@ typedef struct link {
     char flag;
 }   LINK;
 
+// entity/item property
 typedef struct property {
     unsigned char header[8];
     unsigned char *data;
     int length;
 } PROPERTY;
 
+
+typedef struct entry_queue {
+    int add_index;
+    int pop_index;
+    int zone_indices[QUEUE_ITEM_COUNT];
+    int camera_indices[QUEUE_ITEM_COUNT];
+} QUEUE;
 
 // misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
@@ -249,6 +276,11 @@ int          point_distance_3D(short int x1, short int x2, short int y1, short i
 LINK         int_to_link(unsigned int link);
 void         delete_load_list(LOAD_LIST load_list);
 void         path_fix(char *fpath);
+QUEUE        graph_init();
+void         graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
+void         graph_pop(QUEUE *graph, int *zone_index, int *cam_index);
+
+
 
 // export.c
 int          export_main(int zone, char *fpath, char *date);
@@ -335,6 +367,7 @@ void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int 
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
+void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);
 
 // deprecate_build.c

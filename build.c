@@ -438,6 +438,7 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
             spawns->spawns[cnt -1].y = coords_ptr[1] + *(int*)(entry + from_u32(entry + 0x14) + 4);
             spawns->spawns[cnt -1].z = coords_ptr[2] + *(int*)(entry + from_u32(entry + 0x14) + 8);
             spawns->spawns[cnt -1].zone = from_u32(entry + 0x4);
+            free(coords_ptr);
         }
     }
     return relatives;
@@ -790,26 +791,10 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB)
  */
 void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID)
 {
-    int i, x = 0, input;
-    char temp[100];
+    int i, x = 0;
 
     unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);
     *(int *)(nsddata + C2_NSD_CHUNK_COUNT) = chunk_count;
-
-    // lets u pick a spawn point
-    printf("Pick a spawn (type it second time if it doesnt work):\n");
-    for (i = 0; i < spawns.spawn_count; i++)
-        printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
-
-    scanf("%d", &input);
-    scanf("%d", &input);
-    if (input - 1 > spawns.spawn_count || input <= 0) {
-        printf("No such spawn, defaulting to first one\n");
-        input = 1;
-    }
-
-    if (input - 1)
-        build_swap_spawns(spawns, 0, input - 1);
 
     for (i = 0; i < entry_count; i++)
         if (elist[i].chunk != -1)
@@ -1069,7 +1054,6 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
                 int cam_offset = from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j));
                 LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
-
 
                 LIST list = init_list();
                 switch(merge_flag)
@@ -1743,8 +1727,8 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         }
         if ((link.type == 1 && link.flag == 2 && link2.type == 1) || (link.type == 1 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_back(cam_length, full_list, distance, build_dist_w_penalty(slst_distance, backwards_penalty), coords, path_length, slst_list);
-            build_load_list_util_util_back(cam_length, full_list, distance, build_dist_w_penalty(draw_distance, backwards_penalty), coords, path_length, neig_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, slst_distance, coords, path_length, slst_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, draw_distance, coords, path_length, neig_list);
         }
     }
 }
@@ -1888,6 +1872,8 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
     return distance;
 }
 
+
+
 /** \brief
  *  Collects list of IDs using draw lists of neighbouring camera paths, depth max 2, distance less than DRAW_DISTANCE-
  *  Another function handles retrieving entry/subtype list from the ID list.
@@ -1954,8 +1940,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         }
         if (link.flag == 2)
         {
-            // this is backwards i think
-            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, build_dist_w_penalty(draw_dist, backwards_penalty) - distance, &point_index2);
+            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, draw_dist - distance, &point_index2);
             for (j = point_index2; j < neighbour_cam_length - 1; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
@@ -1987,8 +1972,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             int point_index3;
 
             // start to end
-            if ((link.flag == 1 && link2.type == 2 && link2.flag == 1) ||
-                (link.flag == 2 && link2.type == 1 && link2.flag == 1))
+            if ((link.type == 2 && link2.type == 2 && link2.flag == 1) ||
+                (link.type == 1 && link2.type == 1 && link2.flag == 1))
             {
                 build_get_distance(coords3, 0, neighbour_cam_length2 - 1, draw_dist - distance, &point_index3);
                 for (k = 0; k < point_index3; k++)
@@ -1996,10 +1981,10 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             }
 
             // end to start
-            if ((link.flag == 1 && link2.type == 2 && link2.flag == 2) ||
-                (link.flag == 2 && link2.type == 1 && link2.flag == 2))
+            if ((link.type == 2 && link2.type == 2 && link2.flag == 1) ||
+                (link.type == 1 && link2.type == 1 && link2.flag == 2))
             {
-                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, build_dist_w_penalty(draw_dist, backwards_penalty) - distance, &point_index3);
+                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, draw_dist - distance, &point_index3);
                 for (k = point_index3; k < neighbour_cam_length2; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
@@ -2867,8 +2852,15 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
     for (int i = 0; i < entry_count; i++) {
         if (elist[i].data != NULL)
             free(elist[i].data);
+
         if (elist[i].related != NULL)
             free(elist[i].related);
+
+        if (elist[i].visited != NULL)
+            free(elist[i].visited);
+
+        if (elist[i].distances != NULL)
+            free(elist[i].distances);
     }
 }
 
@@ -2958,6 +2950,84 @@ void build_get_box_count(ENTRY *elist, int entry_count)
     printf("NITRO COUNT: %3d\n", nitro_counter);
 }
 
+void build_ask_spawn(SPAWNS spawns)
+{
+    char temp[100];
+    int input;
+    // lets u pick a spawn point
+    printf("\nPick a spawn (type it second time if it doesnt work):\n");
+    for (int i = 0; i < spawns.spawn_count; i++)
+        printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
+
+    scanf("%d", &input);
+    input--;
+    if (input >= spawns.spawn_count || input < 0) {
+        printf("No such spawn, defaulting to first one\n");
+        input = 0;
+    }
+
+    if (input)
+        build_swap_spawns(spawns, 0, input);
+}
+
+void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns)
+{
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
+            int cam_count = build_get_cam_count(elist[i].data)/3;
+            elist[i].distances = (unsigned int *) malloc(cam_count * sizeof(unsigned int));
+            elist[i].visited   = (unsigned int *) malloc(cam_count * sizeof(unsigned int));
+
+            for (int j = 0; j < cam_count; j++) {
+                elist[i].distances[j] = INT_MAX;
+                elist[i].visited[j] = 0;
+            }
+        }
+        else {
+            elist[i].distances = NULL;
+            elist[i].visited = NULL;
+        }
+    }
+
+    QUEUE graph = graph_init();
+    int start_index = build_get_index(spawns.spawns[0].zone, elist, entry_count);
+    graph_add(&graph, elist, start_index, 0);
+
+    while (1) {
+        int top_zone;
+        int top_cam;
+        graph_pop(&graph, &top_zone, &top_cam);
+        if (top_zone == -1 && top_cam == -1)
+            break;
+
+        LIST links = build_get_links(elist[top_zone].data, 2 + 3 * top_cam);
+        for (int i = 0; i < links.count; i++)
+        {
+            LINK link = int_to_link(links.eids[i]);
+            int neighbour_count = build_get_neighbour_count(elist[top_zone].data);
+            unsigned int neighbours[neighbour_count];
+            int item1off = from_u32(elist[top_zone].data + 0x10);
+            for (int j = 0; j < neighbour_count; j++)
+                neighbours[j] = from_u32(elist[top_zone].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
+            int neighbour_index = build_get_index(neighbours[link.zone_index], elist, entry_count);
+
+            if (elist[neighbour_index].visited[link.cam_index] == 0)
+                graph_add(&graph, elist, neighbour_index, link.cam_index);
+        }
+    }
+
+
+    /*for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
+            int cam_count = build_get_cam_count(elist[i].data)/3;
+            char temp[100];
+            for (int j = 0; j < cam_count; j++)
+                printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].EID, temp), j, elist[i].distances[j]);
+        }*/
+}
 
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
@@ -3112,6 +3182,8 @@ void build_main(int build_rebuild_flag)
     }
 
     fclose(nsf);
+    build_ask_spawn(spawns);
+    build_get_distance_graph(elist, entry_count, spawns);
 
     build_get_model_references(elist, entry_count);
     build_remove_invalid_references(elist, entry_count, entry_count_base);
@@ -3125,6 +3197,8 @@ void build_main(int build_rebuild_flag)
     build_ask_list_paths(fpaths);
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, fpaths, elist, entry_count, gool_table)) {
         printf("File could not be opened or a different error occured\n");
+        fclose(nsfnew);
+        fclose(nsd);
         return;
     }
 
