@@ -64,7 +64,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
 
                         if (load_list.array[l].type == 'B')
                             for (m = 0; m < load_list.array[l].list_length; m++)
-                                list_rem(&list, load_list.array[l].list[m]);
+                                list_remove(&list, load_list.array[l].list[m]);
 
                         payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].EID, chunk_min);
                         deprecate_build_insert_payload(&payloads, payload);
@@ -93,9 +93,9 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, chunk_min);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
-        printf("\n");
+        printf("\n\"Heaviest\" zones:\n");
         for (int k = 0; k < 10; k++) {
-            printf("%3d  ", k);
+            printf("%d\t", k);
             deprecate_build_print_payload(payloads.arr[k], 0);
         }
         printf("\n");

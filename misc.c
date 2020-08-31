@@ -364,6 +364,17 @@ int comp(const void *a, const void *b)
     return (x.index - y.index);
 }
 
+int comp2(const void *a, const void *b)
+{
+    LOAD x = *(LOAD *) a;
+    LOAD y = *(LOAD *) b;
+
+    if (x.index != y.index)
+        return (x.index - y.index);
+    else
+        return (y.type - x.type);
+}
+
 int pay_cmp(const void *a, const void *b)
 {
     PAYLOAD x = *(PAYLOAD *) a;
@@ -578,7 +589,7 @@ void list_add(LIST *list, unsigned int eid)
  * \param eid unsigned int              item to be removed
  * \return void
  */
-void list_rem(LIST *list, unsigned int eid)
+void list_remove(LIST *list, unsigned int eid)
 {
     int index = list_find(*list, eid);
     if (index == -1) return;

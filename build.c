@@ -1089,7 +1089,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
                                 if (load_list.array[sublist_index].type == 'B')
                                     for (m = 0; m < load_list.array[sublist_index].list_length; m++)
-                                        list_rem(&list, load_list.array[sublist_index].list[m]);
+                                        list_remove(&list, load_list.array[sublist_index].list[m]);
 
                                 sublist_index++;
                                 build_increment_common(list, entries, entry_matrix, 1);
@@ -1108,7 +1108,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
                             if (load_list.array[l].type == 'B')
                                 for (m = 0; m < load_list.array[l].list_length; m++)
-                                    list_rem(&list, load_list.array[l].list[m]);
+                                    list_remove(&list, load_list.array[l].list[m]);
 
                             if (list.count)
                                 build_increment_common(list, entries, entry_matrix, 1);
@@ -1769,6 +1769,7 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
     int cam_offset = from_u32(elist[zone_index].data + 0x10 + 4 * cam_index);
     LOAD_LIST draw_list2 = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, elist[zone_index].data, cam_offset);
 
+    qsort(draw_list2.array, draw_list2.count, sizeof(LOAD), comp2);
     int sublist_index = 0;
     for (i = 0; i < cam_length; i++)
     {
@@ -1776,11 +1777,11 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
         {
             if (draw_list2.array[sublist_index].type == 'B')
                 for (m = 0; m < draw_list2.array[sublist_index].list_length; m++)
-                    list_insert(&list, (draw_list2.array[sublist_index].list[m] & 0xFFFF00) >> 8);
+                    list_insert(&list, (draw_list2.array[sublist_index].list[m] & 0x3FF00) >> 8);
 
             if (draw_list2.array[sublist_index].type == 'A')
                 for (m = 0; m < draw_list2.array[sublist_index].list_length; m++)
-                    list_rem(&list, (draw_list2.array[sublist_index].list[m] & 0xFFFF00) >> 8);
+                    list_remove(&list, (draw_list2.array[sublist_index].list[m] & 0x3FF00) >> 8);
 
             sublist_index++;
         }
@@ -2036,6 +2037,12 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
     {
         LIST neighbour_list = init_list();
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
+
+        /*char temp[100];
+        printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, temp), i);
+        for (j = 0; j < entity_list.count; j++)
+            printf("\t%d\n", entity_list.eids[j]);*/
+
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 
         for (j = 0; j < types_subtypes.count; j++)
@@ -2043,8 +2050,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
             int type = types_subtypes.eids[j] >> 16;
             int subtype = types_subtypes.eids[j] & 0xFF;
 
-            // char temp[100];
-            // printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
+            //printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
             for (k = 0; k < sub_info.count; k++)
                 if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type)
                     list_copy_in(&full_list[i], sub_info.array[k].dependencies);
@@ -2183,8 +2189,8 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
         for (j = 0; j < copy.count; j++)
             if (list_find(listB[i], copy.eids[j]) != -1)
             {
-                list_rem(&listA[i], copy.eids[j]);
-                list_rem(&listB[i], copy.eids[j]);
+                list_remove(&listA[i], copy.eids[j]);
+                list_remove(&listB[i], copy.eids[j]);
             }
     }
 }
@@ -2239,7 +2245,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count)
         if (index == -1)
         {
             printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.EID, temp), eid_conv(item, temp2));
-            list_rem(&special_entries, item);
+            list_remove(&special_entries, item);
             continue;
         }
 
