@@ -2105,7 +2105,10 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
         }
 
     *(short int *) (prop.header) = code;
-    *(short int *) (prop.header + 4) = 0x0464;
+    if (delta_counter == 1)
+        *(short int *) (prop.header + 4) = 0x0424;
+    else
+        *(short int *) (prop.header + 4) = 0x0464;
     *(short int *) (prop.header + 6) = delta_counter;
 
     prop.length = total_length;
@@ -2710,7 +2713,10 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+        {
             sound_entry_count++;
+            elist[i].esize = from_u32(elist[i].data + 0x14);
+        }
 
     ENTRY sound_list[sound_entry_count];
 
@@ -2762,12 +2768,17 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
         indexer = 0;
         offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
 
+        int last_entry_size = 0;
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == count + i)
             {
                 offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
+                last_entry_size = sound_list[j].esize;
                 indexer++;
             }
+
+        if (local_entry_count > 0)
+            offsets[indexer] = offsets[indexer - 1] + last_entry_size;
 
 
         for (j = 0; j < local_entry_count + 1; j++)
@@ -3147,8 +3158,8 @@ void build_main(int build_rebuild_flag)
     // 4 - [neighbour distance]         defined by user
     // 5 - [draw list distance]         defined by user
     // 6 - transition pre-load flag     defined by user
-    // 7 - backwards penalty            defined by user | is 1M times the float value because yes, range 0 - 0.5
-    // 8 - load all sounds              0 - dont        |   1 - do
+    // 7 - backwards penalty            defined by user [is 1M times the float value because yes, range 0 - 0.5]
+    // 8 - load all sounds              0 - dont load   |   1 - do load
     int config[9] = {1, 1, 1, 0, 0, 0, 0, 0, 1};
 
 
