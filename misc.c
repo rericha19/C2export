@@ -170,8 +170,9 @@ void countwipe(INFO *status)
 }
 
 
-void askprint(INFO *status)
 // pops up the dialog that lets you pick where to write most of the print statements
+// broken
+void askprint(INFO *status)
 {
     char dest[4][10] = {"to both", "to file", "here", "nowhere"};
     char pc;
@@ -200,8 +201,8 @@ void askprint(INFO *status)
 }
 
 
+//changes the input string to a number, i just copied this over from somewhere
 unsigned long hash(const char *str)
-//changes the input string to a number, i just copied this over
 {
     unsigned long hash = 5381;
     int c;
@@ -211,8 +212,8 @@ unsigned long hash(const char *str)
     return hash;
 }
 
+ // used to get hash values for commands in main
 int hash_main()
- //changes a string to hash, this is just for me to find the values of the expected strings
 {
     char s[MAX];
 
@@ -222,6 +223,7 @@ int hash_main()
     return 0;
 }
 
+// swaps two int variables' values
 void swap_ints(int *a, int *b)
 {
     int temp = *a;
@@ -229,8 +231,8 @@ void swap_ints(int *a, int *b)
     *b = temp;
 }
 
-char* eid_conv(unsigned int m_value, char *eid)
 //converts int eid to string eid
+char* eid_conv(unsigned int m_value, char *eid)
 {
     static const char charset[] =
     "0123456789"
@@ -246,6 +248,7 @@ char* eid_conv(unsigned int m_value, char *eid)
     return eid;
 }
 
+// conversion of EID from string form to u32int form
 unsigned int eid_to_int(char *eid)
 {
     unsigned int result = 0;
@@ -342,6 +345,7 @@ void askmode(int *zonetype, INFO *status)
     printstatus(*zonetype,status->gamemode,status->portmode);
 }
 
+// factorial of n
 long long int fact(int n)
 {
     long long int result = 1;
@@ -351,11 +355,13 @@ long long int fact(int n)
     return result;
 }
 
+// integer comparison func for qsort
 int cmpfunc(const void *a, const void *b)
 {
    return (*(int*) a - *(int*) b);
 }
 
+// used to sort load lists and to avoid stuff getting removed before its been added
 int comp(const void *a, const void *b)
 {
     LOAD x = *(LOAD *) a;
@@ -367,6 +373,7 @@ int comp(const void *a, const void *b)
         return (x.type - y.type);
 }
 
+// used to sort draw list to avoid stuff getting removed before its been added
 int comp2(const void *a, const void *b)
 {
     LOAD x = *(LOAD *) a;
@@ -378,6 +385,7 @@ int comp2(const void *a, const void *b)
         return (y.type - x.type);
 }
 
+// used to sort payload ladder in descending order
 int pay_cmp(const void *a, const void *b)
 {
     PAYLOAD x = *(PAYLOAD *) a;
@@ -386,6 +394,7 @@ int pay_cmp(const void *a, const void *b)
     return (y.count - x.count);
 }
 
+// used in LIST struct
 int list_comp(const void *a, const void *b)
 {
     unsigned int x = *(unsigned int*) a;
@@ -394,6 +403,7 @@ int list_comp(const void *a, const void *b)
     return (x - y);
 }
 
+// used to sort load lists by index
 int load_list_sort(const void *a, const void *b)
 {
     ITEM x = *(ITEM *) a;
@@ -403,30 +413,7 @@ int load_list_sort(const void *a, const void *b)
 }
 
 
-void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int ***res, int *counter)
-{
-    if (index == r)
-    {
-        *res = (int **) realloc(*res, (*counter + 1) * sizeof(int *));
-        (*res)[*counter] = (int *) malloc(r * sizeof(int));
-        memcpy((*res)[*counter], data, r * sizeof(int));
-        (*counter)++;
-        return;
-    }
-
-    for (int i = start; i <= end && end - i + 1 >= r - index; i++)
-    {
-        data[index] = arr[i];
-        combinationUtil(arr, data, i+1, end, index+1, r, res, counter);
-    }
-}
-
-void getCombinations(int arr[], int n, int r, int ***res, int *counter)
-{
-    int data[r];
-    combinationUtil(arr, data, 0, n - 1, 0, r, res, counter);
-}
-
+// used by cmp_entry
 int to_enum(const void *a)
 {
     ENTRY x = *((ENTRY *) a);
@@ -479,28 +466,13 @@ int cmp_entry_eid(const void *a, const void *b)
     return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
 }
 
+// used to sort entries by size
 int cmp_entry_size(const void *a, const void *b)
 {
     return ((*(ENTRY *) b).esize - (*(ENTRY *) a).esize);
 }
 
-int snd_cmp(const void *a, const void *b)
-{
-    ENTRY x = *(ENTRY *) a;
-    ENTRY y = *(ENTRY *) b;
-
-    if (build_entry_type(x) == ENTRY_TYPE_SOUND && build_entry_type(y) == ENTRY_TYPE_SOUND)
-    {
-        if (x.chunk == y.chunk)
-            return y.esize - x.esize;
-        else
-            return y.chunk - x.chunk;
-    }
-    else
-        return 0;
-
-}
-
+// used to sort relations that store how much entries are loaded simultaneously, sorts in descending order
 int relations_cmp(const void *a, const void *b)
 {
     RELATION x = *(RELATION *) a;
@@ -616,6 +588,13 @@ void list_insert(LIST *list, unsigned int eid){
 }
 
 
+/** \brief
+ *  Copies contents of the 'source' list into 'destination' list.
+ *
+ * \param destination LIST*             list to copy into
+ * \param source LIST                   list to copy from
+ * \return void
+ */
 void list_copy_in(LIST *destination, LIST source)
 {
     for (int i = 0; i < source.count; i++)
@@ -634,11 +613,13 @@ LOAD_LIST init_load_list(){
     return temp;
 }
 
+// calculates distance of two 3D points
 int point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2)
 {
     return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
 }
 
+// misc convertion thing
 LINK int_to_link(unsigned int link)
 {
     LINK result;
@@ -650,12 +631,14 @@ LINK int_to_link(unsigned int link)
     return result;
 }
 
+// misc cleanup thing
 void delete_load_list(LOAD_LIST load_list)
 {
     for (int i = 0; i < load_list.count; i++)
         free(load_list.array[i].list);
 }
 
+// fixes path string supplied by the user, if it starts with "
 void path_fix(char *fpath)
 {
     if (fpath[0]=='\"')
@@ -665,6 +648,7 @@ void path_fix(char *fpath)
     }
 }
 
+// following 3 are used for determining each camera path's distance relative to spawn, used to determine whether cam path is 'before' another one
 QUEUE graph_init()
 {
     QUEUE queue;
@@ -691,6 +675,7 @@ void graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index)
     /*char temp[100];
     printf("Zone %s campath %d distance %d\n", eid_conv(elist[zone_index].EID, temp), camera_index, n);*/
 }
+
 
 void graph_pop(QUEUE *graph, int *zone_index, int *cam_index)
 {
