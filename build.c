@@ -1591,10 +1591,21 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
     }
 }
 
+// recalculated distance cap for backwards loading, its fixed point real number cuz config is an int array and im not passing more arguments thru this hell
 int build_dist_w_penalty(int distance, int backwards_penalty)
 {
     return ((int) ((1.0 - ((double) backwards_penalty) / PENALTY_MULT_CONSTANT) * distance));
 }
+
+// checks whether a cam path is backwards relative to another cam path
+int build_is_before(ENTRY *elist, int zone_index, int camera_index, int neighbour_index, int neighbour_cam_index)
+{
+    int distance_neighbour = elist[neighbour_index].distances[neighbour_cam_index];
+    int distance_current = elist[zone_index].distances[camera_index];
+
+    return (distance_neighbour < distance_current);
+}
+
 
 /** \brief
  *  Deals with slst and neighbour/scenery references of path linked entries.
@@ -1612,7 +1623,7 @@ int build_dist_w_penalty(int distance, int backwards_penalty)
 void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST *full_list, int cam_length, ENTRY * elist, int entry_count, int* config, DEPENDENCIES collisisons)
 {
     int slst_distance = config[3];
-    int draw_distance = config[4];
+    int neig_distance = config[4];
     int preloading_flag = config[6];
     int backwards_penalty = config[7];
 
@@ -1720,15 +1731,28 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
             continue;
         }
 
+
+        int slst_dist_w_orientation = slst_distance;
+        int neig_dist_w_orientation = neig_distance;
+
+        if (build_is_before(elist, zone_index, cam_index/3, neighbour_index2, link2.cam_index))
+        {
+            /*char temp[100], temp2[100];
+            printf("util util %s is before %s\n", eid_conv(elist[neighbour_index2].EID, temp), eid_conv(elist[zone_index].EID, temp2));*/
+            slst_dist_w_orientation = build_dist_w_penalty(slst_distance, backwards_penalty);
+            neig_dist_w_orientation = build_dist_w_penalty(neig_distance, backwards_penalty);
+        }
+
+
         if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_forw(cam_length, full_list, distance, slst_distance, coords, path_length, slst_list);
-            build_load_list_util_util_forw(cam_length, full_list, distance, draw_distance, coords, path_length, neig_list);
+            build_load_list_util_util_forw(cam_length, full_list, distance, slst_dist_w_orientation, coords, path_length, slst_list);
+            build_load_list_util_util_forw(cam_length, full_list, distance, neig_dist_w_orientation, coords, path_length, neig_list);
         }
         if ((link.type == 1 && link.flag == 2 && link2.type == 1) || (link.type == 1 && link.flag == 1 && link2.type == 2))
         {
-            build_load_list_util_util_back(cam_length, full_list, distance, slst_distance, coords, path_length, slst_list);
-            build_load_list_util_util_back(cam_length, full_list, distance, draw_distance, coords, path_length, neig_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, slst_dist_w_orientation, coords, path_length, slst_list);
+            build_load_list_util_util_back(cam_length, full_list, distance, neig_dist_w_orientation, coords, path_length, neig_list);
         }
     }
 }
@@ -1873,7 +1897,6 @@ int build_get_distance(short int *coords, int start_index, int end_index, int ca
 }
 
 
-
 /** \brief
  *  Collects list of IDs using draw lists of neighbouring camera paths, depth max 2, distance less than DRAW_DISTANCE-
  *  Another function handles retrieving entry/subtype list from the ID list.
@@ -1931,21 +1954,30 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         short int *coords2 = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &neighbour_cam_length);
         LIST* draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * link.cam_index, neighbour_cam_length);
 
+        int draw_dist_w_orientation = draw_dist;
+        if (build_is_before(elist, zone_index, camera_index/3, neighbour_index, link.cam_index))
+        {
+            /*char temp[100], temp2[100];
+            printf("entity list %s is before %s\n", eid_conv(elist[neighbour_index].EID, temp), eid_conv(elist[zone_index].EID, temp2));*/
+            draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
+        }
+
         int point_index2;
         if (link.flag == 1)
         {
-            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, draw_dist - distance, &point_index2);
+            distance += build_get_distance(coords2, 0, neighbour_cam_length - 1, draw_dist_w_orientation - distance, &point_index2);
             for (j = 0; j < point_index2; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
         if (link.flag == 2)
         {
-            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, draw_dist - distance, &point_index2);
+            distance += build_get_distance(coords2, neighbour_cam_length - 1, 0, draw_dist_w_orientation - distance, &point_index2);
             for (j = point_index2; j < neighbour_cam_length - 1; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
 
-        if (distance >= draw_dist)
+
+        if (distance >= draw_dist_w_orientation)
             continue;
 
         LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
@@ -1971,11 +2003,19 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
 
             int point_index3;
 
+            draw_dist_w_orientation = draw_dist;
+            if (build_is_before(elist, zone_index, camera_index/3, neighbour_index2, link2.cam_index))
+            {
+                /*char temp[100], temp2[100];
+                printf("entity list %s is before %s\n", eid_conv(elist[neighbour_index2].EID, temp), eid_conv(elist[zone_index].EID, temp2));*/
+                draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
+            }
+
             // start to end
             if ((link.type == 2 && link2.type == 2 && link2.flag == 1) ||
                 (link.type == 1 && link2.type == 1 && link2.flag == 1))
             {
-                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, draw_dist - distance, &point_index3);
+                build_get_distance(coords3, 0, neighbour_cam_length2 - 1, draw_dist_w_orientation - distance, &point_index3);
                 for (k = 0; k < point_index3; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
@@ -1984,7 +2024,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if ((link.type == 2 && link2.type == 2 && link2.flag == 1) ||
                 (link.type == 1 && link2.type == 1 && link2.flag == 2))
             {
-                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, draw_dist - distance, &point_index3);
+                build_get_distance(coords3, neighbour_cam_length2 - 1, 0, draw_dist_w_orientation - distance, &point_index3);
                 for (k = point_index3; k < neighbour_cam_length2; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
