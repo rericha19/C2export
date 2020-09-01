@@ -2358,10 +2358,13 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
 void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config)
 {
     int i, j, k, l;
+    int load_all_sounds = config[8];
 
     int chunks[8];
     int sound_chunk_count = 0;
     unsigned int sounds_to_load[8];
+
+    if (load_all_sounds == 0)
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
         {
@@ -2376,6 +2379,7 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 chunks[sound_chunk_count] = elist[i].chunk;
                 sounds_to_load[sound_chunk_count] = elist[i].EID;
                 sound_chunk_count++;
+                // printf("%d\n", elist[i].chunk * 2 + 1);
             }
         }
 
@@ -2411,12 +2415,13 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
+                if (load_all_sounds)
+                    for (k = 0; k < entry_count; k++)
+                        if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
+                            for (l = 0; l < cam_length; l++)
+                                list_insert(&full_load[l], elist[k].EID);
+                        }
 
-                /*for (k = 0; k < entry_count; k++)
-                if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
-                    for (l = 0; l < cam_length; l++)
-                        list_insert(&full_load[l], elist[k].EID);
-                }*/
                 for (k = 0; k < cam_length; k++)
                     for (l = 0; l < sound_chunk_count; l++)
                         list_insert(&full_load[k], sounds_to_load[l]);
@@ -2949,7 +2954,7 @@ void build_ask_distances(int *config)
     scanf("%d", &temp);
     config[5] = temp;
 
-    printf("\nPre-load stuff for transitions? (not pre-loading is safer) [y/n]\n");
+    printf("\nPre-load stuff for transitions? (not pre-loading is safer for stitched-together levels) [y/n]\n");
     scanf("%c", &ans);
     scanf("%c", &ans);
     if (ans == 'y' || ans == 'Y') {
@@ -2969,6 +2974,18 @@ void build_ask_distances(int *config)
         backw = 0;
     }
     config[7] = (int) (PENALTY_MULT_CONSTANT * backw);
+
+    /*printf("\nInclude only one sound per sound chunk in the load lists? (including all is safer) [y/n]\n");
+    scanf("%c", &ans);
+    scanf("%c", &ans);
+    if (ans == 'y' || ans == 'Y') {
+        config[8] = 0;
+        printf("Including one sound per sound chunk\n\n");
+    }
+    else {
+        config[8] = 1;
+        printf("Including all sounds\n\n");
+    }*/
 }
 
 // dumb thing for snow no or whatever convoluted level its configured for rn
@@ -3131,7 +3148,8 @@ void build_main(int build_rebuild_flag)
     // 5 - [draw list distance]         defined by user
     // 6 - transition pre-load flag     defined by user
     // 7 - backwards penalty            defined by user | is 1M times the float value because yes, range 0 - 0.5
-    int config[8] = {1, 1, 1, 0, 0, 0, 0, 0};
+    // 8 - load all sounds              0 - dont        |   1 - do
+    int config[9] = {1, 1, 1, 0, 0, 0, 0, 0, 1};
 
 
     if (build_rebuild_flag == FUNCTION_BUILD)
