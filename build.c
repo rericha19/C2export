@@ -2359,6 +2359,26 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 {
     int i, j, k, l;
 
+    int chunks[8];
+    int sound_chunk_count = 0;
+    unsigned int sounds_to_load[8];
+    for (i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+        {
+            int is_there = 0;
+            for (j = 0; j < sound_chunk_count; j++)
+                if (chunks[j] == elist[i].chunk) {
+                    is_there = 1;
+                    break;
+                }
+
+            if (!is_there) {
+                chunks[sound_chunk_count] = elist[i].chunk;
+                sounds_to_load[sound_chunk_count] = elist[i].EID;
+                sound_chunk_count++;
+            }
+        }
+
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
@@ -2392,11 +2412,14 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
 
-                for (k = 0; k < entry_count; k++)
+                /*for (k = 0; k < entry_count; k++)
                 if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[k].EID);
-                }
+                }*/
+                for (k = 0; k < cam_length; k++)
+                    for (l = 0; l < sound_chunk_count; l++)
+                        list_insert(&full_load[k], sounds_to_load[l]);
 
                 LIST neighbours = build_get_neighbours(elist[i].data);
                 for (k = 0; k < cam_length; k++)
