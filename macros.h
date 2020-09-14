@@ -55,6 +55,7 @@
 #define SCEN_RECOLOR                    2919463267u
 #define NSD                             193464746u
 #define REBUILD                         1370829996u
+#define REMOVE                          3425843123u
 
 #define STATUS                          3482341513u
 
@@ -279,6 +280,7 @@ void         path_fix(char *fpath);
 QUEUE        graph_init();
 void         graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
 void         graph_pop(QUEUE *graph, int *zone_index, int *cam_index);
+void         remove_prop_main();
 
 
 

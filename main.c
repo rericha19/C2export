@@ -80,6 +80,9 @@ int main()
             closedir(df);
             break;
             }
+        case REMOVE:
+            remove_prop_main();
+            break;
         case CHANGEPRINT:
             askprint(&status);
             break;

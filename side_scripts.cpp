@@ -715,3 +715,41 @@ void nsd_gool_table_print(char *fpath)
     }
     fclose(file);
 }
+
+
+void remove_prop_main()
+{
+    char fpath[1000];
+    printf("Path to item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("Couldn't open file.\n\n");
+        return;
+    }
+
+    int code;
+    printf("\nProperty code? (hex)\n");
+    scanf("%x", &code);
+
+    fseek(file1, 0, SEEK_END);
+    int filesize = ftell(file1);
+    rewind(file1);
+
+    unsigned char* buffer = (unsigned char *) calloc(filesize, sizeof(unsigned char));
+    fread(buffer, sizeof(unsigned char), filesize, file1);
+
+    int fsize = filesize;
+    buffer = build_rem_property(code, buffer, &fsize, NULL);
+
+    char fpath2[MAX];
+    sprintf(fpath2, "%s_changed", fpath);
+    FILE *file2 = fopen(fpath2, "wb");
+    fwrite(buffer, sizeof(unsigned char), fsize, file2);
+
+    fclose(file1);
+    fclose(file2);
+    printf("\nDone\n\n");
+}

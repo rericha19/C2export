@@ -2652,7 +2652,7 @@ int build_ask_ID()
  */
 void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX])
 {
-    printf("\nInput the path to the file with permaloaded entries:\n");
+    printf("Input the path to the file with permaloaded entries:\n");
     scanf(" %[^\n]",fpaths[0]);
     path_fix(fpaths[0]);
 
@@ -2711,12 +2711,12 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     int indexer, i, j, count = *chunk_count;
     int sound_entry_count = 0;
 
-    for (i = 0; i < entry_count; i++)
+    /*for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
         {
             sound_entry_count++;
             elist[i].esize = from_u32(elist[i].data + 0x14);
-        }
+        }*/
 
     ENTRY sound_list[sound_entry_count];
 
@@ -2777,8 +2777,8 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
                 indexer++;
             }
 
-        if (local_entry_count > 0)
-            offsets[indexer] = offsets[indexer - 1] + last_entry_size;
+        /*if (local_entry_count > 0)
+            offsets[indexer] = offsets[indexer - 1] + last_entry_size;*/
 
 
         for (j = 0; j < local_entry_count + 1; j++)
