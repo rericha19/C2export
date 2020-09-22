@@ -52,6 +52,9 @@ int main()
             export_main(zonetype,fpath,lcltemp);
             printf("\n");
             break;
+        case CONV:
+            c1_conv();
+            break;
         case EXPORTALL:
             {
             askmode(&zonetype, &status);
@@ -82,6 +85,9 @@ int main()
             }
         case REMOVE:
             remove_prop_main();
+            break;
+        case ADD:
+            frankenstein_property();
             break;
         case CHANGEPRINT:
             askprint(&status);

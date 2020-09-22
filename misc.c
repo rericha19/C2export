@@ -685,3 +685,11 @@ void graph_pop(QUEUE *graph, int *zone_index, int *cam_index)
     (graph->pop_index)++;
 }
 
+int get_file_length(FILE *file)
+{
+    fseek(file, 0, SEEK_END);
+    int filesize = ftell(file);
+    rewind(file);
+
+    return filesize;
+}

@@ -56,6 +56,8 @@
 #define NSD                             193464746u
 #define REBUILD                         1370829996u
 #define REMOVE                          3425843123u
+#define ADD                             193450094u
+#define CONV                            2088970075u
 
 #define STATUS                          3482341513u
 
@@ -280,7 +282,7 @@ void         path_fix(char *fpath);
 QUEUE        graph_init();
 void         graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
 void         graph_pop(QUEUE *graph, int *zone_index, int *cam_index);
-void         remove_prop_main();
+int          get_file_length(FILE *file);
 
 
 
@@ -405,3 +407,6 @@ void         rotate_zone(unsigned char *buffer, char *filepath, double rotation)
 void         rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
 void         crate_rotation_angle();
 void         nsd_gool_table_print(char *fpath);
+void         remove_prop_main();
+int          frankenstein_property();
+void         c1_conv();

@@ -24,9 +24,7 @@ int import_main(char *time, INFO status)
         return 0;
     }
 
-    fseek(base,0,SEEK_END);
-    baselength = ftell(base);
-    rewind(base);
+    baselength = get_file_length(base);
 
     basebase = (unsigned char *) malloc(baselength);
     fread(basebase,sizeof(unsigned char),baselength,base);
@@ -131,9 +129,7 @@ int import_file_lister(char *path, FILE *fnew)
             else if (!strcmp(temp2,"music") || !strcmp(temp2,"zone ") || !strcmp(temp2, "SLST ") || \
                      !strcmp(temp2,"scene") || !strcmp(temp2,"model") || !strcmp(temp2, "anima") || !strcmp(temp2,"GOOL "))
             {
-                fseek(file,0,SEEK_END);
-                entrysize = ftell(file);
-                rewind(file);
+                entrysize = get_file_length(file);
                 if (entrysize + curr_off + 0x16 + (index + 2) * 4 >= 65536)
                     import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
                 offsets[index + 1] = offsets[index] + entrysize;

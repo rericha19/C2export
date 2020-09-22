@@ -678,9 +678,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             file = NULL;
         }
         if ((file = fopen(temp, "rb")) == NULL) continue;
-        fseek(file, 0, SEEK_END);
-        fsize = ftell(file);
-        rewind(file);
+        fsize = get_file_length(file);
         fread(entry, fsize, sizeof(unsigned char), file);
         if (fsize == CHUNKSIZE && from_u16(entry + 0x2) == CHUNK_TYPE_TEXTURE)
         {
@@ -2619,9 +2617,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
  */
 int build_get_chunk_count_base(FILE *nsf)
 {
-    fseek(nsf, 0, SEEK_END);
-    int result = ftell(nsf) / CHUNKSIZE;
-    rewind(nsf);
+    int result = get_file_length(nsf) / 8;
 
     return result;
 }
