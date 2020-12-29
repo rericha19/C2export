@@ -678,7 +678,9 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             file = NULL;
         }
         if ((file = fopen(temp, "rb")) == NULL) continue;
-        fsize = get_file_length(file);
+        fseek(file, 0, SEEK_END);
+        fsize = ftell(file);
+        rewind(file);
         fread(entry, fsize, sizeof(unsigned char), file);
         if (fsize == CHUNKSIZE && from_u16(entry + 0x2) == CHUNK_TYPE_TEXTURE)
         {
@@ -2103,10 +2105,7 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code)
         }
 
     *(short int *) (prop.header) = code;
-    if (delta_counter == 1)
-        *(short int *) (prop.header + 4) = 0x0424;
-    else
-        *(short int *) (prop.header + 4) = 0x0464;
+    *(short int *) (prop.header + 4) = 0x0464;
     *(short int *) (prop.header + 6) = delta_counter;
 
     prop.length = total_length;
@@ -2359,13 +2358,10 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
 void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config)
 {
     int i, j, k, l;
-    int load_all_sounds = config[8];
 
     int chunks[8];
     int sound_chunk_count = 0;
     unsigned int sounds_to_load[8];
-
-    if (load_all_sounds == 0)
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
         {
@@ -2380,7 +2376,6 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 chunks[sound_chunk_count] = elist[i].chunk;
                 sounds_to_load[sound_chunk_count] = elist[i].EID;
                 sound_chunk_count++;
-                // printf("%d\n", elist[i].chunk * 2 + 1);
             }
         }
 
@@ -2416,13 +2411,12 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
-                if (load_all_sounds)
-                    for (k = 0; k < entry_count; k++)
-                        if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
-                            for (l = 0; l < cam_length; l++)
-                                list_insert(&full_load[l], elist[k].EID);
-                        }
 
+                /*for (k = 0; k < entry_count; k++)
+                if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
+                    for (l = 0; l < cam_length; l++)
+                        list_insert(&full_load[l], elist[k].EID);
+                }*/
                 for (k = 0; k < cam_length; k++)
                     for (l = 0; l < sound_chunk_count; l++)
                         list_insert(&full_load[k], sounds_to_load[l]);
@@ -2617,7 +2611,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
  */
 int build_get_chunk_count_base(FILE *nsf)
 {
-    int result = get_file_length(nsf) / 8;
+    fseek(nsf, 0, SEEK_END);
+    int result = ftell(nsf) / CHUNKSIZE;
+    rewind(nsf);
 
     return result;
 }
@@ -2648,7 +2644,7 @@ int build_ask_ID()
  */
 void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX])
 {
-    printf("Input the path to the file with permaloaded entries:\n");
+    printf("\nInput the path to the file with permaloaded entries:\n");
     scanf(" %[^\n]",fpaths[0]);
     path_fix(fpaths[0]);
 
@@ -2707,12 +2703,9 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     int indexer, i, j, count = *chunk_count;
     int sound_entry_count = 0;
 
-    /*for (i = 0; i < entry_count; i++)
+    for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
-        {
             sound_entry_count++;
-            elist[i].esize = from_u32(elist[i].data + 0x14);
-        }*/
 
     ENTRY sound_list[sound_entry_count];
 
@@ -2764,17 +2757,12 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
         indexer = 0;
         offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
 
-        int last_entry_size = 0;
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == count + i)
             {
                 offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
-                last_entry_size = sound_list[j].esize;
                 indexer++;
             }
-
-        /*if (local_entry_count > 0)
-            offsets[indexer] = offsets[indexer - 1] + last_entry_size;*/
 
 
         for (j = 0; j < local_entry_count + 1; j++)
@@ -2961,7 +2949,7 @@ void build_ask_distances(int *config)
     scanf("%d", &temp);
     config[5] = temp;
 
-    printf("\nPre-load stuff for transitions? (not pre-loading is safer for stitched-together levels) [y/n]\n");
+    printf("\nPre-load stuff for transitions? (not pre-loading is safer) [y/n]\n");
     scanf("%c", &ans);
     scanf("%c", &ans);
     if (ans == 'y' || ans == 'Y') {
@@ -2981,18 +2969,6 @@ void build_ask_distances(int *config)
         backw = 0;
     }
     config[7] = (int) (PENALTY_MULT_CONSTANT * backw);
-
-    /*printf("\nInclude only one sound per sound chunk in the load lists? (including all is safer) [y/n]\n");
-    scanf("%c", &ans);
-    scanf("%c", &ans);
-    if (ans == 'y' || ans == 'Y') {
-        config[8] = 0;
-        printf("Including one sound per sound chunk\n\n");
-    }
-    else {
-        config[8] = 1;
-        printf("Including all sounds\n\n");
-    }*/
 }
 
 // dumb thing for snow no or whatever convoluted level its configured for rn
@@ -3154,9 +3130,8 @@ void build_main(int build_rebuild_flag)
     // 4 - [neighbour distance]         defined by user
     // 5 - [draw list distance]         defined by user
     // 6 - transition pre-load flag     defined by user
-    // 7 - backwards penalty            defined by user [is 1M times the float value because yes, range 0 - 0.5]
-    // 8 - load all sounds              0 - dont load   |   1 - do load
-    int config[9] = {1, 1, 1, 0, 0, 0, 0, 0, 1};
+    // 7 - backwards penalty            defined by user | is 1M times the float value because yes, range 0 - 0.5
+    int config[8] = {1, 1, 1, 0, 0, 0, 0, 0};
 
 
     if (build_rebuild_flag == FUNCTION_BUILD)

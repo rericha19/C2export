@@ -18,8 +18,10 @@ int scenery_recolor_main()
     printf("R G B? [hex]\n");
     scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
 
-    int color_count = get_file_length(file1) / 4;
+    fseek(file1, 0, SEEK_END);
+    int color_count = ftell(file1) / 4;
     unsigned char stuff[color_count * 4];
+    rewind(file1);
     fread(stuff, color_count, 4, file1);
 
     // pseudograyscale of the wanted color
@@ -93,8 +95,9 @@ void rotate_main(char *time)
         printf("File specified could not be opened\n");
         return;
     }
-
-    filesize = get_file_length(file);
+    fseek(file,0,SEEK_END);
+    filesize = ftell(file);
+    rewind(file);
     entry = (unsigned char *) malloc(filesize);
     fread(entry, sizeof(unsigned char),filesize,file);
     if (entry[8] == 7) rotate_zone(entry, path, rotation);
@@ -206,8 +209,8 @@ int texture_copy_main()
     {
         int i;
         int bpp, src_x, src_y, width, height, dest_x, dest_y;
-        printf("bpp src_x src_y width height dest-x dest-y? (hex) [set bpp to 0 to end]\n");
-        scanf("%d %x %x %x %x %x %x", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
+        printf("bpp src_x src_y width height dest-x dest-y? [set bpp to 0 to end]\n");
+        scanf("%d %d %d %d %d %d %d", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
         int end = 0;
 
         switch(bpp)
@@ -267,7 +270,10 @@ void prop_main(char* path)
         return;
     }
 
-    fsize = get_file_length(file);
+    fseek(file, 0, SEEK_END);
+    fsize = ftell(file);
+    rewind(file);
+
     arr = (unsigned char *) malloc(fsize);
     fread(arr, fsize, sizeof(unsigned char), file);
 
@@ -410,7 +416,9 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO
     sprintf(lcltemp,"%s\\%s_%s",filepath,time,help);
 
     filenew = fopen(lcltemp,"wb");
-    chunkcount = get_file_length(level) / CHUNKSIZE;
+    fseek(level,0,SEEK_END);
+    chunkcount = ftell(level) / CHUNKSIZE;
+    rewind(level);
 
     for (i = 0; i < chunkcount; i++)
     {
@@ -489,7 +497,9 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status
                 sprintf(status.temp,"%s\n",de->d_name);
                 condprint(status);
                 file = fopen(fpath,"rb");
-                filesize = get_file_length(file);
+                fseek(file,0,SEEK_END);
+                filesize = ftell(file);
+                rewind(file);
                 buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
                 fread(buffer,sizeof(unsigned char),filesize,file);
                 resize_zone(filesize,buffer,scale,status);
@@ -687,7 +697,10 @@ void nsd_gool_table_print(char *fpath)
         return;
     }
 
-    int filesize = get_file_length(file);
+    fseek(file,0,SEEK_END);
+    int filesize = ftell(file);
+    rewind(file);
+
     unsigned char buffer[filesize];
     fread(buffer, sizeof(unsigned char), filesize, file);
 
@@ -701,150 +714,4 @@ void nsd_gool_table_print(char *fpath)
             putchar('\n');
     }
     fclose(file);
-}
-
-
-void remove_prop_main()
-{
-    char fpath[1000];
-    printf("Path to item:\n");
-    scanf(" %[^\n]",fpath);
-    path_fix(fpath);
-
-    FILE* file1;
-    if ((file1 = fopen(fpath, "rb+")) == NULL) {
-        printf("Couldn't open file.\n\n");
-        return;
-    }
-
-    int code;
-    printf("\nProperty code? (hex)\n");
-    scanf("%x", &code);
-
-    int filesize = get_file_length(file1);
-        unsigned char* buffer = (unsigned char *) calloc(filesize, sizeof(unsigned char));
-    fread(buffer, sizeof(unsigned char), filesize, file1);
-
-    int fsize = filesize;
-    buffer = build_rem_property(code, buffer, &fsize, NULL);
-
-    char fpath2[MAX];
-    sprintf(fpath2, "%s_changed", fpath);
-
-    FILE *file2 = fopen(fpath2, "wb");
-    fwrite(buffer, sizeof(unsigned char), fsize, file2);
-
-    fclose(file1);
-    fclose(file2);
-    free(buffer);
-    printf("\nDone\n\n");
-}
-
-int frankenstein_property()
-{
-    char fpath[1000];
-    printf("Path to item:\n");
-    scanf(" %[^\n]",fpath);
-    path_fix(fpath);
-
-    FILE* file1;
-    if ((file1 = fopen(fpath, "rb+")) == NULL) {
-        printf("Couldn't open file.\n\n");
-        return 1;
-    }
-
-    int filesize = get_file_length(file1);
-
-    unsigned char* buffer = (unsigned char *) calloc(filesize, sizeof(unsigned char));
-    fread(buffer, sizeof(unsigned char), filesize, file1);
-
-    int fsize = filesize;
-
-
-    PROPERTY prop;
-    prop.length = 6 * 4;
-    prop.data = (unsigned char *) malloc(sizeof(prop.length));
-
-    int code = 0x119;
-    *(short int*) prop.header = code;
-    *(int *) (prop.header + 0x4) = 0x00020232;
-
-    *(int *) prop.data = 0x4;
-    *(int *)(prop.data + 0x4) = 0x14;
-    *(int *)(prop.data + 0x8) = 0x008D008D;
-    *(int *)(prop.data + 0xC) = 0x000D0088;
-    *(int *)(prop.data +0x10) = 0x008D008D;
-    *(int *)(prop.data +0x14) = 0x000D0088;
-
-    buffer = build_rem_property(code, buffer, &fsize, NULL);
-    buffer = build_add_property(code, buffer, &fsize, &prop);
-
-    char fpath2[MAX];
-    sprintf(fpath2, "%s_changed", fpath);
-
-    FILE *file2 = fopen(fpath2, "wb");
-    fwrite(buffer, sizeof(unsigned char), fsize, file2);
-
-    fclose(file1);
-    fclose(file2);
-    free(buffer);
-    printf("\nDone\n\n");
-
-
-    return 0;
-}
-
-void c1_conv()
-{
-    char fpath[MAX];
-    printf("Path to model:\n");
-    scanf(" %[^\n]",fpath);
-    path_fix(fpath);
-
-    FILE* file1;
-    if ((file1 = fopen(fpath, "rb")) == NULL) {
-        printf("Couldn't open file.\n\n");
-        return;
-    }
-
-    int filesize = get_file_length(file1);
-
-    ENTRY model;
-    model.data = (unsigned char *) malloc(filesize);
-    fread(model.data, sizeof(unsigned char), filesize, file1);
-    model.esize = filesize;
-    model.EID = from_u32(model.data + 0x4);
-
-    int model_item1off = from_u32(model.data + 0x10);
-    int model_item2off = from_u32(model.data + 0x14);
-
-    int poly_count = from_u32(model.data + model_item1off);
-    int size_x = from_u32(model.data + model_item1off + 0x4);
-    int size_y = from_u32(model.data + model_item1off + 0x8);
-    int size_z = from_u32(model.data + model_item1off + 0xC);
-    int txt_ref_count = from_u32(model.data + model_item1off + 0x10);
-
-    printf("Path to animation:\n");
-    scanf(" %[^\n]",fpath);
-    path_fix(fpath);
-
-
-    FILE* file2;
-    if ((file2 = fopen(fpath, "rb")) == NULL) {
-        printf("Couldn't open file.\n\n");
-        fclose(file1);
-        return;
-    }
-
-    int filesize2 = get_file_length(file2);
-    ENTRY anim;
-    anim.data = (unsigned char *) malloc(filesize2);
-    fread(anim.data, sizeof(unsigned char ), filesize2, file2);
-    model.esize = filesize2;
-    model.EID = from_u32(model.data + 0x4);
-
-    fclose(file1);
-    fclose(file2);
-    free(model.data);
-    free(anim.data);
 }

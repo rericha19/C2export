@@ -62,7 +62,9 @@ int export_main(int zone, char *fpath, char *date)
 
 
     //reading the file
-    numbytes = get_file_length(file);
+    fseek(file, 0, SEEK_END);
+    numbytes = ftell(file);
+    rewind(file);
     sprintf(status.temp,"The NSF [ID %s] has %d pages/chunks\n",sid,(numbytes / CHUNKSIZE)*2 - 1);
     condprint(status);
 
