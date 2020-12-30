@@ -16,6 +16,7 @@
 #define MAX                             1000
 #define PI                              3.1415926535
 #define QUEUE_ITEM_COUNT                2500
+#define PENALTY_MULT_CONSTANT   1000000
 
 // more dumb things
 #define C2_NEIGHBOURS_START             0x190
@@ -209,10 +210,10 @@ typedef struct {
 
 // stores a camera path link
 typedef struct link {
-    char type;
-    char zone_index;
-    char cam_index;
-    char flag;
+    unsigned char type;
+    unsigned char zone_index;
+    unsigned char cam_index;
+    unsigned char flag;
 }   LINK;
 
 // entity/item property
@@ -302,7 +303,7 @@ int          import_file_lister(char *path, FILE *fnew);
 void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 
 
-// build.c
+// build files in no particular order
 int          build_align_sound(int input);
 unsigned int build_get_model(unsigned char *anim);
 int          build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
@@ -341,7 +342,7 @@ unsigned char* build_add_property(unsigned int code, unsigned char *item, int* i
 unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop);
 void         build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *), int property_code, PROPERTY *prop);
 LIST         build_get_links(unsigned char *entry, int cam_index);
-void         build_load_list_util_util_back(int cam_length, LIST *listA, LIST *listB, int distance, int final_distance, short int* coords, int path_length, LIST additions);
+void         build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions);
 void         build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int* coords, int path_length, LIST additions);
 void         build_add_collision_dependencies(LIST *full_list, int start_index, int end_index, unsigned char *entry, DEPENDENCIES collisions, ENTRY *elist, int entry_count);
 int          build_dist_w_penalty(int distance, int backwards_penalty);
@@ -365,10 +366,19 @@ void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_c
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config);
 int          build_is_normal_chunk_entry(ENTRY entry);
-void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int config2);
+void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);
+void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks);
+LIST         build_get_sceneries(unsigned char *entry);
+void         build_check_item_count(unsigned char *zone, int EID);
+void         build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns);
+void         build_ask_distances(int *config);
+int          build_is_before(ENTRY *elist, int zone_index, int camera_index, int neighbour_index, int neighbour_cam_index);
+void         build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded);
+void         build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j);
+
 
 // deprecate_build.c
 PAYLOADS     deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);

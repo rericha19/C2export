@@ -91,9 +91,9 @@ int export_main(int zone, char *fpath, char *date)
 
     for (i = 0; (unsigned int) i < status.animrefcount; i++)
     {
+        eid_conv(status.anim[i][0],lcltemp[0]);
         eid_conv(status.anim[i][1],lcltemp[1]);
         eid_conv(status.anim[i][2],lcltemp[2]);
-        eid_conv(status.anim[i][3],lcltemp[3]);
        // printf("ref: %03d, model: %s, animation: %s, new eid: %s\n", i, lcltemp[1], lcltemp[2], lcltemp[3]);
     }
 
@@ -263,6 +263,7 @@ void export_entity_coord_fix(unsigned char *item, int itemlength)
             scale = 2;
             break;
         default:
+            scale = 1;
             break;
         }
 
@@ -460,9 +461,9 @@ void export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
                         eid_conv(help2, eidhelp2);
                         if (eidhelp2[4] == 'V')
                         {
-                            status.anim[status.animrefcount][1] = help1;
+                            status.anim[status.animrefcount][0] = help1;
+                            status.anim[status.animrefcount][1] = help2;
                             status.anim[status.animrefcount][2] = help2;
-                            status.anim[status.animrefcount][3] = help2;
                             status.animrefcount++;
                         }
                     }

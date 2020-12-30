@@ -78,7 +78,7 @@ void print_help()
     printf("[error] error message\n");
     printf("\tan error that was handled\n");
 
-    printf("[warning] error message\n");
+    printf("[warning] warning text\n");
     printf("\tjust a warning, something may or may not be wrong\n");
     for (int i = 0; i < 75; i++) printf("-");
     printf("\n\n");
