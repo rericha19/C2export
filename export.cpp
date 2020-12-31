@@ -3,6 +3,7 @@
 extern INFO status;
 
 // convoluted, but does the thing (i think)
+// absolutely fucking awful never look at it again
 
 int export_main(int zone, char *fpath, char *date)
 // does the thing yea

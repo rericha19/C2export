@@ -55,7 +55,8 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
             for (j = 0; j < cam_count; j++) {
                 printf("\t cam path %d\n", j);
-                int cam_length = build_get_path_length(elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j)));
+                int cam_offset = get_nth_item_offset(elist[i].data, 2 + 3 * j);
+                int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 LIST full_load[cam_length];
                 for (k = 0; k < cam_length; k++)
@@ -321,7 +322,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         return;
     }
 
-    int offset = from_u32(elist[neighbour_index].data + 0x10 + 4 * (2 + 3 * link.cam_index));
+    int offset = get_nth_item_offset(elist[neighbour_index].data, 2 + 3 * link.cam_index);
     unsigned int slst = build_get_slst(elist[neighbour_index].data + offset);
     for (i = 0; i < cam_length; i++)
         list_insert(&full_list[i], slst);
@@ -347,7 +348,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         if (preloading_flag == 0 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
             continue;
 
-        int offset2 = from_u32(elist[neighbour_index2].data + 0x10 + 4 * (2 + 3 * link2.cam_index));
+        int offset2 = get_nth_item_offset(elist[neighbour_index2].data, 2 + 3 * link2.cam_index);
         unsigned int slst2 = build_get_slst(elist[neighbour_index2].data + offset2);
 
         LIST neig_list = build_get_neighbours(elist[neighbour_index2].data);
@@ -659,7 +660,7 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
         int cam_count = build_get_cam_count(elist[curr_index].data);
         int entity_count = build_get_entity_count(elist[curr_index].data);
         for (j = 0; j < entity_count; j++) {
-            int entity_offset = from_u32(elist[curr_index].data + 0x10 + 4 * (2 + cam_count + j));
+            int entity_offset = get_nth_item_offset(elist[curr_index].data, 2 + cam_count + j);
             int ID = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_ID);
             if (list_find(entity_list, ID) != -1) {
                 int type = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_TYPE);
@@ -732,7 +733,7 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, 
     for (i = 0; i < cam_length; i++)
         draw_list[i] = init_list();
 
-    int cam_offset = from_u32(elist[zone_index].data + 0x10 + 4 * cam_index);
+    int cam_offset = get_nth_item_offset(elist[zone_index].data, cam_index);
     LOAD_LIST draw_list2 = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, elist[zone_index].data, cam_offset);
 
     qsort(draw_list2.array, draw_list2.count, sizeof(LOAD), comp2);
@@ -846,7 +847,7 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
 LIST build_get_links(unsigned char *entry, int cam_index) {
     int i, k, l, link_count = 0;
     int *links;
-    int cam_offset = from_u32(entry + 0x10 + 4 * cam_index);
+    int cam_offset = get_nth_item_offset(entry, cam_index);
 
     for (k = 0; (unsigned) k < from_u32(entry + cam_offset + 0xC); k++) {
         int code = from_u16(entry + cam_offset + 0x10 + 8 * k);
@@ -895,7 +896,7 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
     int item_lengths[item_count];
     unsigned char *items[item_count];
     for (i = 0; i < item_count; i++)
-        item_lengths[i] = from_u32(zone->data + 0x14 + 4 * i) - from_u32(zone->data + 0x10 + 4 * i);
+        item_lengths[i] = get_nth_item_offset(zone->data, i + 1) - get_nth_item_offset(zone->data, i);
 
     offset = 0x10 + 4 * item_count + 4;
     for (i = 0; i < item_count; i++) {
@@ -1121,7 +1122,7 @@ void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list) {
  * \return short int*                   path
  */
 short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len) {
-    unsigned char *item = elist[zone_index].data + from_u32(elist[zone_index].data + 0x10 + 4 * item_index);
+    unsigned char *item = elist[zone_index].data + get_nth_item_offset(elist[zone_index].data, item_index);
     int i, offset = 0;
     for (i = 0; i < item[0xC]; i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)

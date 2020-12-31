@@ -273,22 +273,6 @@ int build_get_chunk_count_base(FILE *nsf) {
     return result;
 }
 
-
-/** \brief
- *  Assigns primary chunks to all entries, merges need them.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_count int*              chunk count
- * \param config int*                   config
- * \return void
- */
-void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config) {
-    for (int i = 0; i < entry_count; i++)
-        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1)
-            elist[i].chunk = (*chunk_count)++;
-}
-
 /** \brief
  *  Checks whether the entry is meant to be placed into a normal chunk.
  *
@@ -351,7 +335,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
             int entity_count = build_get_entity_count(elist[i].data);
             int camera_count = build_get_cam_count(elist[i].data);
             for (int j = 0; j < entity_count; j++) {
-                unsigned char *entity = elist[i].data + from_u32(elist[i].data + 0x10 + 4 * (2 + camera_count + j));
+                unsigned char *entity = elist[i].data + get_nth_item_offset(elist[i].data, (2 + camera_count + j));
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -492,8 +476,8 @@ void build_main(int build_rebuild_flag) {
             }
             else
             for (int j = 0; j < chunk_entry_count; j++) {
-                int start_offset = from_u32(buffer + 0x10 + 4 * j);
-                int end_offset = from_u32(buffer + 0x14 + 4 * j);
+                int start_offset = get_nth_item_offset(buffer, j);
+                int end_offset = get_nth_item_offset(buffer, j + 1);
                 int entry_size = end_offset - start_offset;
 
                 elist[entry_count].chunk = -1;
@@ -550,7 +534,6 @@ void build_main(int build_rebuild_flag) {
 
     build_ask_distances(config);
     build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
-
     build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
     //build_get_box_count(elist, entry_count); // snow no bullshit
 

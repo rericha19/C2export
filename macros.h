@@ -280,7 +280,7 @@ void         path_fix(char *fpath);
 QUEUE        graph_init();
 void         graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
 void         graph_pop(QUEUE *graph, int *zone_index, int *cam_index);
-
+int          get_nth_item_offset(unsigned char *entry, int n);
 
 
 // export.c
@@ -333,7 +333,7 @@ void         build_increment_common(LIST list, LIST entries, int **entry_matrix,
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix);
-void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag);
+void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);

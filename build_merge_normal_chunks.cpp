@@ -2,21 +2,39 @@
 
 
 /** \brief
- *  Calls merge functions.
+ *  Main merge function.
+ *  First merges the permaloaded entries, then using waren's matrix merge idea merges other normal chunk entries.
+ *  Deprecate payload merge and dumb merge do not matter much, payload merge is for metrics, dumb merge is just
+ *  in case some minor possible merge slipped thru the cracks.
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
  * \param chunk_border_sounds int       index of last sound chunk
  * \param chunk_count int*              chunk count
- * \param config2 int                   0/1, determines whether each point of cam paths or only main/deltas are considered
+ * \param config int*                   config[2]: 0/1, determines whether each point of cam paths or only main/deltas are considered
  * \return void
  */
 void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count, config);
-    build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config[2]);
+    build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+}
+
+
+/** \brief
+ *  Assigns primary chunks to all entries, merges need them.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_count int*              chunk count
+ * \param config int*                   config
+ * \return void
+ */
+void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config) {
+    for (int i = 0; i < entry_count; i++)
+        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1)
+            elist[i].chunk = (*chunk_count)++;
 }
 
 
@@ -32,9 +50,12 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
  * \param merge_flag int                per-point if 1, per-delta-item if 0
  * \return void
  */
-void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int merge_flag) {
+void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config) {
     int i, j, l, m;
+    int merge_flag = config[2];
     LIST entries = init_list();
+
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count, config);
 
     for (i = 0; i < entry_count; i++) {
         switch (build_entry_type(elist[i])) {
@@ -52,23 +73,23 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
         list_insert(&entries, elist[i].EID);
     }
 
+    // builds a triangular matrix that will contain the amount of common load list occurences between i-th and j-th entry
     int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));
     for (i = 0; i < entries.count; i++)
         entry_matrix[i] = (int *) calloc((i), sizeof(int));
 
+    // for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
-            int item1off = from_u32(elist[i].data + 0x10);
-            int cam_count = from_u32(elist[i].data + item1off + 0x188) / 3;
-
+            int cam_count = build_get_cam_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++) {
-                int cam_offset = from_u32(elist[i].data + 0x10 + 4 * (2 + 3 * j));
+                int cam_offset = get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 LIST list = init_list();
                 switch(merge_flag) {
-                    // per point
+                    // per point (seems to generally be better)
                     case 1: {
                         int sublist_index = 0;
                         int rating = 0;
@@ -283,6 +304,7 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
     int count = *chunk_count;
     int perma_normal_entry_count = 0;
 
+    // find all permaloaded entries, add them to a temporary list, sort the list in descending order by size (biggest first)
     for (i = 0; i < entry_count; i++)
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
@@ -295,11 +317,15 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
 
     qsort(list, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
 
+    // keep putting them into existing chunks if they fit
+    // afterwards change the actual entry list entries' used chunk
+    // at the end count the chunks that actually got stuff placed into them
     int perma_chunk_count = 250;
     int sizes[perma_chunk_count];
     for (i = 0; i < perma_chunk_count; i++)
         sizes[i] = 0x14;
 
+    // place where fits
     for (i = 0; i < perma_normal_entry_count; i++)
         for (j = 0; j < MAX; j++)
             if (sizes[j] + 4 + list[i].esize <= CHUNKSIZE) {
@@ -307,12 +333,13 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
                 sizes[j] += 4 + list[i].esize;
                 break;
             }
-
+    // to edit the array of entries that is actually used
     for (i = 0; i < entry_count; i++)
         for (j = 0; j < perma_normal_entry_count; j++)
             if (elist[i].EID == list[j].EID)
                 elist[i].chunk = list[j].chunk;
 
+    // count used chunks
     int counter = 0;
     for (i = 0; i < 8; i++)
         if (sizes[i] > 0x14)

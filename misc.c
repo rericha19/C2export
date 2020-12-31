@@ -685,3 +685,6 @@ void graph_pop(QUEUE *graph, int *zone_index, int *cam_index)
     (graph->pop_index)++;
 }
 
+int get_nth_item_offset(unsigned char *entry, int n) {
+    return from_u32(entry + 0x10 + 4 * n);
+}

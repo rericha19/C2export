@@ -145,8 +145,8 @@ void c1_conv_main()
     int frame_count = from_u32(anim.data + 0xC);
     for (i = 0; i < frame_count; i++)
     {
-        int item_off = from_u32(anim.data + 0x10 + 4 * i);
-        int item_off_next = from_u32(anim.data + 0x14 + 4 * i);
+        int item_off = get_nth_item_offset(anim.data, i);
+        int item_off_next = get_nth_item_offset(anim.data, i + 1);
 
         vertex_count = from_u32(anim.data + item_off);
         int modelEID = from_u32(anim.data + item_off + 0x4);
