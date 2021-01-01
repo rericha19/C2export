@@ -403,12 +403,18 @@ void build_main(int build_rebuild_flag) {
     int config[8] = {1, 1, 1, 0, 0, 0, 0, 0};
 
     // reading contents of the nsf/folder and collecting metadata
-    if (build_rebuild_flag == FUNCTION_BUILD)
-        build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+    // end if something went wrong
+    if (build_rebuild_flag == FUNCTION_BUILD) {
+        int rtrn = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+        if (rtrn) return;
+    }
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
-    if (build_rebuild_flag == FUNCTION_REBUILD)
-        build_read_and_parse_rebuild(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+    // end if something went wrong
+    if (build_rebuild_flag == FUNCTION_REBUILD) {
+        int rtrn = build_read_and_parse_rebuild(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+        if (rtrn) return;
+    }
 
     chunk_count = chunk_border_texture;
 
@@ -454,4 +460,5 @@ void build_main(int build_rebuild_flag) {
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
     build_final_cleanup(elist, entry_count, chunks, chunk_count);
+    printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }

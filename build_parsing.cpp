@@ -619,7 +619,7 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
     }
 }
 
-void build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
+int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                 ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns) {
     char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
     printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
@@ -633,14 +633,14 @@ void build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* c
     FILE *nsf = NULL;
     if ((nsf = fopen(nsfpath,"rb")) == NULL) {
         printf("[ERROR] Could not open selected NSF\n");
-        return;
+        return 1;
     }
 
     DIR *df = NULL;
     if ((df = opendir(dirpath)) == NULL) {
         printf("[ERROR] Could not open selected directory\n");
         fclose(nsf);
-        return;
+        return 1;
     }
 
     *level_ID = build_ask_ID();
@@ -655,9 +655,10 @@ void build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* c
     //build_read_nsf(elist, chunk_border_base, chunks, chunk_border_texture, &entry_count, nsf, gool_table);    // rn base level is not considered
     build_read_folder(df, dirpath, chunks, elist, chunk_border_texture, entry_count, spawns, gool_table);
     fclose(nsf);
+    return 0;
 }
 
-void build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
+int build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                   ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS* spawns) {
     char nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
     printf("Input the path to the level (.nsf) you want to rebuild:\n");
@@ -667,7 +668,7 @@ void build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int*
     FILE *nsf = NULL;
     if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
         printf("[ERROR] Could not open selected NSF\n");
-        return;
+        return 1;
     }
 
     *level_ID = build_ask_ID();
@@ -730,4 +731,5 @@ void build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int*
         }
     }
     fclose(nsf);
+    return 0;
 }

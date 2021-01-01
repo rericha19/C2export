@@ -94,11 +94,9 @@ int main() {
                 break;
             case BUILD:
                 build_main(FUNCTION_BUILD);
-                printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
                 break;
             case REBUILD:
                 build_main(FUNCTION_REBUILD);
-                printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
                 break;
             case PROP:
                 printf("Input the path to the file:\n");
