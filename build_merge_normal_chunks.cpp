@@ -1,5 +1,5 @@
 #include "macros.h"
-
+// contains functions responsible for the current chunk merging algorithm implementation
 
 /** \brief
  *  Main merge function.

@@ -1,5 +1,5 @@
 #include "macros.h"
-
+// responsible for generating load lists using already input or here collected data and info
 
 /** \brief
  *  A function that for each zone's each camera path creates new load lists using

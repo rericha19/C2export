@@ -1,5 +1,6 @@
 #include "macros.h"
-
+// contains functions responsible for creating sound and instrument chunks
+// kinda simple, sound chunks have some dumb rules that this tool still doesnt properly follow but oh well
 
 /** \brief
  *  Creates and builds chunks for the instrument entries according to their format.

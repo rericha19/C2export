@@ -1,5 +1,6 @@
 #include "macros.h"
-
+// contains functions responsible for transforming existing entry->chunk assignmened data
+// into playable/output nsd/nsf files
 
 /** \brief
  *  Calls a function that builds chunks based on previous merge decisions or other chunk assignments

@@ -1,5 +1,5 @@
 #include "macros.h"
-
+// contains mostly functions used to get input from user (config stuff)
 
 /** \brief
  *  Asks the user for built level's ID.

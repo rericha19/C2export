@@ -1,4 +1,6 @@
 #include "macros.h"
+// contains deprecate but not entirely unused implementation of the chunk merging/building algorithm
+// mainly payload based decisions and some other older stuff
 
 /** \brief
  *  Used by payload method, deprecate.

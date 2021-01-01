@@ -1,4 +1,6 @@
 #include "macros.h"
+// contains main build function that governs the process, as well as semi-misc functions
+// necessary or used across various build files
 
 
 /** \brief

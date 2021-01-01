@@ -1,5 +1,5 @@
 #include "macros.h"
-
+// reading input data (nsf/folder), parsing and storing it
 
 /** \brief
  *  Reads the nsf, puts it straight into chunks, does not collect references or anything.
