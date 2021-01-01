@@ -34,7 +34,7 @@
 #define CHUNK_TYPE_SOUND                3
 #define CHUNK_TYPE_INSTRUMENT           4
 #define C2_MUSIC_REF                    0x2A4
-#define NONE                            0x6396347Fu
+#define EID_NONE                        0x6396347Fu
 
 // commands
 #define KILL                            2089250961u

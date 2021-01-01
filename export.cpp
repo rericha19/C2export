@@ -110,15 +110,14 @@ int export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *d
     char ctypes[7][20]={"Normal","Texture","Proto sound","Sound","Wavebank","Speech","Unknown"};
     sprintf(status.temp,"%s chunk \t%03d\n", ctypes[buffer[2]], chunkid*2 +1);
     condprint(status);
-    switch (buffer[2])
-    {
-    case 0: case 3: case 4: case 5:
+    switch (buffer[2]) {
+        case 0: case 3: case 4: case 5:
             export_normal_chunk(buffer, lvlid, date, zonetype);
             break;
-    case 1:
+        case 1:
             export_texture_chunk(buffer,lvlid, date);
             break;
-    default:
+        default:
             break;
     }
     return 0;

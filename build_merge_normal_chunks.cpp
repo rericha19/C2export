@@ -89,7 +89,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
                 LIST list = init_list();
                 switch(merge_flag) {
-                    // per point (seems to generally be better)
+                    // per point (seems to generally be better), but its actually kinda fucky because if its not it works worse
                     case 1: {
                         int sublist_index = 0;
                         int rating = 0;

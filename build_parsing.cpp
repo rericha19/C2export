@@ -343,7 +343,7 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
 
     if (relcount == 1) return NULL;
 
-    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != NONE)
+    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != EID_NONE)
         relcount++;
     relatives = (unsigned int *) malloc(relcount * sizeof(unsigned int));
 
@@ -359,7 +359,7 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
     for (i = 0; i < scencount; i++)
         relatives[entry_count++] = from_u32(entry + item1off + 0x4 + 0x30 * i);
 
-    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != NONE)
+    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != EID_NONE)
         relatives[entry_count++] = from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]);
 
     for (i = 0; i < entity_count; i++) {

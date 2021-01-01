@@ -372,26 +372,24 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
  * \return void
  */
 void build_main(int build_rebuild_flag) {
-    char fpaths[FPATH_COUNT][MAX] = {0}, nsfpath[MAX], dirpath[MAX], lcltemp[MAX];
-    FILE *nsf = NULL, *nsfnew = NULL, *nsd = NULL;
-    SPAWNS spawns = init_spawns();
-    ENTRY elist[2500];
-    DIR *df;
-    unsigned char *chunks[1024];
-    LIST permaloaded;
-    DEPENDENCIES subtype_info;
-    DEPENDENCIES collisions;
-    int i, level_ID = 0;
-    int chunk_border_base       = 0,
+    char fpaths[FPATH_COUNT][MAX] = {0}, nsfpath[MAX], dirpath[MAX], lcltemp[MAX];      // paths to files, fpaths contains user-input metadata like perma list file
+    FILE *nsfnew = NULL, *nsd = NULL;                                                   // file pointers for input nsf, output nsf (nsfnew) and output nsd
+    SPAWNS spawns = init_spawns();                                                      // struct with spawns found during reading and parsing of the level data
+    ENTRY elist[2500];                                                                  // array of structs used to store entries, static cuz lazy & struct is small
+    unsigned char *chunks[1024];                                                        // array of pointers to potentially built chunks, static cuz lazy
+    LIST permaloaded;                                                                   // list containing EIDs of permaloaded entries provided by the user
+    DEPENDENCIES subtype_info;                                                          // struct containing info about dependencies of certain types and subtypes
+    DEPENDENCIES collisions;                                                            // struct containing info about dependencies of certain collision types
+    int level_ID = 0;                                                                   // level ID, used for naming output files and needed in output nsd
+    int chunk_border_base       = 0,                                                    // used to keep track of counts and to separate groups of chunks
         chunk_border_texture    = 0,
         chunk_border_sounds     = 0,
         chunk_count             = 0,
         entry_count_base        = 0,
         entry_count             = 0;
 
-    unsigned int gool_table[0x40];
-    for (i = 0; i < 0x40; i++)
-        gool_table[i] = NONE;
+    unsigned int gool_table[0x40];                                                      // table w/ EIDs of gool entries, needed for nsd, filled using input entries
+    for (int i = 0; i < 0x40; i++) gool_table[i] = EID_NONE;
 
     /* config: */
     // 0 - [gool initial merge flag]    0 - group       |   1 - one by one
@@ -404,7 +402,7 @@ void build_main(int build_rebuild_flag) {
     // 7 - backwards penalty            defined by user | is 1M times the float value because yes, range 0 - 0.5
     int config[8] = {1, 1, 1, 0, 0, 0, 0, 0};
 
-
+    // reading contents of the nsf/folder and collecting metadata
     if (build_rebuild_flag == FUNCTION_BUILD) {
         printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
         scanf(" %[^\n]", nsfpath);
@@ -414,11 +412,13 @@ void build_main(int build_rebuild_flag) {
         scanf(" %[^\n]", dirpath);
         path_fix(dirpath);
 
+        FILE *nsf = NULL;
         if ((nsf = fopen(nsfpath,"rb")) == NULL) {
             printf("[ERROR] Could not open selected NSF\n");
             return;
         }
 
+        DIR *df = NULL;
         if ((df = opendir(dirpath)) == NULL) {
             printf("[ERROR] Could not open selected directory\n");
             fclose(nsf);
@@ -438,6 +438,7 @@ void build_main(int build_rebuild_flag) {
         chunk_border_base = 0;
         entry_count_base = entry_count;
         build_read_folder(df, dirpath, chunks, elist, &chunk_border_texture, &entry_count, &spawns, gool_table);
+        fclose(nsf);
     }
 
     if (build_rebuild_flag == FUNCTION_REBUILD) {
@@ -445,6 +446,7 @@ void build_main(int build_rebuild_flag) {
         scanf(" %[^\n]", nsfpath);
         path_fix(nsfpath);
 
+        FILE *nsf = NULL;
         if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
             printf("[ERROR] Could not open selected NSF\n");
             return;
@@ -509,21 +511,30 @@ void build_main(int build_rebuild_flag) {
                 qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
             }
         }
+        fclose(nsf);
     }
 
-    fclose(nsf);
+    chunk_count = chunk_border_texture;
+
+
+    // let the user pick the spawn, according to the spawn determine for each cam path its distance from spawn in terms of path links,
+    // which is later used to find out which of 2 paths is in the backwards direction and, where backwards loading penalty should be applied
+    // during the load list generation procedure
     build_ask_spawn(spawns);
     build_get_distance_graph(elist, entry_count, spawns);
 
+    // gets model references from gools, was useful in a deprecate chunk merging/building algorithm, but might be useful later and barely takes any time so idc
     build_get_model_references(elist, entry_count);
     build_remove_invalid_references(elist, entry_count, entry_count_base);
-    chunk_count = chunk_border_texture;
-    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
+    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);    // not sure why this is here anymore, might not matter, but its just one qsort so eh
 
+    // builds instrument and sound chunks, chunk_border_sounds is used to make chunk merging and chunk building more convenient, especially in deprecate methods
     build_instrument_chunks(elist, entry_count, &chunk_count, chunks);
     build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
+    // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies
+    // end if something went wrong
     build_ask_list_paths(fpaths);
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, fpaths, elist, entry_count, gool_table)) {
         printf("File could not be opened or a different error occured\n");
@@ -532,13 +543,20 @@ void build_main(int build_rebuild_flag) {
         return;
     }
 
+    // ask user desired distances for various things aka how much in advance in terms of camera rail distance things get loaded
+    // there are some restrictions in terms of path link depth so its not entirely accurate, but it still matters
     build_ask_distances(config);
-    build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
-    build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-    //build_get_box_count(elist, entry_count); // snow no bullshit
 
+    // build load lists based on user input and metadata, and already or not yet collected metadata
+    build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
+
+    // call main merge function
+    build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+
+    // build and write nsf and nsd file
     build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
+    // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
     build_final_cleanup(elist, entry_count, chunks, chunk_count);
 }
