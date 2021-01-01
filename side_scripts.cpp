@@ -704,11 +704,11 @@ void nsd_gool_table_print(char *fpath)
     unsigned char buffer[filesize];
     fread(buffer, sizeof(unsigned char), filesize, file);
 
-    int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT);
+    int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
     char temp[100];
     for (int i = 0; i < 64; i++)
     {
-        int eid = from_u32(buffer + C2_NSD_ENTRY_TABLE + 0x10 + 8 * entry_count + 4 * i);
+        int eid = from_u32(buffer + C2_NSD_ENTRY_TABLE_OFFSET + 0x10 + 8 * entry_count + 4 * i);
         printf("%2d: %s  ", i, eid_conv(eid, temp));
         if (i % 4 == 3)
             putchar('\n');

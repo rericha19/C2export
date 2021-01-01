@@ -15,10 +15,11 @@
  * \return void
  */
 void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
-    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
-    build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config);
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
-    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count, config);                   // chunks start off having one entry per chunk
+    build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config);      // current best algorithm
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);        // for payload printout, doesnt do much anymore
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                     // jic something didnt get merged it gets merged
 }
 
 
@@ -55,8 +56,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
     int merge_flag = config[2];
     LIST entries = init_list();
 
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count, config);
-
+    // add all normal chunk entries to a new temporary array
     for (i = 0; i < entry_count; i++) {
         switch (build_entry_type(elist[i])) {
             case -1:
@@ -89,7 +89,8 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
                 LIST list = init_list();
                 switch(merge_flag) {
-                    // per point (seems to generally be better), but its actually kinda fucky because if its not it works worse
+                    // per point (seems to generally be better), but its actually kinda fucky because if its not it gives worse results
+                    // if it were properly per point, the 'build_increment_common' function would use the 'rating' variable as 4th arg instead of 1
                     case 1: {
                         int sublist_index = 0;
                         int rating = 0;
@@ -135,12 +136,11 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
             }
         }
 
+    // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
+    // gets rid of the matrix
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix);
 
-    for (i = 0; i < entries.count; i++)
-        free(entry_matrix[i]);
-    free(entry_matrix);
-
+    // do the merges according to the relation array, get rid of holes afterwards
     build_matrix_merge_util(array_representation, elist, entry_count, entries);
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
@@ -203,7 +203,7 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
 
 
 /** \brief
- *  For each pair of entries it increments corresponding matrix tile.
+ *  For each pair of entries it increments corresponding triangular matrix tile.
  *
  * \param list LIST                     current load list
  * \param entries LIST                  list of valid normal chunk entries
@@ -217,9 +217,11 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
             int indexA = list_find(entries, list.eids[i]);
             int indexB = list_find(entries, list.eids[j]);
 
+            // matrix is triangular
             if (indexA < indexB)
                 swap_ints(&indexA, &indexB);
 
+            // something done goofed, shouldnt happen
             if (indexA == -1 || indexB == -1)
                 continue;
 
@@ -239,7 +241,12 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
  * \return void
  */
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries) {
+    // for each relation it calculates size of the chunk that would be created by the merge
+    // if the size is ok it merges, there are empty chunks afterwards that get cleaned up by a function called
+    // after this function
     for (int x = 0; x < relations.count; x++) {
+        // awkward index shenanishans because entries in the matrix and later relation array werent indexed the same way
+        // elist is, so theres the need to get index of the elist entry and then that one's chunk
         int index1 = relations.relations[x].index1;
         int index2 = relations.relations[x].index2;
 
@@ -249,12 +256,12 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
         int chunk_index1 = elist[elist_index1].chunk;
         int chunk_index2 = elist[elist_index2].chunk;
 
-        int size = 0x14;
+        int merged_chunk_size = 0x14;
         for (int i = 0; i < entry_count; i++)
             if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
-                size += elist[i].esize + 4;
+                merged_chunk_size += elist[i].esize + 4;
 
-        if (size < CHUNKSIZE)
+        if (merged_chunk_size < CHUNKSIZE) // find out whether can do <= instead of < (needs testing)
             for (int i = 0; i < entry_count; i++)
                 if (elist[i].chunk == chunk_index2)
                     elist[i].chunk = chunk_index1;
@@ -264,6 +271,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
 
 /** \brief
  *  Creates an array representation of the common load list occurence matrix, sorts high to low.
+ *  To prevent having to search the entire matrix every time in the main merge util thing.
  *
  * \param entries LIST                  valid entries list
  * \param entry_matrix int**            matrix that contains common load list occurences
@@ -284,6 +292,9 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix) {
         }
 
     qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);
+    for (i = 0; i < entries.count; i++)
+        free(entry_matrix[i]);
+    free(entry_matrix);
     return relations;
 }
 
@@ -291,6 +302,7 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix) {
 /** \brief
  *  Specially merges permaloaded entries as they dont require any association.
  *  Works similarly to the sound chunk one.
+ *  Biggest first sort packing algorithm kinda thing, seems to work pretty ok.
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
@@ -352,6 +364,7 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
 /** \brief
  *  If a chunk is empty it gets replaced with the last existing chunk.
  *  This goes on until no further replacements are done (no chunks are empty).
+ *  Bad, would rewrite but gets called only once so eh.
  *
  * \param index_start int               start of the range of chunks to be fixed
  * \param index_end int                 end of the range of chunks to be fixed (not in the range anymore)

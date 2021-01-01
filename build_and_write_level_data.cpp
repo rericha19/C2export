@@ -1,6 +1,18 @@
 #include "macros.h"
 
 
+/** \brief
+ *  Calls a function that builds chunks based on previous merge decisions or other chunk assignments
+ *  Writes to the already open output nsf file, closes it.
+ *
+ * \param nsfnew FILE*                  output file
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_border_sounds int       index of the first normal chunk, only chunks afterwards get built (normal chunks)
+ * \param chunk_count int               chunk count
+ * \param chunks unsigned char**        array with built chunks
+ * \return void
+ */
 void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks) {
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
     for (int i = 0; i < chunk_count; i++)
@@ -9,8 +21,7 @@ void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_bord
 }
 
 /** \brief
- *  Builds chunks according to entries' assigned chunks, shouldnt require any
- *  further patches.
+ *  Builds chunks according to entries' assigned chunks, shouldnt require any further patches.
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
@@ -24,19 +35,19 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
     for (i = chunk_border_sounds; i < chunk_count; i++) {
         int chunk_no = 2 * i + 1;
         int local_entry_count = 0;
-        chunks[i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
-
         for (j = 0; j < entry_count; j++)
             if (elist[j].chunk == i) local_entry_count++;
 
-        unsigned int offsets[local_entry_count + 2];
+        chunks[i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
+        // header stuff
         *(unsigned short int*)  chunks[i] = MAGIC_CHUNK;
         *(unsigned short int*) (chunks[i] + 4) = chunk_no;
         *(unsigned short int*) (chunks[i] + 8) = local_entry_count;
 
+        unsigned int offsets[local_entry_count + 2];
         // calculates offsets
         int indexer = 0;
-        offsets[indexer] = 0x14 + local_entry_count * 4;
+        offsets[indexer] = 0x10 + (local_entry_count + 1) * 4;
 
         for (j = 0; j < entry_count; j++)
         if (elist[j].chunk == i) {
@@ -57,8 +68,8 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
             }
         }
 
-        sum += curr_offset;
-        *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);
+        sum += curr_offset;                                                 // for avg
+        *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);      // chunk checksum
     }
 
     printf("Average normal chunk portion taken: %.3f\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE);
@@ -82,43 +93,49 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
  * \return void
  */
 void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID) {
-    int i, x = 0;
+    int real_entry_count = 0;
 
+    // arbitrarily doing 64kB because convenience
     unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);
-    *(int *)(nsddata + C2_NSD_CHUNK_COUNT) = chunk_count;
 
-    for (i = 0; i < entry_count; i++)
+    // count actual entries (some entries might not have been assigned a chunk for a reason, those are left out)
+    for (int i = 0; i < entry_count; i++)
         if (elist[i].chunk != -1) {
-            *(int *)(nsddata + C2_NSD_ENTRY_TABLE + 8*x) = elist[i].chunk * 2 + 1;
-            *(int *)(nsddata + C2_NSD_ENTRY_TABLE + 4 + 8*x) = elist[i].EID;
-            x++;
+            *(int *)(nsddata + C2_NSD_ENTRY_TABLE_OFFSET + 8 * real_entry_count) = elist[i].chunk * 2 + 1;
+            *(int *)(nsddata + C2_NSD_ENTRY_TABLE_OFFSET + 8 * real_entry_count + 4) = elist[i].EID;
+            real_entry_count++;
         }
 
-    *(int *)(nsddata + C2_NSD_ENTRY_COUNT) = x;
+    // write chunk and real entry count
+    *(int *)(nsddata + C2_NSD_CHUNK_COUNT_OFFSET) = chunk_count;
+    *(int *)(nsddata + C2_NSD_ENTRY_COUNT_OFFSET) = real_entry_count;
 
-    int end = C2_NSD_ENTRY_TABLE + x * 8;
-    *(int *)(nsddata + end) = spawns.spawn_count;
-    *(int *)(nsddata + end + 8) = level_ID;
-    end += 0x10;
+    // spawn count, level ID
+    int real_nsd_size = C2_NSD_ENTRY_TABLE_OFFSET + real_entry_count * 8;
+    *(int *)(nsddata + real_nsd_size) = spawns.spawn_count;
+    *(int *)(nsddata + real_nsd_size + 8) = level_ID;
+    real_nsd_size += 0x10;
 
-    for (i = 0; i < 0x40; i++)
-        *(int *)(nsddata + end + i * 4) = gool_table[i];
+    // gool table, idr why nsd size gets incremented by 0x1CC, theres some dumb gap they left there
+    for (int i = 0; i < 0x40; i++)
+        *(int *)(nsddata + real_nsd_size + i * 4) = gool_table[i];
+    real_nsd_size += 0x1CC;
 
-    end += 0x1CC;
-
-    for (i = 0; i < spawns.spawn_count; i++) {
-        *(int *)(nsddata + end) = spawns.spawns[i].zone;
-        *(int *)(nsddata + end + 0x0C) = spawns.spawns[i].x * 256;
-        *(int *)(nsddata + end + 0x10) = spawns.spawns[i].y * 256;
-        *(int *)(nsddata + end + 0x14) = spawns.spawns[i].z * 256;
-        end += 0x18;
+    // write spawns, assumes camera 'spawns' on the zone's first cam path's first point (first == 0th)
+    for (int i = 0; i < spawns.spawn_count; i++) {
+        *(int *)(nsddata + real_nsd_size) = spawns.spawns[i].zone;
+        *(int *)(nsddata + real_nsd_size + 0x0C) = spawns.spawns[i].x * 256;
+        *(int *)(nsddata + real_nsd_size + 0x10) = spawns.spawns[i].y * 256;
+        *(int *)(nsddata + real_nsd_size + 0x14) = spawns.spawns[i].z * 256;
+        real_nsd_size += 0x18;
     }
 
-    fwrite(nsddata, 1, end, nsd);
+    // write and close nsd
+    fwrite(nsddata, 1, real_nsd_size, nsd);
     fclose(nsd);
 
     // sorts load lists
-    for (i = 0; i < entry_count; i++) {
+    for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
             int cam_count = build_get_cam_count(elist[i].data) / 3;
 

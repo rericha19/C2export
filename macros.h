@@ -16,16 +16,16 @@
 #define MAX                             1000
 #define PI                              3.1415926535
 #define QUEUE_ITEM_COUNT                2500
-#define PENALTY_MULT_CONSTANT   1000000
+#define PENALTY_MULT_CONSTANT           1000000
 
 // more dumb things
 #define C2_NEIGHBOURS_START             0x190
 #define C2_NEIGHBOURS_END               0x1B4
 #define C2_NEIGHBOURS_FLAGS_END         0x1D4
 #define C2_SPECIAL_METADATA_OFFSET      0x1DC
-#define C2_NSD_CHUNK_COUNT              0x400
-#define C2_NSD_ENTRY_COUNT              0x404
-#define C2_NSD_ENTRY_TABLE              0x520
+#define C2_NSD_CHUNK_COUNT_OFFSET       0x400
+#define C2_NSD_ENTRY_COUNT_OFFSET       0x404
+#define C2_NSD_ENTRY_TABLE_OFFSET       0x520
 #define MAGIC_ENTRY                     0x100FFFF
 #define MAGIC_CHUNK                     0x1234
 #define CHUNK_TYPE_NORMAL               0
