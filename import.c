@@ -8,7 +8,7 @@ int import_main(char *time, INFO status)
     FILE *base, *importee;
     char *help, *help2;
     char path[MAX] = "";
-    char lcltemp[MAX] = "", nsfpath[MAX] = "", nsfcheck[4];
+    char lcltemp[MAX + 2] = "", nsfpath[MAX] = "", nsfcheck[4]; // + 2 to get rid of a warning
     unsigned char *basebase;
     int baselength;
 

@@ -182,7 +182,7 @@ int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date)
 {
     FILE *f;
     unsigned int eidint = 0;
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; // -20 to get rid of a warning
     char cur_type[] = "texture";
 
     for (int i = 0; i < 4; i++)
@@ -297,7 +297,7 @@ void export_scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date
     char cur_type[10];
     int eidint = 0;
     char eid[6] = "";
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; // stfu
     int curr_off, next_off, i, j, item1off;
     int vert, rest, group;
     unsigned int origin;
@@ -362,7 +362,7 @@ void export_generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char
     char cur_type[MAX];
     int eidint = 0;
     char eid[6];
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; // stfu
 
     switch (buffer[8])      // this is really ugly but it works, so im not touching it
     {
@@ -420,7 +420,7 @@ void export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     int eidint = 0;
     char eid[6];
     unsigned char *cpy;
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; // stfu
     int curr_off = 0;
     int i, j;
     int help1, help2;
@@ -508,7 +508,7 @@ void export_zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, i
     char cur_type[10];
     int eidint = 0;
     char eid[6] = "";
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; //  stfu
     unsigned char *cpy;
     int lcl_entrysize = entrysize;
     int i, j;
@@ -619,7 +619,7 @@ void export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     char cur_type[10];
     int eidint = 0;
     char eid[6] = "";
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; // stfu
     int msize = 0;
 
     // scale change in case its porting
@@ -660,7 +660,7 @@ void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *d
     FILE *f;
     char eid[6];
     int eidint = 0;
-    char path[MAX] = "";
+    char path[MAX - 20] = ""; //stfu
     char cur_type[10] = "";
     char *cpy;
 //    int curr_off;

@@ -12,7 +12,7 @@ int main() {
     int zonetype = 8;
     time_t rawtime;
     struct tm * timeinfo;
-    char dpath[MAX] = "", fpath[MAX] = "", moretemp[MAX] = "";
+    char dpath[MAX] = "", fpath[MAX + 300] = "", moretemp[MAX] = ""; // + 300 to make it shut up
     char nsfcheck[4] = "";
     struct dirent *de;
 
