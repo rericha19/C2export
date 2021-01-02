@@ -98,7 +98,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             build_check_item_count(entry, elist[*entry_count].EID);
         if (entry[8] == ENTRY_TYPE_ZONE)
             elist[*entry_count].related = build_get_zone_relatives(entry, spawns);
-        if (entry[8] == ENTRY_TYPE_GOOL && entry[0xC] == 6)
+        if (entry[8] == ENTRY_TYPE_GOOL && from_u32(entry + 0xC) == 6)
             elist[*entry_count].related = build_get_gool_relatives(entry, fsize);
 
         elist[*entry_count].data = (unsigned char *) malloc(fsize * sizeof(unsigned char));
@@ -132,14 +132,19 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
  * \param entry_count int               entry count
  * \return int                          1 if all went good, 0 if something is wrong
  */
-int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, char fpaths[FPATH_COUNT][MAX], ENTRY *elist, int entry_count, unsigned int *gool_table) {
+int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table) {
     int i, j, perma_count, subcount, valid = 1;
     char temp[6];
-    LIST perma = init_list();
 
+    char fpaths[FPATH_COUNT][MAX] = {0};      // paths to files, fpaths contains user-input metadata like perma list file
+    build_ask_list_paths(fpaths);
+
+    LIST perma = init_list();
     FILE *file = fopen(fpaths[0], "r");
-    if (file == NULL)
+    if (file == NULL) {
+        printf("File with permaloaded entries could not be opened\n");
         return 0;
+    }
 
     fscanf(file, "%d", &perma_count);
     for (i = 0; i < perma_count; i++) {
@@ -166,8 +171,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
     fclose(file);
     file = fopen(fpaths[1], "r");
-    if (file == NULL)
+    if (file == NULL) {
+        printf("File with type/subtype dependencies could not be opened\n");
         return 0;
+    }
     fscanf(file, "%d", &subcount);
 
     DEPENDENCIES subinfo;
@@ -184,7 +191,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             fscanf(file, ", %5s", temp);
             int index = build_get_index(eid_to_int(temp), elist, entry_count);
             if (index == -1) {
-                printf("[warning] unknown entry reference in object dependency list, will be skipped:\t%s\n", temp);
+                printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
                 continue;
             }
             list_insert(&(subinfo.array[i].dependencies), eid_to_int(temp));
@@ -203,8 +210,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
     fclose(file);
     file = fopen(fpaths[2], "r");
-    if (file == NULL)
+    if (file == NULL) {
+        printf("File with collision dependencie (not input by user now, instead hardcoded to be searched for in current directory\n");
         return 0;
+    }
 
     int coll_count;
     fscanf(file,"%d", &coll_count);
@@ -221,7 +230,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             fscanf(file, ", %5s", temp);
             int index = build_get_index(eid_to_int(temp), elist, entry_count);
             if (index == -1) {
-                printf("[warning] unknown entry reference in collision dependency list, will be skipped:\t%s\n", temp);
+                printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
                 continue;
             }
 
@@ -326,14 +335,15 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count) {
  * \return unsigned int*                array of relatives relatives[count + 1], relatives[0] contains count or NULL
  */
 unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
-    int entity_count, item1len, relcount, item1off, camcount, neighbourcount, scencount, i, entry_count = 0;
+    int entity_count, item1len, relcount, camcount, neighbourcount, scencount, i, entry_count = 0;
     unsigned int* relatives;
 
-    item1off = from_u32(entry + 0x10);
-    item1len = from_u32(entry + 0x14) - item1off;
+    int item1off = get_nth_item_offset(entry, 0);
+    int item2off = get_nth_item_offset(entry, 1);
+    item1len = item2off - item1off;
     if (!(item1len == 0x358 || item1len == 0x318)) return NULL;
 
-    camcount = build_get_cam_count(entry);
+    camcount = build_get_cam_item_count(entry);
     if (camcount == 0) return NULL;
 
     entity_count = build_get_entity_count(entry);
@@ -369,10 +379,10 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
             spawns->spawn_count += 1;
             int cnt = spawns->spawn_count;
             spawns->spawns = (SPAWN *) realloc(spawns->spawns, cnt * sizeof(SPAWN));
-            spawns->spawns[cnt -1].x = coords_ptr[0] + *(int*)(entry + from_u32(entry + 0x14));
-            spawns->spawns[cnt -1].y = coords_ptr[1] + *(int*)(entry + from_u32(entry + 0x14) + 4);
-            spawns->spawns[cnt -1].z = coords_ptr[2] + *(int*)(entry + from_u32(entry + 0x14) + 8);
-            spawns->spawns[cnt -1].zone = from_u32(entry + 0x4);
+            spawns->spawns[cnt - 1].x = coords_ptr[0] + *(int*)(entry + item2off);
+            spawns->spawns[cnt - 1].y = coords_ptr[1] + *(int*)(entry + item2off + 4);
+            spawns->spawns[cnt - 1].z = coords_ptr[2] + *(int*)(entry + item2off + 8);
+            spawns->spawns[cnt - 1].zone = from_u32(entry + 0x4);
             free(coords_ptr);
         }
     }
@@ -395,7 +405,7 @@ unsigned int* build_get_gool_relatives(unsigned char *entry, int entrysize) {
     unsigned int local[256];
     unsigned int *relatives = NULL;
 
-    curr_off = from_u32(entry + 0x24);
+    curr_off = get_nth_item_offset(entry, 5);
 
     while (curr_off < entrysize)
         switch (entry[curr_off]) {
@@ -524,7 +534,7 @@ void build_get_model_references(ENTRY *elist, int entry_count) {
 void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
-            int cam_count = build_get_cam_count(elist[i].data)/3;
+            int cam_count = build_get_cam_item_count(elist[i].data)/3;
             elist[i].distances = (unsigned int *) malloc(cam_count * sizeof(unsigned int));
             elist[i].visited   = (unsigned int *) malloc(cam_count * sizeof(unsigned int));
 

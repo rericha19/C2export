@@ -1,7 +1,8 @@
 #include "macros.h"
 
-// Crash 2 levels' entry exporter made by Averso
+// Crash 2 levels' entry exporter and other stuff made by Averso
 // half the stuff barely works so dont touch it much
+// imo the only part thats in a reasonable shape is the level build related code
 
 INFO status;
 

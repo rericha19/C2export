@@ -103,7 +103,7 @@ unsigned int build_get_path_length(unsigned char *item) {
  * \return int                          neighbour count
  */
 int build_get_neighbour_count(unsigned char *entry) {
-    int item1off = from_u32(entry + 0x10);
+    int item1off = get_nth_item_offset(entry, 0);
     return entry[item1off + C2_NEIGHBOURS_START];
 }
 
@@ -114,7 +114,7 @@ int build_get_neighbour_count(unsigned char *entry) {
  * \return LIST                        list containing neighbour eids
  */
 LIST build_get_neighbours(unsigned char *entry) {
-    int item1off = from_u32(entry + 0x10);
+    int item1off = get_nth_item_offset(entry, 0);
     int count = entry[item1off + C2_NEIGHBOURS_START];
 
     LIST neighbours = init_list();
@@ -131,8 +131,8 @@ LIST build_get_neighbours(unsigned char *entry) {
  * \param entry unsigned char*          entry data
  * \return int                          camera entity count (total count, not camera path count)
  */
-int build_get_cam_count(unsigned char *entry) {
-    int item1off = from_u32(entry + 0x10);
+int build_get_cam_item_count(unsigned char *entry) {
+    int item1off = get_nth_item_offset(entry, 0);
     return entry[item1off + 0x188];
 }
 
@@ -144,7 +144,7 @@ int build_get_cam_count(unsigned char *entry) {
  * \return int                          entity count (not including camera entities)
  */
 int build_get_entity_count(unsigned char *entry) {
-    int item1off = from_u32(entry + 0x10);
+    int item1off = get_nth_item_offset(entry, 0);
     return entry[item1off + 0x18C];
 }
 
@@ -163,7 +163,7 @@ int build_entry_type(ENTRY entry) {
 
 void build_check_item_count(unsigned char *zone, int EID) {
     int item_count = from_u32(zone + 0xC);
-    int cam_count = build_get_cam_count(zone);
+    int cam_count = build_get_cam_item_count(zone);
     int entity_count = build_get_entity_count(zone);
 
     char temp[100];
@@ -336,7 +336,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
             int entity_count = build_get_entity_count(elist[i].data);
-            int camera_count = build_get_cam_count(elist[i].data);
+            int camera_count = build_get_cam_item_count(elist[i].data);
             for (int j = 0; j < entity_count; j++) {
                 unsigned char *entity = elist[i].data + get_nth_item_offset(elist[i].data, (2 + camera_count + j));
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
@@ -374,7 +374,6 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
  * \return void
  */
 void build_main(int build_rebuild_flag) {
-    char fpaths[FPATH_COUNT][MAX] = {0};      // paths to files, fpaths contains user-input metadata like perma list file
     FILE *nsfnew = NULL, *nsd = NULL;                                                   // file pointers for input nsf, output nsf (nsfnew) and output nsd
     SPAWNS spawns = init_spawns();                                                      // struct with spawns found during reading and parsing of the level data
     ENTRY elist[2500];                                                                  // array of structs used to store entries, static cuz lazy & struct is small
@@ -429,22 +428,25 @@ void build_main(int build_rebuild_flag) {
     // gets model references from gools, was useful in a deprecate chunk merging/building algorithm, but might be useful later and barely takes any time so idc
     build_get_model_references(elist, entry_count);
     build_remove_invalid_references(elist, entry_count, entry_count_base);
-    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);    // not sure why this is here anymore, might not matter, but its just one qsort so eh
+    // qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);    // not sure why this is here anymore, might be necessary but shouldnt
 
     // builds instrument and sound chunks, chunk_border_sounds is used to make chunk merging and chunk building more convenient, especially in deprecate methods
     build_instrument_chunks(elist, entry_count, &chunk_count, chunks);
     build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
-    // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies
+    // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
+    // parse files and store info in permaloaded, subtype_info and collisions structs
     // end if something went wrong
-    build_ask_list_paths(fpaths);
-    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, fpaths, elist, entry_count, gool_table)) {
+    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table)) {
         printf("File could not be opened or a different error occured\n");
         fclose(nsfnew);
         fclose(nsd);
         return;
     }
+
+    // print for the user, informs them about entity type/subtypes that have no dependency list specified
+    build_find_unspecified_entities(elist, entry_count, subtype_info);
 
     // ask user desired distances for various things aka how much in advance in terms of camera rail distance things get loaded
     // there are some restrictions in terms of path link depth so its not entirely accurate, but it still matters

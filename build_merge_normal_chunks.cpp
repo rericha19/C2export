@@ -81,7 +81,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
     // for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
-            int cam_count = build_get_cam_count(elist[i].data) / 3;
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++) {
                 int cam_offset = get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
@@ -313,7 +313,7 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix) {
  */
 void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded) {
     int i, j;
-    int count = *chunk_count;
+    int temp_count = *chunk_count;
     int perma_normal_entry_count = 0;
 
     // find all permaloaded entries, add them to a temporary list, sort the list in descending order by size (biggest first)
@@ -321,17 +321,15 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
 
-    ENTRY list[perma_normal_entry_count];
+    ENTRY perma_elist[perma_normal_entry_count];
     int indexer = 0;
     for (i = 0; i < entry_count; i++)
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
-            list[indexer++] = elist[i];
+            perma_elist[indexer++] = elist[i];
 
-    qsort(list, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
+    qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
 
     // keep putting them into existing chunks if they fit
-    // afterwards change the actual entry list entries' used chunk
-    // at the end count the chunks that actually got stuff placed into them
     int perma_chunk_count = 250;
     int sizes[perma_chunk_count];
     for (i = 0; i < perma_chunk_count; i++)
@@ -340,31 +338,30 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
     // place where fits
     for (i = 0; i < perma_normal_entry_count; i++)
         for (j = 0; j < MAX; j++)
-            if (sizes[j] + 4 + list[i].esize <= CHUNKSIZE) {
-                list[i].chunk = count + j;
-                sizes[j] += 4 + list[i].esize;
+            if (sizes[j] + 4 + perma_elist[i].esize <= CHUNKSIZE) {
+                perma_elist[i].chunk = temp_count + j;
+                sizes[j] += 4 + perma_elist[i].esize;
                 break;
             }
     // to edit the array of entries that is actually used
     for (i = 0; i < entry_count; i++)
         for (j = 0; j < perma_normal_entry_count; j++)
-            if (elist[i].EID == list[j].EID)
-                elist[i].chunk = list[j].chunk;
+            if (elist[i].EID == perma_elist[j].EID)
+                elist[i].chunk = perma_elist[j].chunk;
 
-    // count used chunks
+    // counts used chunks
     int counter = 0;
     for (i = 0; i < 8; i++)
         if (sizes[i] > 0x14)
             counter = i + 1;
 
-    *chunk_count = count + counter;
+    *chunk_count = temp_count + counter;
 }
 
 
 /** \brief
  *  If a chunk is empty it gets replaced with the last existing chunk.
  *  This goes on until no further replacements are done (no chunks are empty).
- *  Bad, would rewrite but gets called only once so eh.
  *
  * \param index_start int               start of the range of chunks to be fixed
  * \param index_end int                 end of the range of chunks to be fixed (not in the range anymore)

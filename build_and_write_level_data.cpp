@@ -33,6 +33,7 @@ void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_bord
  */
 void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks) {
     int i, j, sum = 0;
+    // texture, wavebank and sound chunks are already taken care of, thats why it starts after sounds
     for (i = chunk_border_sounds; i < chunk_count; i++) {
         int chunk_no = 2 * i + 1;
         int local_entry_count = 0;
@@ -111,13 +112,13 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     *(int *)(nsddata + C2_NSD_CHUNK_COUNT_OFFSET) = chunk_count;
     *(int *)(nsddata + C2_NSD_ENTRY_COUNT_OFFSET) = real_entry_count;
 
-    // spawn count, level ID
+    // write spawn count, level ID
     int real_nsd_size = C2_NSD_ENTRY_TABLE_OFFSET + real_entry_count * 8;
     *(int *)(nsddata + real_nsd_size) = spawns.spawn_count;
     *(int *)(nsddata + real_nsd_size + 8) = level_ID;
     real_nsd_size += 0x10;
 
-    // gool table, idr why nsd size gets incremented by 0x1CC, theres some dumb gap they left there
+    // gool table, idr why nsd size gets incremented by 0x1CC, theres some dumb gap in the nsd after the table
     for (int i = 0; i < 0x40; i++)
         *(int *)(nsddata + real_nsd_size + i * 4) = gool_table[i];
     real_nsd_size += 0x1CC;
@@ -125,9 +126,9 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     // write spawns, assumes camera 'spawns' on the zone's first cam path's first point (first == 0th)
     for (int i = 0; i < spawns.spawn_count; i++) {
         *(int *)(nsddata + real_nsd_size) = spawns.spawns[i].zone;
-        *(int *)(nsddata + real_nsd_size + 0x0C) = spawns.spawns[i].x * 256;
-        *(int *)(nsddata + real_nsd_size + 0x10) = spawns.spawns[i].y * 256;
-        *(int *)(nsddata + real_nsd_size + 0x14) = spawns.spawns[i].z * 256;
+        *(int *)(nsddata + real_nsd_size + 0x0C) = spawns.spawns[i].x << 8;
+        *(int *)(nsddata + real_nsd_size + 0x10) = spawns.spawns[i].y << 8;
+        *(int *)(nsddata + real_nsd_size + 0x14) = spawns.spawns[i].z << 8;
         real_nsd_size += 0x18;
     }
 
@@ -138,7 +139,7 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     // sorts load lists
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
-            int cam_count = build_get_cam_count(elist[i].data) / 3;
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
 
             for (int j = 0; j < cam_count; j++) {
                 int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);

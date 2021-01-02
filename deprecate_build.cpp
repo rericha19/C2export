@@ -20,7 +20,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
         {
-            int cam_count = build_get_cam_count(elist[i].data) / 3;
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++)
             {
                 int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
@@ -496,7 +496,7 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
             if (neighbour_index == -1) continue;
 
             int entity_count = build_get_entity_count(elist[neighbour_index].data);
-            int cam_count = build_get_cam_count(elist[neighbour_index].data);
+            int cam_count = build_get_cam_item_count(elist[neighbour_index].data);
 
             for (j = 0; j < entity_count; j++)
             {

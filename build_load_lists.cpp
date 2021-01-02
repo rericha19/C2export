@@ -6,22 +6,21 @@
  *  the provided list of permanently loaded entries and
  *  the provided list of dependencies of certain entitites, gets models from the animations.
  *  For the zone itself and its linked neighbours it adds all relatives and their dependencies.
- *  All sounds always get added, Cr10T and Cr20T always get added.
+ *  Loads only one sound per sound chunk (sound chunks should already be built by this point).
  *  Load list properties get removed and then replaced by the provided list using 'camera_alter' function.
  *  Load lists get sorted later during the nsd writing process.
- *  Checks for invalid references and does not proceed if any are found.
  *
  * \param elist ENTRY*                  list of current entries, array of ENTRY
  * \param entry_count int               current amount of entries
  * \param gool_table unsigned int*      table that contains GOOL entries on their expected slot
  * \param permaloaded LIST              list of permaloaded entries
  * \param subtype_info DEPENDENCIES     list of {type, subtype, count, dependencies[count]}
- *
  * \return void
  */
 void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config) {
     int i, j, k, l;
 
+    // gets a list of sound EIDs (one per chunk) to make load lists smaller
     int chunks[8];
     int sound_chunk_count = 0;
     unsigned int sounds_to_load[8];
@@ -43,14 +42,15 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
 
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
-            int item1off = from_u32(elist[i].data + 0x10);
-            int cam_count = build_get_cam_count(elist[i].data) / 3;
-
-            char temp[100];
-            if (!cam_count)
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            if (cam_count == 0)
                 continue;
 
+            char temp[100];
             printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
+
+            // get list of special entries that can be placed inside zones' first item
+            // as a special zone-specific dependency/load list
             LIST special_entries = build_get_special_entries(elist[i], elist, entry_count);
 
             for (j = 0; j < cam_count; j++) {
@@ -58,66 +58,78 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 int cam_offset = get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
+                // create full non-delta load list used to represent the load list during its building
                 LIST full_load[cam_length];
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
 
+                // add permaloaded entries
                 for (k = 0; k < cam_length; k++)
-                    for (l = 0; l < permaloaded.count; l++)
-                        list_insert(&full_load[k], permaloaded.eids[l]);
+                    list_copy_in(&full_load[k], permaloaded);
 
+                // add current zone's special entries
+                for (k = 0; k < cam_length; k++)
+                    list_copy_in(&full_load[k], special_entries);
 
+                // add relatives (directly related entries like slst, direct neighbours, scenery)
+                // might not be necessary, relative collection was implemented for previous methods and it was easier to keep it
                 if (elist[i].related != NULL)
                 for (k = 0; (unsigned) k < elist[i].related[0]; k++)
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
-
+                // all sounds
                 /*for (k = 0; k < entry_count; k++)
                 if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
                     for (l = 0; l < cam_length; l++)
                         list_insert(&full_load[l], elist[k].EID);
                 }*/
+
+                // one sound per chunk
                 for (k = 0; k < cam_length; k++)
                     for (l = 0; l < sound_chunk_count; l++)
                         list_insert(&full_load[k], sounds_to_load[l]);
 
+                // add direct neighbours
                 LIST neighbours = build_get_neighbours(elist[i].data);
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], neighbours);
 
+                // for each scenery in current zone's scen reference list, add its textures to the load list
                 int scenery_count = build_get_scen_count(elist[i].data);
                 for (k = 0; k < scenery_count; k++) {
-                    int scenery_index = build_get_index(from_u32(elist[i].data + item1off + 0x4 + 0x30 * k), elist, entry_count);
+                    int scenery_index = build_get_index(from_u32(elist[i].data + get_nth_item_offset(elist[i].data, 0) + 0x4 + 0x30 * k),
+                                                        elist, entry_count);
                     for (l = 0; l < cam_length; l++)
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
-                for (k = 0; k < cam_length; k++)
-                    list_copy_in(&full_load[k], special_entries);
-
+                // path link, draw list and other bs dependent additional load list improvements
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
+
+                // checks whether the load list doesnt try to load more than 8 textures, prints if yes
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 
+                // creates and initialises delta representation of the load list
                 LIST listA[cam_length];
                 LIST listB[cam_length];
                 for (k = 0; k < cam_length; k++) {
                     listA[k] = init_list();
                     listB[k] = init_list();
                 }
-                build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count);
 
+                // converts full load list to delta based, then creates game-format load list properties based on the delta lists
+                build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count);
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
 
+                // removes existing load list properties, inserts newly made ones
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x208, NULL);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x209, NULL);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x208, &prop_0x208);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x209, &prop_0x209);
             }
         }
-
-    build_find_unspecified_entities(elist, entry_count, subtype_info);
 }
 
 
@@ -313,7 +325,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
             for (j = 0; j < cam_length; j++)
                 list_insert(&full_list[j], elist[neighbour_index].related[i + 1]);
 
-    int neighbour_cam_count = build_get_cam_count(elist[neighbour_index].data);
+    int neighbour_cam_count = build_get_cam_item_count(elist[neighbour_index].data);
     if (link.cam_index >= neighbour_cam_count) {
         char temp[100], temp2[100];
         printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
@@ -360,7 +372,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index2].data, collisisons, elist, entry_count);
         coords = build_get_path(elist, zone_index, cam_index, &path_length);
 
-        int neighbour_cam_count2 = build_get_cam_count(elist[neighbour_index2].data);
+        int neighbour_cam_count2 = build_get_cam_item_count(elist[neighbour_index2].data);
         if (link2.cam_index >= neighbour_cam_count2) {
             char temp[100], temp2[100];
             printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
@@ -657,7 +669,7 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
     for (i = 0; i < neighbour_list.count; i++) {
         int curr_index = build_get_index(neighbour_list.eids[i], elist, entry_count);
         if (curr_index == -1) continue;
-        int cam_count = build_get_cam_count(elist[curr_index].data);
+        int cam_count = build_get_cam_item_count(elist[curr_index].data);
         int entity_count = build_get_entity_count(elist[curr_index].data);
         for (j = 0; j < entity_count; j++) {
             int entity_offset = get_nth_item_offset(elist[curr_index].data, 2 + cam_count + j);
@@ -683,12 +695,13 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
  * \return void
  */
 void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info) {
+    printf("\n");
     int i, j, k;
     char temp[100];
     LIST considered = init_list();
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
-            int cam_count = build_get_cam_count(elist[i].data);
+            int cam_count = build_get_cam_item_count(elist[i].data);
             int entity_count = build_get_entity_count(elist[i].data);
             for (j = 0; j < entity_count; j++) {
                 unsigned char *entity = elist[i].data + from_u32(elist[i].data + 0x10 + (2 + cam_count + j) * 4);
@@ -879,10 +892,10 @@ LIST build_get_links(unsigned char *entry, int cam_index) {
 
 
 /** \brief
- *  Deconstructs the zone, alters specified item using the func_arg function, reconstructs zhe zone.
+ *  Deconstructs the zone, alters specified item using the func_arg function, reconstructs the zone.
  *
  * \param zone ENTRY*                   zone data
- * \param item_index int                index of the item to be altered
+ * \param item_index int                index of the item/entity to be altered
  * \param func_arg unsigned char*       function to be used, either remove or add property
  * \param list LIST*                    list to be added (might be unused)
  * \param property_code int             property code
@@ -898,7 +911,7 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
     for (i = 0; i < item_count; i++)
         item_lengths[i] = get_nth_item_offset(zone->data, i + 1) - get_nth_item_offset(zone->data, i);
 
-    offset = 0x10 + 4 * item_count + 4;
+    offset = 0x14 + 4 * item_count;
     for (i = 0; i < item_count; i++) {
         items[i] = (unsigned char *) malloc(item_lengths[i]);
         memcpy(items[i], zone->data + offset, item_lengths[i]);
@@ -911,24 +924,23 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
     for (i = 0; i < item_count; i++)
         new_size += 4 + item_lengths[i];
 
-    unsigned char *copy = (unsigned char *) malloc(new_size);
-    *(int *)(copy) = 0x100FFFF;
-    *(int *)(copy + 4) = zone->EID;
-    *(int *)(copy + 8) = 7;
-    *(int *)(copy + 0xC) = item_count;
+    unsigned char *new_data = (unsigned char *) malloc(new_size);
+    *(int *)(new_data) = MAGIC_ENTRY;
+    *(int *)(new_data + 0x4) = zone->EID;
+    *(int *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
+    *(int *)(new_data + 0xC) = item_count;
 
-    for (offset = 0x10 + 4 * item_count + 4, i = 0; i < item_count + 1; offset += item_lengths[i], i++)
-        *(int *)(copy + 0x10 + i * 4) = offset;
+    for (offset = 0x14 + 4 * item_count, i = 0; i < item_count + 1; offset += item_lengths[i], i++)
+        *(int *)(new_data + 0x10 + i * 4) = offset;
 
-    for (offset = 0x10 + 4 * item_count + 4, i = 0; i < item_count; offset += item_lengths[i], i++)
-        memcpy(copy + offset, items[i], item_lengths[i]);
+    for (offset = 0x14 + 4 * item_count, i = 0; i < item_count; offset += item_lengths[i], i++)
+        memcpy(new_data + offset, items[i], item_lengths[i]);
 
     free(zone->data);
-    zone->data = copy;
+    zone->data = new_data;
     zone->esize = new_size;
 
-    for (i = 0; i < item_count; i++)
-        free(items[i]);
+    for (i = 0; i < item_count; i++) free(items[i]);
 }
 
 
@@ -993,23 +1005,23 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int* i
         new_size += property_sizes[i];
 
 
-    unsigned char *copy = (unsigned char *) malloc(new_size);
-    *(int *)(copy) = new_size - 0xC;
-    *(int *)(copy + 4) = 0;
-    *(int *)(copy + 8) = 0;
-    *(int *)(copy + 0xC) = property_count + 1;
+    unsigned char *new_item = (unsigned char *) malloc(new_size);
+    *(int *)(new_item) = new_size - 0xC;
+    *(int *)(new_item + 0x4) = 0;
+    *(int *)(new_item + 0x8) = 0;
+    *(int *)(new_item + 0xC) = property_count + 1;
 
     offset = 0x10 + 8 * (property_count + 1);
     for (i = 0; i < property_count + 1; i++) {
         *(short int*) (property_headers[i] + 2) = offset - 0xC;
-        memcpy(copy + 0x10 + 8 * i, property_headers[i], 8);
-        memcpy(copy + offset, properties[i], property_sizes[i]);
+        memcpy(new_item + 0x10 + 8 * i, property_headers[i], 8);
+        memcpy(new_item + offset, properties[i], property_sizes[i]);
         offset += property_sizes[i];
     }
 
     *item_size = new_size - 0xC;
     free(item);
-    return copy;
+    return new_item;
 }
 
 /** \brief
@@ -1034,8 +1046,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
             found++;
     }
 
-    if (!found)
-        return item;
+    if (!found) return item;
 
     for (i = 0; i < property_count - 1; i++)
         property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
@@ -1053,19 +1064,19 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
         new_size += property_sizes[i];
     }
 
-    unsigned char *copy = (unsigned char *) malloc(new_size);
-    *(int *)(copy) = new_size;
-    *(int *)(copy + 4) = 0;
-    *(int *)(copy + 8) = 0;
-    *(int *)(copy + 0xC) = property_count - 1;
+    unsigned char *new_item = (unsigned char *) malloc(new_size);
+    *(int *)(new_item) = new_size;
+    *(int *)(new_item + 4) = 0;
+    *(int *)(new_item + 8) = 0;
+    *(int *)(new_item + 0xC) = property_count - 1;
 
     offset = 0x10 + 8 * (property_count - 1);
     int indexer = 0;
     for (i = 0; i < property_count; i++) {
         if (from_u16(property_headers[i]) != code) {
             *(short int*) (property_headers[i] + 2) = offset - 0xC;
-            memcpy(copy + 0x10 + 8 * indexer, property_headers[i], 8);
-            memcpy(copy + offset, properties[i], property_sizes[i]);
+            memcpy(new_item + 0x10 + 8 * indexer, property_headers[i], 8);
+            memcpy(new_item + offset, properties[i], property_sizes[i]);
             indexer++;
             offset += property_sizes[i];
         }
@@ -1073,7 +1084,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
 
     *item_size = new_size;
     free(item);
-    return copy;
+    return new_item;
 }
 
 
@@ -1088,9 +1099,9 @@ void build_add_model_textures_to_list(unsigned char *model, LIST *list) {
     int item1off = from_u32(model + 0x10);
 
     for (int i = 0; i < 8; i++) {
-        unsigned int reference = from_u32(model + item1off + 0xC + 0x4 * i);
-        if (reference)
-            list_insert(list, reference);
+        unsigned int scen_reference = from_u32(model + item1off + 0xC + 0x4 * i);
+        if (scen_reference)
+            list_insert(list, scen_reference);
     }
 }
 
@@ -1123,8 +1134,8 @@ void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list) {
  */
 short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len) {
     unsigned char *item = elist[zone_index].data + get_nth_item_offset(elist[zone_index].data, item_index);
-    int i, offset = 0;
-    for (i = 0; i < item[0xC]; i++)
+    unsigned int i, offset = 0;
+    for (i = 0; i < from_u32(item + 0xC); i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
             offset = 0xC + from_u16(item + 0x10 + 8 * i + 2);
 
@@ -1136,7 +1147,7 @@ short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *pat
     }
 
     short int* coords = (short int *) malloc(3 * sizeof(short int) * *path_len);
-    memcpy(coords, item + offset + 4, 6 * *path_len);
+    memcpy(coords, item + offset + 4, 6 * (*path_len));
     return coords;
 }
 
@@ -1147,13 +1158,13 @@ short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *pat
  * \return int                          scenery reference count
  */
 int build_get_scen_count(unsigned char *entry) {
-    int item1off = from_u32(entry + 0x10);
+    int item1off = get_nth_item_offset(entry, 0);
     return entry[item1off];
 }
 
 LIST build_get_sceneries(unsigned char *entry) {
     int scen_count = build_get_scen_count(entry);
-    int item1off = from_u32(entry + 0x10);
+    int item1off = get_nth_item_offset(entry, 0);
     LIST list = init_list();
     for (int i = 0; i < scen_count; i++) {
         unsigned int scen = from_u32(entry + item1off + 0x4 + 0x30 * i);

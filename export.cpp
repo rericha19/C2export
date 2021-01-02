@@ -669,7 +669,7 @@ void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *d
     for (int i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
 
-    strncpy(cur_type,"animation",9);
+    strncpy(cur_type,"animation\0",10);
     eid_conv(eidint,eid);
 
     cpy = (char *) calloc(entrysize, sizeof(char));

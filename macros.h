@@ -144,9 +144,9 @@ typedef struct entry{
     int esize;
     int chunk;
     unsigned char *data;
-    unsigned int *related = NULL;
-    unsigned int *distances = NULL;
-    unsigned int *visited = NULL;
+    unsigned int *related;
+    unsigned int *distances;
+    unsigned int *visited;
 } ENTRY;
 
 // used to sort load lists
@@ -317,7 +317,7 @@ short int *  build_get_path(ENTRY *elist, int zone_index, int item_index, int *p
 int *        build_seek_spawn(unsigned char *item);
 int          build_get_neighbour_count(unsigned char *entry);
 LIST         build_get_neighbours(unsigned char *entry);
-int          build_get_cam_count(unsigned char *entry);
+int          build_get_cam_item_count(unsigned char *entry);
 int          build_get_scen_count(unsigned char *entry);
 int          build_get_entity_count(unsigned char *entry);
 unsigned int*build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns);
@@ -367,7 +367,7 @@ LIST         build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count
 void         build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
                                    DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
 int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions,
-                                     char fpaths[FPATH_COUNT][MAX], ENTRY *elist, int entry_count, unsigned int *gool_table);
+                                     ENTRY *elist, int entry_count, unsigned int *gool_table);
 int          build_get_chunk_count_base(FILE *nsf);
 int          build_ask_ID();
 void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]);

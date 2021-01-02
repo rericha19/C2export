@@ -517,7 +517,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
 {
     int i, itemcount;
     unsigned int coord;
-    itemcount = buffer[0xC];
+    itemcount = from_u32(buffer + 0xC);
     int itemoffs[itemcount];
 
     for (i = 0; i < itemcount; i++)
@@ -554,11 +554,11 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
 
 void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status)
 {
-    int i;
+    unsigned int i;
     int off0x4B = 0;
     short int coord;
 
-    for (i = 0; i < item[0xC]; i++)
+    for (i = 0; i < from_u32(item + 0xC); i++)
     {
         if (item[0x10 + i*8] == 0x4B && item[0x11 +i*8] == 0)
             off0x4B = BYTE * item[0x13 + i*8] + item[0x12+i*8]+0xC;
