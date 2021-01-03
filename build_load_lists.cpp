@@ -40,14 +40,14 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             }
         }
 
+    // for each zone entry do load list (also for each zone's each camera)
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             if (cam_count == 0)
                 continue;
 
-            char temp[100];
-            printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
+            printf("Doing load lists for %s\n", eid_conv(elist[i].EID, NULL));
 
             // get list of special entries that can be placed inside zones' first item
             // as a special zone-specific dependency/load list
@@ -204,8 +204,8 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
         LIST neighbour_list = init_list();
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
 
-        /*char temp[100];
-        printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, temp), i);
+        /*
+        printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, NULL), i);
         for (j = 0; j < entity_list.count; j++)
             printf("\t%d\n", entity_list.eids[j]);*/
 
@@ -215,7 +215,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
             int type = types_subtypes.eids[j] >> 16;
             int subtype = types_subtypes.eids[j] & 0xFF;
 
-            //printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
+            //printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, NULL), i, type, subtype);
             for (k = 0; k < sub_info.count; k++)
                 if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type)
                     list_copy_in(&full_list[i], sub_info.array[k].dependencies);
@@ -226,7 +226,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
 /** \brief
  *  Makes a load list property from the input arrays, later its put into the item.
  *
- * \param list_array LIST*              array of lists containing the full load list (already in delta form)
+ * \param list_array LIST*              array of lists containing delta load list (one side)
  * \param cam_length int                length of the camera and so the array too
  * \param code int                      property code
  * \return PROPERTY                     property with game's format
@@ -271,8 +271,7 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code) {
  * \param zone_index int                zone entry index
  * \param cam_index int                 camera item index
  * \param link_int unsigned int         link item int
- * \param listA LIST*                   representation of load list A
- * \param listB LIST*                   representation of laod list B
+ * \param full_list LIST*               full load list representation
  * \param cam_length int                length of the camera's path
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
@@ -284,7 +283,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     int preloading_flag = config[6];
     int backwards_penalty = config[7];
 
-    int i, j, item1off = from_u32(elist[zone_index].data + 0x10);
+    int i, j, item1off = get_nth_item_offset(elist[zone_index].data, 0);
     short int* coords;
     int path_length, distance = 0;
 
@@ -308,14 +307,14 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         int scenery_index = build_get_index(from_u32(elist[neighbour_index].data + item1off_neigh + 0x4 + 0x30 * i), elist, entry_count);
         // kinda sucks but i cbf to make it better rn
         if (link.type == 1) {
-            int end = (cam_length - 1)/2 - 1;
-            for (j = 0; j < end; j++)
+            int end_index = (cam_length - 1)/2 - 1;
+            for (j = 0; j < end_index; j++)
                 build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
         }
 
         if (link.type == 2) {
-            int start = (cam_length - 1)/2 + 1;
-            for (j = start; j < cam_length; j++)
+            int start_index = (cam_length - 1)/2 + 1;
+            for (j = start_index; j < cam_length; j++)
                 build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
         }
     }
@@ -668,9 +667,12 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
     int i, j;
     for (i = 0; i < neighbour_list.count; i++) {
         int curr_index = build_get_index(neighbour_list.eids[i], elist, entry_count);
-        if (curr_index == -1) continue;
+        if (curr_index == -1)
+            continue;
+
         int cam_count = build_get_cam_item_count(elist[curr_index].data);
         int entity_count = build_get_entity_count(elist[curr_index].data);
+
         for (j = 0; j < entity_count; j++) {
             int entity_offset = get_nth_item_offset(elist[curr_index].data, 2 + cam_count + j);
             int ID = build_get_entity_prop(elist[curr_index].data + entity_offset, ENTITY_PROP_ID);
@@ -697,7 +699,6 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
 void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info) {
     printf("\n");
     int i, j, k;
-    char temp[100];
     LIST considered = init_list();
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
@@ -709,7 +710,7 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
                 if (type >= 64 || type < 0 || subt < 0) {
-                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].EID, temp), j, type, subt);
+                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].EID, NULL), j, type, subt);
                     continue;
                 }
 
@@ -724,7 +725,7 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                         found = 1;
                 if (!found)
                     printf("[warning] Entity with type %2d subtype %2d has no dependency list! (e.g. Zone %s entity %2d ID %3d)\n",
-                            type, subt, eid_conv(elist[i].EID, temp), j, enID);
+                            type, subt, eid_conv(elist[i].EID, NULL), j, enID);
             }
         }
 }
@@ -793,9 +794,11 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
         int index = build_get_index(neighbours.eids[x], elist, entry_count);
         if (index == -1)
             continue;
+
         int item2off = from_u32(elist[index].data + 0x14);
         unsigned char *item = elist[index].data + item2off;
         int count = *(int *) item + 0x18;
+
         for (i = 0; i < count + 2; i++) {
             short int type = *(short int *) item + 0x24 + 2 * i;
             if (type % 2 == 0) continue;
@@ -821,7 +824,6 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
  * \return void
  */
 void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j) {
-    char temp[100];
     int k, l;
     int over_count = 0;
     unsigned int over_textures[20];
@@ -831,7 +833,7 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
         int texture_count = 0;
         unsigned int textures[20];
         for (l = 0; l < full_load[k].count; l++)
-            if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],temp)[4] == 'T')
+            if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],NULL)[4] == 'T')
                 textures[texture_count++] = full_load[k].eids[l];
 
         if (texture_count > over_count) {
@@ -842,9 +844,9 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
     }
 
     if (over_count > 8) {
-        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
+        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv(elist[i].EID, NULL), j, over_count, point);
         for (k = 0; k < over_count; k++)
-            printf("\t%s", eid_conv(over_textures[k], temp));
+            printf("\t%s", eid_conv(over_textures[k], NULL));
         printf("\n");
     }
 }
@@ -905,24 +907,23 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
 {
     int i, offset;
     int item_count = from_u32(zone->data + 0xC);
+    int first_item_offset = 0x14 + 4 * item_count;
 
     int item_lengths[item_count];
     unsigned char *items[item_count];
     for (i = 0; i < item_count; i++)
         item_lengths[i] = get_nth_item_offset(zone->data, i + 1) - get_nth_item_offset(zone->data, i);
 
-    offset = 0x14 + 4 * item_count;
-    for (i = 0; i < item_count; i++) {
+    for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++) {
         items[i] = (unsigned char *) malloc(item_lengths[i]);
         memcpy(items[i], zone->data + offset, item_lengths[i]);
-        offset += item_lengths[i];
     }
 
     items[item_index] = func_arg(property_code, items[item_index], &item_lengths[item_index], prop);
 
-    int new_size = 0x14;
+    int new_size = first_item_offset;
     for (i = 0; i < item_count; i++)
-        new_size += 4 + item_lengths[i];
+        new_size += item_lengths[i];
 
     unsigned char *new_data = (unsigned char *) malloc(new_size);
     *(int *)(new_data) = MAGIC_ENTRY;
@@ -930,10 +931,10 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
     *(int *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
     *(int *)(new_data + 0xC) = item_count;
 
-    for (offset = 0x14 + 4 * item_count, i = 0; i < item_count + 1; offset += item_lengths[i], i++)
+    for (offset = first_item_offset, i = 0; i < item_count + 1; offset += item_lengths[i], i++)
         *(int *)(new_data + 0x10 + i * 4) = offset;
 
-    for (offset = 0x14 + 4 * item_count, i = 0; i < item_count; offset += item_lengths[i], i++)
+    for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
         memcpy(new_data + offset, items[i], item_lengths[i]);
 
     free(zone->data);

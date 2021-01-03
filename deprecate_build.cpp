@@ -184,8 +184,7 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
  */
 void deprecate_build_print_payload(PAYLOAD payload, int stopper)
 {
-    char temp[100];
-    printf("Zone: %s; payload: %3d", eid_conv(payload.zone, temp), payload.count);
+    printf("Zone: %s; payload: %3d", eid_conv(payload.zone, NULL), payload.count);
     if (stopper) printf("; stopper: %2d", stopper);
     printf("\n");
 }
@@ -344,7 +343,6 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     int count = 0;
     int curr_chunk;
     int is_there;
-    char help[100];
 
     for (int i = 0; i < list.count; i++)
     {
@@ -354,7 +352,7 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
         for (int j = 0; j < count; j++)
             if (chunks[j] == curr_chunk) is_there = 1;
 
-        if (!is_there && eid_conv(elist[elist_index].EID, help)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
+        if (!is_there && eid_conv(elist[elist_index].EID, NULL)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
         {
             chunks[count] = curr_chunk;
             count++;

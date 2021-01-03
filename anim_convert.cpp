@@ -38,8 +38,7 @@ int c1_conv_get_tpages(int **tpages, C1_TEXTURE_INFO* txtrs, int txt_ref_count)
     int tpage_count = 0;
     for (int i = 0; i < txt_ref_count; i++)
     {
-        char temp[100];
-        printf("%s\n", eid_conv(txtrs[i].texture_ref, temp));
+        printf("%s\n", eid_conv(txtrs[i].texture_ref, NULL));
         int found = 0;
         for (int j = 0; j < tpage_count; j++)
             if (txtrs[i].texture_ref == (*tpages)[j])
@@ -106,9 +105,8 @@ void c1_conv_main()
         txtrs[i].offset_y = (unsigned char)(texinfo & 0x1F);
 
         C1_TEXTURE_INFO curr = txtrs[i];
-        char temp[100];
         printf("n: %d, texture seg: %d x: %d, y:%d\n\tclut x:%d y:%d texture %s\n",
-               curr.n, curr.segment, curr.offset_x, curr.offset_y, curr.clut_x, curr.clut_y, eid_conv(curr.texture_ref, temp));
+               curr.n, curr.segment, curr.offset_x, curr.offset_y, curr.clut_x, curr.clut_y, eid_conv(curr.texture_ref, NULL));
     }
 
 

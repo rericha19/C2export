@@ -232,20 +232,25 @@ void swap_ints(int *a, int *b)
 }
 
 //converts int eid to string eid
-char* eid_conv(unsigned int m_value, char *eid)
+const char* eid_conv(unsigned int m_value, char *eid)
 {
     static const char charset[] =
     "0123456789"
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "_!";
-    *eid = charset[(m_value >> 25) & 0x3F];
-    eid[1] = charset[(m_value >> 19) & 0x3F];
-    eid[2] = charset[(m_value >> 13) & 0x3F];
-    eid[3] = charset[(m_value >> 7) & 0x3F];
-    eid[4] = charset[(m_value >> 1) & 0x3F];
-    eid[5] = '\0';
-    return eid;
+
+    static char temp[6] = "abcde";
+    temp[0] = charset[(m_value >> 25) & 0x3F];
+    temp[1] = charset[(m_value >> 19) & 0x3F];
+    temp[2] = charset[(m_value >> 13) & 0x3F];
+    temp[3] = charset[(m_value >> 7) & 0x3F];
+    temp[4] = charset[(m_value >> 1) & 0x3F];
+    temp[5] = '\0';
+
+    if (eid != NULL)
+        strncpy(eid, temp, 5);
+    return temp;
 }
 
 // conversion of EID from string form to u32int form

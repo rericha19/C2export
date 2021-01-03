@@ -161,15 +161,14 @@ int build_entry_type(ENTRY entry) {
 }
 
 
-void build_check_item_count(unsigned char *zone, int EID) {
+void build_check_item_count(unsigned char *zone, int eid) {
     int item_count = from_u32(zone + 0xC);
     int cam_count = build_get_cam_item_count(zone);
     int entity_count = build_get_entity_count(zone);
 
-    char temp[100];
     if (item_count != (2 + cam_count + entity_count))
         printf("[warning] %s's item count (%d) doesn't match item counts in the first item (2 + %d + %d)\n",
-               eid_conv(EID, temp), item_count, cam_count, entity_count);
+               eid_conv(eid, NULL), item_count, cam_count, entity_count);
 }
 
 
@@ -183,14 +182,13 @@ void build_check_item_count(unsigned char *zone, int EID) {
  */
 void build_print_relatives(ENTRY *elist, int entry_count) {
     int i, j;
-    char temp[100];
     for (i = 0; i < entry_count; i++) {
-        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, temp), elist[i].chunk, elist[i].esize);
+        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, NULL), elist[i].chunk, elist[i].esize);
         if (elist[i].related != NULL) {
             printf("------ %5d\n", elist[i].related[0]);
             for (j = 0; j < (signed) elist[i].related[0]; j++) {
                 int relative = elist[i].related[j+1];
-                printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, temp),
+                printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, NULL),
                        elist[build_get_index(relative, elist, entry_count)].chunk, elist[build_get_index(relative, elist, entry_count)].esize);
             }
         }
@@ -341,23 +339,22 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
                 unsigned char *entity = elist[i].data + get_nth_item_offset(elist[i].data, (2 + camera_count + j));
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-                int ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
+                int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
                 if ((type >= 34 && type <= 43) &&
                     (subt == 0 || subt == 2 || subt == 3 || subt == 4 || subt == 6 || subt == 8 || subt == 9 ||
                      subt == 10 || subt == 11 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
-                /*if (ID != -1)*/
+                /*if (id != -1)*/
                 {
                     counter++;
-                    char temp[100];
-                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, ID);
+                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, NULL), type, subt, id);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18) {
                     nitro_counter++;
                     if (type == 43)
-                        printf("gotem %d\n", ID);
-                    printf("NITRO %3d\n", ID);
+                        printf("gotem %d\n", id);
+                    printf("NITRO %3d\n", id);
                 }
             }
         }

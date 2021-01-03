@@ -46,12 +46,11 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]) {
  * \return void
  */
 void build_ask_spawn(SPAWNS spawns) {
-    char temp[100];
     int input;
     // lets u pick a spawn point
     printf("\nPick a spawn (type it second time if it doesnt work):\n");
     for (int i = 0; i < spawns.spawn_count; i++)
-        printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
+        printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, NULL));
 
     scanf("%d", &input);
     input--;
