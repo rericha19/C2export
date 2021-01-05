@@ -378,7 +378,8 @@ void build_main(int build_rebuild_flag) {
     // 6 - transition pre-load flag     defined by user
     // 7 - backwards penalty            defined by user     is 1M times the float value because yes, range 0 - 0.5
     // 8 - relation array sort          0 - regular     |   1 - additionally sort using total occurence count
-    int config[9] = {1, 1, 1, 0, 0, 0, 0, 0, 0};
+    // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk
+    int config[10] = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
 
     // reading contents of the nsf/folder and collecting metadata
     // end if something went wrong

@@ -34,7 +34,6 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]) {
     scanf(" %[^\n]",fpaths[1]);
     path_fix(fpaths[1]);
 
-    //strcpy(fpaths[1], "complete entity list manni.txt");
     strcpy(fpaths[2], "collision list.txt");
 }
 
@@ -61,8 +60,7 @@ void build_ask_spawn(SPAWNS spawns) {
         input = 0;
     }
 
-    if (input)
-        build_swap_spawns(spawns, 0, input);
+    build_swap_spawns(spawns, 0, input);
 }
 
 
@@ -88,6 +86,7 @@ void build_ask_distances(int *config) {
     config[5] = temp;
 
     printf("\nPre-load stuff for transitions? (not pre-loading is safer) [y/n]\n");
+    // fucky scanf
     scanf("%c", &ans);
     scanf("%c", &ans);
     if (ans == 'y' || ans == 'Y') {

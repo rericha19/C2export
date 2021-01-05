@@ -145,6 +145,8 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
  * \return void
  */
 void build_sort_load_lists(ENTRY *elist, int entry_count) {
+    // for each zone entry's each camera path it searches properties, if its a load list property it reads the sublists one by one,
+    // sorts the load list entries so that the order matches the nsd's entry table's order
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;

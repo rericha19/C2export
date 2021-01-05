@@ -80,16 +80,19 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
                 // all sounds
-                /*for (k = 0; k < entry_count; k++)
-                if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND) {
-                    for (l = 0; l < cam_length; l++)
-                        list_insert(&full_load[l], elist[k].EID);
-                }*/
+                if (config[9] == 0) {
+                    for (k = 0; k < entry_count; k++)
+                        if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND)
+                            for (l = 0; l < cam_length; l++)
+                                list_insert(&full_load[l], elist[k].EID);
+                }
 
                 // one sound per chunk
-                for (k = 0; k < cam_length; k++)
-                    for (l = 0; l < sound_chunk_count; l++)
-                        list_insert(&full_load[k], sounds_to_load[l]);
+                if (config[9] == 1) {
+                    for (k = 0; k < cam_length; k++)
+                        for (l = 0; l < sound_chunk_count; l++)
+                            list_insert(&full_load[k], sounds_to_load[l]);
+                }
 
                 // add direct neighbours
                 LIST neighbours = build_get_neighbours(elist[i].data);
@@ -163,7 +166,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
 
         for (j = 0; j < full_load[i].count; j++) {
             unsigned int curr_eid = full_load[i].eids[j];
-            if (build_get_index(curr_eid, elist, entry_count) != -1) continue;
+            if (build_get_index(curr_eid, elist, entry_count) == -1) continue;
 
             // is loaded on i-th point but not on i-1th point -> just became loaded, add to listA[i]
             if (list_find(full_load[i - 1], curr_eid) == -1)
@@ -172,7 +175,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
 
         for (j = 0; j < full_load[i - 1].count; j++) {
             unsigned int curr_eid = full_load[i - 1].eids[j];
-            if (build_get_index(curr_eid, elist, entry_count) != -1) continue;
+            if (build_get_index(curr_eid, elist, entry_count) == -1) continue;
 
             // is loaded on i-1th point but not on i-th point -> no longer loaded, add to listB[i - 1]
             if (list_find(full_load[i], curr_eid) == -1)
@@ -221,20 +224,22 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
     // draw lists
     for (i = 0; i < cam_length; i++) {
         LIST neighbour_list = init_list();
+        // get a list of entities drawn within set distance of current camera point
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
 
-        /*
-        printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, temp), i);
+        /*printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, temp), i);
         for (j = 0; j < entity_list.count; j++)
             printf("\t%d\n", entity_list.eids[j]);*/
 
+        // get a list of types and subtypes from the entity list
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 
+        // copy in dependency list for each found type/subtype
         for (j = 0; j < types_subtypes.count; j++) {
-            int type = types_subtypes.eids[j] >> 16;
+            int type = types_subtypes.eids[j] >> 0x10;
             int subtype = types_subtypes.eids[j] & 0xFF;
 
-            //printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
+            // printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
             for (k = 0; k < sub_info.count; k++)
                 if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type)
                     list_copy_in(&full_list[i], sub_info.array[k].dependencies);
@@ -254,14 +259,17 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code) {
     int i, j, delta_counter = 0, total_length = 0;
     PROPERTY prop;
 
+    // count total length and individual deltas
     for (i = 0; i < cam_length; i++)
         if (list_array[i].count != 0) {
-            total_length += list_array[i].count * 4 + 4;
+            total_length += list_array[i].count * 4;        // space individual load list items of current sublist will take up
+            total_length += 4;                              // each load list sublist uses 2 bytes for its length and 2 bytes for its index
             delta_counter++;
         }
 
+    // header info
     *(short int *) (prop.header) = code;
-    *(short int *) (prop.header + 4) = 0x0464;
+    *(short int *) (prop.header + 4) = 0x0464; // idr why
     *(short int *) (prop.header + 6) = delta_counter;
 
     prop.length = total_length;
@@ -271,10 +279,10 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code) {
     int offset = 4 * delta_counter;
     for (i = 0; i < cam_length; i++)
         if (list_array[i].count != 0) {
-            *(short int *) (prop.data + 2 * indexer) = list_array[i].count;
-            *(short int *) (prop.data + 2 * (indexer + delta_counter)) = i;
+            *(short int *) (prop.data + 2 * indexer) = list_array[i].count;             // i-th sublist's length (item count)
+            *(short int *) (prop.data + 2 * (indexer + delta_counter)) = i;             // i-th sublist's index
             for (j = 0; j < list_array[i].count; j++)
-                *(int *) (prop.data + offset + 4 * j) = list_array[i].eids[j];
+                *(int *) (prop.data + offset + 4 * j) = list_array[i].eids[j];          // individual items
             offset += list_array[i].count * 4;
             indexer++;
         }

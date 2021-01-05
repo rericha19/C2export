@@ -269,7 +269,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
             if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
                 merged_chunk_size += elist[i].esize + 4;
 
-        if (merged_chunk_size < CHUNKSIZE) // find out whether can do <= instead of < (needs testing)
+        if (merged_chunk_size <= CHUNKSIZE)          // find out whether can do <= instead of < (needs testing)
             for (int i = 0; i < entry_count; i++)
                 if (elist[i].chunk == chunk_index2)
                     elist[i].chunk = chunk_index1;
@@ -294,6 +294,7 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
     for (i = 0; i < entries.count; i++)
         for (j = 0; j < i; j++) {
             relations.relations[indexer].value = entry_matrix[i][j];
+            // experimental
             int temp = 0;
             for (int k = 0; k < i; k++)
                 temp += entry_matrix[i][k];
@@ -306,7 +307,7 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
         }
 
     if (config[8] == 0)
-        qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);
+        qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);           // the 'consistent' one
     if (config[8] == 1)
         qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp2);
 
