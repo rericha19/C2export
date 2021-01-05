@@ -240,7 +240,7 @@ const char* eid_conv(unsigned int m_value, char *eid)
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "_!";
 
-    static char temp[6] = "abcde";
+    char temp[6] = "abcde";
     temp[0] = charset[(m_value >> 25) & 0x3F];
     temp[1] = charset[(m_value >> 19) & 0x3F];
     temp[2] = charset[(m_value >> 13) & 0x3F];
@@ -248,9 +248,8 @@ const char* eid_conv(unsigned int m_value, char *eid)
     temp[4] = charset[(m_value >> 1) & 0x3F];
     temp[5] = '\0';
 
-    if (eid != NULL)
-        strncpy(eid, temp, 5);
-    return temp;
+    strncpy(eid, temp, 5);
+    return eid;
 }
 
 // conversion of EID from string form to u32int form

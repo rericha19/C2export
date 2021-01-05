@@ -184,7 +184,8 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
  */
 void deprecate_build_print_payload(PAYLOAD payload, int stopper)
 {
-    printf("Zone: %s; payload: %3d", eid_conv(payload.zone, NULL), payload.count);
+    char temp[100];
+    printf("Zone: %s; payload: %3d", eid_conv(payload.zone, temp), payload.count);
     if (stopper) printf("; stopper: %2d", stopper);
     printf("\n");
 }
@@ -352,7 +353,8 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
         for (int j = 0; j < count; j++)
             if (chunks[j] == curr_chunk) is_there = 1;
 
-        if (!is_there && eid_conv(elist[elist_index].EID, NULL)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
+        char temp[100];
+        if (!is_there && eid_conv(elist[elist_index].EID, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
         {
             chunks[count] = curr_chunk;
             count++;
@@ -704,4 +706,29 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
     }
 
     *real_chunk_count = chunk_count;
+}
+
+
+/** \brief
+ *  Prints entries and their relatives.
+ *  Actually unused i think.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \return void
+ */
+void build_print_relatives(ENTRY *elist, int entry_count) {
+    char temp[100];
+    int i, j;
+    for (i = 0; i < entry_count; i++) {
+        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, temp), elist[i].chunk, elist[i].esize);
+        if (elist[i].related != NULL) {
+            printf("------ %5d\n", elist[i].related[0]);
+            for (j = 0; j < (signed) elist[i].related[0]; j++) {
+                int relative = elist[i].related[j+1];
+                printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, temp),
+                       elist[build_get_index(relative, elist, entry_count)].chunk, elist[build_get_index(relative, elist, entry_count)].esize);
+            }
+        }
+    }
 }

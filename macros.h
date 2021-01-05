@@ -391,6 +391,8 @@ int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 int          build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
+void         build_sort_load_lists(ENTRY *elist, int entry_count);
+
 
 // deprecate_build.c
 PAYLOADS     deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);

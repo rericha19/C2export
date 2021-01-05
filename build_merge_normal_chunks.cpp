@@ -73,7 +73,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
         list_insert(&entries, elist[i].EID);
     }
 
-    // builds a triangular matrix that will contain the amount of common load list occurences between i-th and j-th entry
+    // builds a triangular matrix that will contain the amount of common load list occurences of i-th and j-th entry
     int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));
     for (i = 0; i < entries.count; i++)
         entry_matrix[i] = (int *) calloc((i), sizeof(int));

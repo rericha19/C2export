@@ -107,7 +107,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
             int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
             if (gool_type > 63 || gool_type < 0) {
-                printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, NULL), gool_type);
+                printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);
                 continue;
             }
             gool_table[gool_type] = elist[*entry_count].EID;
@@ -569,6 +569,12 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
             for (int j = 0; j < neighbour_count; j++)
                 neighbours[j] = from_u32(elist[top_zone].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
             int neighbour_index = build_get_index(neighbours[link.zone_index], elist, entry_count);
+            if (neighbour_index == -1) {
+                char temp1[100], temp2[100];
+                printf("[warning] %s references %s that does not seem to be present\n",
+                       eid_conv(elist[top_zone].EID, temp1), eid_conv(neighbours[link.zone_index], temp2));
+                continue;
+            }
 
             if (elist[neighbour_index].visited[link.cam_index] == 0)
                 graph_add(&graph, elist, neighbour_index, link.cam_index);
@@ -581,7 +587,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
         {
             int cam_count = build_get_cam_count(elist[i].data)/3;
             for (int j = 0; j < cam_count; j++)
-                printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].EID, NULL), j, elist[i].distances[j]);
+                printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].EID, temp), j, elist[i].distances[j]);
         }*/
 }
 
@@ -727,7 +733,8 @@ int build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* 
                 int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
                 int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
                 if (gool_type > 63 || gool_type < 0) {
-                    printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, NULL), gool_type);
+                    char temp[100];
+                    printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);
                     continue;
                 }
                 gool_table[gool_type] = elist[*entry_count].EID;

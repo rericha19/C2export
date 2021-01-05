@@ -135,8 +135,16 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     // write and close nsd
     fwrite(nsddata, 1, real_nsd_size, nsd);
     fclose(nsd);
+}
 
-    // sorts load lists
+/** \brief
+ *  Sorts load lists according to the NSD entry table order. I think.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry list length
+ * \return void
+ */
+void build_sort_load_lists(ENTRY *elist, int entry_count) {
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
@@ -167,4 +175,3 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
         }
     }
 }
-

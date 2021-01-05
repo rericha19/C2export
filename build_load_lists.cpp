@@ -47,7 +47,8 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
             if (cam_count == 0)
                 continue;
 
-            printf("Doing load lists for %s\n", eid_conv(elist[i].EID, NULL));
+            char temp[100];
+            printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
 
             // get list of special entries that can be placed inside zones' first item
             // as a special zone-specific dependency/load list
@@ -193,6 +194,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
  */
 void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config) {
     int i, j, k;
+    char temp[100];
 
     // neighbours, slsts, scenery
     LIST links = build_get_links(elist[zone_index].data, camera_index);
@@ -205,7 +207,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
 
         /*
-        printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, NULL), i);
+        printf("%s point %2d:\n", eid_conv(elist[zone_index].EID, temp), i);
         for (j = 0; j < entity_list.count; j++)
             printf("\t%d\n", entity_list.eids[j]);*/
 
@@ -215,7 +217,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
             int type = types_subtypes.eids[j] >> 16;
             int subtype = types_subtypes.eids[j] & 0xFF;
 
-            //printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, NULL), i, type, subtype);
+            //printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].EID, temp), i, type, subtype);
             for (k = 0; k < sub_info.count; k++)
                 if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type)
                     list_copy_in(&full_list[i], sub_info.array[k].dependencies);
@@ -698,6 +700,8 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
  */
 void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info) {
     printf("\n");
+
+    char temp[100];
     int i, j, k;
     LIST considered = init_list();
     for (i = 0; i < entry_count; i++)
@@ -710,7 +714,7 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
                 if (type >= 64 || type < 0 || subt < 0) {
-                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].EID, NULL), j, type, subt);
+                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].EID, temp), j, type, subt);
                     continue;
                 }
 
@@ -725,7 +729,7 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
                         found = 1;
                 if (!found)
                     printf("[warning] Entity with type %2d subtype %2d has no dependency list! (e.g. Zone %s entity %2d ID %3d)\n",
-                            type, subt, eid_conv(elist[i].EID, NULL), j, enID);
+                            type, subt, eid_conv(elist[i].EID, temp), j, enID);
             }
         }
 }
@@ -824,6 +828,7 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
  * \return void
  */
 void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j) {
+    char temp[100];
     int k, l;
     int over_count = 0;
     unsigned int over_textures[20];
@@ -833,7 +838,7 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
         int texture_count = 0;
         unsigned int textures[20];
         for (l = 0; l < full_load[k].count; l++)
-            if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],NULL)[4] == 'T')
+            if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l],temp)[4] == 'T')
                 textures[texture_count++] = full_load[k].eids[l];
 
         if (texture_count > over_count) {
@@ -844,9 +849,9 @@ void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, i
     }
 
     if (over_count > 8) {
-        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv(elist[i].EID, NULL), j, over_count, point);
+        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv(elist[i].EID, temp), j, over_count, point);
         for (k = 0; k < over_count; k++)
-            printf("\t%s", eid_conv(over_textures[k], NULL));
+            printf("\t%s", eid_conv(over_textures[k], temp));
         printf("\n");
     }
 }

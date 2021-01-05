@@ -166,34 +166,12 @@ void build_check_item_count(unsigned char *zone, int eid) {
     int cam_count = build_get_cam_item_count(zone);
     int entity_count = build_get_entity_count(zone);
 
+    char temp[100];
     if (item_count != (2 + cam_count + entity_count))
         printf("[warning] %s's item count (%d) doesn't match item counts in the first item (2 + %d + %d)\n",
-               eid_conv(eid, NULL), item_count, cam_count, entity_count);
+               eid_conv(eid, temp), item_count, cam_count, entity_count);
 }
 
-
-/** \brief
- *  Prints entries and their relatives.
- *  Actually unused i think.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \return void
- */
-void build_print_relatives(ENTRY *elist, int entry_count) {
-    int i, j;
-    for (i = 0; i < entry_count; i++) {
-        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, NULL), elist[i].chunk, elist[i].esize);
-        if (elist[i].related != NULL) {
-            printf("------ %5d\n", elist[i].related[0]);
-            for (j = 0; j < (signed) elist[i].related[0]; j++) {
-                int relative = elist[i].related[j+1];
-                printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, NULL),
-                       elist[build_get_index(relative, elist, entry_count)].chunk, elist[build_get_index(relative, elist, entry_count)].esize);
-            }
-        }
-    }
-}
 
 
 /** \brief
@@ -329,6 +307,7 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
 // dumb thing for snow no or whatever convoluted level its configured for rn
 // actually unused at the time
 void build_get_box_count(ENTRY *elist, int entry_count) {
+    char temp[100];
     int counter = 0;
     int nitro_counter = 0;
     for (int i = 0; i < entry_count; i++) {
@@ -347,7 +326,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
                 /*if (id != -1)*/
                 {
                     counter++;
-                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, NULL), type, subt, id);
+                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, id);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18) {
@@ -457,6 +436,7 @@ void build_main(int build_rebuild_flag) {
 
     // build and write nsf and nsd file
     build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
+    build_sort_load_lists(elist, entry_count);
     build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
