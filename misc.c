@@ -486,6 +486,19 @@ int relations_cmp(const void *a, const void *b)
 }
 
 
+// used to sort relations that store how much entries are loaded simultaneously, sorts in descending order, also takes total occurence count into consideration (experimental)
+int relations_cmp2(const void *a, const void *b)
+{
+    RELATION x = *(RELATION *) a;
+    RELATION y = *(RELATION *) b;
+
+    if (y.value - x.value != 0)
+        return y.value - x.value;
+
+    return x.total_occurences - y.total_occurences;
+}
+
+
 /** \brief
  *  List struct init function.
  *

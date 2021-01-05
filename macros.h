@@ -185,6 +185,7 @@ typedef struct load_list {
 // used in matrix merge to store what entries are loaded simultaneously and how much/often
 typedef struct relation {
     int value;
+    int total_occurences;
     int index1;
     int index2;
 } RELATION;
@@ -265,6 +266,7 @@ int          cmp_entry_eid(const void *a, const void *b);
 int          cmp_entry_size(const void *a, const void *b);
 int          snd_cmp(const void *a, const void *b);
 int          relations_cmp(const void *a, const void *b);
+int          relations_cmp2(const void *a, const void *b);
 LIST         init_list();
 SPAWNS       init_spawns();
 int          list_find(LIST list, unsigned int searched);
@@ -334,7 +336,7 @@ void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
-RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix);
+RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
@@ -373,7 +375,7 @@ int          build_ask_ID();
 void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]);
 void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
-void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config);
+void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);

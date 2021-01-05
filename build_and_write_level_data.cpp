@@ -74,7 +74,7 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
         *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);      // chunk checksum
     }
 
-    printf("Average normal chunk portion taken: %.3f\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE);
+    printf("Average normal chunk portion taken: %.3f%c\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE, '%');
 }
 
 

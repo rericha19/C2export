@@ -59,7 +59,7 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                 int cam_offset = get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
-                // create full non-delta load list used to represent the load list during its building
+                // initialise full non-delta load list used to represent the load list during its building
                 LIST full_load[cam_length];
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
@@ -145,34 +145,51 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
  */
 void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count) {
     int i, j;
+
+    // full item, listA point 0
     for (i = 0; i < full_load[0].count; i++)
         if (build_get_index(full_load[0].eids[i], elist, entry_count) != -1)
             list_insert(&listA[0], full_load[0].eids[i]);
 
+    // full item, listB point n-1
     int n = cam_length - 1;
     for (i = 0; i < full_load[n].count; i++)
         if (build_get_index(full_load[n].eids[i], elist, entry_count) != -1)
             list_insert(&listB[n], full_load[n].eids[i]);
 
+    // creates delta items
+    // for each point it takes full load list and for each entry checks whether it has just become loaded/deloaded
     for (i = 1; i < cam_length; i++) {
-        for (j = 0; j < full_load[i].count; j++)
-            if ((list_find(full_load[i - 1], full_load[i].eids[j]) == -1) && build_get_index(full_load[i].eids[j], elist, entry_count) != -1)
-                list_insert(&listA[i], full_load[i].eids[j]);
 
-        for (j = 0; j < full_load[i - 1].count; j++)
-            if ((list_find(full_load[i], full_load[i - 1].eids[j]) == -1) && build_get_index(full_load[i - 1].eids[j], elist, entry_count) != -1)
-                list_insert(&listB[i - 1], full_load[i - 1].eids[j]);
+        for (j = 0; j < full_load[i].count; j++) {
+            unsigned int curr_eid = full_load[i].eids[j];
+            if (build_get_index(curr_eid, elist, entry_count) != -1) continue;
+
+            // is loaded on i-th point but not on i-1th point -> just became loaded, add to listA[i]
+            if (list_find(full_load[i - 1], curr_eid) == -1)
+                list_insert(&listA[i], curr_eid);
+        }
+
+        for (j = 0; j < full_load[i - 1].count; j++) {
+            unsigned int curr_eid = full_load[i - 1].eids[j];
+            if (build_get_index(curr_eid, elist, entry_count) != -1) continue;
+
+            // is loaded on i-1th point but not on i-th point -> no longer loaded, add to listB[i - 1]
+            if (list_find(full_load[i], curr_eid) == -1)
+                list_insert(&listB[i - 1], curr_eid);
+        }
     }
 
-
+    // gets rid of cases when an item is in both listA and listB on the same index (getting loaded and instantly deloaded or vice versa, fucky)
+    // if its in both it removes it from both
     for (i = 0; i < cam_length; i++) {
-        LIST copy = init_list();
-        list_copy_in(&copy, listA[i]);
+        LIST iter_copy = init_list();
+        list_copy_in(&iter_copy, listA[i]);
 
-        for (j = 0; j < copy.count; j++)
-            if (list_find(listB[i], copy.eids[j]) != -1) {
-                list_remove(&listA[i], copy.eids[j]);
-                list_remove(&listB[i], copy.eids[j]);
+        for (j = 0; j < iter_copy.count; j++)
+            if (list_find(listB[i], iter_copy.eids[j]) != -1) {
+                list_remove(&listA[i], iter_copy.eids[j]);
+                list_remove(&listB[i], iter_copy.eids[j]);
             }
     }
 }

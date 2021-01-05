@@ -369,15 +369,16 @@ void build_main(int build_rebuild_flag) {
     for (int i = 0; i < 0x40; i++) gool_table[i] = EID_NONE;
 
     /* config: */
-    // 0 - [gool initial merge flag]    0 - group       |   1 - one by one
-    // 1 - [zone initial merge flag]    0 - group       |   1 - one by one
-    // 2 - [merge type flag]            0 - per delta   |   1 - per point
+    // 0 - [gool initial merge flag]    0 - group       |   1 - one by one                              used by deprecate merges
+    // 1 - [zone initial merge flag]    0 - group       |   1 - one by one                              used by deprecate merges
+    // 2 - [merge type flag]            0 - per delta   |   1 - fucky per point |   2 - real per point
     // 3 - [slst distance]              defined by user
     // 4 - [neighbour distance]         defined by user
     // 5 - [draw list distance]         defined by user
     // 6 - transition pre-load flag     defined by user
-    // 7 - backwards penalty            defined by user | is 1M times the float value because yes, range 0 - 0.5
-    int config[8] = {1, 1, 1, 0, 0, 0, 0, 0};
+    // 7 - backwards penalty            defined by user     is 1M times the float value because yes, range 0 - 0.5
+    // 8 - relation array sort          0 - regular     |   1 - additionally sort using total occurence count
+    int config[9] = {1, 1, 1, 0, 0, 0, 0, 0, 0};
 
     // reading contents of the nsf/folder and collecting metadata
     // end if something went wrong

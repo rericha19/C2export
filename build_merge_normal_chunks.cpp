@@ -15,11 +15,16 @@
  * \return void
  */
 void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
+    clock_t time_start = clock();
+
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count, config);                   // chunks start off having one entry per chunk
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                           // chunks start off having one entry per chunk
     build_matrix_merge_main(elist, entry_count, chunk_border_sounds, chunk_count, config);      // current best algorithm
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);        // for payload printout, doesnt do much anymore
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                     // jic something didnt get merged it gets merged
+
+    clock_t time_end = clock();
+    printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
 }
 
 
@@ -29,10 +34,9 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
  * \param chunk_count int*              chunk count
- * \param config int*                   config
  * \return void
  */
-void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count, int *config) {
+void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count) {
     for (int i = 0; i < entry_count; i++)
         if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1)
             elist[i].chunk = (*chunk_count)++;
@@ -90,12 +94,13 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
                 LIST list = init_list();
                 switch(merge_flag) {
                     // per point (seems to generally be better), but its actually kinda fucky because if its not it gives worse results
-                    // if it were properly per point, the 'build_increment_common' function would use the 'rating' variable as 4th arg instead of 1
+                    // if it were properly per point, the 'build_increment_common' function would use the 'counter' variable as 4th arg instead of 1
+                    case 2:
                     case 1: {
                         int sublist_index = 0;
-                        int rating = 0;
+                        int counter = 0;
                         for (l = 0; l < cam_length; l++) {
-                            rating++;
+                            counter++;
                             if (load_list.array[sublist_index].index == l) {
                                 if (load_list.array[sublist_index].type == 'A')
                                     for (m = 0; m < load_list.array[sublist_index].list_length; m++)
@@ -106,8 +111,11 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
                                         list_remove(&list, load_list.array[sublist_index].list[m]);
 
                                 sublist_index++;
-                                build_increment_common(list, entries, entry_matrix, 1);
-                                rating = 0;
+                                if (merge_flag == 1)
+                                    build_increment_common(list, entries, entry_matrix, 1);
+                                if (merge_flag == 2)
+                                    build_increment_common(list, entries, entry_matrix, counter);
+                                counter = 0;
                             }
                         }
                         break;
@@ -138,7 +146,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
     // gets rid of the matrix
-    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix);
+    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
 
     // do the merges according to the relation array, get rid of holes afterwards
     build_matrix_merge_util(array_representation, elist, entry_count, entries);
@@ -277,7 +285,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
  * \param entry_matrix int**            matrix that contains common load list occurences
  * \return RELATIONS
  */
-RELATIONS build_transform_matrix(LIST entries, int **entry_matrix) {
+RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) {
     RELATIONS relations;
     relations.count = (entries.count * (entries.count - 1)) / 2;
     relations.relations = (RELATION *) malloc(relations.count * sizeof(RELATION));
@@ -286,12 +294,22 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix) {
     for (i = 0; i < entries.count; i++)
         for (j = 0; j < i; j++) {
             relations.relations[indexer].value = entry_matrix[i][j];
+            int temp = 0;
+            for (int k = 0; k < i; k++)
+                temp += entry_matrix[i][k];
+            for (int k = 0; k < j; k++)
+                temp += entry_matrix[j][k];
+            relations.relations[indexer].total_occurences = temp;
             relations.relations[indexer].index1 = i;
             relations.relations[indexer].index2 = j;
             indexer++;
         }
 
-    qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);
+    if (config[8] == 0)
+        qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);
+    if (config[8] == 1)
+        qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp2);
+
     for (i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
