@@ -400,7 +400,12 @@ void build_main(int build_rebuild_flag) {
     // let the user pick the spawn, according to the spawn determine for each cam path its distance from spawn in terms of path links,
     // which is later used to find out which of 2 paths is in the backwards direction and, where backwards loading penalty should be applied
     // during the load list generation procedure
-    build_ask_spawn(spawns);
+    if (spawns.spawn_count > 0)
+        build_ask_spawn(spawns);
+    else {
+        printf("[Error] No spawns found, add one using the usual 'willy' entity or a checkpoint\n");
+        return;
+    }
     build_get_distance_graph(elist, entry_count, spawns);
 
     // gets model references from gools, was useful in a deprecate chunk merging/building algorithm, but might be useful later and barely takes any time so idc
@@ -434,7 +439,8 @@ void build_main(int build_rebuild_flag) {
     build_make_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
 
     // call main merge function
-    build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+    //build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+    build_merge_experimental(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
 
     // build and write nsf and nsd file
     build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);

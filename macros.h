@@ -232,6 +232,10 @@ typedef struct entry_queue {
     int camera_indices[QUEUE_ITEM_COUNT];
 } QUEUE;
 
+typedef struct a_star_struct {
+
+} A_STAR_STR;
+
 // misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
 void         intro_text();
@@ -394,6 +398,11 @@ int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd
 int          build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
+
+// a star merge
+void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+A_STAR_STR   a_star_solve(ENTRY *elist, int entry_count, int *chunk_count);
+
 
 
 // deprecate_build.c

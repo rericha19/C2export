@@ -86,7 +86,6 @@ void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_tab
                             for (l = 0; l < cam_length; l++)
                                 list_insert(&full_load[l], elist[k].EID);
                 }
-
                 // one sound per chunk
                 if (config[9] == 1) {
                     for (k = 0; k < cam_length; k++)
