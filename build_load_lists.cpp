@@ -17,7 +17,7 @@
  * \param subtype_info DEPENDENCIES     list of {type, subtype, count, dependencies[count]}
  * \return void
  */
-void build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config) {
+void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config) {
     int i, j, k, l;
 
     // gets a list of sound EIDs (one per chunk) to make load lists smaller
@@ -213,7 +213,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
  */
 void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config) {
     int i, j, k;
-    char temp[100];
+    // char temp[100];
 
     // neighbours, slsts, scenery
     LIST links = build_get_links(elist[zone_index].data, camera_index);

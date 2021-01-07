@@ -233,8 +233,19 @@ typedef struct entry_queue {
 } QUEUE;
 
 typedef struct a_star_struct {
-
+    unsigned int **entry_chunk_array;
+    unsigned int array_length;
+    unsigned int elapsed;
 } A_STAR_STR;
+
+class A_STAR_QUEUE {
+    unsigned int length;
+    A_STAR_STR *que;
+public:
+    A_STAR_QUEUE(int length);
+    void add(A_STAR_STR);
+    A_STAR_STR pop();
+};
 
 // misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
@@ -370,7 +381,7 @@ void         build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPE
 void         build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count);
 LIST         build_read_special_entries(unsigned char *zone);
 LIST         build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count);
-void         build_make_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
+void         build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
                                    DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
 int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions,
                                      ENTRY *elist, int entry_count, unsigned int *gool_table);
@@ -379,7 +390,7 @@ int          build_ask_ID();
 void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]);
 void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
-void         build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
+int          build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
@@ -398,10 +409,12 @@ int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd
 int          build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
+void         build_ask_build_flags(int* ll_flag, int* merge_type);
+
 
 // a star merge
 void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-A_STAR_STR   a_star_solve(ENTRY *elist, int entry_count, int *chunk_count);
+A_STAR_STR*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int mergee_count);
 
 
 
@@ -420,6 +433,8 @@ void         deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int
 void         deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
+void         deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk_border_sounds,
+                                                int* chunk_count, int* config, LIST permaloaded);
 
 // side_scripts.cpp
 int          scenery_recolor_main();

@@ -72,7 +72,7 @@ void build_ask_spawn(SPAWNS spawns) {
  */
 void build_ask_distances(int *config) {
     int temp;
-    char ans;
+    int ans;
     printf("\nSLST distance?      (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[3] = temp;
@@ -85,11 +85,9 @@ void build_ask_distances(int *config) {
     scanf("%d", &temp);
     config[5] = temp;
 
-    printf("\nPre-load stuff for transitions? (not pre-loading is safer) [y/n]\n");
-    // fucky scanf
-    scanf("%c", &ans);
-    scanf("%c", &ans);
-    if (ans == 'y' || ans == 'Y') {
+    printf("\nPre-load stuff for transitions? (not pre-loading is safer) [0/1]\n");
+    scanf("%d", &ans);
+    if (ans) {
         config[6] = 1;
         printf("Pre-loading\n\n");
     }
@@ -121,4 +119,27 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB) {
     SPAWN temp = spawns.spawns[spawnA];
     spawns.spawns[spawnA] = spawns.spawns[spawnB];
     spawns.spawns[spawnB] = temp;
+}
+
+
+void build_ask_build_flags(int* ll_flag, int* merge_type) {
+    printf("Remake load lists? [0/1]\n");
+    int ans;
+    scanf("%d", &ans);
+    if (ans) {
+        *ll_flag = 1;
+        printf("Will remake load lists\n\n");
+    }
+    else {
+        *ll_flag = 0;
+        printf("Won't remake load lists\n\n");
+    }
+
+    printf("What merge technique do you want to use?\n");
+    printf("[0] - occurence matrix merge\n");
+    printf("[1] - a-star merge (experimental)\n");
+    printf("[2] - relatives & payload merge (deprecate, bad)\n");
+    scanf("%d", &ans);
+    *merge_type = ans;
+    printf("\n");
 }

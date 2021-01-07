@@ -34,12 +34,16 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
  * \param chunk_count int*              chunk count
- * \return void
+ * \return int                          number of entries that have been assigned a chunk in this function
  */
-void build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count) {
+int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count) {
+    int counter = 0;
     for (int i = 0; i < entry_count; i++)
-        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1)
+        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1) {
             elist[i].chunk = (*chunk_count)++;
+            counter++;
+        }
+    return counter;
 }
 
 

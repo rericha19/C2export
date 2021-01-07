@@ -75,6 +75,18 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
     return payloads;
 }
 
+// main function for payload merge (calls needed merge functions for this method)
+void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk_border_sounds,
+                                        int* chunk_count, int* config, LIST permaloaded) {
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);     // good
+    //build_assign_primary_chunks_all(elist, entry_count, chunk_count);
+    deprecate_build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[0]);
+    deprecate_build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
+    deprecate_build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+}
+
 /** \brief
  *  Deprecate merge function based on payloads.
  *  In each iteration gets a payload ladder and tries to merge chunks loaded by
