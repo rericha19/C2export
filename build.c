@@ -358,7 +358,9 @@ void build_main(int build_rebuild_flag) {
     DEPENDENCIES subtype_info;                  // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions;                    // struct containing info about dependencies of certain collision types
     int level_ID = 0;                           // level ID, used for naming output files and needed in output nsd
-    int chunk_border_base       = 0,             // used to keep track of counts and to separate groups of chunks
+
+    // used to keep track of counts and to separate groups of chunks
+    int chunk_border_base       = 0,
         chunk_border_texture    = 0,
         chunk_border_sounds     = 0,
         chunk_count             = 0,
@@ -368,25 +370,25 @@ void build_main(int build_rebuild_flag) {
     unsigned int gool_table[0x40];              // table w/ EIDs of gool entries, needed for nsd, filled using input entries
     for (int i = 0; i < 0x40; i++) gool_table[i] = EID_NONE;
 
-    /* config: */
+    // config:
     // 0 - [gool initial merge flag]    0 - group       |   1 - one by one                          set here, used by deprecate merges
     // 1 - [zone initial merge flag]    0 - group       |   1 - one by one                          set here, used by deprecate merges
-    // 2 - [merge type flag]            0 - per delta   |   1 - fucky per point |   2 - per point   set here, used by matrix merge
+    // 2 - [merge type flag]            0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
     // 3 - [slst distance]              set by user in function build_ask_distances(config);
     // 4 - [neighbour distance]         set by user in function build_ask_distances(config);
     // 5 - [draw list distance]         set by user in function build_ask_distances(config);
     // 6 - transition pre-load flag     set by user in function build_ask_distances(config);
-    // 7 - backwards penalty            set by user in func ask_dist...;    is 1M times the float value because yes, range 0 - 0.5
-    // 8 - relation array sort          0 - regular     |   1 - also sort using total occurence count   set here, used by matrix merge
-    // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk               set here, affects load lists
-    //10 - load list merge flag         0 - dont remake |   1 - remake load lists                       set here
-    //11 - merge technique flag         0 - matrix      |   1 - experimental (a-star)                   set here
-    int config[12] = {1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    // 7 - backwards penalty            set by user in func ask_dist...;    is 1M times the float value because int, range 0 - 0.5
+    // 8 - relation array sort          0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
+    // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
+    //10 - load list merge flag         0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
+    //11 - merge technique flag         0 - matrix      |   1 - experimental (a-star)               set by user in build_ask_build_flags
+    int config[12] = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+    // user picks whether to remake load lists or not, also merge method
     build_ask_build_flags(&config[10], &config[11]);
-
     int load_list_flag = config[10];
-    int merge_flag = config[11];
+    int merge_tech_flag = config[11];
 
     // reading contents of the nsf/folder and collecting metadata
     // end if something went wrong
@@ -435,7 +437,6 @@ void build_main(int build_rebuild_flag) {
         return;
     }
 
-    // if remaking load lists
     if (load_list_flag == 1) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified
         build_find_unspecified_entities(elist, entry_count, subtype_info);
@@ -449,16 +450,14 @@ void build_main(int build_rebuild_flag) {
     }
 
     // call merge function
-    switch(merge_flag) {
-        case 0:
-            build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            break;
+    switch(merge_tech_flag) {
         case 1:
             build_merge_experimental(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 2:
             deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
+        case 0:
         default:
             build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;

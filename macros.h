@@ -103,6 +103,9 @@
 #define ENTITY_PROP_CAM_BG_COLORS       0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY  0x27F
 
+#define A_STAR_EVAL_INVALID             0x80000000
+#define A_STAR_EVAL_SUCCESS             0
+
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
 
@@ -236,16 +239,13 @@ typedef struct a_star_struct {
     unsigned int **entry_chunk_array;
     unsigned int array_length;
     unsigned int elapsed;
+    unsigned int estimated;
 } A_STAR_STR;
 
-class A_STAR_QUEUE {
+typedef struct a_star_heap {
     unsigned int length;
-    A_STAR_STR *que;
-public:
-    A_STAR_QUEUE(int length);
-    void add(A_STAR_STR);
-    A_STAR_STR pop();
-};
+    A_STAR_STR **heap_array;
+} A_STAR_HEAP;
 
 // misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
