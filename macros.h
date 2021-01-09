@@ -414,6 +414,12 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 
 // a star merge
 void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+A_STAR_STR*  build_a_star_str_init(int length);
+void         build_a_star_str_destroy(A_STAR_STR* state);
+int          build_a_star_evaluate(A_STAR_STR* state, ENTRY *elist, int entry_count);
+int          build_a_star_str_chunk_max(A_STAR_STR* state);
+A_STAR_STR*  build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, unsigned int chunk2, int mergee_count);
+A_STAR_STR*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int mergee_count);
 A_STAR_STR*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int mergee_count);
 
 

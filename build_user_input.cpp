@@ -49,7 +49,7 @@ void build_ask_spawn(SPAWNS spawns) {
     char temp[100];
 
     // lets u pick a spawn point
-    printf("\nPick a spawn (type it second time if it doesnt work):\n");
+    printf("Pick a spawn:\n");
     for (int i = 0; i < spawns.spawn_count; i++)
         printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
@@ -123,7 +123,7 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB) {
 
 
 void build_ask_build_flags(int* ll_flag, int* merge_type) {
-    printf("Remake load lists? [0/1]\n");
+    printf("\nRemake load lists? [0/1]\n");
     int ans;
     scanf("%d", &ans);
     if (ans) {

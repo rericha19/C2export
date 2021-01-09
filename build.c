@@ -360,8 +360,8 @@ void build_main(int build_rebuild_flag) {
     int level_ID = 0;                           // level ID, used for naming output files and needed in output nsd
 
     // used to keep track of counts and to separate groups of chunks
-    int chunk_border_base       = 0,
-        chunk_border_texture    = 0,
+    //int chunk_border_base       = 0;
+    int chunk_border_texture    = 0,
         chunk_border_sounds     = 0,
         chunk_count             = 0,
         entry_count_base        = 0,
@@ -382,13 +382,8 @@ void build_main(int build_rebuild_flag) {
     // 8 - relation array sort          0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
     // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
     //10 - load list merge flag         0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
-    //11 - merge technique flag         0 - matrix      |   1 - experimental (a-star)               set by user in build_ask_build_flags
+    //11 - merge technique flag         0 - matrix      |   1 - a-star (wip)    |   2 - deprecate   set by user in build_ask_build_flags
     int config[12] = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-    // user picks whether to remake load lists or not, also merge method
-    build_ask_build_flags(&config[10], &config[11]);
-    int load_list_flag = config[10];
-    int merge_tech_flag = config[11];
 
     // reading contents of the nsf/folder and collecting metadata
     // end if something went wrong
@@ -405,6 +400,11 @@ void build_main(int build_rebuild_flag) {
     }
 
     chunk_count = chunk_border_texture;
+
+    // user picks whether to remake load lists or not, also merge method
+    build_ask_build_flags(&config[10], &config[11]);
+    int load_list_flag = config[10];
+    int merge_tech_flag = config[11];
 
     // let the user pick the spawn, according to the spawn determine for each cam path its distance from spawn in terms of path links,
     // which is later used to find out which of 2 paths is in the backwards direction and, where backwards loading penalty should be applied

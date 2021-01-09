@@ -13,6 +13,12 @@ A_STAR_HEAP* heap_init_heap() {
     return temp;
 }
 
+void heap_destroy(A_STAR_HEAP* heap) {
+    for (unsigned int i = 0; i < heap->length; i++)
+        build_a_star_str_destroy(heap->heap_array[i]);
+    free(heap);
+}
+
 
 int heap_is_empty(A_STAR_HEAP heap) {
     if (heap.length == 0)
@@ -43,13 +49,19 @@ int heap_comp_util(A_STAR_HEAP* heap, int index_parent) {
     if (temp == 1) {
         unsigned int value1 = heap->heap_array[index_child1]->elapsed + heap->heap_array[index_child1]->estimated;
         unsigned int valueP = heap->heap_array[index_parent]->elapsed + heap->heap_array[index_parent]->estimated;
-        return (value1 < valueP) ? 1 : 0;
+        if (value1 < valueP)
+            return 1;
+        else
+            return 0;
     }
 
     if (temp == 2) {
         unsigned int value2 = heap->heap_array[index_child2]->elapsed + heap->heap_array[index_child2]->estimated;
         unsigned int valueP = heap->heap_array[index_parent]->elapsed + heap->heap_array[index_parent]->estimated;
-        return (value2 < valueP) ? 2 : 0;
+        if (value2 < valueP)
+            return 2;
+        else
+            return 0;
     }
 
     return 0;
