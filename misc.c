@@ -84,7 +84,7 @@ void print_help()
     printf("\n\n");
 }
 
-void countprint(INFO status)
+void countprint(DEPRECATE_INFO_STRUCT status)
 // prints the stats
 {
     int i;
@@ -115,7 +115,7 @@ void countprint(INFO status)
 }
 
 
-void condprint(INFO status)
+void condprint(DEPRECATE_INFO_STRUCT status)
 // conditional print controlled by print_en (print state) - both(3) file(2) here(1) or nowhere(0)
 {
     switch (status.print_en)
@@ -162,7 +162,7 @@ unsigned int from_u16(unsigned char *data)
 }
 
 
-void countwipe(INFO *status)
+void countwipe(DEPRECATE_INFO_STRUCT *status)
 // wipes the stats
 {
     for (int i = 0; i < 22; i++)
@@ -172,7 +172,7 @@ void countwipe(INFO *status)
 
 // pops up the dialog that lets you pick where to write most of the print statements
 // broken
-void askprint(INFO *status)
+void askprint(DEPRECATE_INFO_STRUCT *status)
 {
     char dest[4][10] = {"to both", "to file", "here", "nowhere"};
     char pc;
@@ -285,7 +285,7 @@ unsigned int nsfChecksum(const unsigned char *data)
 }
 
 
-void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status)
+void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
 //creates a string thats a save path for the currently processed file
 {
     char eidstr[6];
@@ -305,7 +305,7 @@ void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, IN
         sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
 }
 
-void askmode(int *zonetype, INFO *status)
+void askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status)
 // gets the info about the game and what to do with it
 {
     char c;
@@ -410,8 +410,8 @@ int list_comp(const void *a, const void *b)
 // used to sort load lists by index
 int load_list_sort(const void *a, const void *b)
 {
-    ITEM x = *(ITEM *) a;
-    ITEM y = *(ITEM *) b;
+    LOAD_LIST_ITEM_UTIL x = *(LOAD_LIST_ITEM_UTIL *) a;
+    LOAD_LIST_ITEM_UTIL y = *(LOAD_LIST_ITEM_UTIL *) b;
 
     return (x.index - y.index);
 }
@@ -566,7 +566,7 @@ int list_find(LIST list, unsigned int searched)
 void list_add(LIST *list, unsigned int eid)
 {
     if (list->count)
-        list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int));
+        list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int));     // realloc is slow
     else
         list->eids = (unsigned int *) malloc(sizeof(unsigned int));
     list->eids[list->count] = eid;
@@ -587,7 +587,7 @@ void list_remove(LIST *list, unsigned int eid)
     if (index == -1) return;
 
     list->eids[index] = list->eids[list->count - 1];
-    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int));
+    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int));    // realloc is slow
     list->count--;
     qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
 }
@@ -637,9 +637,9 @@ int point_distance_3D(short int x1, short int x2, short int y1, short int y2, sh
 }
 
 // misc convertion thing
-LINK int_to_link(unsigned int link)
+CAMERA_LINK int_to_link(unsigned int link)
 {
-    LINK result;
+    CAMERA_LINK result;
     result.type = (link & 0xFF000000) >> 24;
     result.zone_index = (link & 0xFF0000) >> 16;
     result.cam_index = (link & 0xFF00) >> 8;
@@ -666,9 +666,9 @@ void path_fix(char *fpath)
 }
 
 // following 3 are used for determining each camera path's distance relative to spawn, used to determine whether cam path is 'before' another one
-QUEUE graph_init()
+DISTANCE_GRAPH_QUEUE graph_init()
 {
-    QUEUE queue;
+    DISTANCE_GRAPH_QUEUE queue;
     queue.add_index = 0;
     queue.pop_index = 0;
     for (int i = 0; i < QUEUE_ITEM_COUNT; i++) {
@@ -679,7 +679,7 @@ QUEUE graph_init()
     return queue;
 }
 
-void graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index)
+void graph_add(DISTANCE_GRAPH_QUEUE *graph, ENTRY *elist, int zone_index, int camera_index)
 {
     int n = graph->add_index;
     graph->zone_indices[n] = zone_index;
@@ -694,7 +694,7 @@ void graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index)
 }
 
 
-void graph_pop(QUEUE *graph, int *zone_index, int *cam_index)
+void graph_pop(DISTANCE_GRAPH_QUEUE *graph, int *zone_index, int *cam_index)
 {
     int n = graph->pop_index;
     *zone_index = graph->zone_indices[n];

@@ -2,7 +2,7 @@
 
 // this entire thing is just awful, probably never use
 
-int import_main(char *time, INFO status)
+int import_main(char *time, DEPRECATE_INFO_STRUCT status)
 // brute imports entries from a selected folder into a selected level
 {
     FILE *base, *importee;

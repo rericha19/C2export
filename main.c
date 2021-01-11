@@ -4,7 +4,7 @@
 // half the stuff barely works so dont touch it much
 // imo the only part thats in a reasonable shape is the level build related code
 
-INFO status;
+DEPRECATE_INFO_STRUCT status;
 
 //actual main
 int main() {

@@ -1,6 +1,6 @@
 #include "macros.h"
 
-extern INFO status;
+extern DEPRECATE_INFO_STRUCT status;
 
 // convoluted, but does the thing (i think)
 // absolutely fucking awful never look at it again

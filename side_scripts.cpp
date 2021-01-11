@@ -369,7 +369,7 @@ void prop_main(char* path)
 }
 
 // im not gonna comment the resize stuff cuz it looks atrocious
-void resize_main(char *time, INFO status)
+void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
 {
     FILE *level = NULL;
     char path[MAX] = "";
@@ -403,7 +403,7 @@ void resize_main(char *time, INFO status)
     return ;
 }
 
-void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO status)
+void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status)
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
@@ -429,7 +429,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO
     fclose(filenew);
 }
 
-void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3])
+void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
 {
     int offset_start,offset_end, i;
     unsigned int checksum;
@@ -455,7 +455,7 @@ void resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3])
     }
 }
 
-void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status)
+void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_INFO_STRUCT status)
 {
     struct dirent *de;
     char lcltemp[6] = "", help[MAX] = "";
@@ -513,7 +513,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status
     }
 }
 
-void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
+void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int i, itemcount;
     unsigned int coord;
@@ -552,7 +552,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status)
            resize_entity(buffer + itemoffs[i], itemoffs[i+1] - itemoffs[i], scale, status);
 }
 
-void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status)
+void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     unsigned int i;
     int off0x4B = 0;
@@ -588,7 +588,7 @@ void resize_entity(unsigned char *item, int itemsize, double scale[3], INFO stat
     }
 }
 
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status)
+void resize_scenery(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int i,item1off,j,curr_off,next_off,group,rest,vert;
     long long int origin;

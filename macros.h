@@ -9,6 +9,7 @@
 #include <limits.h>
 #include "windows.h"
 
+#define HASH_TABLE_DEF_SIZE             100000000
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
@@ -119,7 +120,7 @@ typedef struct info{
     int portmode;                   // 0 for normal export, 1 for porting
     unsigned int anim[1024][3];     // field one is model, field 3 is animation, field 2 is original animation when c3->c2
     unsigned int animrefcount;      // count of animation references when porting c3 to c2
-} INFO;
+} DEPRECATE_INFO_STRUCT;
 
 // in build scripts, used to store spawns
 typedef struct spawn{
@@ -156,7 +157,7 @@ typedef struct entry{
 typedef struct item {
     int eid;
     int index;
-} ITEM;
+} LOAD_LIST_ITEM_UTIL;
 
 // used to store payload information
 typedef struct payload {
@@ -204,12 +205,12 @@ typedef struct inf {
     int type;
     int subtype;
     LIST dependencies;
-} INF;
+} DEPENDENCY;
 
 // all dependencies
 typedef struct {
     int count;
-    INF *array;
+    DEPENDENCY *array;
 } DEPENDENCIES;
 
 // stores a camera path link
@@ -218,7 +219,7 @@ typedef struct link {
     unsigned char zone_index;
     unsigned char cam_index;
     unsigned char flag;
-}   LINK;
+}   CAMERA_LINK;
 
 // entity/item property
 typedef struct property {
@@ -233,39 +234,50 @@ typedef struct entry_queue {
     int pop_index;
     int zone_indices[QUEUE_ITEM_COUNT];
     int camera_indices[QUEUE_ITEM_COUNT];
-} QUEUE;
+} DISTANCE_GRAPH_QUEUE;
 
 typedef struct a_star_struct {
-    unsigned int **entry_chunk_array;
-    unsigned int array_length;
+    unsigned short int *entry_chunk_array;
     unsigned int elapsed;
     unsigned int estimated;
-} A_STAR_STR;
+} A_STAR_STRUCT;
 
 typedef struct a_star_heap {
     unsigned int length;
-    A_STAR_STR **heap_array;
+    A_STAR_STRUCT **heap_array;
 } A_STAR_HEAP;
+
+typedef struct hash_item {
+    struct hash_item* next;
+    unsigned short int *entry_chunk_array;
+} HASH_ITEM;
+
+
+typedef struct hash_table {
+    int length;
+    HASH_ITEM** items;
+} HASH_TABLE;
+
 
 // misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
 void         intro_text();
 void         print_help();
-void         countprint(INFO status);
-void         condprint(INFO status);
+void         countprint(DEPRECATE_INFO_STRUCT status);
+void         condprint(DEPRECATE_INFO_STRUCT status);
 void         clrscr();
 unsigned int from_u32(unsigned char *data);
 unsigned int from_u16(unsigned char *data);
-void         countwipe(INFO *status);
-void         askprint(INFO *status);
+void         countwipe(DEPRECATE_INFO_STRUCT *status);
+void         askprint(DEPRECATE_INFO_STRUCT *status);
 unsigned long hash(const char *str);
 int          hash_main();
 void         swap_ints(int *a, int *b);
 const char*  eid_conv(unsigned int m_value, char *eid);
 unsigned int eid_to_int(char *eid);
 unsigned int nsfChecksum(const unsigned char *data);
-void         make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, INFO status);
-void         askmode(int *zonetype, INFO *status);
+void         make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
+void         askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status);
 long long int fact(int n);
 int          cmpfunc(const void *a, const void *b);
 int          comp(const void *a, const void *b);
@@ -291,12 +303,12 @@ void         list_insert(LIST *list, unsigned int eid);
 void         list_copy_in(LIST *destination, LIST source);
 LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
-LINK         int_to_link(unsigned int link);
+CAMERA_LINK         int_to_link(unsigned int link);
 void         delete_load_list(LOAD_LIST load_list);
 void         path_fix(char *fpath);
-QUEUE        graph_init();
-void         graph_add(QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
-void         graph_pop(QUEUE *graph, int *zone_index, int *cam_index);
+DISTANCE_GRAPH_QUEUE        graph_init();
+void         graph_add(DISTANCE_GRAPH_QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
+void         graph_pop(DISTANCE_GRAPH_QUEUE *graph, int *zone_index, int *cam_index);
 int          get_nth_item_offset(unsigned char *entry, int n);
 
 
@@ -315,7 +327,7 @@ void         export_model(unsigned char *buffer, int entrysize,char *lvlid, char
 void         export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date);
 
 // import.c
-int          import_main(char *time, INFO status);
+int          import_main(char *time, DEPRECATE_INFO_STRUCT status);
 int          import_file_lister(char *path, FILE *fnew);
 void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 
@@ -414,13 +426,15 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 
 // a star merge
 void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-A_STAR_STR*  build_a_star_str_init(int length);
-void         build_a_star_str_destroy(A_STAR_STR* state);
-int          build_a_star_evaluate(A_STAR_STR* state, ENTRY *elist, int entry_count);
-int          build_a_star_str_chunk_max(A_STAR_STR* state);
-A_STAR_STR*  build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, unsigned int chunk2, int mergee_count);
-A_STAR_STR*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int mergee_count);
-A_STAR_STR*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int mergee_count);
+A_STAR_STRUCT*  build_a_star_str_init(int length);
+void         build_a_star_str_destroy(A_STAR_STRUCT* state);
+int          build_a_star_evaluate(A_STAR_STRUCT* state, ENTRY *elist, int entry_count, unsigned int* EID_list);
+int          build_a_star_str_chunk_max(A_STAR_STRUCT* state, int mergee_count);
+A_STAR_STRUCT*  build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int mergee_count);
+A_STAR_STRUCT*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int mergee_count);
+int          build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, int mergee_count);
+unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int mergee_count);
+A_STAR_STRUCT*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int mergee_count);
 
 
 
@@ -446,13 +460,13 @@ void         deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, i
 int          scenery_recolor_main();
 int          texture_copy_main();
 void         prop_main(char* path);
-void         resize_main(char *time, INFO status);
-void         resize_level(FILE *level, char *filepath, double scale[3], char *time, INFO status);
-void         resize_chunk_handler(unsigned char *chunk, INFO status, double scale[3]);
-void         resize_folder(DIR *df, char *path, double scale[3], char *time, INFO status);
-void         resize_zone(int fsize, unsigned char *buffer, double scale[3], INFO status);
-void         resize_entity(unsigned char *item, int itemsize, double scale[3], INFO status);
-void         resize_scenery(int fsize, unsigned char *buffer, double scale[3], INFO status);
+void         resize_main(char *time, DEPRECATE_INFO_STRUCT status);
+void         resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
+void         resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3]);
+void         resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
+void         resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
+void         resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status);
+void         resize_scenery(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
 void         rotate_main(char *time);
 void         rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
 void         rotate_zone(unsigned char *buffer, char *filepath, double rotation);

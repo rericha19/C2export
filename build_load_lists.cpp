@@ -313,7 +313,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     short int* coords;
     int path_length, distance = 0;
 
-    LINK link = int_to_link(link_int);
+    CAMERA_LINK link = int_to_link(link_int);
 
     unsigned int neighbour_eid = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index);
     unsigned int neighbour_flg = from_u32(elist[zone_index].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index + 0x20);
@@ -373,7 +373,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
     for (i = 0; i < layer2.count; i++) {
         int item1off2 = from_u32(elist[neighbour_index].data + 0x10);
-        LINK link2 = int_to_link(layer2.eids[i]);
+        CAMERA_LINK link2 = int_to_link(layer2.eids[i]);
 
         unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index);
         unsigned int neighbour_flg2 = from_u32(elist[neighbour_index].data + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);
@@ -582,7 +582,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
     LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++) {
         int distance = 0;
-        LINK link = int_to_link(links.eids[i]);
+        CAMERA_LINK link = int_to_link(links.eids[i]);
         if (link.type == 1)
             distance += build_get_distance(coords, point_index, 0, -1, NULL);
         if (link.type == 2)
@@ -630,7 +630,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
 
         LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
         for (j = 0; j < layer2.count; j++) {
-            LINK link2 = int_to_link(layer2.eids[j]);
+            CAMERA_LINK link2 = int_to_link(layer2.eids[j]);
             unsigned int eid_offset2 = from_u32(elist[neighbour_index].data + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
             unsigned int neighbour_eid2 = from_u32(elist[neighbour_index].data + eid_offset2);
             unsigned int neighbour_flg2 = from_u32(elist[neighbour_index].data + eid_offset2 + 0x20);

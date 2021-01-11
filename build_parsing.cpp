@@ -178,7 +178,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
     DEPENDENCIES subinfo;
     subinfo.count = subcount;
-    subinfo.array = (INF *) malloc(subcount * sizeof(INF));
+    subinfo.array = (DEPENDENCY *) malloc(subcount * sizeof(DEPENDENCY));
     int type, subtype, counter;
     for (i = 0; i < subcount; i++) {
         fscanf(file, "%d, %d, %d", &type, &subtype, &counter);
@@ -218,7 +218,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     fscanf(file,"%d", &coll_count);
     DEPENDENCIES coll;
     coll.count = coll_count;
-    coll.array = (INF *) malloc(coll_count * sizeof(INF));
+    coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));
     for (i = 0; i < coll_count; i++) {
         int code;
         fscanf(file, "%x, %d", &code, &counter);
@@ -548,7 +548,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
         }
     }
 
-    QUEUE graph = graph_init();
+    DISTANCE_GRAPH_QUEUE graph = graph_init();
     int start_index = build_get_index(spawns.spawns[0].zone, elist, entry_count);
     graph_add(&graph, elist, start_index, 0);
 
@@ -562,7 +562,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
         LIST links = build_get_links(elist[top_zone].data, 2 + 3 * top_cam);
         for (int i = 0; i < links.count; i++)
         {
-            LINK link = int_to_link(links.eids[i]);
+            CAMERA_LINK link = int_to_link(links.eids[i]);
             int neighbour_count = build_get_neighbour_count(elist[top_zone].data);
             unsigned int neighbours[neighbour_count];
             int item1off = from_u32(elist[top_zone].data + 0x10);

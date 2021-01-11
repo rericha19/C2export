@@ -161,14 +161,14 @@ void build_sort_load_lists(ENTRY *elist, int entry_count) {
                         int sub_list_offset = offset + 4 * list_count;
                         for (int l = 0; l < list_count; l++) {
                             int item_count = from_u16(elist[i].data + offset + l * 2);
-                            ITEM list[item_count];
+                            LOAD_LIST_ITEM_UTIL item_list[item_count];
                             for (int m = 0; m < item_count; m++) {
-                                list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
-                                list[m].index = build_get_index(list[m].eid, elist, entry_count);
+                                item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
+                                item_list[m].index = build_get_index(item_list[m].eid, elist, entry_count);
                             }
-                            qsort(list, item_count, sizeof(ITEM), load_list_sort);
+                            qsort(item_list, item_count, sizeof(LOAD_LIST_ITEM_UTIL), load_list_sort);
                             for (int m = 0; m < item_count; m++)
-                                *(unsigned int*)(elist[i].data + sub_list_offset + 4 * m) = list[m].eid;
+                                *(unsigned int*)(elist[i].data + sub_list_offset + 4 * m) = item_list[m].eid;
                             sub_list_offset += item_count * 4;
                         }
                     }
