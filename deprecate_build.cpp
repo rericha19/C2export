@@ -11,8 +11,7 @@
  * \param chunk_min int                 used to get rid of invalid chunks/entries
  * \return PAYLOADS                     payloads struct
  */
-PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
-{
+PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min) {
     PAYLOADS payloads;
     payloads.count = 0;
     payloads.arr = NULL;

@@ -10,6 +10,7 @@
 #include "windows.h"
 
 #define HASH_TABLE_DEF_SIZE             100000000
+
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
@@ -109,6 +110,7 @@
 
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
+#define abs(a)   (((a)< 0) ?(a):(-a))
 
 // in export script used to keep track of status stuff
 typedef struct info{
@@ -254,8 +256,11 @@ typedef struct hash_item {
 
 
 typedef struct hash_table {
-    int length;
+    int table_length;
+    int key_length;
+    int item_count; // not really necessary
     HASH_ITEM** items;
+    int (*hash_function)(struct hash_table* table, unsigned short int *entry_chunk_array);
 } HASH_TABLE;
 
 
@@ -403,6 +408,8 @@ void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]);
 void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 int          build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
+LIST         build_get_normal_entry_list(ENTRY *elist, int entry_count);
+int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag);
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
@@ -414,7 +421,7 @@ void         build_check_item_count(unsigned char *zone, int eid);
 void         build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns);
 void         build_ask_distances(int *config);
 int          build_is_before(ENTRY *elist, int zone_index, int camera_index, int neighbour_index, int neighbour_cam_index);
-void         build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded);
+int          build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded);
 void         build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j);
 int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
@@ -428,13 +435,13 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 A_STAR_STRUCT*  build_a_star_str_init(int length);
 void         build_a_star_str_destroy(A_STAR_STRUCT* state);
-int          build_a_star_evaluate(A_STAR_STRUCT* state, ENTRY *elist, int entry_count, unsigned int* EID_list);
-int          build_a_star_str_chunk_max(A_STAR_STRUCT* state, int mergee_count);
-A_STAR_STRUCT*  build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int mergee_count);
-A_STAR_STRUCT*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int mergee_count);
-int          build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, int mergee_count);
-unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int mergee_count);
-A_STAR_STRUCT*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int mergee_count);
+int          build_a_star_evaluate(A_STAR_STRUCT* state, ENTRY *elist, int entry_count, unsigned int* EID_list, int perma_count);
+int          build_a_star_str_chunk_max(A_STAR_STRUCT* state, int key_length);
+A_STAR_STRUCT*  build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int key_length);
+A_STAR_STRUCT*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
+int          build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, int key_length);
+unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int key_length);
+A_STAR_STRUCT*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int key_length, int perma_chunk_count);
 
 
 

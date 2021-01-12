@@ -109,7 +109,7 @@ void heap_add(A_STAR_HEAP* heap, A_STAR_STRUCT* input) {
     A_STAR_STRUCT *temp;
     int index_k = heap->length;
 
-    // TODO bad, realloc is expensive, make it only change the size every couple something idk
+    // TODO bad, realloc is expensive, make it only change the size every couple something idk (keep capacity and length separate, work with capacity for reallocs)
     heap->heap_array = (A_STAR_STRUCT**) realloc(heap->heap_array, (index_k + 1) * sizeof(A_STAR_STRUCT));
     heap->heap_array[heap->length] = input;
     heap->length += 1;
@@ -139,17 +139,21 @@ void heap_add(A_STAR_HEAP* heap, A_STAR_STRUCT* input) {
 
 
 // initialises the table
-HASH_TABLE *hash_init_table() {
+HASH_TABLE *hash_init_table(int (*hash_function)(HASH_TABLE*, unsigned short int *), int key_length) {
     HASH_TABLE *table = (HASH_TABLE *) malloc(sizeof(HASH_TABLE));
-    table->length = HASH_TABLE_DEF_SIZE;
+    table->table_length = HASH_TABLE_DEF_SIZE;
     table->items = (HASH_ITEM**) calloc(HASH_TABLE_DEF_SIZE, sizeof(HASH_ITEM*));
+    table->key_length = key_length;
+    table->item_count = 0;
+    table->hash_function = hash_function;
 
     return table;
 }
 
+
 void hash_destroy_table(HASH_TABLE *table) {
     HASH_ITEM* curr, *next;
-    for (int i = 0; i < table->length; i++) {
+    for (int i = 0; i < table->table_length; i++) {
         for (curr = table->items[i]; curr != NULL; curr = next) {
             next = curr->next;
             free(curr);
@@ -160,30 +164,139 @@ void hash_destroy_table(HASH_TABLE *table) {
     free(table);
 }
 
-int hash_compare_keys(unsigned short int* array1, unsigned short int* array2, int array_length) {
-    for (int i = 0; i < array_length; i++)
+
+int hash_compare_keys(unsigned short int* array1, unsigned short int* array2, int arrays_length) {
+    for (int i = 0; i < arrays_length; i++)
         if (array1[i] != array2[i])
             return 0;
     return 1;
 }
 
-int hash_func(unsigned short int* entry_chunk_array, int array_length, int table_size) {
-    // TODO
-    return 0;
+
+int hash_func_chek(HASH_TABLE* table, unsigned short int* entry_chunk_array) {
+    long long int hash_temp = 0;
+    int key_length = table->key_length;
+    for (int i = 0; i < key_length; i++) {
+        hash_temp *= i + 1;
+        hash_temp += entry_chunk_array[i];
+        hash_temp = (hash_temp & 0xFFFFFFFF) | (hash_temp >> 32);
+    }
+
+    hash_temp %= table->table_length;
+    if (hash_temp < 0)
+        hash_temp += table->table_length;
+
+    return hash_temp;
 }
 
-HASH_ITEM* hash_find(unsigned short int* entry_chunk_array, HASH_TABLE* table, int array_length)
+
+
+int hash_func(HASH_TABLE* table, unsigned short int* entry_chunk_array) {
+
+    int key_length = table->key_length;
+
+    int hash_temp = 0;
+    for (int i = 0; i < key_length; i++) {
+        hash_temp ^= ((int) entry_chunk_array[i] << (4 * i % 27));
+    }
+
+    hash_temp %= table->table_length;
+    if (hash_temp < 0)
+        hash_temp += table->table_length;
+
+    return hash_temp;
+}
+
+
+HASH_ITEM* hash_find(HASH_TABLE* table, unsigned short int* entry_chunk_array)
 // search function, returns valid pointer to the item or NULL if it does not exist
 {
 	HASH_ITEM* curr;
-	int hash_value = hash_func(entry_chunk_array, array_length, table->length);
+	int hash_value = table->hash_function(table, entry_chunk_array);
 
 	if (table->items != NULL)
         for (curr = (table->items)[hash_value]; curr != NULL; curr = curr->next)
-            if (hash_compare_keys(curr->entry_chunk_array, entry_chunk_array, array_length))
+            if (hash_compare_keys(curr->entry_chunk_array, entry_chunk_array, table->key_length))
                 return curr;
 
 	return NULL;
 }
 
-// TODO rest of the hash stuff
+
+// initialises hash item
+HASH_ITEM* hash_make_item(unsigned short int* entry_chunk_array) {
+	HASH_ITEM* item = NULL;
+	item = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));
+	item->entry_chunk_array = entry_chunk_array;
+	item->next = NULL;
+
+	return item;
+}
+
+
+// attempts to add an item into the specified list of the table, if such an item already exists returns 0, else returns 1 and adds
+int hash_try_to_add_item(HASH_TABLE* table, HASH_ITEM* item,int list_index) {
+	HASH_ITEM *curr, *last = NULL;
+
+	for (curr = (table->items)[list_index];
+         curr != NULL && !hash_compare_keys(curr->entry_chunk_array, item->entry_chunk_array, table->key_length);
+         curr = curr->next)
+		last = curr;
+
+    if (curr != NULL) return 0;
+
+	item->next = NULL;
+	if (last == NULL)
+        (table->items)[list_index] = item;
+	else {
+        last->next = item;
+        //printf("hash table collision sucker\n");
+	}
+
+    return 1;
+}
+
+
+// puts the item in the specified list (used in resize)
+void hash_place_item(HASH_TABLE *table, HASH_ITEM* item, int list_index)
+{
+    item->next = (table->items)[list_index];
+    (table->items)[list_index] = item;
+}
+
+
+// attempts to add an item with this key, 'fails' if such an item already exists
+int hash_add(HASH_TABLE *table, unsigned short int* entry_chunk_array) {
+	int hash_val = table->hash_function(table, entry_chunk_array);
+
+	// if adding it was not successful it gets rid of the item and returns, else goes on
+    HASH_ITEM *curr = hash_make_item(entry_chunk_array);
+    if (!hash_try_to_add_item(table, curr, hash_val)) {
+        free(curr);
+        return -1;
+    }
+
+    /*// resize thing, i think it causes trouble, i just made the table static size
+    table->item_count += 1;
+    if (((double) table->item_count / table->table_length) >= HASH_FULLNESS_RATIO) {
+        HASH_ITEM** things = (HASH_ITEM**) malloc((table->item_count + 1) * sizeof(HASH_ITEM *));
+        int index = 0;
+        if (things != NULL)
+        {
+            for (int i = 0; i < table->table_length; i++)
+                for (curr = (table->items)[i]; curr != NULL; curr = curr->next)
+                    things[index++] = curr;
+            free(table->items);
+            table->items = (HASH_ITEM**) calloc(HASH_RESIZE_MULT * table->table_length, sizeof(HASH_ITEM*));
+            table->table_length = table->table_length * HASH_RESIZE_MULT;
+            for (int i = 0; i < index; i++)
+            {
+                things[i]->next = NULL;
+                hash_place_item(table, things[i], table->hash_function(things[i]->entry_chunk_array, table->key_length, table->table_length));
+            }
+        }
+        free(things);
+    }
+    //*/
+	return hash_val;
+}

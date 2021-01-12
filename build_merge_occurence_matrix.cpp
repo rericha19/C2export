@@ -47,41 +47,9 @@ int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_co
 }
 
 
-/** \brief
- *  Current best chunk merge method based on common load list occurence count of each pair of entries,
- *  therefore relies on proper and good load lists ideally with delta items.
- *  After the matrix is created and transformed into a sorted array it attemps to merge.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_border_sounds int       unused
- * \param chunk_count int*              chunk count
- * \param merge_flag int                per-point if 1, per-delta-item if 0
- * \return void
- */
-void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config) {
-    int i, j, l, m;
-    int merge_flag = config[2];
-    LIST entries = init_list();
-
-    // add all normal chunk entries to a new temporary array
-    for (i = 0; i < entry_count; i++) {
-        switch (build_entry_type(elist[i])) {
-            case -1:
-            case 5:
-            case 6:
-            case 12:
-            case 14:
-            case 20:
-            case 21:
-                continue;
-            default: ;
-        }
-
-        list_insert(&entries, elist[i].EID);
-    }
-
-    // builds a triangular matrix that will contain the amount of common load list occurences of i-th and j-th entry
+// builds a triangular matrix that will contain the amount of common load list occurences of i-th and j-th entry
+int ** build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag) {
+    int i,j,l,m;
     int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));
     for (i = 0; i < entries.count; i++)
         entry_matrix[i] = (int *) calloc((i), sizeof(int));
@@ -147,9 +115,51 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
                 delete_load_list(load_list);
             }
         }
+    return entry_matrix;
+}
+
+LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
+
+    LIST entries = init_list();
+    // add all normal chunk entries to a new temporary array
+    for (int i = 0; i < entry_count; i++) {
+        switch (build_entry_type(elist[i])) {
+            case -1:
+            case 5:
+            case 6:
+            case 12:
+            case 14:
+            case 20:
+            case 21:
+                continue;
+            default: ;
+        }
+
+        list_insert(&entries, elist[i].EID);
+    }
+    return entries;
+}
+
+
+/** \brief
+ *  Current best chunk merge method based on common load list occurence count of each pair of entries,
+ *  therefore relies on proper and good load lists ideally with delta items.
+ *  After the matrix is created and transformed into a sorted array it attemps to merge.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunk_border_sounds int       unused
+ * \param chunk_count int*              chunk count
+ * \param merge_flag int                per-point if 1, per-delta-item if 0
+ * \return void
+ */
+void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config) {
+
+    LIST entries = build_get_normal_entry_list(elist, entry_count);
+    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
-    // gets rid of the matrix
+    // frees the contents of the matrix
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
 
     // do the merges according to the relation array, get rid of holes afterwards
@@ -332,9 +342,9 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
  * \param chunk_border_sounds int       index from which normal chunks start
  * \param chunk_count int*              current chunk count
  * \param permaloaded LIST              list with permaloaded entries
- * \return void
+ * \return int                          permaloaded chunk count
  */
-void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded) {
+int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded) {
     int i, j;
     int temp_count = *chunk_count;
     int perma_normal_entry_count = 0;
@@ -379,6 +389,7 @@ void build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sou
             counter = i + 1;
 
     *chunk_count = temp_count + counter;
+    return counter;
 }
 
 
