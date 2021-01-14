@@ -137,8 +137,9 @@ void build_ask_build_flags(int* ll_flag, int* merge_type) {
 
     printf("What merge technique do you want to use?\n");
     printf("[0] - occurence matrix merge\n");
-    printf("[1] - a-star merge (experimental)\n");
+    printf("[1] - a-star merge (wip)\n");
     printf("[2] - relatives & payload merge (deprecate, bad)\n");
+    printf("[3] - relative occurence count matrix merge (usually worse than option 0)\n");
     scanf("%d", &ans);
     *merge_type = ans;
     printf("\n");

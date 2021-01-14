@@ -457,6 +457,9 @@ void build_main(int build_rebuild_flag) {
         case 2:
             deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
+        case 3:
+            build_matrix_merge_relative(elist, entry_count, &chunk_count, config, chunk_border_sounds, permaloaded);
+            break;
         case 0:
         default:
             build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);

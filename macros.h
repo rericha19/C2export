@@ -124,6 +124,7 @@ typedef struct info{
     unsigned int animrefcount;      // count of animation references when porting c3 to c2
 } DEPRECATE_INFO_STRUCT;
 
+
 // in build scripts, used to store spawns
 typedef struct spawn{
     int x;
@@ -131,6 +132,7 @@ typedef struct spawn{
     int z;
     unsigned int zone;
 } SPAWN;
+
 
 typedef struct spawns{
     int spawn_count;
@@ -144,6 +146,7 @@ typedef struct list {
     unsigned int *eids;
 } LIST;
 
+
 // used to store entry information in the build script
 typedef struct entry{
     unsigned int EID;
@@ -155,11 +158,13 @@ typedef struct entry{
     unsigned int *visited;
 } ENTRY;
 
+
 // used to sort load lists
 typedef struct item {
     int eid;
     int index;
 } LOAD_LIST_ITEM_UTIL;
+
 
 // used to store payload information
 typedef struct payload {
@@ -168,11 +173,13 @@ typedef struct payload {
     unsigned int zone;
 } PAYLOAD;
 
+
 // used to store payload ladder
 typedef struct payloads {
     int count;
     PAYLOAD *arr;
 } PAYLOADS;
+
 
 // used to store load or draw list in its non-delta form
 typedef struct load {
@@ -182,11 +189,13 @@ typedef struct load {
     int index;
 } LOAD;
 
+
 // used to keep the entire non-delta load/draw list
 typedef struct load_list {
     int count;
     LOAD array[1000];
 } LOAD_LIST;
+
 
 // used in matrix merge to store what entries are loaded simultaneously and how much/often
 typedef struct relation {
@@ -196,11 +205,13 @@ typedef struct relation {
     int index2;
 } RELATION;
 
+
 // used to keep all relations
 typedef struct relations {
     int count;
     RELATION *relations;
 } RELATIONS;
+
 
 // used to store type & subtype dependencies in the build script (and collision dependencies too)
 typedef struct inf {
@@ -209,11 +220,13 @@ typedef struct inf {
     LIST dependencies;
 } DEPENDENCY;
 
+
 // all dependencies
 typedef struct {
     int count;
     DEPENDENCY *array;
 } DEPENDENCIES;
+
 
 // stores a camera path link
 typedef struct link {
@@ -222,6 +235,7 @@ typedef struct link {
     unsigned char cam_index;
     unsigned char flag;
 }   CAMERA_LINK;
+
 
 // entity/item property
 typedef struct property {
@@ -238,16 +252,26 @@ typedef struct entry_queue {
     int camera_indices[QUEUE_ITEM_COUNT];
 } DISTANCE_GRAPH_QUEUE;
 
+
 typedef struct a_star_struct {
     unsigned short int *entry_chunk_array;
     unsigned int elapsed;
     unsigned int estimated;
 } A_STAR_STRUCT;
 
+
 typedef struct a_star_heap {
     unsigned int length;
     A_STAR_STRUCT **heap_array;
 } A_STAR_HEAP;
+
+
+typedef struct a_star_load_list {
+    LIST entries;
+    unsigned int zone_eid;
+    int cam_path;
+} A_STAR_LOAD_LIST;
+
 
 typedef struct hash_item {
     struct hash_item* next;
@@ -411,6 +435,7 @@ int          build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int 
 LIST         build_get_normal_entry_list(ENTRY *elist, int entry_count);
 int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag);
 int          build_is_normal_chunk_entry(ENTRY entry);
+void         build_matrix_merge_relative(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded);
 void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_ask_spawn(SPAWNS spawns);
@@ -435,7 +460,8 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 A_STAR_STRUCT*  build_a_star_str_init(int length);
 void         build_a_star_str_destroy(A_STAR_STRUCT* state);
-int          build_a_star_evaluate(A_STAR_STRUCT* state, ENTRY *elist, int entry_count, unsigned int* EID_list, int perma_count);
+int          build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STRUCT* state, int key_length,
+                                   ENTRY* temp_elist, int first_nonperma_chunk, int perma_count) ;
 int          build_a_star_str_chunk_max(A_STAR_STRUCT* state, int key_length);
 A_STAR_STRUCT*  build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int key_length);
 A_STAR_STRUCT*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);

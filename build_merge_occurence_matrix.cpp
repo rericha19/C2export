@@ -27,6 +27,54 @@ void build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, in
     printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
 }
 
+void build_matrix_merge_relative(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded) {
+
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
+    int entry_counter = 0;
+    for (int i = 0; i < entry_count; i++)
+        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1) {
+            elist[i].chunk = (*chunk_count)++;
+            entry_counter++;
+        }
+
+    char temp1[6] = "", temp2[6] = "";
+    LIST entries = build_get_normal_entry_list(elist, entry_count);
+    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
+
+
+    int total_occurences[entries.count] = {0};
+    for (int i = 0; i < entries.count; i++) {
+        int temp_occurences = 0;
+        for (int j = 0; j < i; j++)
+            temp_occurences += entry_matrix[i][j];
+        for (int j = i + 1; j < entries.count; j++)
+            temp_occurences += entry_matrix[j][i];
+        total_occurences[i] = temp_occurences;
+    }
+
+    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));
+    for (int i = 0; i < entries.count; i++)
+        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));
+
+    for (int i = 0; i < entries.count; i++) {
+        for (int j = 0; j < i; j++) {
+            printf("Entry %s %s relative thingy value: %.7f\n", eid_conv(entries.eids[i], temp1), eid_conv(entries.eids[j], temp2),
+                   ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
+            entry_matrix_relative[i][j] = (int) (100000000 * ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
+        }
+    }
+
+    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
+
+    // do the merges according to the relation array, get rid of holes afterwards
+    build_matrix_merge_util(array_representation, elist, entry_count, entries);
+
+    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
+
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+}
+
 
 /** \brief
  *  Assigns primary chunks to all entries, merges need them.
@@ -283,7 +331,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
             if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
                 merged_chunk_size += elist[i].esize + 4;
 
-        if (merged_chunk_size <= CHUNKSIZE)          // find out whether can do <= instead of < (needs testing)
+        if (merged_chunk_size <= CHUNKSIZE)
             for (int i = 0; i < entry_count; i++)
                 if (elist[i].chunk == chunk_index2)
                     elist[i].chunk = chunk_index1;
