@@ -393,7 +393,7 @@ void         build_increment_common(LIST list, LIST entries, int **entry_matrix,
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
-void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config);
+void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
@@ -425,18 +425,18 @@ LIST         build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count
 void         build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
                                    DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
 int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions,
-                                     ENTRY *elist, int entry_count, unsigned int *gool_table);
+                                     ENTRY *elist, int entry_count, unsigned int *gool_table, int *config);
 int          build_get_chunk_count_base(FILE *nsf);
 int          build_ask_ID();
-void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]);
+void         build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int *config);
 void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 int          build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
 LIST         build_get_normal_entry_list(ENTRY *elist, int entry_count);
 int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag);
 int          build_is_normal_chunk_entry(ENTRY entry);
-void         build_matrix_merge_relative(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded);
-void         build_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded);
+void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);

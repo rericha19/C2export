@@ -25,16 +25,22 @@ int build_ask_ID() {
  * \param fpath char*                   path to the file
  * \return void
  */
-void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX]) {
-    printf("\nInput the path to the file with permaloaded entries:\n");
+void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int* config) {
+    printf("\nInput path to file with permaloaded entries:\n");
     scanf(" %[^\n]",fpaths[0]);
     path_fix(fpaths[0]);
 
-    printf("\nInput the path to the file with type/subtype dependencies:\n");
-    scanf(" %[^\n]",fpaths[1]);
-    path_fix(fpaths[1]);
+    // if building load lists
+    if (config[10]) {
+        printf("\nInput path to file with type/subtype dependencies:\n");
+        scanf(" %[^\n]",fpaths[1]);
+        path_fix(fpaths[1]);
 
-    strcpy(fpaths[2], "collision list.txt");
+        printf("\nInput path to file with collision dependencies:\n");
+        scanf(" %[^\n]", fpaths[2]);
+        path_fix(fpaths[2]);
+        //strcpy(fpaths[2], "collision list.txt");
+    }
 }
 
 

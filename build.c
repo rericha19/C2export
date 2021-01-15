@@ -430,7 +430,7 @@ void build_main(int build_rebuild_flag) {
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
     // end if something went wrong
-    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table)) {
+    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table, config)) {
         printf("File could not be opened or a different error occured\n");
         fclose(nsfnew);
         fclose(nsd);
@@ -458,11 +458,11 @@ void build_main(int build_rebuild_flag) {
             deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 3:
-            build_matrix_merge_relative(elist, entry_count, &chunk_count, config, chunk_border_sounds, permaloaded);
+            build_matrix_merge_relative_main(elist, entry_count, &chunk_count, config, chunk_border_sounds, permaloaded);
             break;
         case 0:
         default:
-            build_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
     }
 

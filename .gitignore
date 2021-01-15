@@ -15,3 +15,4 @@ MAIN BKUP1.cpp
 *.nsentry
 *.save-failed
 *.cscope_file_list
+!build files and notes/*

@@ -131,14 +131,22 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
  * \param entry_count int               entry count
  * \return int                          1 if all went good, 0 if something is wrong
  */
-int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table) {
+int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
     int i, j, perma_count, subcount, valid = 1;
     char temp[6];
 
     char fpaths[FPATH_COUNT][MAX] = {0};      // paths to files, fpaths contains user-input metadata like perma list file
-    build_ask_list_paths(fpaths);
+    build_ask_list_paths(fpaths, config);
 
     LIST perma = init_list();
+    DEPENDENCIES coll;
+    coll.count = 0;
+    coll.array = NULL;
+    DEPENDENCIES subinfo;
+    subinfo.count = 0;
+    subinfo.array = 0;
+
+
     FILE *file = fopen(fpaths[0], "r");
     if (file == NULL) {
         printf("File with permaloaded entries could not be opened\n");
@@ -167,85 +175,86 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             build_add_model_textures_to_list(elist[model_index].data, &perma);
         }
     }
-
     fclose(file);
-    file = fopen(fpaths[1], "r");
-    if (file == NULL) {
-        printf("File with type/subtype dependencies could not be opened\n");
-        return 0;
-    }
-    fscanf(file, "%d", &subcount);
 
-    DEPENDENCIES subinfo;
-    subinfo.count = subcount;
-    subinfo.array = (DEPENDENCY *) malloc(subcount * sizeof(DEPENDENCY));
-    int type, subtype, counter;
-    for (i = 0; i < subcount; i++) {
-        fscanf(file, "%d, %d, %d", &type, &subtype, &counter);
-        subinfo.array[i].type = type;
-        subinfo.array[i].subtype = subtype;
-        subinfo.array[i].dependencies = init_list();
-        list_insert(&subinfo.array[i].dependencies, gool_table[type]);
-        for (j = 0; j < counter; j++) {
-            fscanf(file, ", %5s", temp);
-            int index = build_get_index(eid_to_int(temp), elist, entry_count);
-            if (index == -1) {
-                printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
-                continue;
-            }
-            list_insert(&(subinfo.array[i].dependencies), eid_to_int(temp));
-
-            if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
-                unsigned int model = build_get_model(elist[index].data);
-                list_insert(&subinfo.array[i].dependencies, model);
-
-                int model_index = build_get_index(model, elist, entry_count);
-                if (model_index == -1) continue;
-
-                build_add_model_textures_to_list(elist[model_index].data, &subinfo.array[i].dependencies);
-            }
+    // if making load lists
+    if (config[10]) {
+        file = fopen(fpaths[1], "r");
+        if (file == NULL) {
+            printf("File with type/subtype dependencies could not be opened\n");
+            return 0;
         }
-    }
+        fscanf(file, "%d", &subcount);
 
-    fclose(file);
-    file = fopen(fpaths[2], "r");
-    if (file == NULL) {
-        printf("File with collision dependencie (not input by user now, instead hardcoded to be searched for in current directory\n");
-        return 0;
-    }
+        subinfo.count = subcount;
+        subinfo.array = (DEPENDENCY *) malloc(subcount * sizeof(DEPENDENCY));
+        int type, subtype, counter;
+        for (i = 0; i < subcount; i++) {
+            fscanf(file, "%d, %d, %d", &type, &subtype, &counter);
+            subinfo.array[i].type = type;
+            subinfo.array[i].subtype = subtype;
+            subinfo.array[i].dependencies = init_list();
+            list_insert(&subinfo.array[i].dependencies, gool_table[type]);
+            for (j = 0; j < counter; j++) {
+                fscanf(file, ", %5s", temp);
+                int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                if (index == -1) {
+                    printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
+                    continue;
+                }
+                list_insert(&(subinfo.array[i].dependencies), eid_to_int(temp));
 
-    int coll_count;
-    fscanf(file,"%d", &coll_count);
-    DEPENDENCIES coll;
-    coll.count = coll_count;
-    coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));
-    for (i = 0; i < coll_count; i++) {
-        int code;
-        fscanf(file, "%x, %d", &code, &counter);
-        coll.array[i].type = code;
-        coll.array[i].subtype = -1;
-        coll.array[i].dependencies = init_list();
-        for (j = 0; j < counter; j++) {
-            fscanf(file, ", %5s", temp);
-            int index = build_get_index(eid_to_int(temp), elist, entry_count);
-            if (index == -1) {
-                printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
-                continue;
-            }
+                if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
+                    unsigned int model = build_get_model(elist[index].data);
+                    list_insert(&subinfo.array[i].dependencies, model);
 
-            list_insert(&(coll.array[i].dependencies), eid_to_int(temp));
+                    int model_index = build_get_index(model, elist, entry_count);
+                    if (model_index == -1) continue;
 
-            if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
-                unsigned int model = build_get_model(elist[index].data);
-                list_insert(&coll.array[i].dependencies, model);
-
-                int model_index = build_get_index(model, elist, entry_count);
-                if (model_index == -1) continue;
-
-                build_add_model_textures_to_list(elist[model_index].data, &coll.array[i].dependencies);
+                    build_add_model_textures_to_list(elist[model_index].data, &subinfo.array[i].dependencies);
+                }
             }
         }
 
+        fclose(file);
+        file = fopen(fpaths[2], "r");
+        if (file == NULL) {
+            printf("File with collision dependencie (not input by user now, instead hardcoded to be searched for in current directory\n");
+            return 0;
+        }
+
+        int coll_count;
+        fscanf(file,"%d", &coll_count);
+
+        coll.count = coll_count;
+        coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));
+        for (i = 0; i < coll_count; i++) {
+            int code;
+            fscanf(file, "%x, %d", &code, &counter);
+            coll.array[i].type = code;
+            coll.array[i].subtype = -1;
+            coll.array[i].dependencies = init_list();
+            for (j = 0; j < counter; j++) {
+                fscanf(file, ", %5s", temp);
+                int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                if (index == -1) {
+                    printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
+                    continue;
+                }
+
+                list_insert(&(coll.array[i].dependencies), eid_to_int(temp));
+
+                if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
+                    unsigned int model = build_get_model(elist[index].data);
+                    list_insert(&coll.array[i].dependencies, model);
+
+                    int model_index = build_get_index(model, elist, entry_count);
+                    if (model_index == -1) continue;
+
+                    build_add_model_textures_to_list(elist[model_index].data, &coll.array[i].dependencies);
+                }
+            }
+        }
     }
 
     *permaloaded = perma;
