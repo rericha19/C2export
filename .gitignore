@@ -5,6 +5,7 @@ C3_to_C3
 bin
 obj
 MAIN BKUP1.cpp
+doxygen
 
 *.txt
 *.exe
@@ -15,4 +16,3 @@ MAIN BKUP1.cpp
 *.nsentry
 *.save-failed
 *.cscope_file_list
-!build files and notes/*
