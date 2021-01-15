@@ -7,7 +7,6 @@ obj
 MAIN BKUP1.cpp
 doxygen
 
-*.txt
 *.exe
 *.o
 *.cbp
