@@ -985,9 +985,13 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
  */
 unsigned char *build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop) {
     int offset, i, property_count = from_u32(item + 0xC);
-    unsigned char property_headers[property_count + 1][8] = {0};
     int property_sizes[property_count + 1];
     unsigned char *properties[property_count + 1];
+    unsigned char property_headers[property_count + 1][8];
+
+    for (i = 0; i < property_count + 1; i++)
+        for (int j = 0; j < 8; j++)
+            property_headers[i][j] = 0;
 
     for (i = 0; i < property_count; i++) {
         if (from_u16(item + 0x10 + 8 * i) > code)
@@ -1003,6 +1007,7 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int* i
 
 
     for (i = 0; i < property_count + 1; i++) {
+        property_sizes[i] = 0;
         if (i < insertion_index - 1)
             property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
         if (i == insertion_index - 1)

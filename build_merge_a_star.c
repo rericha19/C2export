@@ -24,7 +24,7 @@ int build_assign_primary_chunks_all_premerge(ENTRY *elist, int entry_count, int 
     int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
 
 
-    int total_occurences[entries.count] = {0};
+    int total_occurences[entries.count];
     for (int i = 0; i < entries.count; i++) {
         int temp_occurences = 0;
         for (int j = 0; j < i; j++)

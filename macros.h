@@ -108,8 +108,8 @@
 #define A_STAR_EVAL_INVALID             0x80000000
 #define A_STAR_EVAL_SUCCESS             0
 
-#define min(a,b) (((a)<(b))?(a):(b))
-#define max(a,b) (((a)>(b))?(a):(b))
+//#define min(a,b) (((a)<(b))?(a):(b))
+//#define max(a,b) (((a)>(b))?(a):(b))
 #define abs(a)   (((a)< 0) ?(a):(-a))
 
 // in export script used to keep track of status stuff
@@ -437,7 +437,7 @@ int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entr
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded);
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-void         build_final_cleanup(FILE *nsf, FILE *nsfnew, DIR *df, ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
+void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);
 void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks);
@@ -463,8 +463,8 @@ void         build_a_star_str_destroy(A_STAR_STRUCT* state);
 int          build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STRUCT* state, int key_length,
                                    ENTRY* temp_elist, int first_nonperma_chunk, int perma_count) ;
 int          build_a_star_str_chunk_max(A_STAR_STRUCT* state, int key_length);
-A_STAR_STRUCT*  build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int key_length);
-A_STAR_STRUCT*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
+A_STAR_STRUCT* build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
+A_STAR_STRUCT* build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
 int          build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, int key_length);
 unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int key_length);
 A_STAR_STRUCT*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int key_length, int perma_chunk_count);
