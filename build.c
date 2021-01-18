@@ -371,19 +371,21 @@ void build_main(int build_rebuild_flag) {
     for (int i = 0; i < 0x40; i++) gool_table[i] = EID_NONE;
 
     // config:
-    // 0 - [gool initial merge flag]    0 - group       |   1 - one by one                          set here, used by deprecate merges
-    // 1 - [zone initial merge flag]    0 - group       |   1 - one by one                          set here, used by deprecate merges
-    // 2 - [merge type flag]            0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
-    // 3 - [slst distance]              set by user in function build_ask_distances(config);
-    // 4 - [neighbour distance]         set by user in function build_ask_distances(config);
-    // 5 - [draw list distance]         set by user in function build_ask_distances(config);
-    // 6 - transition pre-load flag     set by user in function build_ask_distances(config);
-    // 7 - backwards penalty            set by user in func ask_dist...;    is 1M times the float value because int, range 0 - 0.5
-    // 8 - relation array sort          0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
-    // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
-    //10 - load list merge flag         0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
-    //11 - merge technique flag         0 - matrix      |   1 - a-star (wip)    |   2 - deprecate   set by user in build_ask_build_flags
-    int config[12] = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int config[] = {
+        0,  // 0 - [gool initial merge flag]    0 - group       |   1 - one by one                          set here, used by deprecate merges
+        0,  // 1 - [zone initial merge flag]    0 - group       |   1 - one by one                          set here, used by deprecate merges
+        1,  // 2 - [merge type flag]            0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
+        0,  // 3 - [slst distance]              set by user in function build_ask_distances(config);
+        0,  // 4 - [neighbour distance]         set by user in function build_ask_distances(config);
+        0,  // 5 - [draw list distance]         set by user in function build_ask_distances(config);
+        0,  // 6 - transition pre-load flag     set by user in function build_ask_distances(config);
+        0,  // 7 - backwards penalty            set by user in func ask_dist...;    is 1M times the float value because int, range 0 - 0.5
+        0,  // 8 - relation array sort          0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
+        0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
+        0,  //10 - load list merge flag         0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
+        0,  //11 - merge technique flag         0 - matrix      |   1 - a-star (wip)    |   2 - deprecate.. set by user in build_ask_build_flags
+        0   //12 - perma inc. in matrix         0 - dont include|   1 - do include                          set here
+    };
 
     // reading contents of the nsf/folder and collecting metadata
     // end if something went wrong
@@ -412,7 +414,7 @@ void build_main(int build_rebuild_flag) {
     if (spawns.spawn_count > 0)
         build_ask_spawn(spawns);
     else {
-        printf("[Error] No spawns found, add one using the usual 'willy' entity or a checkpoint\n");
+        printf("[ERROR] No spawns found, add one using the usual 'willy' entity or a checkpoint\n\n");
         return;
     }
     build_get_distance_graph(elist, entry_count, spawns);
@@ -431,7 +433,7 @@ void build_main(int build_rebuild_flag) {
     // parse files and store info in permaloaded, subtype_info and collisions structs
     // end if something went wrong
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table, config)) {
-        printf("File could not be opened or a different error occured\n");
+        printf("[ERROR] File could not be opened or a different error occured\n\n");
         fclose(nsfnew);
         fclose(nsd);
         return;
@@ -452,13 +454,13 @@ void build_main(int build_rebuild_flag) {
     // call merge function
     switch(merge_tech_flag) {
         case 1:
-            build_merge_experimental(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            build_merge_experimental_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 2:
             deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 3:
-            build_matrix_merge_relative_main(elist, entry_count, &chunk_count, config, chunk_border_sounds, permaloaded);
+            build_matrix_merge_relative_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 0:
         default:

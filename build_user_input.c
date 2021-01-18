@@ -141,7 +141,7 @@ void build_ask_build_flags(int* ll_flag, int* merge_type) {
         printf("Won't remake load lists\n\n");
     }
 
-    printf("What merge technique do you want to use?\n");
+    printf("What merge method do you want to use?\n");
     printf("[0] - occurence matrix merge\n");
     printf("[1] - a-star merge (wip)\n");
     printf("[2] - relatives & payload merge (deprecate, bad)\n");

@@ -75,9 +75,10 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
 }
 
 // main function for payload merge (calls needed merge functions for this method)
-void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk_border_sounds,
-                                        int* chunk_count, int* config, LIST permaloaded) {
+void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded) {
+
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);     // good
+
     // primary chunk assignments
     deprecate_build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[0]);
     deprecate_build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
@@ -98,10 +99,8 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
  * \param chunk_count int*              end of normal chunk range
  * \return void
  */
-void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count)
-{
-    for (int x = 0; ; x++)
-    {
+void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count) {
+    while (1)    {
         PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, chunk_min);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
@@ -112,7 +111,8 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         }
         printf("\n");
 
-        if (payloads.arr[0].count < 19) break;
+        if (payloads.arr[0].count < 19)
+            break;
 
         qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmpfunc);
 
@@ -120,12 +120,10 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         int count;
         int check = 0;
 
-        for (int i = 0; i < payloads.count && check != 1; i++)
-        {
+        for (int i = 0; i < payloads.count && check != 1; i++) {
             count = 0;
 
-            for (int j = 0; j < payloads.arr[i].count; j++)
-            {
+            for (int j = 0; j < payloads.arr[i].count; j++) {
                 int curr_chunk = payloads.arr[i].chunks[j];
                 if (curr_chunk >= chunk_min)
                     chunks[count++] = curr_chunk;
@@ -135,15 +133,13 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
                 check = 1;
 
             if (check)
-            for (int j = chunk_min; j < *chunk_count; j++)
-            {
+            for (int j = chunk_min; j < *chunk_count; j++) {
                 int empty = 1;
                 for (int k = 0; k < entry_count; k++)
                     if (elist[k].chunk == j)
                         empty = 0;
 
-                if (empty)
-                {
+                if (empty) {
                     for (int k = 0; k < entry_count; k++)
                         if (elist[k].chunk == (*chunk_count - 1))
                             elist[k].chunk = j;
@@ -152,10 +148,9 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
             }
         }
 
-        if (check == 0) break;
+        if (check == 0)
+            break;
     }
-
-    build_dumb_merge(elist, chunk_min, chunk_count, entry_count);
 }
 
 
@@ -167,13 +162,10 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
  * \param insertee PAYLOAD              payload struct
  * \return void
  */
-void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
-{
+void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
     for (int i = 0; i < payloads->count; i++)
-        if (payloads->arr[i].zone == insertee.zone)
-        {
-            if (payloads->arr[i].count < insertee.count)
-            {
+        if (payloads->arr[i].zone == insertee.zone) {
+            if (payloads->arr[i].count < insertee.count) {
                     payloads->arr[i].count = insertee.count;
                     free(payloads->arr[i].chunks);
                     payloads->arr[i].chunks = insertee.chunks;
@@ -194,8 +186,7 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
  * \param stopper int                   something dumb
  * \return void
  */
-void deprecate_build_print_payload(PAYLOAD payload, int stopper)
-{
+void deprecate_build_print_payload(PAYLOAD payload, int stopper) {
     char temp[100];
     printf("Zone: %s; payload: %3d", eid_conv(payload.zone, temp), payload.count);
     if (stopper) printf("; stopper: %2d", stopper);
@@ -214,8 +205,7 @@ void deprecate_build_print_payload(PAYLOAD payload, int stopper)
  * \param chunk_count int               chunk count
  * \return int                          1 if a merge occured, else 0
  */
-int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
-{
+int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count) {
     int i, j, k;
     int best[2] = {-1, -1};
     int relatives1[1024], relatives2[1024];
@@ -223,15 +213,13 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
 
     int max = 0;
 
-    for (i = 0; i < chunk_count; i++)
-    {
+    for (i = 0; i < chunk_count; i++) {
         int size1 = 0;
         int count1 = 0;
         relative_count1 = 0;
 
         for (j = 0; j < entry_count; j++)
-            if (elist[j].chunk == chunks[i])
-            {
+            if (elist[j].chunk == chunks[i]) {
                 size1 += elist[j].esize;
                 count1++;
                 relatives1[relative_count1++] = elist[j].EID;
@@ -241,8 +229,7 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
             }
 
 
-        for (j = i + 1; j < chunk_count; j++)
-        {
+        for (j = i + 1; j < chunk_count; j++) {
             int size2 = 0;
             int count2 = 0;
             relative_count2 = 0;
@@ -254,11 +241,9 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
                     relatives2[relative_count2++] = elist[j].EID;
                 }
 
-            if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-            {
+            if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE) {
                 int common_count = deprecate_build_get_common(relatives1, relative_count1, relatives2, relative_count2);
-                if (common_count > max)
-                {
+                if (common_count > max) {
                     max = common_count;
                     best[0] = chunks[i];
                     best[1] = chunks[j];
@@ -267,8 +252,7 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
         }
     }
 
-    if (best[0] != -1 && best[0] != -1)
-    {
+    if (best[0] != -1 && best[0] != -1) {
         deprecate_build_chunk_merge(elist, entry_count, best, 2);
         return 1;
     }
@@ -286,8 +270,7 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
  * \param countB int                    count of relatives B
  * \return int                          amount of common items
  */
-int deprecate_build_get_common(int* listA, int countA, int *listB, int countB)
-{
+int deprecate_build_get_common(int* listA, int countA, int *listB, int countB) {
     int i, j, copy_countA = 0, copy_countB = 0;
     int copyA[100];
     int copyB[100];
@@ -295,16 +278,14 @@ int deprecate_build_get_common(int* listA, int countA, int *listB, int countB)
     qsort(listB, countB, sizeof(int), cmpfunc);
 
     for (i = 0; i < countA; i++)
-        if (i)
-        {
+        if (i) {
             if (listA[i] != copyA[copy_countA - 1])
                 copyA[copy_countA++] = listA[i];
         }
         else copyA[copy_countA++] = listA[i];
 
     for (i = 0; i < countB; i++)
-        if (i)
-        {
+        if (i) {
             if (listB[i] != copyB[copy_countB - 1])
                 copyB[copy_countB++] = listB[i];
         }
@@ -329,8 +310,7 @@ int deprecate_build_get_common(int* listA, int countA, int *listB, int countB)
  * \param chunk_count int               amount of those chunks
  * \return void
  */
-void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
-{
+void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count) {
     for (int i = 0; i < entry_count; i++)
         for (int j = 0; j < chunk_count; j++)
             if (elist[i].chunk == chunks[j])
@@ -350,15 +330,13 @@ void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int
  * \param chunk_min int                 used to weed out sound and instrument entries (nsf structure this program produces is texture - wavebank - sound - normal)
  * \return PAYLOAD                      payload object that contains a list of chunks that are loaded in this zone, their count and the current zone eid
  */
-PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min)
-{
+PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min) {
     int chunks[1024];
     int count = 0;
     int curr_chunk;
     int is_there;
 
-    for (int i = 0; i < list.count; i++)
-    {
+    for (int i = 0; i < list.count; i++) {
         int elist_index = build_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].chunk;
         is_there = 0;
@@ -366,8 +344,7 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
             if (chunks[j] == curr_chunk) is_there = 1;
 
         char temp[100];
-        if (!is_there && eid_conv(elist[elist_index].EID, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
-        {
+        if (!is_there && eid_conv(elist[elist_index].EID, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min) {
             chunks[count] = curr_chunk;
             count++;
         }
@@ -392,47 +369,39 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
  * \param entry_count int               entry count
  * \return void
  */
-void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
-{
+void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count) {
     int i, j, k;
-    while(1)
-    {
+    while(1) {
         int merge_happened = 0;
-        for (i = chunk_index_start; i < *chunk_index_end; i++)
-        {
+        for (i = chunk_index_start; i < *chunk_index_end; i++) {
             int size1 = 0, count1 = 0, max_rating = 0, max_entry_count = 0;;
             unsigned int relatives[250];
             int relative_counter = 0;
 
             for (j = 0; j < entry_count; j++)
-                if (elist[j].chunk == i)
-                {
+                if (elist[j].chunk == i) {
                     size1 += elist[j].esize;
                     count1++;
                     if (elist[j].related != NULL)
-                        for (k = 0; (unsigned) k < elist[j].related[0]; k++)
-                        {
+                        for (k = 0; (unsigned) k < elist[j].related[0]; k++) {
                             relatives[relative_counter] = elist[j].related[k];
                             relative_counter++;
                         }
                 }
 
-            for (j = i + 1; j < *chunk_index_end; j++)
-            {
+            for (j = i + 1; j < *chunk_index_end; j++) {
                 int size2 = 0;
                 int count2 = 0;
                 int has_relative = 0;
 
                 for (k = 0; k < entry_count; k++)
-                    if (elist[k].chunk == j)
-                    {
+                    if (elist[k].chunk == j) {
                         size2 += elist[k].esize;
                         count2++;
                         has_relative += deprecate_build_is_relative(elist[k].EID, relatives, relative_counter);
                     }
 
-                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-                {
+                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE) {
                     int rating = has_relative;
                     if (rating > max_rating)
                     {
@@ -442,15 +411,15 @@ void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_
                 }
             }
 
-            if (max_entry_count)
-            {
+            if (max_entry_count) {
                 for (j = 0; j < entry_count; j++)
                     if (elist[j].chunk == max_entry_count) elist[j].chunk = i;
                 merge_happened++;
                 //printf("merge happened\n");
             }
         }
-        if (!merge_happened) break;
+        if (!merge_happened)
+            break;
     }
 
     *chunk_index_end = build_remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
@@ -465,8 +434,7 @@ void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_
  * \param count int                     length of relatives array
  * \return int                          1 if its a relative, else 0
  */
-int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int count)
-{
+int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int count) {
     for (int i = 0; i < count; i++)
         if (searched == array[i]) return 1; //(count - i)*(count - i)/2;
 
@@ -497,21 +465,18 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
 
     list_insert(list, elist[index].EID);
 
-    if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE)
-    {
+    if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE) {
         int item1off = from_u32(elist[index].data + 0x10);
         LIST neighbours = build_get_neighbours(elist[index].data);
 
-        for (i = 0; i < neighbours.count; i++)
-        {
+        for (i = 0; i < neighbours.count; i++) {
             int neighbour_index = build_get_index(neighbours.eids[i], elist, entry_count);
             if (neighbour_index == -1) continue;
 
             int entity_count = build_get_entity_count(elist[neighbour_index].data);
             int cam_count = build_get_cam_item_count(elist[neighbour_index].data);
 
-            for (j = 0; j < entity_count; j++)
-            {
+            for (j = 0; j < entity_count; j++) {
                 int entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
                 int entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
                 list_insert(list, gool_table[entity_type]);
@@ -519,15 +484,12 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
                 int match_found = 0;
 
                 for (k = 0; k < dependencies.count; k++)
-                    if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt)
-                    {
-                        for (l = 0; l < dependencies.array[k].dependencies.count; l++)
-                        {
+                    if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt) {
+                        for (l = 0; l < dependencies.array[k].dependencies.count; l++) {
                             list_insert(list, dependencies.array[k].dependencies.eids[l]);
                             int index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
                             if (index2 == -1) continue;
-                            if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM)
-                            {
+                            if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM) {
                                 unsigned int model = build_get_model(elist[index2].data);
                                 list_insert(list, model);
 
@@ -551,8 +513,7 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
         }
 
         int scenery_count = build_get_scen_count(elist[index].data);
-        for (i = 0; i < scenery_count; i++)
-        {
+        for (i = 0; i < scenery_count; i++) {
             int scenery_index = build_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
             build_add_scen_textures_to_list(elist[scenery_index].data, list);
         }
@@ -568,16 +529,14 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
  * \param grouping_flag int             1 if one by one, 0 if pre-grouping
  * \return void
  */
-void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
-{
+void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag) {
     int i, j;
     int size;
     int counter;
     int relative_index;
     int chunk_count = *real_chunk_count;
 
-    switch(grouping_flag)
-    {
+    switch(grouping_flag) {
         case 0:  // group gool with its kids
         {
             for (i = 0; i < entry_count; i++)

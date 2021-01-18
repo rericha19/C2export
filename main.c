@@ -33,7 +33,7 @@ int main() {
             if (!isalnum(lcltemp[i])) lcltemp[i] = '_';
         for (unsigned int i = 0; i < strlen(p_command); i++)
             p_comm_cpy[i] = toupper(p_command[i]);
-        switch(hash(p_comm_cpy)) {
+        switch(comm_str_hash(p_comm_cpy)) {
             case KILL:
                 return 0;
             case HELP:

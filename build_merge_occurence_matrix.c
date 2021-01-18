@@ -17,69 +17,20 @@
 void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
     clock_t time_start = clock();
 
-    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                           // chunks start off having one entry per chunk
-    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config);      // current best algorithm
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);        // for payload printout, doesnt do much anymore
-    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                     // jic something didnt get merged it gets merged
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);     // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                               // chunks start off having one entry per chunk
+    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);  // current best algorithm
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);            // for payload printout, doesnt do much anymore
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                         // jic something didnt get merged it gets merged
 
     clock_t time_end = clock();
     printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
 }
 
-void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded) {
 
+void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
-    int entry_counter = 0;
-    for (int i = 0; i < entry_count; i++)
-        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1) {
-            elist[i].chunk = (*chunk_count)++;
-            entry_counter++;
-        }
-
-    char temp1[6] = "", temp2[6] = "";
-    LIST entries = build_get_normal_entry_list(elist, entry_count);
-    for (int i = 0; i < permaloaded.count; i++)
-        list_remove(&entries, permaloaded.eids[i]);
-    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
-
-
-    int total_occurences[entries.count];
-    for (int i = 0; i < entries.count; i++) {
-        int temp_occurences = 0;
-        for (int j = 0; j < i; j++)
-            temp_occurences += entry_matrix[i][j];
-        for (int j = i + 1; j < entries.count; j++)
-            temp_occurences += entry_matrix[j][i];
-        total_occurences[i] = temp_occurences;
-    }
-
-    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));
-    for (int i = 0; i < entries.count; i++)
-        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));
-
-    for (int i = 0; i < entries.count; i++) {
-        for (int j = 0; j < i; j++) {
-            //printf("Entry %s %s relative thingy value: %.7f\n", eid_conv(entries.eids[i], temp1), eid_conv(entries.eids[j], temp2),
-                   //((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
-            if (total_occurences[i] && total_occurences[j])
-                entry_matrix_relative[i][j] = (int) (100000000 * ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
-            else
-                entry_matrix_relative[i][j] = 0;
-        }
-    }
-
-    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
-    for (int i = 0; i < array_representation.count; i++)
-        printf("%s %s %d\n", eid_conv(entries.eids[array_representation.relations[i].index1], temp1),
-                           eid_conv(entries.eids[array_representation.relations[i].index2], temp2),
-                           array_representation.relations[i].value);
-
-    // do the merges according to the relation array, get rid of holes afterwards
-    build_matrix_merge_util(array_representation, elist, entry_count, entries);
-
-    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
-
+    build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
@@ -210,9 +161,13 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
  * \param merge_flag int                per-point if 1, per-delta-item if 0
  * \return void
  */
-void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config) {
+void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded) {
 
     LIST entries = build_get_normal_entry_list(elist, entry_count);
+    if (config[12] == 0)
+        for (int i = 0; i < permaloaded.count; i++)
+            list_remove(&entries, permaloaded.eids[i]);
+
     int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
@@ -220,7 +175,47 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
 
     // do the merges according to the relation array, get rid of holes afterwards
-    build_matrix_merge_util(array_representation, elist, entry_count, entries);
+    build_matrix_merge_util(array_representation, elist, entry_count, entries, 1.0);
+    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
+}
+
+void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio) {
+
+    LIST entries = build_get_normal_entry_list(elist, entry_count);
+    if (config[12] == 0)
+        for (int i = 0; i < permaloaded.count; i++)
+            list_remove(&entries, permaloaded.eids[i]);
+
+    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
+
+    int total_occurences[entries.count];
+    for (int i = 0; i < entries.count; i++) {
+        int temp_occurences = 0;
+        for (int j = 0; j < i; j++)
+            temp_occurences += entry_matrix[i][j];
+        for (int j = i + 1; j < entries.count; j++)
+            temp_occurences += entry_matrix[j][i];
+        total_occurences[i] = temp_occurences;
+    }
+
+    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));
+    for (int i = 0; i < entries.count; i++)
+        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));
+
+    for (int i = 0; i < entries.count; i++) {
+        for (int j = 0; j < i; j++) {
+            if (total_occurences[i] && total_occurences[j])
+                entry_matrix_relative[i][j] = (int) (100000000 * ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
+            else
+                entry_matrix_relative[i][j] = 0;
+        }
+    }
+
+    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
+
+    // do the merges according to the relation array, get rid of holes afterwards
+    build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);
+
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
@@ -319,11 +314,14 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
  * \param entries LIST                  valid entries list
  * \return void
  */
-void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries) {
+void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio) {
     // for each relation it calculates size of the chunk that would be created by the merge
     // if the size is ok it merges, there are empty chunks afterwards that get cleaned up by a function called
     // after this function
-    for (int x = 0; x < relations.count; x++) {
+
+    int iter_count = min((int) relations.count * merge_ratio, relations.count);
+
+    for (int x = 0; x < iter_count; x++) {
         // awkward index shenanishans because entries in the matrix and later relation array werent indexed the same way
         // elist is, so theres the need to get index of the elist entry and then that one's chunk
         int index1 = relations.relations[x].index1;

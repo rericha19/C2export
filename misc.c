@@ -202,14 +202,14 @@ void askprint(DEPRECATE_INFO_STRUCT *status)
 
 
 //changes the input string to a number, i just copied this over from somewhere
-unsigned long hash(const char *str)
+unsigned long comm_str_hash(const char *str)
 {
-    unsigned long hash = 5381;
+    unsigned long comm_str_hash = 5381;
     int c;
 
     while ((c = *str++))
-        hash = ((hash << 5) + hash) + c;
-    return hash;
+        comm_str_hash = ((comm_str_hash << 5) + comm_str_hash) + c;
+    return comm_str_hash;
 }
 
  // used to get hash values for commands in main
@@ -218,7 +218,7 @@ int hash_main()
     char s[MAX];
 
     scanf("%s",s);
-    printf("%lu\n",hash(s));
+    printf("%lu\n",comm_str_hash(s));
 
     return 0;
 }
@@ -666,9 +666,9 @@ void path_fix(char *fpath)
 }
 
 // following 3 are used for determining each camera path's distance relative to spawn, used to determine whether cam path is 'before' another one
-DISTANCE_GRAPH_QUEUE graph_init()
+DIST_GRAPH_Q graph_init()
 {
-    DISTANCE_GRAPH_QUEUE queue;
+    DIST_GRAPH_Q queue;
     queue.add_index = 0;
     queue.pop_index = 0;
     for (int i = 0; i < QUEUE_ITEM_COUNT; i++) {
@@ -679,7 +679,7 @@ DISTANCE_GRAPH_QUEUE graph_init()
     return queue;
 }
 
-void graph_add(DISTANCE_GRAPH_QUEUE *graph, ENTRY *elist, int zone_index, int camera_index)
+void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index)
 {
     int n = graph->add_index;
     graph->zone_indices[n] = zone_index;
@@ -694,7 +694,7 @@ void graph_add(DISTANCE_GRAPH_QUEUE *graph, ENTRY *elist, int zone_index, int ca
 }
 
 
-void graph_pop(DISTANCE_GRAPH_QUEUE *graph, int *zone_index, int *cam_index)
+void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
 {
     int n = graph->pop_index;
     *zone_index = graph->zone_indices[n];

@@ -557,7 +557,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
         }
     }
 
-    DISTANCE_GRAPH_QUEUE graph = graph_init();
+    DIST_GRAPH_Q graph = graph_init();
     int start_index = build_get_index(spawns.spawns[0].zone, elist, entry_count);
     graph_add(&graph, elist, start_index, 0);
 
@@ -655,13 +655,13 @@ int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
 
     FILE *nsf = NULL;
     if ((nsf = fopen(nsfpath,"rb")) == NULL) {
-        printf("[ERROR] Could not open selected NSF\n");
+        printf("[ERROR] Could not open selected NSF\n\n");
         return 1;
     }
 
     DIR *df = NULL;
     if ((df = opendir(dirpath)) == NULL) {
-        printf("[ERROR] Could not open selected directory\n");
+        printf("[ERROR] Could not open selected directory\n\n");
         fclose(nsf);
         return 1;
     }

@@ -9,6 +9,7 @@
 #include <limits.h>
 #include "windows.h"
 
+// various constants
 #define HASH_TABLE_DEF_SIZE             100000000
 
 #define FPATH_COUNT                     3
@@ -20,7 +21,6 @@
 #define QUEUE_ITEM_COUNT                2500
 #define PENALTY_MULT_CONSTANT           1000000
 
-// more dumb things
 #define C2_NEIGHBOURS_START             0x190
 #define C2_NEIGHBOURS_END               0x1B4
 #define C2_NEIGHBOURS_FLAGS_END         0x1D4
@@ -105,14 +105,15 @@
 #define ENTITY_PROP_CAM_BG_COLORS       0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY  0x27F
 
-#define A_STAR_EVAL_INVALID             0x80000000
+#define A_STAR_EVAL_INVALID             0x60000000
 #define A_STAR_EVAL_SUCCESS             0
 
-//#define min(a,b) (((a)<(b))?(a):(b))
+//#define min(a,b) (((a)<(b))?(a):(b)) // .c doesnt need these two
 //#define max(a,b) (((a)>(b))?(a):(b))
 #define abs(a)   (((a)< 0) ?(a):(-a))
 
 // in export script used to keep track of status stuff
+// big mistake, fuck global variables
 typedef struct info{
     int counter[22];                // counts entry types, counter[0] is total entry count
     int print_en;                   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
@@ -133,14 +134,14 @@ typedef struct spawn{
     unsigned int zone;
 } SPAWN;
 
-
+// spawns struct used in build to store spawns
 typedef struct spawns{
     int spawn_count;
     SPAWN *spawns;
 } SPAWNS;
 
 
-// list struct
+// list struct, used to store various values and eids
 typedef struct list {
     int count;
     unsigned int *eids;
@@ -245,27 +246,30 @@ typedef struct property {
 } PROPERTY;
 
 
+// used when figuring out cam paths' distance to spawn
 typedef struct entry_queue {
     int add_index;
     int pop_index;
     int zone_indices[QUEUE_ITEM_COUNT];
     int camera_indices[QUEUE_ITEM_COUNT];
-} DISTANCE_GRAPH_QUEUE;
+} DIST_GRAPH_Q;
 
 
+// used to represent states in a* alg
 typedef struct a_star_struct {
     unsigned short int *entry_chunk_array;
-    unsigned int elapsed;
     unsigned int estimated;
-} A_STAR_STRUCT;
+} A_STAR_STR;
 
 
+// stores queue of states in a* alg
 typedef struct a_star_heap {
     unsigned int length;
-    A_STAR_STRUCT **heap_array;
+    A_STAR_STR **heap_array;
 } A_STAR_HEAP;
 
 
+// stores load lists to prevent having to read them in every eval function call
 typedef struct a_star_load_list {
     LIST entries;
     unsigned int zone_eid;
@@ -273,12 +277,14 @@ typedef struct a_star_load_list {
 } A_STAR_LOAD_LIST;
 
 
+// used to store visited/considered/not-to-be-visited again configurations of entry-chunk assignments
 typedef struct hash_item {
     struct hash_item* next;
     unsigned short int *entry_chunk_array;
 } HASH_ITEM;
 
 
+// master hash table that contains hash items
 typedef struct hash_table {
     int table_length;
     int key_length;
@@ -299,7 +305,7 @@ unsigned int from_u32(unsigned char *data);
 unsigned int from_u16(unsigned char *data);
 void         countwipe(DEPRECATE_INFO_STRUCT *status);
 void         askprint(DEPRECATE_INFO_STRUCT *status);
-unsigned long hash(const char *str);
+unsigned long comm_str_hash(const char *str);
 int          hash_main();
 void         swap_ints(int *a, int *b);
 const char*  eid_conv(unsigned int m_value, char *eid);
@@ -332,12 +338,12 @@ void         list_insert(LIST *list, unsigned int eid);
 void         list_copy_in(LIST *destination, LIST source);
 LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
-CAMERA_LINK         int_to_link(unsigned int link);
+CAMERA_LINK  int_to_link(unsigned int link);
 void         delete_load_list(LOAD_LIST load_list);
 void         path_fix(char *fpath);
-DISTANCE_GRAPH_QUEUE        graph_init();
-void         graph_add(DISTANCE_GRAPH_QUEUE *graph, ENTRY *elist, int zone_index, int camera_index);
-void         graph_pop(DISTANCE_GRAPH_QUEUE *graph, int *zone_index, int *cam_index);
+DIST_GRAPH_Q graph_init();
+void         graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index);
+void         graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index);
 int          get_nth_item_offset(unsigned char *entry, int n);
 
 
@@ -390,10 +396,10 @@ void         build_print_relatives(ENTRY *elist, int entry_count);
 void         build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
 void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
-void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries);
+void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
-void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config);
+void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
@@ -435,8 +441,10 @@ int          build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int 
 LIST         build_get_normal_entry_list(ENTRY *elist, int entry_count);
 int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag);
 int          build_is_normal_chunk_entry(ENTRY entry);
-void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds, LIST permaloaded);
+void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+void         build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded,
+                                              double merge_ratio);
 void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);
@@ -457,17 +465,17 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 
 
 // a star merge
-void         build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-A_STAR_STRUCT*  build_a_star_str_init(int length);
-void         build_a_star_str_destroy(A_STAR_STRUCT* state);
-int          build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STRUCT* state, int key_length,
-                                   ENTRY* temp_elist, int first_nonperma_chunk, int perma_count) ;
-int          build_a_star_str_chunk_max(A_STAR_STRUCT* state, int key_length);
-A_STAR_STRUCT* build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
-A_STAR_STRUCT* build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
-int          build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, int key_length);
-unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int key_length);
-A_STAR_STRUCT*  a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int key_length, int perma_chunk_count);
+void         build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+A_STAR_STR*  build_a_star_str_init(int length);
+void         build_a_star_str_destroy(A_STAR_STR* state);
+int          build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STR* state, int key_length,
+                                   ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
+int          build_a_star_str_chunk_max(A_STAR_STR* state, int key_length);
+A_STAR_STR*  build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
+A_STAR_STR*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
+int          build_a_star_is_empty_chunk(A_STAR_STR* state, unsigned int chunk_index, int key_length);
+unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length);
+A_STAR_STR*  build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count);
 
 
 

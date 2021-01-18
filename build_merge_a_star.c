@@ -2,60 +2,6 @@
 #include "build_merge_a_star.h"
 
 
-
-/** \brief
- *  Assigns primary chunks to all entries, merges need them.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_count int*              chunk count
- * \return int                          number of entries that have been assigned a chunk in this function
- */
-int build_assign_primary_chunks_all_premerge(ENTRY *elist, int entry_count, int *chunk_count, int* config, int chunk_border_sounds) {
-    int entry_counter = 0;
-    for (int i = 0; i < entry_count; i++)
-        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1) {
-            elist[i].chunk = (*chunk_count)++;
-            entry_counter++;
-        }
-
-    char temp1[6] = "", temp2[6] = "";
-    LIST entries = build_get_normal_entry_list(elist, entry_count);
-    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
-
-
-    int total_occurences[entries.count];
-    for (int i = 0; i < entries.count; i++) {
-        int temp_occurences = 0;
-        for (int j = 0; j < i; j++)
-            temp_occurences += entry_matrix[i][j];
-        for (int j = i + 1; j < entries.count; j++)
-            temp_occurences += entry_matrix[j][i];
-        total_occurences[i] = temp_occurences;
-    }
-
-    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));
-    for (int i = 0; i < entries.count; i++)
-        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));
-
-    for (int i = 0; i < entries.count; i++) {
-        for (int j = 0; j < i; j++) {
-            printf("Entry %s %s relative thingy value: %.7f\n", eid_conv(entries.eids[i], temp1), eid_conv(entries.eids[j], temp2),
-                   ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
-            entry_matrix_relative[i][j] = (int) (100000000 * ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
-        }
-    }
-
-    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
-
-    // do the merges according to the relation array, get rid of holes afterwards
-    build_matrix_merge_util(array_representation, elist, entry_count, entries);
-
-    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
-    return 0;
-    //return entry_counter;
-}
-
 /** \brief
  *  Main function for the a* merge implementation. Used only for non-permaloaded entries.
  *
@@ -67,24 +13,35 @@ int build_assign_primary_chunks_all_premerge(ENTRY *elist, int entry_count, int 
  * \param permaloaded LIST              list of permaloaded entries
  * \return void
  */
-void build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
+void build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
     // merge permaloaded entries' chunks as well as possible
     int perma_chunk_count = build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
-
     int permaloaded_chunk_end_index = *chunk_count;
 
     // chunks start off partially merged with very related entries being placed together to lower the state count in a_star_solve
-    int key_length = build_assign_primary_chunks_all_premerge(elist, entry_count, chunk_count, config, chunk_border_sounds);
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);
+    //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.25);
 
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
-    /*A_STAR_STRUCT* solution = a_star_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, key_length, perma_chunk_count);
+    //deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    A_STAR_STR* solution = build_a_star_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
     if (solution == NULL) {
         // handle
     }
     else {
-        // merge chunks accordingly
-    }*/
+
+    }
+
+    for (int i = chunk_border_sounds; i < *chunk_count; i++) {
+        int size = 0x14;
+        for (int j = 0; j < entry_count; j++)
+            if (elist[j].chunk == i)
+                size += elist[j].esize + 4;
+        if (size > CHUNKSIZE)
+            printf("BAD BAD NOT GOOD %2d, %d\n", i, size);
+    }
+    /*deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);*/
 }
 
 
@@ -94,9 +51,8 @@ void build_merge_experimental(ENTRY *elist, int entry_count, int chunk_border_so
  * \param length int                    amount of entry-chunk assignments
  * \return A_STAR_STR*                  initialised state with allocated memory
  */
-A_STAR_STRUCT* build_a_star_str_init(int length) {
-    A_STAR_STRUCT* temp = (A_STAR_STRUCT*) malloc(sizeof(A_STAR_STRUCT));
-    temp->elapsed = 0;
+A_STAR_STR* build_a_star_str_init(int length) {
+    A_STAR_STR* temp = (A_STAR_STR*) malloc(sizeof(A_STAR_STR));
     temp->estimated = 0;
     temp->entry_chunk_array = (unsigned short int*) malloc(length * sizeof(unsigned short int));
     return temp;
@@ -109,19 +65,19 @@ A_STAR_STRUCT* build_a_star_str_init(int length) {
  * \param state A_STAR_STR*             state to destroy
  * \return void
  */
-void build_a_star_str_destroy(A_STAR_STRUCT* state) {
+void build_a_star_str_destroy(A_STAR_STR* state) {
     free(state->entry_chunk_array);
     free(state);
 }
 
 
-int build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STRUCT* state, int key_length,
-                          ENTRY* temp_elist, int first_nonperma_chunk, int perma_count) {
+int build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STR* state, int key_length,
+                          ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) {
 
     for (int i = 0; i < key_length; i++)
         temp_elist[i].chunk = state->entry_chunk_array[i];
 
-    for (int curr_chunk = 0; curr_chunk < build_a_star_str_chunk_max(state, key_length); curr_chunk++) {
+    for (int curr_chunk = 0; curr_chunk <= build_a_star_str_chunk_max(state, key_length); curr_chunk++) {
         int curr_chunk_size = 0x14;
         for (int j = 0; j < key_length; j++)
             if (state->entry_chunk_array[j] == curr_chunk)
@@ -159,9 +115,10 @@ int build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_cou
         maxp = max(maxp, counter);
     }
 
-    if (maxp < 94)
-        printf("Max payload: %3d\n", maxp);
-    if (maxp <= 20)
+    if (max_pay != NULL)
+        *max_pay = maxp;
+
+    if (maxp <= 21)
         return A_STAR_EVAL_SUCCESS;
     return eval;
 }
@@ -173,7 +130,7 @@ int build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_cou
  * \param state A_STAR_STR*             input state
  * \return int                          index of the last used chunk
  */
-int build_a_star_str_chunk_max(A_STAR_STRUCT* state, int key_length) {
+int build_a_star_str_chunk_max(A_STAR_STR* state, int key_length) {
     unsigned short int chunk_last = 0;
     for (int i = 0; i < key_length; i++)
         chunk_last = max(chunk_last, state->entry_chunk_array[i]);
@@ -190,8 +147,8 @@ int build_a_star_str_chunk_max(A_STAR_STRUCT* state, int key_length) {
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  new state
  */
-A_STAR_STRUCT* build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count) {
-    A_STAR_STRUCT* new_state = build_a_star_str_init(key_length);
+A_STAR_STR* build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count) {
+    A_STAR_STR* new_state = build_a_star_str_init(key_length);
 
     for (int i = 0; i < key_length; i++) {
         // makes sure chunk2 gets merged into chunk1
@@ -214,8 +171,8 @@ A_STAR_STRUCT* build_a_star_merge_chunks(A_STAR_STRUCT* state, unsigned int chun
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  struct with entry-chunk assignments recorded
  */
-A_STAR_STRUCT* build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length) {
-    A_STAR_STRUCT* init_state = build_a_star_str_init(key_length);
+A_STAR_STR* build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length) {
+    A_STAR_STR* init_state = build_a_star_str_init(key_length);
     int indexer = 0;
     for (int i = 0; i < entry_count; i++)
         if (elist[i].chunk >= start_chunk_index) {
@@ -227,7 +184,7 @@ A_STAR_STRUCT* build_a_star_init_state_convert(ENTRY* elist, int entry_count, in
 }
 
 
-int build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, int key_length) {
+int build_a_star_is_empty_chunk(A_STAR_STR* state, unsigned int chunk_index, int key_length) {
 
     int has_something = 0;
     for (int k = 0; k < key_length; k++) {
@@ -239,13 +196,21 @@ int build_a_star_is_empty_chunk(A_STAR_STRUCT* state, unsigned int chunk_index, 
 }
 
 
-unsigned int* build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int key_length) {
-    unsigned int* EID_list =(unsigned int*) malloc(key_length * sizeof(unsigned int));
-    int indexer = 0;
+unsigned int* build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length) {
+
+    int counter = 0;
     for (int i = 0; i < entry_count; i++)
         if (elist[i].chunk >= start_chunk_index)
-            EID_list[indexer++] = elist[i].EID;
+            counter++;
 
+    unsigned int* EID_list =(unsigned int*) malloc(counter * sizeof(unsigned int));
+
+    counter = 0;
+    for (int i = 0; i < entry_count; i++)
+        if (elist[i].chunk >= start_chunk_index)
+            EID_list[counter++] = elist[i].EID;
+
+    *key_length = counter;
     return EID_list;
 }
 
@@ -327,10 +292,11 @@ void build_a_star_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, un
  * \param key_length int                amount of entries entering the process (non-permaloaded normal chunk entries)
  * \return A_STAR_STR*                  struct with good enough solution or NULL
  */
-A_STAR_STRUCT* a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int key_length, int perma_chunk_count) {
+A_STAR_STR* build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count) {
 
-    unsigned int* EID_list = build_a_star_init_elist_convert(elist, entry_count, start_chunk_index, key_length);
-    A_STAR_STRUCT* init_state = build_a_star_init_state_convert(elist, entry_count, start_chunk_index, key_length);
+    int key_length;
+    unsigned int* EID_list = build_a_star_init_elist_convert(elist, entry_count, start_chunk_index, &key_length);
+    A_STAR_STR* init_state = build_a_star_init_state_convert(elist, entry_count, start_chunk_index, key_length);
 
     HASH_TABLE* table = hash_init_table(hash_func_chek, key_length);
     hash_add(table, init_state->entry_chunk_array);
@@ -351,39 +317,48 @@ A_STAR_STRUCT* a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index
     build_a_star_eval_util(elist, entry_count, temp_elist, EID_list, key_length, stored_load_lists);
 
 
-    A_STAR_STRUCT* top;
+    A_STAR_STR* top;
     while(!heap_is_empty(*heap)) {
 
         top = heap_pop(heap);
+        int temp;
+        build_a_star_evaluate(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
+        printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
         //int end_index = build_a_star_str_chunk_max(top); // dont check last existing chunk, keep it the same
         int end_index = *chunk_count;
         for (unsigned int i = start_chunk_index; i < (unsigned) end_index; i++) {
-            printf("i: %10d\n", i);
+            // printf("i: %10d\n", i);
             for (unsigned int j = start_chunk_index; j < i; j++) {
 
                 // theres no reason to try to merge if the second chunk (the one that gets merged into the first one) is empty
                 if (build_a_star_is_empty_chunk(top, j, key_length))
                     continue;
 
-                A_STAR_STRUCT* new_state = build_a_star_merge_chunks(top, i, j, key_length, perma_chunk_count);
+                A_STAR_STR* new_state = build_a_star_merge_chunks(top, i, j, key_length, perma_chunk_count);
 
                 // has been considered already
                 if (hash_find(table, new_state->entry_chunk_array) != NULL)
                     continue;
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
-                new_state->elapsed = top->elapsed + 0;  // 1; // IDFK
-                new_state->estimated = build_a_star_evaluate(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count);
+                new_state->estimated = build_a_star_evaluate(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
 
                 if (new_state->estimated == A_STAR_EVAL_INVALID) {
                     continue;
                 }
+
                 if (new_state->estimated == A_STAR_EVAL_SUCCESS) {
                     printf("Solved\n");
                     heap_destroy(heap);
                     hash_destroy_table(table);
-                    return new_state;
+                    for (int i = 0; i < key_length; i++) {
+                        elist[build_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
+                        char temp[100];
+                        printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
+                    }
+                    free(new_state);
+                    return NULL;
                 }
 
                 heap_add(heap, new_state);
