@@ -15,33 +15,23 @@
  */
 void build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
+    clock_t time_start = clock();
+
     // merge permaloaded entries' chunks as well as possible
     int perma_chunk_count = build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
     int permaloaded_chunk_end_index = *chunk_count;
 
     // chunks start off partially merged with very related entries being placed together to lower the state count in a_star_solve
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
-    //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.25);
+    //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.05);
 
-    //deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
-    A_STAR_STR* solution = build_a_star_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
-    if (solution == NULL) {
-        // handle
-    }
-    else {
+    build_a_star_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
 
-    }
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 
-    for (int i = chunk_border_sounds; i < *chunk_count; i++) {
-        int size = 0x14;
-        for (int j = 0; j < entry_count; j++)
-            if (elist[j].chunk == i)
-                size += elist[j].esize + 4;
-        if (size > CHUNKSIZE)
-            printf("BAD BAD NOT GOOD %2d, %d\n", i, size);
-    }
-    /*deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
-    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);*/
+    clock_t time_end = clock();
+    printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
 }
 
 
@@ -54,6 +44,7 @@ void build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_bord
 A_STAR_STR* build_a_star_str_init(int length) {
     A_STAR_STR* temp = (A_STAR_STR*) malloc(sizeof(A_STAR_STR));
     temp->estimated = 0;
+    temp->elapsed = 0;
     temp->entry_chunk_array = (unsigned short int*) malloc(length * sizeof(unsigned short int));
     return temp;
 }
@@ -343,8 +334,10 @@ A_STAR_STR* build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_in
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
                 new_state->estimated = build_a_star_evaluate(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
+                new_state->elapsed = top->elapsed + 3;
 
                 if (new_state->estimated == A_STAR_EVAL_INVALID) {
+                    build_a_star_str_destroy(new_state);
                     continue;
                 }
 
@@ -357,7 +350,7 @@ A_STAR_STR* build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_in
                         char temp[100];
                         printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
-                    free(new_state);
+                    build_a_star_str_destroy(new_state);
                     return NULL;
                 }
 

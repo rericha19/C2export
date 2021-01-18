@@ -8,7 +8,9 @@ int heap_parent_index(int index) {
 A_STAR_HEAP* heap_init_heap() {
     A_STAR_HEAP* temp = (A_STAR_HEAP*) malloc(sizeof(A_STAR_HEAP));
     temp->length = 0;
-    temp->heap_array = NULL;
+    temp->real_size = HEAP_SIZE_INCREMENT;
+    temp->heap_array = (A_STAR_STR**) malloc(HEAP_SIZE_INCREMENT * sizeof(A_STAR_STR*));
+    if (temp->heap_array == NULL) printf("memory aeufnbweiugbw\n");
 
     return temp;
 }
@@ -38,8 +40,8 @@ int heap_comp_util(A_STAR_HEAP* heap, int index_parent) {
     int length = heap->length;
 
     if (index_child1 < length && index_child2 < length) {
-        unsigned int value1 = heap->heap_array[index_child1]->estimated;
-        unsigned int value2 = heap->heap_array[index_child2]->estimated;
+        unsigned int value1 = heap->heap_array[index_child1]->estimated + heap->heap_array[index_child1]->elapsed;
+        unsigned int value2 = heap->heap_array[index_child2]->estimated + heap->heap_array[index_child2]->elapsed;
         temp = (value1 < value2) ? 1 : 2;
     }
 
@@ -50,8 +52,8 @@ int heap_comp_util(A_STAR_HEAP* heap, int index_parent) {
         return 0;
 
     if (temp == 1) {
-        unsigned int value1 = heap->heap_array[index_child1]->estimated;
-        unsigned int valueP = heap->heap_array[index_parent]->estimated;
+        unsigned int value1 = heap->heap_array[index_child1]->estimated + heap->heap_array[index_child1]->elapsed;
+        unsigned int valueP = heap->heap_array[index_parent]->estimated + heap->heap_array[index_parent]->elapsed;
         if (value1 < valueP)
             return 1;
         else
@@ -59,8 +61,8 @@ int heap_comp_util(A_STAR_HEAP* heap, int index_parent) {
     }
 
     if (temp == 2) {
-        unsigned int value2 = heap->heap_array[index_child2]->estimated;
-        unsigned int valueP = heap->heap_array[index_parent]->estimated;
+        unsigned int value2 = heap->heap_array[index_child2]->estimated + heap->heap_array[index_child2]->elapsed;
+        unsigned int valueP = heap->heap_array[index_parent]->estimated + heap->heap_array[index_parent]->elapsed;
         if (value2 < valueP)
             return 2;
         else
@@ -85,11 +87,8 @@ A_STAR_STR* heap_pop(A_STAR_HEAP* heap) {
     if (heap->length != 0) {
         heap->heap_array[0] = heap->heap_array[heap->length];
         // TODO bad, make it realloc only every couple something
-        heap->heap_array = (A_STAR_STR**) realloc(heap->heap_array, heap->length * sizeof(A_STAR_STR));
     }
     else {
-        free(heap->heap_array);
-        heap->heap_array = NULL;
         return result;
     }
 
@@ -110,16 +109,21 @@ void heap_add(A_STAR_HEAP* heap, A_STAR_STR* input) {
     int index_k = heap->length;
 
     // TODO bad, realloc is expensive, make it only change the size every couple something idk (keep capacity and length separate, work with capacity for reallocs)
-    heap->heap_array = (A_STAR_STR**) realloc(heap->heap_array, (index_k + 1) * sizeof(A_STAR_STR));
-    heap->heap_array[index_k] = input;
     heap->length += 1;
+    if (heap->length >= heap->real_size) {
+        heap->real_size += HEAP_SIZE_INCREMENT;
+        heap->heap_array = (A_STAR_STR**) realloc(heap->heap_array, heap->real_size * sizeof(A_STAR_STR*));
+    }
+
+    heap->heap_array[index_k] = input;
+
 
     while(1)  {
         if (!index_k) break;
 
         int index_p = heap_parent_index(index_k);
-        unsigned int value_k = heap->heap_array[index_k]->estimated;
-        unsigned int value_p = heap->heap_array[index_p]->estimated;
+        unsigned int value_k = heap->heap_array[index_k]->estimated + heap->heap_array[index_k]->elapsed;
+        unsigned int value_p = heap->heap_array[index_p]->estimated + heap->heap_array[index_p]->elapsed;
 
         if (value_k >= value_p)
             break;

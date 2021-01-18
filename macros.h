@@ -11,6 +11,7 @@
 
 // various constants
 #define HASH_TABLE_DEF_SIZE             100000000
+#define HEAP_SIZE_INCREMENT             200000
 
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
@@ -259,12 +260,14 @@ typedef struct entry_queue {
 typedef struct a_star_struct {
     unsigned short int *entry_chunk_array;
     unsigned int estimated;
+    unsigned int elapsed;
 } A_STAR_STR;
 
 
 // stores queue of states in a* alg
 typedef struct a_star_heap {
     unsigned int length;
+    unsigned int real_size;
     A_STAR_STR **heap_array;
 } A_STAR_HEAP;
 
