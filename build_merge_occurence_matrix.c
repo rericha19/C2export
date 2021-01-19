@@ -319,7 +319,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
     // if the size is ok it merges, there are empty chunks afterwards that get cleaned up by a function called
     // after this function
 
-    int iter_count = min((int) relations.count * merge_ratio, relations.count);
+    int iter_count = min((int) (relations.count * merge_ratio), relations.count);
 
     for (int x = 0; x < iter_count; x++) {
         // awkward index shenanishans because entries in the matrix and later relation array werent indexed the same way

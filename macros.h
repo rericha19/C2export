@@ -1,10 +1,12 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dir.h>
+#include "dir.h"
+#include "dirent.h"
 #include <time.h>
 #include <ctype.h>
-#include <dirent.h>
 #include <math.h>
 #include <limits.h>
 #include "windows.h"

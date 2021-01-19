@@ -10,7 +10,6 @@ A_STAR_HEAP* heap_init_heap() {
     temp->length = 0;
     temp->real_size = HEAP_SIZE_INCREMENT;
     temp->heap_array = (A_STAR_STR**) malloc(HEAP_SIZE_INCREMENT * sizeof(A_STAR_STR*));
-    if (temp->heap_array == NULL) printf("memory aeufnbweiugbw\n");
 
     return temp;
 }
