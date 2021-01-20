@@ -49,7 +49,7 @@ void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_t
             if (cam_count == 0)
                 continue;
 
-            char temp[100];
+            char temp[100] = "";
             printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
 
             // get list of special entries that can be placed inside zones' first item
@@ -219,7 +219,7 @@ void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam
  */
 void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY *elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config) {
     int i, j, k;
-    // char temp[100];
+    // char temp[100] = "";
 
     // neighbours, slsts, scenery
     LIST links = build_get_links(elist[zone_index].data, camera_index);
@@ -358,7 +358,8 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
 
     int neighbour_cam_count = build_get_cam_item_count(elist[neighbour_index].data);
     if (link.cam_index >= neighbour_cam_count) {
-        char temp[100], temp2[100];
+        char temp[100] = "";
+        char temp2[100]= "";
         printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
                eid_conv(elist[zone_index].EID, temp), eid_conv(elist[neighbour_index].EID, temp2),
                link.cam_index, neighbour_cam_count);
@@ -405,7 +406,8 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
 
         int neighbour_cam_count2 = build_get_cam_item_count(elist[neighbour_index2].data);
         if (link2.cam_index >= neighbour_cam_count2) {
-            char temp[100], temp2[100];
+            char temp[100] = "";
+            char temp2[100]= "";
             printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
                    eid_conv(elist[neighbour_index].EID, temp), eid_conv(elist[neighbour_index2].EID, temp2),
                    link2.cam_index, neighbour_cam_count2);
@@ -731,7 +733,7 @@ LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, L
 void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info) {
     printf("\n");
 
-    char temp[100];
+    char temp[100] = "";
     int i, j, k;
     LIST considered = init_list();
     for (i = 0; i < entry_count; i++)
@@ -858,7 +860,7 @@ void build_add_collision_dependencies(LIST *full_list, int start_index, int end_
  * \return void
  */
 void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j) {
-    char temp[100];
+    char temp[100] = "";
     int k, l;
     int over_count = 0;
     unsigned int over_textures[20];
@@ -1091,7 +1093,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
     int offset, i, property_count = from_u32(item + 0xC);
 
     int *property_sizes = (int *) malloc(property_count * sizeof(int));
-    unsigned char **properties = (unsigned char*) malloc(property_count* sizeof(unsigned char*));
+    unsigned char **properties = (unsigned char**) malloc(property_count* sizeof(unsigned char*));
     unsigned char **property_headers = (unsigned char**) malloc(property_count * sizeof(unsigned char*));
 
     int found = 0;

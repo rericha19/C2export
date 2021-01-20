@@ -166,7 +166,7 @@ void build_check_item_count(unsigned char *zone, int eid) {
     int cam_count = build_get_cam_item_count(zone);
     int entity_count = build_get_entity_count(zone);
 
-    char temp[100];
+    char temp[100] = "";
     if (item_count != (2 + cam_count + entity_count))
         printf("[warning] %s's item count (%d) doesn't match item counts in the first item (2 + %d + %d)\n",
                eid_conv(eid, temp), item_count, cam_count, entity_count);
@@ -307,7 +307,7 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
 // dumb thing for snow no or whatever convoluted level its configured for rn
 // actually unused at the time
 void build_get_box_count(ENTRY *elist, int entry_count) {
-    char temp[100];
+    char temp[100] = "";
     int counter = 0;
     int nitro_counter = 0;
     for (int i = 0; i < entry_count; i++) {

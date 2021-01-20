@@ -62,7 +62,7 @@ void build_state_search_str_destroy(STATE_SEARCH_STR* state) {
 }
 
 
-unsigned int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
+unsigned int build_state_search_eval_state(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                           ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) {
 
     for (int i = 0; i < key_length; i++)
@@ -320,7 +320,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
 
         top = heap_pop(heap);
         int temp;
-        build_state_search_state_eval(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
+        build_state_search_eval_state(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
         printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
         //int end_index = build_a_star_str_chunk_max(top); // dont check last existing chunk, keep it the same
@@ -340,7 +340,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                     continue;
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
-                new_state->estimated = build_state_search_state_eval(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
+                new_state->estimated = build_state_search_eval_state(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
                 new_state->elapsed = top->elapsed + 3;
 
                 if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
@@ -353,7 +353,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
 
                     for (int i = 0; i < key_length; i++) {
                         elist[build_elist_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
-                        char temp[100];
+                        char temp[100] = "";
                         printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_elist_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
                     build_state_search_str_destroy(new_state);

@@ -310,7 +310,9 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count) {
     list_copy_in(&iteration_clone, special_entries);
 
     for (int i = 0; i < iteration_clone.count; i++) {
-        char temp[100], temp2[100], temp3[100];
+        char temp[100] = "";
+        char temp2[100]= "";
+        char temp3[100]= "";
         int item = iteration_clone.eids[i];
         int index = build_elist_get_index(item, elist, entry_count);
         if (index == -1) {
@@ -581,7 +583,8 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
                 neighbours[j] = from_u32(elist[top_zone].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
             int neighbour_index = build_elist_get_index(neighbours[link.zone_index], elist, entry_count);
             if (neighbour_index == -1) {
-                char temp1[100], temp2[100];
+                char temp1[100] = "";
+                char temp2[100] = "";
                 printf("[warning] %s references %s that does not seem to be present\n",
                        eid_conv(elist[top_zone].EID, temp1), eid_conv(neighbours[link.zone_index], temp2));
                 continue;
@@ -745,7 +748,7 @@ int build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* 
                 int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
                 int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
                 if (gool_type > 63 || gool_type < 0) {
-                    char temp[100];
+                    char temp[100] = "";
                     printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);
                     continue;
                 }

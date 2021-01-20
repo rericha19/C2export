@@ -359,7 +359,7 @@ void export_generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char
 // exports entries that need nor receive no change
 {
     FILE *f;
-    char cur_type[MAX];
+    char cur_type[MAX] = "";
     int eidint = 0;
     char eid[6];
     char path[MAX - 20] = ""; // stfu

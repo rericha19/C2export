@@ -122,7 +122,7 @@ typedef struct info{
     int counter[22];                // counts entry types, counter[0] is total entry count
     int print_en;                   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
     FILE *flog;                     // file where the logs are exported if file print is enabled
-    char temp[MAX];                 // strings are written into this before being printed by condprint
+    char temp[MAX];            // strings are written into this before being printed by condprint
     int gamemode;                   // 2 for C2, 3 for C3
     int portmode;                   // 0 for normal export, 1 for porting
     unsigned int anim[1024][3];     // field one is model, field 3 is animation, field 2 is original animation when c3->c2
@@ -474,7 +474,7 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 STATE_SEARCH_STR*  build_state_search_str_init(int length);
 void         build_state_search_str_destroy(STATE_SEARCH_STR* state);
-unsigned int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
+unsigned int build_state_search_eval_state(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                                    ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
 int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
 STATE_SEARCH_STR*  build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);

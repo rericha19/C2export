@@ -712,7 +712,7 @@ void nsd_gool_table_print(char *fpath)
     fread(buffer, sizeof(unsigned char), filesize, file);
 
     int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
-    char temp[100];
+    char temp[100] = "";
     for (int i = 0; i < 64; i++)
     {
         int eid = from_u32(buffer + C2_NSD_ENTRY_TABLE_OFFSET + 0x10 + 8 * entry_count + 4 * i);

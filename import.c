@@ -8,7 +8,7 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
     FILE *base, *importee;
     char *help, *help2;
     char path[MAX] = "";
-    char lcltemp[MAX + 2] = "", nsfpath[MAX] = "", nsfcheck[4]; // + 2 to get rid of a warning
+    char lcltemp[MAX + 2] = "", nsfpath[MAX] = "", nsfcheck[4] = ""; // + 2 to get rid of a warning
     unsigned char *basebase;
     int baselength;
 
@@ -62,7 +62,7 @@ int import_file_lister(char *path, FILE *fnew)
 //    unsigned char instr[CHUNKSIZE+1024];
     unsigned char textu[CHUNKSIZE+1024];
     FILE *file;
-    char temp1[MAX], temp2[6], eid[6];
+    char temp1[MAX] = "", temp2[6] = "", eid[6] = "";
     int entrysize, i, curr_chunk, curr_off = 0, eidint, index = 0, offsets[256];
 //    unsigned int checksum;
 

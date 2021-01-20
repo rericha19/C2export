@@ -689,7 +689,7 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_ind
     elist[zone_index].distances[camera_index] = n;
     elist[zone_index].visited[camera_index] = 1;
 
-    /*char temp[100];
+    /*char temp[100] = "";
     printf("Zone %s campath %d distance %d\n", eid_conv(elist[zone_index].EID, temp), camera_index, n);*/
 }
 

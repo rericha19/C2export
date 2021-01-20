@@ -23,7 +23,7 @@ int main() {
     while (1) {
         char p_comm_cpy[MAX]= "";
         char lcltemp[9] = "";
-        char p_command[MAX];
+        char p_command[MAX] = "";
         time(&rawtime);
         timeinfo = localtime(&rawtime );
         sprintf(lcltemp,"%02d_%02d_%02d",timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
