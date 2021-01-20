@@ -44,7 +44,7 @@ int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int 
  * \param entry_count int               amount of entries
  * \return int                          index of the searched EID or -1
  */
-int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
+int build_elist_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
     int first = 0;
     int last = entry_count - 1;
     int middle = (first + last)/2;

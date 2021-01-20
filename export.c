@@ -272,14 +272,14 @@ void export_entity_coord_fix(unsigned char *item, int itemlength)
                 if (item[off0x4B + 0x5 + i] < 0x80)
                 {
                     coord = BYTE * (signed) item[off0x4B + 0x5 + i] + (signed) item[off0x4B + 0x4 + i];
-                    coord = coord * scale;
+                    coord = (short int) coord * scale;
                     item[off0x4B + 0x5 + i] = coord / 256;
                     item[off0x4B + 0x4 + i] = coord % 256;
                 }
                 else
                 {
                     coord = 65536 - BYTE * (signed) item[off0x4B + 0x5 + i] - (signed) item[off0x4B + 0x4 + i];
-                    coord = coord * scale;
+                    coord = (short int) coord * scale;
                     item[off0x4B + 0x5 + i] = 255 - coord / 256;
                     item[off0x4B + 0x4 + i] = 256 - coord % 256;
                     if (item[off0x4B + 0x4 + i] == 0) item[off0x4B + 0x5 + i]++;
@@ -631,7 +631,7 @@ void export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     for (i = 0; i < 3; i++)
     {
         msize = BYTE * buffer[buffer[0x10] + 1 + i * 4] + buffer[buffer[0x10] + i * 4];
-        msize = msize * scaling;
+        msize = (int) msize * scaling;
         buffer[buffer[0x10] + 1 + i * 4] = msize / BYTE;
         buffer[buffer[0x10] + i * 4] = msize % BYTE;
     }

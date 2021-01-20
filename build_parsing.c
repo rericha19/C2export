@@ -88,7 +88,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
         }
 
         if (from_u32(entry) != MAGIC_ENTRY) continue;
-        if (build_get_index(from_u32(entry + 4), elist, *entry_count) >= 0) continue;
+        if (build_elist_get_index(from_u32(entry + 4), elist, *entry_count) >= 0) continue;
 
         elist[*entry_count].EID = from_u32(entry + 4);
         elist[*entry_count].chunk = -1;
@@ -158,7 +158,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     fscanf(file, "%d", &perma_count);
     for (i = 0; i < perma_count; i++) {
         fscanf(file, "%5s\n", temp);
-        int index = build_get_index(eid_to_int(temp), elist, entry_count);
+        int index = build_elist_get_index(eid_to_int(temp), elist, entry_count);
         if (index == -1) {
             printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", temp);
             valid = 0;
@@ -171,7 +171,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             unsigned int model = build_get_model(elist[index].data);
             list_insert(&perma, model);
 
-            int model_index = build_get_index(model, elist, entry_count);
+            int model_index = build_elist_get_index(model, elist, entry_count);
             if (model_index == -1) continue;
 
             build_add_model_textures_to_list(elist[model_index].data, &perma);
@@ -199,7 +199,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             list_insert(&subinfo.array[i].dependencies, gool_table[type]);
             for (j = 0; j < counter; j++) {
                 fscanf(file, ", %5s", temp);
-                int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                int index = build_elist_get_index(eid_to_int(temp), elist, entry_count);
                 if (index == -1) {
                     printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
                     continue;
@@ -210,7 +210,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                     unsigned int model = build_get_model(elist[index].data);
                     list_insert(&subinfo.array[i].dependencies, model);
 
-                    int model_index = build_get_index(model, elist, entry_count);
+                    int model_index = build_elist_get_index(model, elist, entry_count);
                     if (model_index == -1) continue;
 
                     build_add_model_textures_to_list(elist[model_index].data, &subinfo.array[i].dependencies);
@@ -238,7 +238,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             coll.array[i].dependencies = init_list();
             for (j = 0; j < counter; j++) {
                 fscanf(file, ", %5s", temp);
-                int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                int index = build_elist_get_index(eid_to_int(temp), elist, entry_count);
                 if (index == -1) {
                     printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
                     continue;
@@ -250,7 +250,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                     unsigned int model = build_get_model(elist[index].data);
                     list_insert(&coll.array[i].dependencies, model);
 
-                    int model_index = build_get_index(model, elist, entry_count);
+                    int model_index = build_elist_get_index(model, elist, entry_count);
                     if (model_index == -1) continue;
 
                     build_add_model_textures_to_list(elist[model_index].data, &coll.array[i].dependencies);
@@ -312,7 +312,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count) {
     for (int i = 0; i < iteration_clone.count; i++) {
         char temp[100], temp2[100], temp3[100];
         int item = iteration_clone.eids[i];
-        int index = build_get_index(item, elist, entry_count);
+        int index = build_elist_get_index(item, elist, entry_count);
         if (index == -1) {
             printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.EID, temp), eid_conv(item, temp2));
             list_remove(&special_entries, item);
@@ -321,7 +321,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count) {
 
         if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
             unsigned int model = build_get_model(elist[index].data);
-            int model_index = build_get_index(model, elist, entry_count);
+            int model_index = build_elist_get_index(model, elist, entry_count);
             if (model_index == -1 || build_entry_type(elist[model_index]) != ENTRY_TYPE_MODEL) {
                 printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
                        eid_conv(zone.EID, temp), eid_conv(item, temp2), eid_conv(model, temp3));
@@ -514,7 +514,7 @@ void build_get_model_references(ENTRY *elist, int entry_count) {
             int relative_index;
             int new_counter = 0;
             for (j = 0; (unsigned) j < elist[i].related[0]; j++)
-                if ((relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count)) >= 0)
+                if ((relative_index = build_elist_get_index(elist[i].related[j + 1], elist, entry_count)) >= 0)
                     if (elist[relative_index].data != NULL && (from_u32(elist[relative_index].data + 8) == 1))
                         new_relatives[new_counter++] = build_get_model(elist[relative_index].data);
 
@@ -560,7 +560,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
     }
 
     DIST_GRAPH_Q graph = graph_init();
-    int start_index = build_get_index(spawns.spawns[0].zone, elist, entry_count);
+    int start_index = build_elist_get_index(spawns.spawns[0].zone, elist, entry_count);
     graph_add(&graph, elist, start_index, 0);
 
     while (1) {
@@ -575,11 +575,11 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
         {
             CAMERA_LINK link = int_to_link(links.eids[i]);
             int neighbour_count = build_get_neighbour_count(elist[top_zone].data);
-            unsigned int neighbours[neighbour_count];
+            unsigned int* neighbours = (unsigned int*) malloc(neighbour_count * sizeof(unsigned int));
             int item1off = from_u32(elist[top_zone].data + 0x10);
             for (int j = 0; j < neighbour_count; j++)
                 neighbours[j] = from_u32(elist[top_zone].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
-            int neighbour_index = build_get_index(neighbours[link.zone_index], elist, entry_count);
+            int neighbour_index = build_elist_get_index(neighbours[link.zone_index], elist, entry_count);
             if (neighbour_index == -1) {
                 char temp1[100], temp2[100];
                 printf("[warning] %s references %s that does not seem to be present\n",
@@ -589,6 +589,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
 
             if (elist[neighbour_index].visited[link.cam_index] == 0)
                 graph_add(&graph, elist, neighbour_index, link.cam_index);
+            free(neighbours);
         }
     }
 
@@ -619,7 +620,7 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
         if (elist[i].related == NULL) continue;
         for (j = 1; (unsigned) j < elist[i].related[0] + 1; j++) {
             int relative_index;
-            relative_index = build_get_index(elist[i].related[j], elist, entry_count);
+            relative_index = build_elist_get_index(elist[i].related[j], elist, entry_count);
             if (relative_index < entry_count_base) elist[i].related[j] = 0;
             if (elist[i].related[j] == elist[i].EID) elist[i].related[j] = 0;
 

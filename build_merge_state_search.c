@@ -85,7 +85,7 @@ unsigned int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_l
         int counter = 0;
         for (int j = 0; j < stored_load_lists[i].entries.count; j++){
             int eid = stored_load_lists[i].entries.eids[j];
-            int index = build_get_index(eid, temp_elist, key_length);
+            int index = build_elist_get_index(eid, temp_elist, key_length);
             int chunk = temp_elist[index].chunk;
 
             if (chunk >= first_nonperma_chunk) {
@@ -209,7 +209,7 @@ unsigned int* build_state_search_init_elist_convert(ENTRY *elist, int entry_coun
 void build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, unsigned int *EID_list, int key_length, STATE_SEARCH_LOAD_LIST* stored_load_lists) {
     for (int i = 0; i < key_length; i++) {
         temp_elist[i].EID = EID_list[i];
-        int master_elist_index = build_get_index(EID_list[i], elist, entry_count);
+        int master_elist_index = build_elist_get_index(EID_list[i], elist, entry_count);
         temp_elist[i].data = elist[master_elist_index].data;
         temp_elist[i].esize = elist[master_elist_index].esize;
     }
@@ -352,9 +352,9 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                     printf("Solved\n");
 
                     for (int i = 0; i < key_length; i++) {
-                        elist[build_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
+                        elist[build_elist_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
                         char temp[100];
-                        printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
+                        printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_elist_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
                     build_state_search_str_destroy(new_state);
                     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);

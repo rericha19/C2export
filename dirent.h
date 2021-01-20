@@ -10,7 +10,7 @@
 #ifndef DIRENT_H
 #define DIRENT_H
 
-#pragma GCC diagnostic ignored "-Wunused-function" // makes C::B stfu, but can make other stuff throw warnings
+#pragma GCC diagnostic ignored "-Wunused-function" // makes C::B stfu, but makes VS throw warnings
 
 /*
  * Define architecture flags so we don't need to include windows.h.

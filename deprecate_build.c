@@ -337,7 +337,7 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     int is_there;
 
     for (int i = 0; i < list.count; i++) {
-        int elist_index = build_get_index(list.eids[i], elist, entry_count);
+        int elist_index = build_elist_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].chunk;
         is_there = 0;
         for (int j = 0; j < count; j++)
@@ -456,7 +456,7 @@ int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int 
 void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies)
 {
     int i, j, k, l;
-    int index = build_get_index(eid, elist, entry_count);
+    int index = build_elist_get_index(eid, elist, entry_count);
     if (index == -1) return;
 
     if (elist[index].related != NULL)
@@ -470,7 +470,7 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
         LIST neighbours = build_get_neighbours(elist[index].data);
 
         for (i = 0; i < neighbours.count; i++) {
-            int neighbour_index = build_get_index(neighbours.eids[i], elist, entry_count);
+            int neighbour_index = build_elist_get_index(neighbours.eids[i], elist, entry_count);
             if (neighbour_index == -1) continue;
 
             int entity_count = build_get_entity_count(elist[neighbour_index].data);
@@ -487,13 +487,13 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
                     if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt) {
                         for (l = 0; l < dependencies.array[k].dependencies.count; l++) {
                             list_insert(list, dependencies.array[k].dependencies.eids[l]);
-                            int index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
+                            int index2 = build_elist_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
                             if (index2 == -1) continue;
                             if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM) {
                                 unsigned int model = build_get_model(elist[index2].data);
                                 list_insert(list, model);
 
-                                int model_index = build_get_index(model, elist, entry_count);
+                                int model_index = build_elist_get_index(model, elist, entry_count);
                                 if (model_index == -1) continue;
 
                                 build_add_model_textures_to_list(elist[model_index].data, list);
@@ -514,7 +514,7 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
 
         int scenery_count = build_get_scen_count(elist[index].data);
         for (i = 0; i < scenery_count; i++) {
-            int scenery_index = build_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
+            int scenery_index = build_elist_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
             build_add_scen_textures_to_list(elist[scenery_index].data, list);
         }
     }
@@ -549,7 +549,7 @@ void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, i
                     if (elist[i].related != NULL)
                     for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                     {
-                        relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        relative_index = build_elist_get_index(elist[i].related[j + 1], elist, entry_count);
                         if (elist[relative_index].chunk != -1) continue;
                         if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
                         {
@@ -578,7 +578,7 @@ void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, i
                     if (elist[i].related != NULL)
                     for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                     {
-                        relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        relative_index = build_elist_get_index(elist[i].related[j + 1], elist, entry_count);
                         if (elist[relative_index].chunk != -1) continue;
 
                         elist[relative_index].chunk = chunk_count++;
@@ -639,7 +639,7 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
                 if (elist[i].related != NULL)
                     for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                     {
-                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        int relative_index = build_elist_get_index(elist[i].related[j + 1], elist, entry_count);
                         if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
                         if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
                         {
@@ -665,7 +665,7 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
                 if (elist[i].related != NULL)
                     for (j = 0; (unsigned) j < elist[i].related[0]; j++)
                     {
-                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        int relative_index = build_elist_get_index(elist[i].related[j + 1], elist, entry_count);
                         if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL) continue;
                         elist[relative_index].chunk = chunk_count++;
                     }
@@ -698,7 +698,7 @@ void build_print_relatives(ENTRY *elist, int entry_count) {
             for (j = 0; j < (signed) elist[i].related[0]; j++) {
                 int relative = elist[i].related[j+1];
                 printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, temp),
-                       elist[build_get_index(relative, elist, entry_count)].chunk, elist[build_get_index(relative, elist, entry_count)].esize);
+                       elist[build_elist_get_index(relative, elist, entry_count)].chunk, elist[build_elist_get_index(relative, elist, entry_count)].esize);
             }
         }
     }

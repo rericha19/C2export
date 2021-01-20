@@ -46,7 +46,7 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
         *(unsigned short int*) (chunks[i] + 4) = chunk_no;
         *(unsigned short int*) (chunks[i] + 8) = local_entry_count;
 
-        unsigned int offsets[local_entry_count + 2];
+        unsigned int *offsets = (unsigned int *) malloc( (local_entry_count + 1) * sizeof(unsigned int));
         // calculates offsets
         int indexer = 0;
         offsets[indexer] = 0x10 + (local_entry_count + 1) * 4;
@@ -72,6 +72,7 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
 
         sum += curr_offset;                                                 // for avg
         *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]);      // chunk checksum
+        free(offsets);
     }
 
     printf("Average normal chunk portion taken: %.3f%c\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE, '%');
@@ -161,15 +162,16 @@ void build_sort_load_lists(ENTRY *elist, int entry_count) {
                         int sub_list_offset = offset + 4 * list_count;
                         for (int l = 0; l < list_count; l++) {
                             int item_count = from_u16(elist[i].data + offset + l * 2);
-                            LOAD_LIST_ITEM_UTIL item_list[item_count];
+                            LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *) malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL));
                             for (int m = 0; m < item_count; m++) {
                                 item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
-                                item_list[m].index = build_get_index(item_list[m].eid, elist, entry_count);
+                                item_list[m].index = build_elist_get_index(item_list[m].eid, elist, entry_count);
                             }
                             qsort(item_list, item_count, sizeof(LOAD_LIST_ITEM_UTIL), load_list_sort);
                             for (int m = 0; m < item_count; m++)
                                 *(unsigned int*)(elist[i].data + sub_list_offset + 4 * m) = item_list[m].eid;
                             sub_list_offset += item_count * 4;
+                            free(item_list);
                         }
                     }
                 }

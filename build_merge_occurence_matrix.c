@@ -191,7 +191,7 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
 
     int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
 
-    int total_occurences[entries.count];
+    int* total_occurences = (int*) malloc(entries.count * sizeof(int));
     for (int i = 0; i < entries.count; i++) {
         int temp_occurences = 0;
         for (int j = 0; j < i; j++)
@@ -221,6 +221,8 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
     build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);
 
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
+
+    free(total_occurences);
 }
 
 
@@ -331,8 +333,8 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
         int index1 = relations.relations[x].index1;
         int index2 = relations.relations[x].index2;
 
-        int elist_index1 = build_get_index(entries.eids[index1], elist, entry_count);
-        int elist_index2 = build_get_index(entries.eids[index2], elist, entry_count);
+        int elist_index1 = build_elist_get_index(entries.eids[index1], elist, entry_count);
+        int elist_index2 = build_elist_get_index(entries.eids[index2], elist, entry_count);
 
         int chunk_index1 = elist[elist_index1].chunk;
         int chunk_index2 = elist[elist_index2].chunk;
@@ -434,7 +436,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
 
-    ENTRY perma_elist[perma_normal_entry_count];
+    ENTRY *perma_elist = (ENTRY *) malloc(perma_normal_entry_count * sizeof(ENTRY));
     int indexer = 0;
     for (i = 0; i < entry_count; i++)
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
@@ -443,8 +445,8 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
     qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
 
     // keep putting them into existing chunks if they fit
-    int perma_chunk_count = 250;
-    int sizes[perma_chunk_count];
+    int perma_chunk_count = perma_normal_entry_count;   //idrc about optimising this
+    int *sizes = (int*) malloc(perma_chunk_count * sizeof(int));
     for (i = 0; i < perma_chunk_count; i++)
         sizes[i] = 0x14;
 
@@ -469,6 +471,8 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
             counter = i + 1;
 
     *chunk_count = temp_count + counter;
+    free(perma_elist);
+    free(sizes);
     return counter;
 }
 

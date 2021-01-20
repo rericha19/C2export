@@ -380,7 +380,7 @@ int          build_remove_empty_chunks(int index_start, int index_end, int entry
 void         build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base);
 int          build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end);
 void         build_get_model_references(ENTRY *elist, int entry_count);
-int          build_get_index(unsigned int eid, ENTRY *elist, int entry_count);
+int          build_elist_get_index(unsigned int eid, ENTRY *elist, int entry_count);
 unsigned int build_get_slst(unsigned char *item);
 unsigned int build_get_path_length(unsigned char *item);
 short int *  build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len);

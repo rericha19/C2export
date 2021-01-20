@@ -54,7 +54,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_entry_count++;
-    ENTRY sound_list[sound_entry_count];
+    ENTRY *sound_list = (ENTRY *) malloc(sound_entry_count * sizeof(ENTRY));
 
     // add actual entries to the array
     int indexer = 0;
@@ -100,7 +100,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
             if (sound_list[j].chunk == temp_chunk_count + i)
                 local_entry_count++;
 
-        unsigned int offsets[local_entry_count + 2];
+        unsigned int* offsets = (unsigned int*) malloc( (local_entry_count + 2) * sizeof(unsigned int)); //idk why its +2
         *(unsigned short int *) chunks[temp_chunk_count + i] = MAGIC_CHUNK;
         *(unsigned short int *)(chunks[temp_chunk_count + i] + 2) = CHUNK_TYPE_SOUND;
         *(unsigned short int *)(chunks[temp_chunk_count + i] + 4) = chunk_no;
@@ -124,6 +124,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
                 memcpy(chunks[temp_chunk_count + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
 
         *(unsigned int*)(chunks[temp_chunk_count + i] + 0xC) = nsfChecksum(chunks[temp_chunk_count + i]);
+        free(offsets);
     }
 
     // update the chunk assignment in the actual master entry list, this function only worked with copies of the entries
@@ -133,6 +134,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
                 elist[i].chunk = sound_list[j].chunk;
     // update chunk count
     *chunk_count = temp_chunk_count + snd_chunk_count;
+    free(sound_list);
 }
 
 

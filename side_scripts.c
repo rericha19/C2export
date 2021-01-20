@@ -20,9 +20,9 @@ int scenery_recolor_main()
 
     fseek(file1, 0, SEEK_END);
     int color_count = ftell(file1) / 4;
-    unsigned char stuff[color_count * 4];
+    unsigned char* buffer = (unsigned char*) ( (color_count * 4) * sizeof(unsigned char*));
     rewind(file1);
-    fread(stuff, color_count, 4, file1);
+    fread(buffer, color_count, 4, file1);
 
     // pseudograyscale of the wanted color
     int sum_wanted = r_wanted + g_wanted + b_wanted;
@@ -31,9 +31,9 @@ int scenery_recolor_main()
     for (int i = 0; i < color_count; i++)
     {
         // read current color
-        unsigned char r = stuff[4 * i + 0];
-        unsigned char g = stuff[4 * i + 1];
-        unsigned char b = stuff[4 * i + 2];
+        unsigned char r = buffer[4 * i + 0];
+        unsigned char g = buffer[4 * i + 1];
+        unsigned char b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
         int sum = r + g + b;
@@ -53,15 +53,15 @@ int scenery_recolor_main()
         printf("new: %2X %2X %2X\n", r_new, g_new, b_new);
 
         // write back
-        stuff[4 * i + 0] = r_new;
-        stuff[4 * i + 1] = g_new;
-        stuff[4 * i + 2] = b_new;
+        buffer[4 * i + 0] = r_new;
+        buffer[4 * i + 1] = g_new;
+        buffer[4 * i + 2] = b_new;
     }
 
     rewind(file1);
-    fwrite(stuff, color_count, 4, file1);
+    fwrite(buffer, color_count, 4, file1);
     fclose(file1);
-
+    free(buffer);
     return 0;
 }
 
@@ -114,7 +114,9 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     int vertcount = (next_off-curr_off)/6;
-    unsigned int verts[vertcount][2];
+    unsigned int** verts = (unsigned int**) malloc(vertcount * sizeof(unsigned int*));
+    for (i = 0; i < vertcount; i++)
+        verts[i] = (unsigned int*)malloc(2 * sizeof(unsigned int*));
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
@@ -159,6 +161,9 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     filenew = fopen(lcltemp,"wb");
     fwrite(buffer, sizeof(unsigned char), filesize, filenew);
     fclose(filenew);
+    for (i = 0; i < vertcount; i++)
+        free(verts[i]);
+    free(verts);
 }
 
 void rotate_zone(unsigned char *buffer, char *filepath, double rotation)
@@ -175,8 +180,8 @@ void rotate_rotate(unsigned int *y,unsigned int *x, double rotation)
     temp1 = x_t;
     temp2 = y_t;
 
-    temp1 = x_t * cos(rotation) - y_t * sin(rotation);
-    temp2 = x_t * sin(rotation) + y_t * cos(rotation);
+    temp1 = (int) (x_t * cos(rotation) - y_t * sin(rotation));
+    temp2 = (int) (x_t * sin(rotation) + y_t * cos(rotation));
 
     *x = temp1;
     *y = temp2;
@@ -518,7 +523,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
     int i, itemcount;
     unsigned int coord;
     itemcount = from_u32(buffer + 0xC);
-    int itemoffs[itemcount];
+    int *itemoffs = (int*) malloc(itemcount * sizeof(int));
 
     for (i = 0; i < itemcount; i++)
         itemoffs[i] = 256 * buffer[0x11 + i*4] + buffer[0x10 + i*4];
@@ -528,9 +533,9 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
         coord = from_u32(buffer+itemoffs[1] + i*4);
         if (coord >= (1LL<<31))
         {
-            coord = (1LL<<32) - coord;
-            coord = coord * scale[i % 3];
-            coord = (1LL<<32) - coord;
+            coord = (unsigned int) ((1LL<<32) - coord);
+            coord = (unsigned int) coord * scale[i % 3];
+            coord = (unsigned int) (1LL<<32) - coord;
             for (int j = 0; j < 4; j++)
             {
                 buffer[itemoffs[1]+ i*4 + j] = coord % 256;
@@ -538,7 +543,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
             }
         }
         else {
-            coord = coord * scale[i % 3];
+            coord = (unsigned int) coord * scale[i % 3];
             for (int j = 0; j < 4; j++)
             {
                 buffer[itemoffs[1]+ i*4 + j] = coord % 256;
@@ -550,6 +555,8 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
     for (i = 2; i < itemcount; i++)
        if (i > buffer[itemoffs[0]+0x188] || (i % 3 == 2))
            resize_entity(buffer + itemoffs[i], itemoffs[i+1] - itemoffs[i], scale, status);
+
+    free(itemoffs);
 }
 
 void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
@@ -566,19 +573,19 @@ void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE
 
     if (off0x4B)
     {
-        for (i = 0; i < item[off0x4B]*6; i += 2)
+        for (i = 0; (unsigned) i < item[off0x4B]*6; i += 2)
             {
                 if (item[off0x4B + 0x5 + i] < 0x80)
                 {
                     coord = BYTE * (signed) item[off0x4B + 0x5 + i] + (signed) item[off0x4B + 0x4 + i];
-                    coord = coord * scale[i/2 % 3];
+                    coord = (short int) coord * scale[i/2 % 3];
                     item[off0x4B + 0x5 + i] = coord / 256;
                     item[off0x4B + 0x4 + i] = coord % 256;
                 }
                 else
                 {
                     coord = 65536 - BYTE * (signed) item[off0x4B + 0x5 + i] - (signed) item[off0x4B + 0x4 + i];
-                    coord = coord * scale[i/2 % 3];
+                    coord = (short int) coord * scale[i/2 % 3];
                     item[off0x4B + 0x5 + i] = 255 - coord / 256;
                     item[off0x4B + 0x4 + i] = 256 - coord % 256;
                     if (item[off0x4B + 0x4 + i] == 0) item[off0x4B + 0x5 + i]++;
@@ -701,7 +708,7 @@ void nsd_gool_table_print(char *fpath)
     int filesize = ftell(file);
     rewind(file);
 
-    unsigned char buffer[filesize];
+    unsigned char* buffer = (unsigned char*) malloc(filesize * sizeof(unsigned char*));
     fread(buffer, sizeof(unsigned char), filesize, file);
 
     int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
@@ -714,4 +721,5 @@ void nsd_gool_table_print(char *fpath)
             putchar('\n');
     }
     fclose(file);
+    free(buffer);
 }
