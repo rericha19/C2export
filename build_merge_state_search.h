@@ -5,33 +5,33 @@ int heap_parent_index(int index) {
 }
 
 // initialises heap
-A_STAR_HEAP* heap_init_heap() {
-    A_STAR_HEAP* temp = (A_STAR_HEAP*) malloc(sizeof(A_STAR_HEAP));
+STATE_SEARCH_HEAP* heap_init_heap() {
+    STATE_SEARCH_HEAP* temp = (STATE_SEARCH_HEAP*) malloc(sizeof(STATE_SEARCH_HEAP));
     temp->length = 0;
     temp->real_size = HEAP_SIZE_INCREMENT;
-    temp->heap_array = (A_STAR_STR**) malloc(HEAP_SIZE_INCREMENT * sizeof(A_STAR_STR*));
+    temp->heap_array = (STATE_SEARCH_STR**) malloc(HEAP_SIZE_INCREMENT * sizeof(STATE_SEARCH_STR*));
 
     return temp;
 }
 
 
 // frees all dynamically allocated memory of the heap's contents and the heap
-void heap_destroy(A_STAR_HEAP* heap) {
+void heap_destroy(STATE_SEARCH_HEAP* heap) {
     for (unsigned int i = 0; i < heap->length; i++)
-        build_a_star_str_destroy(heap->heap_array[i]);
+        build_state_search_str_destroy(heap->heap_array[i]);
     free(heap);
 }
 
 
 // returns 1 if heap is empty, else 0
-int heap_is_empty(A_STAR_HEAP heap) {
+int heap_is_empty(STATE_SEARCH_HEAP heap) {
     if (heap.length == 0)
         return 1;
     return 0;
 }
 
 // figures out what swap has to be done in heap when removing, 0 if none, 1 if element<->childL, 2 if element<->childR
-int heap_comp_util(A_STAR_HEAP* heap, int index_parent) {
+int heap_comp_util(STATE_SEARCH_HEAP* heap, int index_parent) {
     int index_child1 = 2 * index_parent + 1;
     int index_child2 = 2 * index_parent + 2;
 
@@ -73,7 +73,7 @@ int heap_comp_util(A_STAR_HEAP* heap, int index_parent) {
 
 
 // pops from the heap, does necessary swaps to maintain the heap
-A_STAR_STR* heap_pop(A_STAR_HEAP* heap) {
+STATE_SEARCH_STR* heap_pop(STATE_SEARCH_HEAP* heap) {
 
     if (heap->length == 0) {
         heap->heap_array = NULL;
@@ -81,7 +81,7 @@ A_STAR_STR* heap_pop(A_STAR_HEAP* heap) {
     }
 
     (heap->length)--;
-    A_STAR_STR* result = heap->heap_array[0];
+    STATE_SEARCH_STR* result = heap->heap_array[0];
 
     if (heap->length != 0) {
         heap->heap_array[0] = heap->heap_array[heap->length];
@@ -92,7 +92,7 @@ A_STAR_STR* heap_pop(A_STAR_HEAP* heap) {
     }
 
     for (int n = 0, temp = heap_comp_util(heap, n); temp != 0; temp = heap_comp_util(heap, n)) {
-        A_STAR_STR* help = heap->heap_array[n];
+        STATE_SEARCH_STR* help = heap->heap_array[n];
         heap->heap_array[n] = heap->heap_array[2 * n + temp];
         heap->heap_array[2 * n + temp] = help;
         n = 2 * n + temp;
@@ -103,15 +103,15 @@ A_STAR_STR* heap_pop(A_STAR_HEAP* heap) {
 
 
 // adds state to the heap, makes necessary swap to mainatain the heap
-void heap_add(A_STAR_HEAP* heap, A_STAR_STR* input) {
-    A_STAR_STR *temp;
+void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
+    STATE_SEARCH_STR *temp;
     int index_k = heap->length;
 
     // TODO bad, realloc is expensive, make it only change the size every couple something idk (keep capacity and length separate, work with capacity for reallocs)
     heap->length += 1;
     if (heap->length >= heap->real_size) {
         heap->real_size += HEAP_SIZE_INCREMENT;
-        heap->heap_array = (A_STAR_STR**) realloc(heap->heap_array, heap->real_size * sizeof(A_STAR_STR*));
+        heap->heap_array = (STATE_SEARCH_STR**) realloc(heap->heap_array, heap->real_size * sizeof(STATE_SEARCH_STR*));
     }
 
     heap->heap_array[index_k] = input;
@@ -190,7 +190,7 @@ int hash_func_chek(HASH_TABLE* table, unsigned short int* entry_chunk_array) {
     if (hash_temp < 0)
         hash_temp += table->table_length;
 
-    return hash_temp;
+    return (int) hash_temp;
 }
 
 

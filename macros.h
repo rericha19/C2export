@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dir.h"
+#include <io.h>
 #include "dirent.h"
 #include <time.h>
 #include <ctype.h>
@@ -197,7 +197,7 @@ typedef struct load {
 // used to keep the entire non-delta load/draw list
 typedef struct load_list {
     int count;
-    LOAD array[1000];
+    LOAD array[1000]; // yep
 } LOAD_LIST;
 
 
@@ -259,27 +259,27 @@ typedef struct entry_queue {
 
 
 // used to represent states in a* alg
-typedef struct a_star_struct {
+typedef struct state_set_search_struct {
     unsigned short int *entry_chunk_array;
     unsigned int estimated;
     unsigned int elapsed;
-} A_STAR_STR;
+} STATE_SEARCH_STR;
 
 
 // stores queue of states in a* alg
-typedef struct a_star_heap {
+typedef struct state_set_search_heap {
     unsigned int length;
     unsigned int real_size;
-    A_STAR_STR **heap_array;
-} A_STAR_HEAP;
+    STATE_SEARCH_STR **heap_array;
+} STATE_SEARCH_HEAP;
 
 
 // stores load lists to prevent having to read them in every eval function call
-typedef struct a_star_load_list {
+typedef struct state_set_search_load_list {
     LIST entries;
     unsigned int zone_eid;
     int cam_path;
-} A_STAR_LOAD_LIST;
+} STATE_SEARCH_LOAD_LIST;
 
 
 // used to store visited/considered/not-to-be-visited again configurations of entry-chunk assignments
@@ -470,17 +470,17 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 
 
 // a star merge
-void         build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-A_STAR_STR*  build_a_star_str_init(int length);
-void         build_a_star_str_destroy(A_STAR_STR* state);
-int          build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STR* state, int key_length,
+void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+STATE_SEARCH_STR*  build_state_search_str_init(int length);
+void         build_state_search_str_destroy(STATE_SEARCH_STR* state);
+int          build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                                    ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
-int          build_a_star_str_chunk_max(A_STAR_STR* state, int key_length);
-A_STAR_STR*  build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
-A_STAR_STR*  build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
-int          build_a_star_is_empty_chunk(A_STAR_STR* state, unsigned int chunk_index, int key_length);
-unsigned int*build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length);
-A_STAR_STR*  build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count);
+int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
+STATE_SEARCH_STR*  build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
+STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
+int          build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length);
+unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length);
+STATE_SEARCH_STR*  build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count);
 
 
 

@@ -13,7 +13,7 @@
  * \param permaloaded LIST              list of permaloaded entries
  * \return void
  */
-void build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
+void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
     clock_t time_start = clock();
 
@@ -25,7 +25,7 @@ void build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_bord
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.05);
 
-    build_a_star_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
+    build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
 
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
@@ -41,8 +41,8 @@ void build_merge_experimental_main(ENTRY *elist, int entry_count, int chunk_bord
  * \param length int                    amount of entry-chunk assignments
  * \return A_STAR_STR*                  initialised state with allocated memory
  */
-A_STAR_STR* build_a_star_str_init(int length) {
-    A_STAR_STR* temp = (A_STAR_STR*) malloc(sizeof(A_STAR_STR));
+STATE_SEARCH_STR* build_state_search_str_init(int length) {
+    STATE_SEARCH_STR* temp = (STATE_SEARCH_STR*) malloc(sizeof(STATE_SEARCH_STR));
     temp->estimated = 0;
     temp->elapsed = 0;
     temp->entry_chunk_array = (unsigned short int*) malloc(length * sizeof(unsigned short int));
@@ -56,19 +56,19 @@ A_STAR_STR* build_a_star_str_init(int length) {
  * \param state A_STAR_STR*             state to destroy
  * \return void
  */
-void build_a_star_str_destroy(A_STAR_STR* state) {
+void build_state_search_str_destroy(STATE_SEARCH_STR* state) {
     free(state->entry_chunk_array);
     free(state);
 }
 
 
-int build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_count, A_STAR_STR* state, int key_length,
+int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                           ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) {
 
     for (int i = 0; i < key_length; i++)
         temp_elist[i].chunk = state->entry_chunk_array[i];
 
-    for (int curr_chunk = 0; curr_chunk <= build_a_star_str_chunk_max(state, key_length); curr_chunk++) {
+    for (int curr_chunk = 0; curr_chunk <= build_state_search_str_chunk_max(state, key_length); curr_chunk++) {
         int curr_chunk_size = 0x14;
         for (int j = 0; j < key_length; j++)
             if (state->entry_chunk_array[j] == curr_chunk)
@@ -121,7 +121,7 @@ int build_a_star_evaluate(A_STAR_LOAD_LIST* stored_load_lists, int total_cam_cou
  * \param state A_STAR_STR*             input state
  * \return int                          index of the last used chunk
  */
-int build_a_star_str_chunk_max(A_STAR_STR* state, int key_length) {
+int build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length) {
     unsigned short int chunk_last = 0;
     for (int i = 0; i < key_length; i++)
         chunk_last = max(chunk_last, state->entry_chunk_array[i]);
@@ -138,8 +138,8 @@ int build_a_star_str_chunk_max(A_STAR_STR* state, int key_length) {
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  new state
  */
-A_STAR_STR* build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count) {
-    A_STAR_STR* new_state = build_a_star_str_init(key_length);
+STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count) {
+    STATE_SEARCH_STR* new_state = build_state_search_str_init(key_length);
 
     for (int i = 0; i < key_length; i++) {
         // makes sure chunk2 gets merged into chunk1
@@ -162,8 +162,8 @@ A_STAR_STR* build_a_star_merge_chunks(A_STAR_STR* state, unsigned int chunk1, un
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  struct with entry-chunk assignments recorded
  */
-A_STAR_STR* build_a_star_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length) {
-    A_STAR_STR* init_state = build_a_star_str_init(key_length);
+STATE_SEARCH_STR* build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length) {
+    STATE_SEARCH_STR* init_state = build_state_search_str_init(key_length);
     int indexer = 0;
     for (int i = 0; i < entry_count; i++)
         if (elist[i].chunk >= start_chunk_index) {
@@ -175,7 +175,7 @@ A_STAR_STR* build_a_star_init_state_convert(ENTRY* elist, int entry_count, int s
 }
 
 
-int build_a_star_is_empty_chunk(A_STAR_STR* state, unsigned int chunk_index, int key_length) {
+int build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length) {
 
     int has_something = 0;
     for (int k = 0; k < key_length; k++) {
@@ -187,7 +187,7 @@ int build_a_star_is_empty_chunk(A_STAR_STR* state, unsigned int chunk_index, int
 }
 
 
-unsigned int* build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length) {
+unsigned int* build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length) {
 
     int counter = 0;
     for (int i = 0; i < entry_count; i++)
@@ -206,7 +206,7 @@ unsigned int* build_a_star_init_elist_convert(ENTRY *elist, int entry_count, int
 }
 
 
-void build_a_star_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, unsigned int *EID_list, int key_length, A_STAR_LOAD_LIST* stored_load_lists) {
+void build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, unsigned int *EID_list, int key_length, STATE_SEARCH_LOAD_LIST* stored_load_lists) {
     for (int i = 0; i < key_length; i++) {
         temp_elist[i].EID = EID_list[i];
         int master_elist_index = build_get_index(EID_list[i], elist, entry_count);
@@ -273,6 +273,13 @@ void build_a_star_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, un
 }
 
 
+void build_state_search_solve_cleanup(STATE_SEARCH_HEAP *heap, HASH_TABLE *table, STATE_SEARCH_LOAD_LIST *stored_load_lists, ENTRY *temp_elist) {
+    heap_destroy(heap);
+    hash_destroy_table(table);
+    free(stored_load_lists);
+    free(temp_elist);
+}
+
 /** \brief
  *  Chunk merge method based on a* algorithm. WIP.
  *
@@ -283,37 +290,37 @@ void build_a_star_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, un
  * \param key_length int                amount of entries entering the process (non-permaloaded normal chunk entries)
  * \return A_STAR_STR*                  struct with good enough solution or NULL
  */
-A_STAR_STR* build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count) {
+STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count) {
 
     int key_length;
-    unsigned int* EID_list = build_a_star_init_elist_convert(elist, entry_count, start_chunk_index, &key_length);
-    A_STAR_STR* init_state = build_a_star_init_state_convert(elist, entry_count, start_chunk_index, key_length);
+    unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, start_chunk_index, &key_length);
+    STATE_SEARCH_STR* init_state = build_state_search_init_state_convert(elist, entry_count, start_chunk_index, key_length);
 
     HASH_TABLE* table = hash_init_table(hash_func_chek, key_length);
     hash_add(table, init_state->entry_chunk_array);
 
-    A_STAR_HEAP* heap = heap_init_heap();
+    STATE_SEARCH_HEAP* heap = heap_init_heap();
     heap_add(heap, init_state);
 
 
     int total_cam_path_count = 0;
     for (int i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             total_cam_path_count += cam_count;
         }
 
-    A_STAR_LOAD_LIST stored_load_lists[total_cam_path_count];
-    ENTRY temp_elist[key_length];
-    build_a_star_eval_util(elist, entry_count, temp_elist, EID_list, key_length, stored_load_lists);
+    STATE_SEARCH_LOAD_LIST *stored_load_lists = (STATE_SEARCH_LOAD_LIST *) malloc(total_cam_path_count * sizeof(STATE_SEARCH_LOAD_LIST));
+    ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));
+    build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, stored_load_lists);
 
 
-    A_STAR_STR* top;
+    STATE_SEARCH_STR* top;
     while(!heap_is_empty(*heap)) {
 
         top = heap_pop(heap);
         int temp;
-        build_a_star_evaluate(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
+        build_state_search_state_eval(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
         printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
         //int end_index = build_a_star_str_chunk_max(top); // dont check last existing chunk, keep it the same
@@ -323,44 +330,43 @@ A_STAR_STR* build_a_star_solve(ENTRY *elist, int entry_count, int start_chunk_in
             for (unsigned int j = start_chunk_index; j < i; j++) {
 
                 // theres no reason to try to merge if the second chunk (the one that gets merged into the first one) is empty
-                if (build_a_star_is_empty_chunk(top, j, key_length))
+                if (build_state_search_is_empty_chunk(top, j, key_length))
                     continue;
 
-                A_STAR_STR* new_state = build_a_star_merge_chunks(top, i, j, key_length, perma_chunk_count);
+                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, i, j, key_length, perma_chunk_count);
 
                 // has been considered already
                 if (hash_find(table, new_state->entry_chunk_array) != NULL)
                     continue;
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
-                new_state->estimated = build_a_star_evaluate(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
+                new_state->estimated = build_state_search_state_eval(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
                 new_state->elapsed = top->elapsed + 3;
 
                 if (new_state->estimated == A_STAR_EVAL_INVALID) {
-                    build_a_star_str_destroy(new_state);
+                    build_state_search_str_destroy(new_state);
                     continue;
                 }
 
                 if (new_state->estimated == A_STAR_EVAL_SUCCESS) {
                     printf("Solved\n");
-                    heap_destroy(heap);
-                    hash_destroy_table(table);
+
                     for (int i = 0; i < key_length; i++) {
                         elist[build_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
                         char temp[100];
                         printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
-                    build_a_star_str_destroy(new_state);
+                    build_state_search_str_destroy(new_state);
+                    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
                     return NULL;
                 }
 
                 heap_add(heap, new_state);
             }
         }
-        build_a_star_str_destroy(top); //maybe dont? do i need to care about things getting to the same configuration in less merges (relaxing)? i hope not
+        build_state_search_str_destroy(top); //maybe dont? do i need to care about things getting to the same configuration in less merges (relaxing)? i hope not
     }
     printf("A-STAR Ran out of states\n");
-    heap_destroy(heap);
-    hash_destroy_table(table);
+    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
     return NULL;
 }

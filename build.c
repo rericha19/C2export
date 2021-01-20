@@ -454,7 +454,7 @@ void build_main(int build_rebuild_flag) {
     // call merge function
     switch(merge_tech_flag) {
         case 1:
-            build_merge_experimental_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            build_merge_state_search_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 2:
             deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
