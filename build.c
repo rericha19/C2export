@@ -384,7 +384,8 @@ void build_main(int build_rebuild_flag) {
         0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
         0,  //10 - load list merge flag         0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
         0,  //11 - merge technique flag         0 - matrix      |   1 - a-star (wip)    |   2 - deprecate.. set by user in build_ask_build_flags
-        0   //12 - perma inc. in matrix         0 - dont include|   1 - do include                          set here
+        0,  //12 - perma inc. in matrix         0 - dont include|   1 - do include                          set here
+        1   //13 - inc. 0-values in rel.array   0 - dont include|   1 - do include                          set here
     };
 
     // reading contents of the nsf/folder and collecting metadata

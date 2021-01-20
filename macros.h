@@ -1,18 +1,19 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <io.h>
 #include "dirent.h"
 #include <time.h>
-#include <ctype.h>
 #include <math.h>
-#include <limits.h>
-#include "windows.h"
+
+//#include <ctype.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+//#include <io.h>
+//#include <limits.h>
+//#include "windows.h"
 
 // various constants
-#define HASH_TABLE_DEF_SIZE             100000000
+#define HASH_TABLE_SIZE                 100000000
 #define HEAP_SIZE_INCREMENT             200000
 
 #define FPATH_COUNT                     3
@@ -108,8 +109,8 @@
 #define ENTITY_PROP_CAM_BG_COLORS       0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY  0x27F
 
-#define A_STAR_EVAL_INVALID             0x60000000
-#define A_STAR_EVAL_SUCCESS             0
+#define STATE_SEARCH_EVAL_INVALID       0x80000000u
+#define STATE_SEARCH_EVAL_SUCCESS       0
 
 //#define min(a,b) (((a)<(b))?(a):(b)) // .c doesnt need these two
 //#define max(a,b) (((a)>(b))?(a):(b))
@@ -473,7 +474,7 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 STATE_SEARCH_STR*  build_state_search_str_init(int length);
 void         build_state_search_str_destroy(STATE_SEARCH_STR* state);
-int          build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
+unsigned int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                                    ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
 int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
 STATE_SEARCH_STR*  build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);

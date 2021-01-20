@@ -158,13 +158,14 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
  * \param entry_count int               entry count
  * \param chunk_border_sounds int       unused
  * \param chunk_count int*              chunk count
- * \param merge_flag int                per-point if 1, per-delta-item if 0
  * \return void
  */
 void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded) {
 
+    int permaloaded_include_flag = config[12];
+
     LIST entries = build_get_normal_entry_list(elist, entry_count);
-    if (config[12] == 0)
+    if (permaloaded_include_flag == 0)
         for (int i = 0; i < permaloaded.count; i++)
             list_remove(&entries, permaloaded.eids[i]);
 
@@ -181,8 +182,10 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
 
 void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio) {
 
+    int permaloaded_include_flag = config[12];
+
     LIST entries = build_get_normal_entry_list(elist, entry_count);
-    if (config[12] == 0)
+    if (permaloaded_include_flag == 0)
         for (int i = 0; i < permaloaded.count; i++)
             list_remove(&entries, permaloaded.eids[i]);
 
@@ -202,6 +205,7 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
     for (int i = 0; i < entries.count; i++)
         entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));
 
+    // need int in other functions, thats why its converted from float to int
     for (int i = 0; i < entries.count; i++) {
         for (int j = 0; j < i; j++) {
             if (total_occurences[i] && total_occurences[j])
@@ -356,23 +360,35 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
  */
 RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) {
 
-    int counter = 0, i, j, indexer = 0;
-    for (i = 0; i < entries.count; i++)
-        for (j = 0; j < i; j++)
-            if (entry_matrix[i][j] != 0)
-                counter++;
+    int relation_array_sort_flag = config[8];
+    int zeroval_inc_flag = config[13];
+
+
+    int rel_counter = 0, i, j, indexer = 0;
+
+    if (zeroval_inc_flag == 0) {
+        for (i = 0; i < entries.count; i++)
+            for (j = 0; j < i; j++)
+                if (entry_matrix[i][j] != 0)
+                    rel_counter++;
+    } else {
+         rel_counter = (entries.count * (entries.count - 1))/2;
+    }
 
 
     RELATIONS relations;
-    relations.count = counter;
-    relations.relations = (RELATION *) malloc(counter * sizeof(RELATION));
+    relations.count = rel_counter;
+    relations.relations = (RELATION *) malloc(rel_counter * sizeof(RELATION));
 
 
     for (i = 0; i < entries.count; i++)
         for (j = 0; j < i; j++) {
-            if (entry_matrix[i][j] == 0)
+            if (zeroval_inc_flag == 0 && entry_matrix[i][j] == 0)
                 continue;
             relations.relations[indexer].value = entry_matrix[i][j];
+            relations.relations[indexer].index1 = i;
+            relations.relations[indexer].index2 = j;
+
             // experimental
             int temp = 0;
             for (int k = 0; k < i; k++)
@@ -380,14 +396,13 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
             for (int k = 0; k < j; k++)
                 temp += entry_matrix[j][k];
             relations.relations[indexer].total_occurences = temp;
-            relations.relations[indexer].index1 = i;
-            relations.relations[indexer].index2 = j;
+
             indexer++;
         }
 
-    if (config[8] == 0)
+    if (relation_array_sort_flag == 0)
         qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);           // the 'consistent' one
-    if (config[8] == 1)
+    if (relation_array_sort_flag == 1)
         qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp2);
 
     for (i = 0; i < entries.count; i++)

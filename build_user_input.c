@@ -26,12 +26,15 @@ int build_ask_ID() {
  * \return void
  */
 void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int* config) {
+
+    int remaking_load_lists_flag = config[10];
+
     printf("\nInput path to file with permaloaded entries:\n");
     scanf(" %[^\n]",fpaths[0]);
     path_fix(fpaths[0]);
 
     // if building load lists
-    if (config[10]) {
+    if (remaking_load_lists_flag) {
         printf("\nInput path to file with type/subtype dependencies:\n");
         scanf(" %[^\n]",fpaths[1]);
         path_fix(fpaths[1]);

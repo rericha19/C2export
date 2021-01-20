@@ -1,5 +1,5 @@
 #include "macros.h"
-#include "build_merge_a_star.h"
+#include "build_merge_state_search.h"
 
 
 /** \brief
@@ -62,7 +62,7 @@ void build_state_search_str_destroy(STATE_SEARCH_STR* state) {
 }
 
 
-int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
+unsigned int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                           ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) {
 
     for (int i = 0; i < key_length; i++)
@@ -74,10 +74,10 @@ int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int
             if (state->entry_chunk_array[j] == curr_chunk)
                 curr_chunk_size += 4 + temp_elist[j].esize;
         if (curr_chunk_size > CHUNKSIZE)
-            return A_STAR_EVAL_INVALID;
+            return STATE_SEARCH_EVAL_INVALID;
     }
 
-    int eval = 0;
+    unsigned int eval = 0;
     int maxp = 0;
 
     for (int i = 0; i < total_cam_count; i++) {
@@ -110,7 +110,7 @@ int build_state_search_state_eval(STATE_SEARCH_LOAD_LIST* stored_load_lists, int
         *max_pay = maxp;
 
     if (maxp <= 21)
-        return A_STAR_EVAL_SUCCESS;
+        return STATE_SEARCH_EVAL_SUCCESS;
     return eval;
 }
 
@@ -343,12 +343,12 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                 new_state->estimated = build_state_search_state_eval(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
                 new_state->elapsed = top->elapsed + 3;
 
-                if (new_state->estimated == A_STAR_EVAL_INVALID) {
+                if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
                     build_state_search_str_destroy(new_state);
                     continue;
                 }
 
-                if (new_state->estimated == A_STAR_EVAL_SUCCESS) {
+                if (new_state->estimated == STATE_SEARCH_EVAL_SUCCESS) {
                     printf("Solved\n");
 
                     for (int i = 0; i < key_length; i++) {

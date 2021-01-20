@@ -132,6 +132,8 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
  * \return int                          1 if all went good, 0 if something is wrong
  */
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
+
+    int remaking_load_lists_flag = config[10];
     int i, j, perma_count, subcount, valid = 1;
     char temp[6];
 
@@ -178,7 +180,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     fclose(file);
 
     // if making load lists
-    if (config[10]) {
+    if (remaking_load_lists_flag == 1) {
         file = fopen(fpaths[1], "r");
         if (file == NULL) {
             printf("File with type/subtype dependencies could not be opened\n");

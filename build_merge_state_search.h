@@ -145,8 +145,8 @@ void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
 // initialises the table
 HASH_TABLE *hash_init_table(int (*hash_function)(HASH_TABLE*, unsigned short int *), int key_length) {
     HASH_TABLE *table = (HASH_TABLE *) malloc(sizeof(HASH_TABLE));
-    table->table_length = HASH_TABLE_DEF_SIZE;
-    table->items = (HASH_ITEM**) calloc(HASH_TABLE_DEF_SIZE, sizeof(HASH_ITEM*));
+    table->table_length = HASH_TABLE_SIZE;
+    table->items = (HASH_ITEM**) calloc(HASH_TABLE_SIZE, sizeof(HASH_ITEM*));
     table->key_length = key_length;
     table->item_count = 0;
     table->hash_function = hash_function;

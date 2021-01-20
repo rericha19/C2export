@@ -18,6 +18,8 @@
  * \return void
  */
 void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config) {
+
+    int load_list_sound_entry_inc_flag = config[9];
     int i, j, k, l;
 
     // gets a list of sound EIDs (one per chunk) to make load lists smaller
@@ -80,14 +82,14 @@ void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_t
                         list_insert(&full_load[l], elist[i].related[k + 1]);
 
                 // all sounds
-                if (config[9] == 0) {
+                if (load_list_sound_entry_inc_flag == 0) {
                     for (k = 0; k < entry_count; k++)
                         if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND)
                             for (l = 0; l < cam_length; l++)
                                 list_insert(&full_load[l], elist[k].EID);
                 }
                 // one sound per chunk
-                if (config[9] == 1) {
+                if (load_list_sound_entry_inc_flag == 1) {
                     for (k = 0; k < cam_length; k++)
                         for (l = 0; l < sound_chunk_count; l++)
                             list_insert(&full_load[k], sounds_to_load[l]);
