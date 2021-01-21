@@ -98,10 +98,11 @@ void rotate_main(char *time)
     fseek(file,0,SEEK_END);
     filesize = ftell(file);
     rewind(file);
-    entry = (unsigned char *) malloc(filesize);
+    entry = (unsigned char *) malloc(filesize);     // freed here
     fread(entry, sizeof(unsigned char),filesize,file);
     if (entry[8] == 7) rotate_zone(entry, path, rotation);
     if (entry[8] == 3) rotate_scenery(entry, path, rotation, time, filesize);
+    free(entry);
     fclose(file);
 }
 
@@ -114,9 +115,9 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     int vertcount = (next_off-curr_off)/6;
-    unsigned int** verts = (unsigned int**) malloc(vertcount * sizeof(unsigned int*));
+    unsigned int** verts = (unsigned int**) malloc(vertcount * sizeof(unsigned int*));      // freed here
     for (i = 0; i < vertcount; i++)
-        verts[i] = (unsigned int*)malloc(2 * sizeof(unsigned int*));
+        verts[i] = (unsigned int*)malloc(2 * sizeof(unsigned int*));                        // freed here
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
@@ -279,7 +280,7 @@ void prop_main(char* path)
     fsize = ftell(file);
     rewind(file);
 
-    arr = (unsigned char *) malloc(fsize);
+    arr = (unsigned char *) malloc(fsize);          // freed here
     fread(arr, fsize, sizeof(unsigned char), file);
 
     printf("\n");
@@ -488,12 +489,13 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
                 fseek(file,0,SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
+                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);     // freed here
                 fread(buffer,sizeof(unsigned char),filesize,file);
                 resize_scenery(filesize,buffer,scale,status);
                 sprintf(help,"%s\\%s\\%s",path,time,strrchr(fpath,'\\')+1);
                 filenew = fopen(help,"wb");
                 fwrite(buffer,sizeof(unsigned char),filesize,filenew);
+                free(buffer);
                 fclose(file);
                 fclose(filenew);
             }
@@ -505,12 +507,13 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
                 fseek(file,0,SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);
+                buffer = (unsigned char *) calloc(sizeof(unsigned char), filesize);     // freed here
                 fread(buffer,sizeof(unsigned char),filesize,file);
                 resize_zone(filesize,buffer,scale,status);
                 sprintf(help,"%s\\%s\\%s",path,time,strrchr(fpath,'\\')+1);
                 filenew = fopen(help,"wb");
                 fwrite(buffer,sizeof(unsigned char),filesize,filenew);
+                free(buffer);
                 fclose(file);
                 fclose(filenew);
             }
@@ -523,7 +526,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
     int i, itemcount;
     unsigned int coord;
     itemcount = from_u32(buffer + 0xC);
-    int *itemoffs = (int*) malloc(itemcount * sizeof(int));
+    int *itemoffs = (int*) malloc(itemcount * sizeof(int));     // freed here
 
     for (i = 0; i < itemcount; i++)
         itemoffs[i] = 256 * buffer[0x11 + i*4] + buffer[0x10 + i*4];
@@ -708,7 +711,7 @@ void nsd_gool_table_print(char *fpath)
     int filesize = ftell(file);
     rewind(file);
 
-    unsigned char* buffer = (unsigned char*) malloc(filesize * sizeof(unsigned char*));
+    unsigned char* buffer = (unsigned char*) malloc(filesize * sizeof(unsigned char*));         // freed here
     fread(buffer, sizeof(unsigned char), filesize, file);
 
     int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);

@@ -62,7 +62,7 @@ void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_t
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 // initialise full non-delta load list used to represent the load list during its building
-                LIST *full_load = (LIST*) malloc(cam_length * sizeof(LIST));
+                LIST *full_load = (LIST*) malloc(cam_length * sizeof(LIST)); // freed here
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
 
@@ -116,8 +116,8 @@ void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_t
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 
                 // creates and initialises delta representation of the load list
-                LIST *listA = (LIST*) malloc(cam_length * sizeof(LIST));
-                LIST *listB = (LIST*) malloc(cam_length * sizeof(LIST));
+                LIST *listA = (LIST*) malloc(cam_length * sizeof(LIST));    // freed here
+                LIST *listB = (LIST*) malloc(cam_length * sizeof(LIST));    // freed here
                 for (k = 0; k < cam_length; k++) {
                     listA[k] = init_list();
                     listB[k] = init_list();
@@ -137,6 +137,8 @@ void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_t
                 free(full_load);
                 free(listA);
                 free(listB);
+                free(prop_0x208.data);
+                free(prop_0x209.data);
             }
         }
 }
@@ -278,7 +280,7 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code) {
     *(short int *) (prop.header + 6) = delta_counter;
 
     prop.length = total_length;
-    prop.data = (unsigned char *) malloc(total_length * sizeof(unsigned char));
+    prop.data = (unsigned char *) malloc(total_length * sizeof(unsigned char));     // freed by caller function
 
     int indexer = 0;
     int offset = 4 * delta_counter;
@@ -376,6 +378,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
 
     coords = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &path_length);
     distance += build_get_distance(coords, 0, path_length - 1, -1, NULL);
+    free(coords);
 
     LIST layer2 = build_get_links(elist[neighbour_index].data, 2 + 3 * link.cam_index);
     for (i = 0; i < layer2.count; i++) {
@@ -434,6 +437,8 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
             build_load_list_util_util_back(cam_length, full_list, distance, slst_dist_w_orientation, coords, path_length, slst_list);
             build_load_list_util_util_back(cam_length, full_list, distance, neig_dist_w_orientation, coords, path_length, neig_list);
         }
+
+        free(coords);
     }
 }
 
@@ -586,6 +591,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
     for (i = 0; i < cam_length; i++)
         list_copy_in(&entity_list, draw_list_zone[i]);
 
+    free(draw_list_zone);
+
     short int *coords = build_get_path(elist, zone_index, camera_index, &coord_count);
     LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++) {
@@ -595,6 +602,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             distance += build_get_distance(coords, point_index, 0, -1, NULL);
         if (link.type == 2)
             distance += build_get_distance(coords, point_index, cam_length - 1, -1, NULL);
+
+        free(coords);
 
         unsigned int eid_offset = from_u32(elist[zone_index].data + 0x10) + 4 + link.zone_index * 4 + C2_NEIGHBOURS_START;
         unsigned int neighbour_eid = from_u32(elist[zone_index].data + eid_offset);
@@ -632,6 +641,9 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             for (j = point_index2; j < neighbour_cam_length - 1; j++)
                 list_copy_in(&entity_list, draw_list_neighbour1[j]);
         }
+
+        free(coords2);
+        free(draw_list_neighbour1);
 
         if (distance >= draw_dist_w_orientation)
             continue;
@@ -680,6 +692,9 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
                 for (k = point_index3; k < neighbour_cam_length2; k++)
                     list_copy_in(&entity_list, draw_list_neighbour2[k]);
             }
+
+            free(coords3);
+            free(draw_list_neighbour2);
         }
     }
 
@@ -778,7 +793,7 @@ void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES
  */
 LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length) {
     int i, m;
-    LIST *draw_list = (LIST *) malloc(cam_length * sizeof(LIST));
+    LIST *draw_list = (LIST *) malloc(cam_length * sizeof(LIST));       // freed by caller
     LIST list = init_list();
     for (i = 0; i < cam_length; i++)
         draw_list[i] = init_list();
@@ -909,13 +924,13 @@ LIST build_get_links(unsigned char *entry, int cam_index) {
         if (code == ENTITY_PROP_CAM_PATH_LINKS) {
             if (prop_len == 1) {
                 link_count = from_u16(entry + offset);
-                links = (int *) malloc(link_count * sizeof(int));
+                links = (int *) malloc(link_count * sizeof(int));       // freed here
                 for (l = 0; l < link_count; l++)
                     links[l] = from_u32(entry + offset + 4 + 4 * l);
             }
             else {
                 link_count = max(1, from_u16(entry + offset)) + max(1, from_u16(entry + offset + 2));
-                links = (int *) malloc(link_count * sizeof(int));
+                links = (int *) malloc(link_count * sizeof(int));       // freed here
                 for (l = 0; l < link_count; l++)
                     links[l] = from_u32(entry + offset + 0x8 + 4 * l);
             }
@@ -926,6 +941,7 @@ LIST build_get_links(unsigned char *entry, int cam_index) {
     for (i = 0; i < link_count; i++)
         list_insert(&links_list, links[i]);
 
+    free(links);
     return links_list;
 }
 
@@ -946,13 +962,13 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
     int item_count = from_u32(zone->data + 0xC);
     int first_item_offset = 0x14 + 4 * item_count;
 
-    int *item_lengths = (int*) malloc(item_count * sizeof(int));
-    unsigned char **items = (unsigned char**) malloc(item_count * sizeof(unsigned char**));
+    int *item_lengths = (int*) malloc(item_count * sizeof(int));                                        // freed here
+    unsigned char **items = (unsigned char**) malloc(item_count * sizeof(unsigned char**));             // freed here
     for (i = 0; i < item_count; i++)
         item_lengths[i] = get_nth_item_offset(zone->data, i + 1) - get_nth_item_offset(zone->data, i);
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++) {
-        items[i] = (unsigned char *) malloc(item_lengths[i]);
+        items[i] = (unsigned char *) malloc(item_lengths[i]);           // freed here
         memcpy(items[i], zone->data + offset, item_lengths[i]);
     }
 
@@ -962,7 +978,7 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
     for (i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    unsigned char *new_data = (unsigned char *) malloc(new_size);
+    unsigned char *new_data = (unsigned char *) malloc(new_size);       // freed by build_main at the end
     *(int *)(new_data) = MAGIC_ENTRY;
     *(int *)(new_data + 0x4) = zone->EID;
     *(int *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
@@ -997,12 +1013,12 @@ void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(u
 unsigned char *build_add_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop) {
     int offset, i, property_count = from_u32(item + 0xC);
 
-    int *property_sizes = (int *) malloc( (property_count + 1) * sizeof(int));
-    unsigned char **properties = (unsigned char **) malloc( (property_count + 1) * sizeof(unsigned char*));
-    unsigned char **property_headers = (unsigned char **) malloc( (property_count + 1) * sizeof(unsigned char*));
+    int *property_sizes = (int *) malloc( (property_count + 1) * sizeof(int));                                      // freed here
+    unsigned char **properties = (unsigned char **) malloc( (property_count + 1) * sizeof(unsigned char*));         // freed here
+    unsigned char **property_headers = (unsigned char **) malloc( (property_count + 1) * sizeof(unsigned char*));   // freed here
 
     for (i = 0; i < property_count + 1; i++) {
-        property_headers[i] = (unsigned char*) malloc(8 * sizeof(unsigned char));
+        property_headers[i] = (unsigned char*) malloc(8 * sizeof(unsigned char));       // freed here
         for (int j = 0; j < 8; j++)
             property_headers[i][j] = 0;
     }
@@ -1038,9 +1054,10 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int* i
 
     offset = 0x10 + 8 * property_count;
     for (i = 0; i < property_count + 1; i++) {
+        properties[i] = NULL;
         if (i == insertion_index) continue;
 
-        properties[i] = (unsigned char *) malloc(property_sizes[i]);
+        properties[i] = (unsigned char *) malloc(property_sizes[i]);            // freed here
         memcpy(properties[i], item + offset, property_sizes[i]);
         offset += property_sizes[i];
     }
@@ -1054,7 +1071,7 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int* i
         new_size += property_sizes[i];
 
 
-    unsigned char *new_item = (unsigned char *) malloc(new_size);
+    unsigned char *new_item = (unsigned char *) malloc(new_size);      // freed by caller
     *(int *)(new_item) = new_size - 0xC;
     *(int *)(new_item + 0x4) = 0;
     *(int *)(new_item + 0x8) = 0;
@@ -1092,13 +1109,13 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int* i
 unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* item_size, PROPERTY *prop) {
     int offset, i, property_count = from_u32(item + 0xC);
 
-    int *property_sizes = (int *) malloc(property_count * sizeof(int));
-    unsigned char **properties = (unsigned char**) malloc(property_count* sizeof(unsigned char*));
-    unsigned char **property_headers = (unsigned char**) malloc(property_count * sizeof(unsigned char*));
+    int *property_sizes = (int *) malloc(property_count * sizeof(int));                                     // freed here
+    unsigned char **properties = (unsigned char**) malloc(property_count* sizeof(unsigned char*));          // freed here
+    unsigned char **property_headers = (unsigned char**) malloc(property_count * sizeof(unsigned char*));   // freed here
 
     int found = 0;
     for (i = 0; i < property_count; i++) {
-        property_headers[i] = (unsigned char*) malloc(8 * sizeof(unsigned char*));
+        property_headers[i] = (unsigned char*) malloc(8 * sizeof(unsigned char*));              // freed here
         memcpy(property_headers[i], item + 0x10 + 8 * i, 8);
         if (from_u16(property_headers[i]) == code)
             found++;
@@ -1112,7 +1129,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
 
     offset = 0x10 + 8 * property_count;
     for (i = 0; i < property_count; offset += property_sizes[i], i++) {
-        properties[i] = (unsigned char *) malloc(property_sizes[i]);
+        properties[i] = (unsigned char *) malloc(property_sizes[i] * sizeof(unsigned char*));   // freed here
         memcpy(properties[i], item + offset, property_sizes[i]);
     }
 
@@ -1122,7 +1139,7 @@ unsigned char* build_rem_property(unsigned int code, unsigned char *item, int* i
         new_size += property_sizes[i];
     }
 
-    unsigned char *new_item = (unsigned char *) malloc(new_size);
+    unsigned char *new_item = (unsigned char *) malloc(new_size);       // freed by caller
     *(int *)(new_item) = new_size;
     *(int *)(new_item + 4) = 0;
     *(int *)(new_item + 8) = 0;
@@ -1204,15 +1221,18 @@ short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *pat
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
             offset = 0xC + from_u16(item + 0x10 + 8 * i + 2);
 
+    int len_temp;
     if (offset)
-        *path_len = from_u32(item + offset);
+        len_temp = from_u32(item + offset);
     else {
-        *path_len = 0;
+        len_temp = 0;
         return NULL;
     }
 
-    short int* coords = (short int *) malloc(3 * sizeof(short int) * *path_len);
-    memcpy(coords, item + offset + 4, 6 * (*path_len));
+    short int* coords = (short int *) malloc(3 * sizeof(short int) * len_temp);     // freed by caller
+    memcpy(coords, item + offset + 4, 6 * len_temp);
+
+    *path_len = len_temp;
     return coords;
 }
 

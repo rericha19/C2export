@@ -56,11 +56,11 @@ int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_co
 
 
 // builds a triangular matrix that will contain the amount of common load list occurences of i-th and j-th entry
-int ** build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag) {
+int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag) {
     int i,j,l,m;
-    int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));
+    int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));     // freed by caller
     for (i = 0; i < entries.count; i++)
-        entry_matrix[i] = (int *) calloc((i), sizeof(int));
+        entry_matrix[i] = (int *) calloc((i), sizeof(int));                 // freed by caller
 
     // for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
     for (i = 0; i < entry_count; i++)
@@ -174,9 +174,14 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
     // frees the contents of the matrix
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
+    for (i = 0; i < entries.count; i++)
+        free(entry_matrix[i]);
+    free(entry_matrix);
 
     // do the merges according to the relation array, get rid of holes afterwards
     build_matrix_merge_util(array_representation, elist, entry_count, entries, 1.0);
+
+    free(array_representation.relations)
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
@@ -191,7 +196,7 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
 
     int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
 
-    int* total_occurences = (int*) malloc(entries.count * sizeof(int));
+    int* total_occurences = (int*) malloc(entries.count * sizeof(int));                 // freed here
     for (int i = 0; i < entries.count; i++) {
         int temp_occurences = 0;
         for (int j = 0; j < i; j++)
@@ -201,9 +206,9 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
         total_occurences[i] = temp_occurences;
     }
 
-    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));
+    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));       // freed here
     for (int i = 0; i < entries.count; i++)
-        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));
+        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));                  // freed here
 
     // need int in other functions, thats why its converted from float to int
     for (int i = 0; i < entries.count; i++) {
@@ -216,13 +221,19 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
     }
 
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
+    for (i = 0; i < entries.count; i++) {
+        free(entry_matrix[i]);
+        free(entry_matrix_relative[i]);
+    }
+    free(entry_matrix);
+    free(entry_matrix_relative);
 
     // do the merges according to the relation array, get rid of holes afterwards
     build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);
 
-    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
-
     free(total_occurences);
+    free(array_representation);
+    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
 
@@ -380,7 +391,7 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
 
     RELATIONS relations;
     relations.count = rel_counter;
-    relations.relations = (RELATION *) malloc(rel_counter * sizeof(RELATION));
+    relations.relations = (RELATION *) malloc(rel_counter * sizeof(RELATION));      // freed by caller
 
 
     for (i = 0; i < entries.count; i++)
@@ -407,9 +418,6 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
     if (relation_array_sort_flag == 1)
         qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp2);
 
-    for (i = 0; i < entries.count; i++)
-        free(entry_matrix[i]);
-    free(entry_matrix);
     return relations;
 }
 
@@ -436,7 +444,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
 
-    ENTRY *perma_elist = (ENTRY *) malloc(perma_normal_entry_count * sizeof(ENTRY));
+    ENTRY *perma_elist = (ENTRY *) malloc(perma_normal_entry_count * sizeof(ENTRY));        // freed here
     int indexer = 0;
     for (i = 0; i < entry_count; i++)
         if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
@@ -446,7 +454,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
 
     // keep putting them into existing chunks if they fit
     int perma_chunk_count = perma_normal_entry_count;   //idrc about optimising this
-    int *sizes = (int*) malloc(perma_chunk_count * sizeof(int));
+    int *sizes = (int*) malloc(perma_chunk_count * sizeof(int));                            // freed here
     for (i = 0; i < perma_chunk_count; i++)
         sizes[i] = 0x14;
 

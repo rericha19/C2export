@@ -140,7 +140,7 @@ int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zone
         offset_start = BYTE * buffer[0x11 + i * 4] + buffer[0x10 + i * 4];
         offset_end = BYTE * buffer[0x15 + i * 4] + buffer[0x14 + i * 4];
         if (!offset_end) offset_end = CHUNKSIZE;
-        entry = (unsigned char *) calloc(offset_end - offset_start, sizeof(char));
+        entry = (unsigned char *) calloc(offset_end - offset_start, sizeof(char));  // freed here
         memcpy(entry,buffer + offset_start, offset_end - offset_start);
         switch (entry[8])
         {
@@ -426,7 +426,7 @@ void export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date)
     int help1, help2;
     char eidhelp1[6], eidhelp2[6];
 
-    cpy = (unsigned char *) calloc(entrysize, sizeof(char));
+    cpy = (unsigned char *) calloc(entrysize, sizeof(char));        // freed here
     memcpy(cpy,buffer,entrysize);
 
     for (i = 0; i < 4; i++)
@@ -518,7 +518,7 @@ void export_zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, i
         eidint = (BYTE * eidint) + buffer[7 - i];
     eid_conv(eidint,eid);
 
-    cpy = (unsigned char *) calloc(entrysize, sizeof(char));
+    cpy = (unsigned char *) calloc(entrysize, sizeof(char));            // freed here
     memcpy(cpy,buffer,entrysize);
 
     if (status.portmode)
@@ -672,7 +672,7 @@ void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *d
     strncpy(cur_type,"animation\0",10);
     eid_conv(eidint,eid);
 
-    cpy = (char *) calloc(entrysize, sizeof(char));
+    cpy = (char *) calloc(entrysize, sizeof(char));         // freed here
     memcpy(cpy,buffer,entrysize);
 
     if (status.portmode)

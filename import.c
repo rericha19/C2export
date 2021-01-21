@@ -28,7 +28,7 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
     baselength = ftell(base);
     rewind(base);
 
-    basebase = (unsigned char *) malloc(baselength);
+    basebase = (unsigned char *) malloc(baselength);    // freed here
     fread(basebase,sizeof(unsigned char),baselength,base);
 
     help = strrchr(nsfpath,'\\');
@@ -46,6 +46,7 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
     import_file_lister(path, importee);
     fclose(base);
     fclose(importee);
+    free(basebase);
     sprintf(status.temp,"Done!\n");
     printf(status.temp);
     return 1;

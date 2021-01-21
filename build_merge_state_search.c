@@ -42,10 +42,10 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
  * \return A_STAR_STR*                  initialised state with allocated memory
  */
 STATE_SEARCH_STR* build_state_search_str_init(int length) {
-    STATE_SEARCH_STR* temp = (STATE_SEARCH_STR*) malloc(sizeof(STATE_SEARCH_STR));
+    STATE_SEARCH_STR* temp = (STATE_SEARCH_STR*) malloc(sizeof(STATE_SEARCH_STR));                  // freed by caller's caller (i hope)
     temp->estimated = 0;
     temp->elapsed = 0;
-    temp->entry_chunk_array = (unsigned short int*) malloc(length * sizeof(unsigned short int));
+    temp->entry_chunk_array = (unsigned short int*) malloc(length * sizeof(unsigned short int));    // freed by caller's caller (i hope)
     return temp;
 }
 
@@ -194,7 +194,7 @@ unsigned int* build_state_search_init_elist_convert(ENTRY *elist, int entry_coun
         if (elist[i].chunk >= start_chunk_index)
             counter++;
 
-    unsigned int* EID_list =(unsigned int*) malloc(counter * sizeof(unsigned int));
+    unsigned int* EID_list =(unsigned int*) malloc(counter * sizeof(unsigned int));     // freed by caller
 
     counter = 0;
     for (int i = 0; i < entry_count; i++)
@@ -239,7 +239,8 @@ void build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_eli
                             point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
 
                             load_list.array[load_list.count].list_length = load_list_item_count;
-                            load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
+                            load_list.array[load_list.count].list = (unsigned int *)
+                                        malloc(load_list_item_count * sizeof(unsigned int));        // freed here
                             memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                             if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
                                 load_list.array[load_list.count].type = 'A';
@@ -267,6 +268,7 @@ void build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_eli
                 stored_load_lists[cam_path_counter].cam_path = j;
                 stored_load_lists[cam_path_counter].zone_eid = elist[i].EID;
                 cam_path_counter++;
+                delete_load_list(load_list);
             }
         }
 
@@ -310,8 +312,9 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
             total_cam_path_count += cam_count;
         }
 
-    STATE_SEARCH_LOAD_LIST *stored_load_lists = (STATE_SEARCH_LOAD_LIST *) malloc(total_cam_path_count * sizeof(STATE_SEARCH_LOAD_LIST));
-    ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));
+    STATE_SEARCH_LOAD_LIST *stored_load_lists = (STATE_SEARCH_LOAD_LIST *)
+                malloc(total_cam_path_count * sizeof(STATE_SEARCH_LOAD_LIST));          // freed here
+    ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));                   // freed here
     build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, stored_load_lists);
 
 
@@ -336,8 +339,10 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                 STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, i, j, key_length, perma_chunk_count);
 
                 // has been considered already
-                if (hash_find(table, new_state->entry_chunk_array) != NULL)
+                if (hash_find(table, new_state->entry_chunk_array) != NULL) {
+                    build_state_search_str_destroy(new_state);
                     continue;
+                }
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
                 new_state->estimated = build_state_search_eval_state(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
@@ -358,6 +363,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                     }
                     build_state_search_str_destroy(new_state);
                     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
+                    free(EID_list);
                     return NULL;
                 }
 
@@ -368,5 +374,6 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
     }
     printf("A-STAR Ran out of states\n");
     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
+    free(EID_list);
     return NULL;
 }

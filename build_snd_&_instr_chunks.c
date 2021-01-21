@@ -18,7 +18,7 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
     for (int i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_INST) {
             elist[i].chunk = chunk_index;
-            chunks[chunk_index] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));
+            chunks[chunk_index] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));       // freed by build_main
             *(unsigned short int *)(chunks[chunk_index]) = MAGIC_CHUNK;
             *(unsigned short int *)(chunks[chunk_index] + 2) = CHUNK_TYPE_INSTRUMENT;
             *(unsigned short int *)(chunks[chunk_index] + 4) = 2 * chunk_index + 1;
@@ -54,7 +54,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_entry_count++;
-    ENTRY *sound_list = (ENTRY *) malloc(sound_entry_count * sizeof(ENTRY));
+    ENTRY *sound_list = (ENTRY *) malloc(sound_entry_count * sizeof(ENTRY));        // freed here
 
     // add actual entries to the array
     int indexer = 0;
@@ -94,13 +94,13 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     for (i = 0; i < snd_chunk_count; i++) {
         int local_entry_count = 0;
         int chunk_no = 2 * (temp_chunk_count + i) + 1;
-        chunks[temp_chunk_count + i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
+        chunks[temp_chunk_count + i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));           // freed by build_main
 
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)
                 local_entry_count++;
 
-        unsigned int* offsets = (unsigned int*) malloc( (local_entry_count + 2) * sizeof(unsigned int)); //idk why its +2
+        unsigned int* offsets = (unsigned int*) malloc( (local_entry_count + 2) * sizeof(unsigned int));    //idk why its +2, freed here
         *(unsigned short int *) chunks[temp_chunk_count + i] = MAGIC_CHUNK;
         *(unsigned short int *)(chunks[temp_chunk_count + i] + 2) = CHUNK_TYPE_SOUND;
         *(unsigned short int *)(chunks[temp_chunk_count + i] + 4) = chunk_no;

@@ -42,7 +42,8 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                             point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
 
                             load_list.array[load_list.count].list_length = load_list_item_count;
-                            load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
+                            load_list.array[load_list.count].list = (unsigned int *)
+                                    malloc(load_list_item_count * sizeof(unsigned int));   // freed here
                             memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                             if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
                                 load_list.array[load_list.count].type = 'A';
@@ -68,6 +69,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                         payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].EID, chunk_min);
                         deprecate_build_insert_payload(&payloads, payload);
                     }
+                delete_load_list(load_list);
             }
         }
 
@@ -111,8 +113,11 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         }
         printf("\n");
 
-        if (payloads.arr[0].count < 19)
+        if (payloads.arr[0].count < 19) {
+            for (int i = 0; i < payloads.count; i++)
+                free(payloads.arr[i].chunks);
             break;
+        }
 
         qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmpfunc);
 
@@ -148,6 +153,8 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
             }
         }
 
+        for (int i = 0; i < payloads.count; i++)
+                free(payloads.arr[i].chunks);
         if (check == 0)
             break;
     }
@@ -353,7 +360,7 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     PAYLOAD temp;
     temp.zone = zone;
     temp.count = count;
-    temp.chunks = (int *) malloc(count * sizeof(int));
+    temp.chunks = (int *) malloc(count * sizeof(int));      // freed by payload ladder function, caller 3 layers up iirc
     memcpy(temp.chunks, chunks, sizeof(int) * count);
     return temp;
 }

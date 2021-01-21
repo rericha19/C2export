@@ -6,10 +6,10 @@ int heap_parent_index(int index) {
 
 // initialises heap
 STATE_SEARCH_HEAP* heap_init_heap() {
-    STATE_SEARCH_HEAP* temp = (STATE_SEARCH_HEAP*) malloc(sizeof(STATE_SEARCH_HEAP));
+    STATE_SEARCH_HEAP* temp = (STATE_SEARCH_HEAP*) malloc(sizeof(STATE_SEARCH_HEAP));                   // freed by caller
     temp->length = 0;
     temp->real_size = HEAP_SIZE_INCREMENT;
-    temp->heap_array = (STATE_SEARCH_STR**) malloc(HEAP_SIZE_INCREMENT * sizeof(STATE_SEARCH_STR*));
+    temp->heap_array = (STATE_SEARCH_STR**) malloc(HEAP_SIZE_INCREMENT * sizeof(STATE_SEARCH_STR*));    // freed by caller
 
     return temp;
 }
@@ -144,9 +144,9 @@ void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
 
 // initialises the table
 HASH_TABLE *hash_init_table(int (*hash_function)(HASH_TABLE*, unsigned short int *), int key_length) {
-    HASH_TABLE *table = (HASH_TABLE *) malloc(sizeof(HASH_TABLE));
+    HASH_TABLE *table = (HASH_TABLE *) malloc(sizeof(HASH_TABLE));              // freed by caller
     table->table_length = HASH_TABLE_SIZE;
-    table->items = (HASH_ITEM**) calloc(HASH_TABLE_SIZE, sizeof(HASH_ITEM*));
+    table->items = (HASH_ITEM**) calloc(HASH_TABLE_SIZE, sizeof(HASH_ITEM*));   // freed by caller
     table->key_length = key_length;
     table->item_count = 0;
     table->hash_function = hash_function;
@@ -230,7 +230,7 @@ HASH_ITEM* hash_find(HASH_TABLE* table, unsigned short int* entry_chunk_array)
 // initialises hash item
 HASH_ITEM* hash_make_item(unsigned short int* entry_chunk_array) {
 	HASH_ITEM* item = NULL;
-	item = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));
+	item = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));              // freed when table is destroyed
 	item->entry_chunk_array = entry_chunk_array;
 	item->next = NULL;
 
@@ -283,7 +283,7 @@ int hash_add(HASH_TABLE *table, unsigned short int* entry_chunk_array) {
     /*// resize thing, i think it causes trouble, i just made the table static size
     table->item_count += 1;
     if (((double) table->item_count / table->table_length) >= HASH_FULLNESS_RATIO) {
-        HASH_ITEM** things = (HASH_ITEM**) malloc((table->item_count + 1) * sizeof(HASH_ITEM *));
+        HASH_ITEM** things = (HASH_ITEM**) malloc((table->item_count + 1) * sizeof(HASH_ITEM *));       // unused
         int index = 0;
         if (things != NULL)
         {
@@ -291,7 +291,7 @@ int hash_add(HASH_TABLE *table, unsigned short int* entry_chunk_array) {
                 for (curr = (table->items)[i]; curr != NULL; curr = curr->next)
                     things[index++] = curr;
             free(table->items);
-            table->items = (HASH_ITEM**) calloc(HASH_RESIZE_MULT * table->table_length, sizeof(HASH_ITEM*));
+            table->items = (HASH_ITEM**) calloc(HASH_RESIZE_MULT * table->table_length, sizeof(HASH_ITEM*)); // unused
             table->table_length = table->table_length * HASH_RESIZE_MULT;
             for (int i = 0; i < index; i++)
             {

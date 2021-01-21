@@ -198,7 +198,8 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_offset) {
                 point = from_u16(entry + offset + l * 2 + list_count * 2);
 
                 load_list.array[load_list.count].list_length = load_list_item_count;
-                load_list.array[load_list.count].list = (unsigned int *) malloc(load_list_item_count * sizeof(unsigned int));
+                load_list.array[load_list.count].list = (unsigned int *)
+                        malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
                 memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                 if (code == prop_code)
                     load_list.array[load_list.count].type = 'A';
@@ -359,6 +360,9 @@ void build_main(int build_rebuild_flag) {
     DEPENDENCIES collisions;                    // struct containing info about dependencies of certain collision types
     int level_ID = 0;                           // level ID, used for naming output files and needed in output nsd
 
+    subtype_info.array = NULL;
+    collisions.array = NULL;
+
     // used to keep track of counts and to separate groups of chunks
     //int chunk_border_base       = 0;
     int chunk_border_texture    = 0,
@@ -368,7 +372,8 @@ void build_main(int build_rebuild_flag) {
         entry_count             = 0;
 
     unsigned int gool_table[0x40];              // table w/ EIDs of gool entries, needed for nsd, filled using input entries
-    for (int i = 0; i < 0x40; i++) gool_table[i] = EID_NONE;
+    for (int i = 0; i < 0x40; i++)
+        gool_table[i] = EID_NONE;
 
     // config:
     int config[] = {
@@ -392,14 +397,28 @@ void build_main(int build_rebuild_flag) {
     // end if something went wrong
     if (build_rebuild_flag == FUNCTION_BUILD) {
         int rtrn = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
-        if (rtrn) return;
+        if (rtrn) {
+            if (nsfnew != NULL)
+                fclose(nsfnew);
+            if (nsd != NULL)
+                fclose(nsd);
+            build_final_cleanup(elist, entry_count, chunks, chunk_count);
+            return;
+        }
     }
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
     // end if something went wrong
     if (build_rebuild_flag == FUNCTION_REBUILD) {
         int rtrn = build_read_and_parse_rebuild(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
-        if (rtrn) return;
+        if (rtrn) {
+            if (nsfnew != NULL)
+                fclose(nsfnew);
+            if (nsd != NULL)
+                fclose(nsd);
+            build_final_cleanup(elist, entry_count, chunks, chunk_count);
+            return;
+        }
     }
 
     chunk_count = chunk_border_texture;
@@ -416,6 +435,11 @@ void build_main(int build_rebuild_flag) {
         build_ask_spawn(spawns);
     else {
         printf("[ERROR] No spawns found, add one using the usual 'willy' entity or a checkpoint\n\n");
+        if (nsfnew != NULL)
+                fclose(nsfnew);
+            if (nsd != NULL)
+                fclose(nsd);
+            build_final_cleanup(elist, entry_count, chunks, chunk_count);
         return;
     }
     build_get_distance_graph(elist, entry_count, spawns);
@@ -437,6 +461,9 @@ void build_main(int build_rebuild_flag) {
         printf("[ERROR] File could not be opened or a different error occured\n\n");
         fclose(nsfnew);
         fclose(nsd);
+        free(subtype_info.array);
+        free(collisions.array);
+        build_final_cleanup(elist, entry_count, chunks, chunk_count);
         return;
     }
 
@@ -475,6 +502,12 @@ void build_main(int build_rebuild_flag) {
     build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
+    if (nsfnew != NULL)
+        fclose(nsfnew);
+    if (nsd != NULL)
+        fclose(nsd);
     build_final_cleanup(elist, entry_count, chunks, chunk_count);
+    free(subtype_info.array);
+    free(collisions.array);
     printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }

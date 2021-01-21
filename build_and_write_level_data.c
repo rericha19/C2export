@@ -18,7 +18,6 @@ void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_bord
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
     for (int i = 0; i < chunk_count; i++)
         fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
-    fclose(nsfnew);
 }
 
 /** \brief
@@ -40,13 +39,13 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
         for (j = 0; j < entry_count; j++)
             if (elist[j].chunk == i) local_entry_count++;
 
-        chunks[i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));
+        chunks[i] = (unsigned char*) calloc(CHUNKSIZE, sizeof(unsigned char));      // freed by build_main
         // header stuff
         *(unsigned short int*)  chunks[i] = MAGIC_CHUNK;
         *(unsigned short int*) (chunks[i] + 4) = chunk_no;
         *(unsigned short int*) (chunks[i] + 8) = local_entry_count;
 
-        unsigned int *offsets = (unsigned int *) malloc( (local_entry_count + 1) * sizeof(unsigned int));
+        unsigned int *offsets = (unsigned int *) malloc( (local_entry_count + 2) * sizeof(unsigned int));   // idr why +2 but ok, freed here
         // calculates offsets
         int indexer = 0;
         offsets[indexer] = 0x10 + (local_entry_count + 1) * 4;
@@ -99,7 +98,7 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     int real_entry_count = 0;
 
     // arbitrarily doing 64kB because convenience
-    unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);
+    unsigned char* nsddata = (unsigned char*) calloc(CHUNKSIZE, 1);     // freed here
 
     // count actual entries (some entries might not have been assigned a chunk for a reason, those are left out)
     for (int i = 0; i < entry_count; i++)
@@ -135,7 +134,7 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
 
     // write and close nsd
     fwrite(nsddata, 1, real_nsd_size, nsd);
-    fclose(nsd);
+    free(nsddata);
 }
 
 /** \brief
@@ -162,7 +161,7 @@ void build_sort_load_lists(ENTRY *elist, int entry_count) {
                         int sub_list_offset = offset + 4 * list_count;
                         for (int l = 0; l < list_count; l++) {
                             int item_count = from_u16(elist[i].data + offset + l * 2);
-                            LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *) malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL));
+                            LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *) malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL)); // freed here
                             for (int m = 0; m < item_count; m++) {
                                 item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
                                 item_list[m].index = build_elist_get_index(item_list[m].eid, elist, entry_count);

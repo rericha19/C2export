@@ -568,7 +568,7 @@ void list_add(LIST *list, unsigned int eid)
     if (list->count)
         list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int));     // realloc is slow
     else
-        list->eids = (unsigned int *) malloc(sizeof(unsigned int));
+        list->eids = (unsigned int *) malloc(sizeof(unsigned int));         // not freed, big issue
     list->eids[list->count] = eid;
     list->count++;
     qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
