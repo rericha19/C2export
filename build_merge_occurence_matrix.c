@@ -174,14 +174,14 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
     // frees the contents of the matrix
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
-    for (i = 0; i < entries.count; i++)
+    for (int i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
 
     // do the merges according to the relation array, get rid of holes afterwards
     build_matrix_merge_util(array_representation, elist, entry_count, entries, 1.0);
 
-    free(array_representation.relations)
+    free(array_representation.relations);
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
@@ -221,7 +221,7 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
     }
 
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
-    for (i = 0; i < entries.count; i++) {
+    for (int i = 0; i < entries.count; i++) {
         free(entry_matrix[i]);
         free(entry_matrix_relative[i]);
     }
@@ -232,7 +232,7 @@ void build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_b
     build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);
 
     free(total_occurences);
-    free(array_representation);
+    free(array_representation.relations);
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
