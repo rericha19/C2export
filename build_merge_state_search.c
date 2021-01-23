@@ -22,7 +22,6 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
     //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.05);
 
     build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
-
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 1);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
@@ -66,9 +65,9 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_lis
     for (int i = 0; i < chunk_count; i++)
         chunk_sizes[i] = 0x14;
 
-
     for (int i = 0; i < key_length; i++)
         chunk_sizes[state->entry_chunk_array[i]] += (4 + temp_elist[i].esize);
+
 
     for (int i = 0; i < chunk_count; i++)
         if (chunk_sizes[i] > CHUNKSIZE) {
@@ -79,7 +78,6 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_lis
 
     unsigned int eval = 0;
     int maxp = 0;
-
     int *chunks = (int*) malloc(chunk_count * sizeof(int));
 
     for (int i = 0; i < load_list_snapshot_count; i++)
@@ -218,7 +216,7 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_el
 
     LIST *stored_load_lists = NULL;
 
-    int cam_path_counter = 0;
+    int snapshot_counter = 0;
     int i, j, k, l, m;
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
@@ -268,23 +266,31 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_el
                                 list_add(&list, index);
                             }
 
-                        /*if (load_list.array[l].type == 'B')
-                            for (m = 0; m < load_list.array[l].list_length; m++)
-                                list_remove(&list, load_list.array[l].list[m]);*/
+                        if (load_list.array[l].type == 'B')
+                            for (m = 0; m < load_list.array[l].list_length; m++) {
+                                int index = build_elist_get_index(load_list.array[l].list[m], temp_elist, key_length);
+                                if (index == -1)
+                                    continue;
+
+                                list_remove(&list, index);
+                            }
+
+                        if (stored_load_lists == NULL)
+                            stored_load_lists = (LIST*) malloc(1 * sizeof(LIST));
+                        else
+                            stored_load_lists = (LIST*) realloc(stored_load_lists, (snapshot_counter + 1) * sizeof(LIST));
+
+                        stored_load_lists[snapshot_counter] = init_list();
+                        list_copy_in(&stored_load_lists[snapshot_counter], list);
+                        snapshot_counter++;
                     }
 
-                if (stored_load_lists == NULL)
-                    stored_load_lists = (LIST*) malloc(1 * sizeof(LIST));
-                else
-                    stored_load_lists = (LIST*) realloc(stored_load_lists, (cam_path_counter + 1) * sizeof(LIST));
 
-                stored_load_lists[cam_path_counter] = list;
-                cam_path_counter++;
                 delete_load_list(load_list);
             }
         }
 
-    *load_list_snapshot_count = cam_path_counter;
+    *load_list_snapshot_count = snapshot_counter;
     return stored_load_lists;
 }
 
@@ -318,7 +324,7 @@ int cmp_state_search_a(const void *a, const void *b) {
  * \param key_length int                amount of entries entering the process (non-permaloaded normal chunk entries)
  * \return A_STAR_STR*                  struct with good enough solution or NULL
  */
-STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count) {
+void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count) {
 
     int key_length;
     unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, start_chunk_index, &key_length);
@@ -329,7 +335,6 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
 
     STATE_SEARCH_HEAP* heap = heap_init_heap();
     heap_add(heap, init_state);
-
 
     int load_list_snapshot_count;
     ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));                   // freed here
@@ -345,8 +350,8 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
         build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
         printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
-        //int end_index = build_a_star_str_chunk_max(top); // dont check last existing chunk, keep it the same
-        int end_index = *chunk_count;
+        int end_index = build_state_search_str_chunk_max(top, key_length); // dont check last existing chunk, keep it the same
+        //int end_index = *chunk_count;
         for (unsigned int i = start_chunk_index; i < (unsigned) end_index; i++) {
             // printf("i: %10d\n", i);
             for (unsigned int j = start_chunk_index; j < i; j++) {
@@ -363,15 +368,20 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                     continue;
                 }
 
-                hash_add(table, new_state->entry_chunk_array);                    // remember as considered
+                new_state->elapsed = top->elapsed + ELAPSED_INCREMENT;
                 new_state->estimated = build_state_search_eval_state(stored_load_lists, load_list_snapshot_count,
                                                                      new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
-                new_state->elapsed = top->elapsed + ELAPSED_INCREMENT;
 
                 if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
                     build_state_search_str_destroy(new_state);
                     continue;
                 }
+
+                // remember as considered
+                hash_add(table, new_state->entry_chunk_array);
+
+                // add to state queue
+                heap_add(heap, new_state);
 
                 if (new_state->estimated == STATE_SEARCH_EVAL_SUCCESS) {
                     printf("Solved\n");
@@ -381,19 +391,16 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                         //char temp[100] = "";
                         //printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_elist_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
-                    build_state_search_str_destroy(new_state);
                     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
                     free(EID_list);
-                    return NULL;
+                    return;
                 }
-
-                heap_add(heap, new_state);
             }
         }
-        build_state_search_str_destroy(top); //maybe dont? do i need to care about things getting to the same configuration in less merges (relaxing)? i hope not
+        build_state_search_str_destroy(top);
     }
     printf("A-STAR Ran out of states\n");
     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
     free(EID_list);
-    return NULL;
+    return;
 }

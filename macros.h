@@ -445,7 +445,7 @@ void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded,
                                               double merge_ratio);
-void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count);
+void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);
 void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks);
@@ -475,7 +475,7 @@ STATE_SEARCH_STR*  build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsi
 STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
 int          build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length);
 unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length);
-STATE_SEARCH_STR*  build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count);
+void         build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count);
 
 
 

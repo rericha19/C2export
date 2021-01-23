@@ -285,7 +285,7 @@ int build_is_normal_chunk_entry(ENTRY entry) {
  * \param chunk_count int               chunk count
  * \return void
  */
-void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count) {
+void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2) {
     for (int i = 0; i < chunk_count; i++)
         free(chunks[i]);
 
@@ -302,6 +302,18 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
         if (elist[i].distances != NULL)
             free(elist[i].distances);
     }
+
+    if (nsfnew != NULL)
+        free(nsfnew);
+
+    if (nsd != NULL)
+        free(nsd);
+
+    if (dep1.array != NULL)
+        free(dep1.array);
+
+    if (dep2.array != NULL)
+        free(dep2.array);
 }
 
 
@@ -393,32 +405,21 @@ void build_main(int build_rebuild_flag) {
         1   //13 - inc. 0-values in rel.array   0 - dont include|   1 - do include                          set here
     };
 
+    int input_parse_rtrn_value;
     // reading contents of the nsf/folder and collecting metadata
-    // end if something went wrong
-    if (build_rebuild_flag == FUNCTION_BUILD) {
-        int rtrn = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
-        if (rtrn) {
-            if (nsfnew != NULL)
-                fclose(nsfnew);
-            if (nsd != NULL)
-                fclose(nsd);
-            build_final_cleanup(elist, entry_count, chunks, chunk_count);
-            return;
-        }
-    }
+    if (build_rebuild_flag == FUNCTION_BUILD)
+        input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
+    if (build_rebuild_flag == FUNCTION_REBUILD)
+        input_parse_rtrn_value = build_read_and_parse_rebuild(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+
+
     // end if something went wrong
-    if (build_rebuild_flag == FUNCTION_REBUILD) {
-        int rtrn = build_read_and_parse_rebuild(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
-        if (rtrn) {
-            if (nsfnew != NULL)
-                fclose(nsfnew);
-            if (nsd != NULL)
-                fclose(nsd);
-            build_final_cleanup(elist, entry_count, chunks, chunk_count);
-            return;
-        }
+    if (input_parse_rtrn_value) {
+        build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
+        return;
     }
 
     chunk_count = chunk_border_texture;
@@ -435,11 +436,7 @@ void build_main(int build_rebuild_flag) {
         build_ask_spawn(spawns);
     else {
         printf("[ERROR] No spawns found, add one using the usual 'willy' entity or a checkpoint\n\n");
-        if (nsfnew != NULL)
-                fclose(nsfnew);
-            if (nsd != NULL)
-                fclose(nsd);
-            build_final_cleanup(elist, entry_count, chunks, chunk_count);
+        build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
         return;
     }
     build_get_distance_graph(elist, entry_count, spawns);
@@ -459,11 +456,7 @@ void build_main(int build_rebuild_flag) {
     // end if something went wrong
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table, config)) {
         printf("[ERROR] File could not be opened or a different error occured\n\n");
-        fclose(nsfnew);
-        fclose(nsd);
-        free(subtype_info.array);
-        free(collisions.array);
-        build_final_cleanup(elist, entry_count, chunks, chunk_count);
+        build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
         return;
     }
 
@@ -482,13 +475,13 @@ void build_main(int build_rebuild_flag) {
     clock_t time_start = clock();
     // call merge function
     switch(merge_tech_flag) {
-        case 1:
+        case 3:
             build_merge_state_search_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 2:
             deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
-        case 3:
+        case 1:
             build_matrix_merge_relative_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
         case 0:
@@ -505,12 +498,7 @@ void build_main(int build_rebuild_flag) {
     build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks);
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
-    if (nsfnew != NULL)
-        fclose(nsfnew);
-    if (nsd != NULL)
-        fclose(nsd);
-    build_final_cleanup(elist, entry_count, chunks, chunk_count);
-    free(subtype_info.array);
-    free(collisions.array);
+    build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
+
     printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }
