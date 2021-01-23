@@ -479,6 +479,7 @@ void build_main(int build_rebuild_flag) {
         build_remake_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
     }
 
+    clock_t time_start = clock();
     // call merge function
     switch(merge_tech_flag) {
         case 1:
@@ -495,6 +496,8 @@ void build_main(int build_rebuild_flag) {
             build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
     }
+    clock_t time_end = clock();
+    printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
 
     // build and write nsf and nsd file
     build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);

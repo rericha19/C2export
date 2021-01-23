@@ -696,7 +696,7 @@ int build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* 
 
     FILE *nsf = NULL;
     if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
-        printf("[ERROR] Could not open selected NSF\n");
+        printf("[ERROR] Could not open selected NSF\n\n");
         return 1;
     }
 

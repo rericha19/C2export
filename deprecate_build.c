@@ -86,7 +86,7 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
     deprecate_build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
     deprecate_build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
 
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 0);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
@@ -101,7 +101,7 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
  * \param chunk_count int*              end of normal chunk range
  * \return void
  */
-void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count) {
+void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count, int stats_only_flag) {
     while (1)    {
         PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, chunk_min);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
@@ -112,6 +112,9 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
             deprecate_build_print_payload(payloads.arr[k], 0);
         }
         printf("\n");
+
+        if (stats_only_flag)
+            break;
 
         if (payloads.arr[0].count < 19) {
             for (int i = 0; i < payloads.count; i++)

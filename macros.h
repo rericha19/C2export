@@ -15,6 +15,8 @@
 // various constants
 #define HASH_TABLE_SIZE                 100000000
 #define HEAP_SIZE_INCREMENT             200000
+#define ELAPSED_INCREMENT               3           // clowny as fuck
+
 
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
@@ -479,7 +481,7 @@ STATE_SEARCH_STR*  build_state_search_solve(ENTRY *elist, int entry_count, int s
 
 // deprecate_build.c
 PAYLOADS     deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);
-void         deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count);
+void         deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count, int stats_only_flag);
 void         deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
 void         deprecate_build_print_payload(PAYLOAD payload, int stopper);
 int          deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count);

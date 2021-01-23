@@ -1,7 +1,6 @@
 #include "macros.h"
 #include "build_merge_state_search.h"
 
-
 /** \brief
  *  Main function for the a* merge implementation. Used only for non-permaloaded entries.
  *
@@ -15,23 +14,17 @@
  */
 void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
-    clock_t time_start = clock();
-
     // merge permaloaded entries' chunks as well as possible
     int perma_chunk_count = build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
     int permaloaded_chunk_end_index = *chunk_count;
 
-    // chunks start off partially merged with very related entries being placed together to lower the state count in a_star_solve
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.05);
 
     build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
 
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 1);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
-
-    clock_t time_end = clock();
-    printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
 }
 
 
@@ -62,7 +55,7 @@ void build_state_search_str_destroy(STATE_SEARCH_STR* state) {
 }
 
 
-unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
+unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_list_snapshot_count, STATE_SEARCH_STR* state, int key_length,
                           ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) {
 
     int chunk_count = build_state_search_str_chunk_max(state, key_length) + 1;
@@ -89,7 +82,7 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_ca
 
     int *chunks = (int*) malloc(chunk_count * sizeof(int));
 
-    for (int i = 0; i < total_cam_count; i++)
+    for (int i = 0; i < load_list_snapshot_count; i++)
     {
         for (int j = 0; j < chunk_count; j++)
             chunks[j] = 0;
@@ -120,7 +113,7 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_ca
 
     if (maxp <= 21)
         return STATE_SEARCH_EVAL_SUCCESS;
-    return eval;
+    return eval + maxp * load_list_snapshot_count;
 }
 
 
@@ -215,13 +208,15 @@ unsigned int* build_state_search_init_elist_convert(ENTRY *elist, int entry_coun
 }
 
 
-void build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, unsigned int *EID_list, int key_length, LIST* stored_load_lists) {
+LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_elist, unsigned int *EID_list, int key_length, int* load_list_snapshot_count) {
     for (int i = 0; i < key_length; i++) {
         temp_elist[i].EID = EID_list[i];
         int master_elist_index = build_elist_get_index(EID_list[i], elist, entry_count);
         temp_elist[i].data = elist[master_elist_index].data;
         temp_elist[i].esize = elist[master_elist_index].esize;
     }
+
+    LIST *stored_load_lists = NULL;
 
     int cam_path_counter = 0;
     int i, j, k, l, m;
@@ -278,12 +273,19 @@ void build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_eli
                                 list_remove(&list, load_list.array[l].list[m]);*/
                     }
 
+                if (stored_load_lists == NULL)
+                    stored_load_lists = (LIST*) malloc(1 * sizeof(LIST));
+                else
+                    stored_load_lists = (LIST*) realloc(stored_load_lists, (cam_path_counter + 1) * sizeof(LIST));
+
                 stored_load_lists[cam_path_counter] = list;
                 cam_path_counter++;
                 delete_load_list(load_list);
             }
         }
 
+    *load_list_snapshot_count = cam_path_counter;
+    return stored_load_lists;
 }
 
 
@@ -329,16 +331,9 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
     heap_add(heap, init_state);
 
 
-    int total_cam_path_count = 0;
-    for (int i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
-            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            total_cam_path_count += cam_count;
-        }
-
-    LIST *stored_load_lists = (LIST *) malloc(total_cam_path_count * sizeof(LIST));     // freed here
+    int load_list_snapshot_count;
     ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));                   // freed here
-    build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, stored_load_lists);
+    LIST *stored_load_lists = build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, &load_list_snapshot_count);
 
 
     STATE_SEARCH_STR* top;
@@ -347,7 +342,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
         // qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
         top = heap_pop(heap);
         int temp;
-        build_state_search_eval_state(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
+        build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
         printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
         //int end_index = build_a_star_str_chunk_max(top); // dont check last existing chunk, keep it the same
@@ -369,8 +364,9 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
                 }
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
-                new_state->estimated = build_state_search_eval_state(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
-                new_state->elapsed = top->elapsed + 3;
+                new_state->estimated = build_state_search_eval_state(stored_load_lists, load_list_snapshot_count,
+                                                                     new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
+                new_state->elapsed = top->elapsed + ELAPSED_INCREMENT;
 
                 if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
                     build_state_search_str_destroy(new_state);
@@ -382,8 +378,8 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
 
                     for (int i = 0; i < key_length; i++) {
                         elist[build_elist_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
-                        char temp[100] = "";
-                        printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_elist_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
+                        //char temp[100] = "";
+                        //printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_elist_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
                     build_state_search_str_destroy(new_state);
                     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
