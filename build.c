@@ -304,10 +304,10 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
     }
 
     if (nsfnew != NULL)
-        free(nsfnew);
+        fclose(nsfnew);
 
     if (nsd != NULL)
-        free(nsd);
+        fclose(nsd);
 
     if (dep1.array != NULL)
         free(dep1.array);
