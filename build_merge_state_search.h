@@ -108,8 +108,8 @@ STATE_SEARCH_STR* heap_pop(STATE_SEARCH_HEAP *heap) {
 
     heap->heap_array[0] = heap->heap_array[heap->length];
     return result;
-}*/
-
+}
+*/
 
 // adds state to the heap, makes necessary swap to mainatain the heap
 void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
@@ -125,7 +125,7 @@ void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
     heap->heap_array[index_k] = input;
 
     // heap thing sorting thing upkeep thing
-    
+
     STATE_SEARCH_STR *temp;
     while(1)  {
         if (!index_k) break;
