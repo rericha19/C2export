@@ -1,6 +1,6 @@
 #include "macros.h"
 #include "build_merge_state_search.h"
-
+#define ELAPSED_INCREMENT 5
 
 /** \brief
  *  Main function for the a* merge implementation. Used only for non-permaloaded entries.
@@ -68,19 +68,27 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_ca
     for (int i = 0; i < key_length; i++)
         temp_elist[i].chunk = state->entry_chunk_array[i];
 
-    for (int curr_chunk = 0; curr_chunk <= build_state_search_str_chunk_max(state, key_length); curr_chunk++) {
-        int curr_chunk_size = 0x14;
-        for (int j = 0; j < key_length; j++)
-            if (state->entry_chunk_array[j] == curr_chunk)
-                curr_chunk_size += 4 + temp_elist[j].esize;
-        if (curr_chunk_size > CHUNKSIZE)
+    int chunk_count = build_state_search_str_chunk_max(state, key_length) + 1;
+    int *chunk_sizes = (int *) malloc(chunk_count * sizeof(int));
+
+    for (int i = 0; i < chunk_count; i++)
+        chunk_sizes[i] = 0x14;
+
+    int chunk_index;
+    for (int i = 0; i < key_length; i++) {
+        chunk_index = state->entry_chunk_array[i];
+        chunk_sizes[chunk_index] += (4 + temp_elist[i].esize);
+    }
+
+    for (int i = 0; i < chunk_count; i++) {
+        if (chunk_sizes[i] > CHUNKSIZE) {
+            free(chunk_sizes);
             return STATE_SEARCH_EVAL_INVALID;
+        }
     }
 
     unsigned int eval = 0;
     int maxp = 0;
-
-    int chunk_count = build_state_search_str_chunk_max(state, key_length) + 1;
     int *chunks = (int*) malloc(chunk_count * sizeof(int));
 
     for (int i = 0; i < total_cam_count; i++)
@@ -107,13 +115,14 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_ca
     }
 
     free(chunks);
+    free(chunk_sizes);
 
     if (max_pay != NULL)
         *max_pay = maxp;
 
     if (maxp <= 21)
         return STATE_SEARCH_EVAL_SUCCESS;
-    return eval;
+    return maxp * total_cam_count + eval;
 }
 
 
@@ -288,15 +297,15 @@ void build_state_search_solve_cleanup(STATE_SEARCH_HEAP *heap, HASH_TABLE *table
 }
 
 int cmp_state_search_a(const void *a, const void *b) {
-    STATE_SEARCH_STR* itemA = *(STATE_SEARCH_STR**) a;
-    STATE_SEARCH_STR* itemB = *(STATE_SEARCH_STR**) b;
+    STATE_SEARCH_STR itemA = **(STATE_SEARCH_STR**) a;
+    STATE_SEARCH_STR itemB = **(STATE_SEARCH_STR**) b;
 
-    int valueA = itemA->elapsed + itemA->estimated;
-    int valueB = itemB->elapsed + itemB->estimated;
+    int valueA = itemA.elapsed + itemA.estimated;
+    int valueB = itemB.elapsed + itemB.estimated;
 
     if (valueA - valueB != 0)
         return (valueA - valueB);
-    return itemA->estimated - itemB->estimated;
+    return itemA.estimated - itemB.estimated;
 }
 
 /** \brief
@@ -337,7 +346,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
     STATE_SEARCH_STR* top;
     while(!heap_is_empty(*heap)) {
 
-        qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
+        //qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
         top = heap_pop(heap);
         int temp;
         build_state_search_eval_state(stored_load_lists, total_cam_path_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
@@ -363,7 +372,7 @@ STATE_SEARCH_STR* build_state_search_solve(ENTRY *elist, int entry_count, int st
 
                 hash_add(table, new_state->entry_chunk_array);                    // remember as considered
                 new_state->estimated = build_state_search_eval_state(stored_load_lists, total_cam_path_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
-                new_state->elapsed = top->elapsed + 3;
+                new_state->elapsed = top->elapsed + ELAPSED_INCREMENT;
 
                 if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
                     build_state_search_str_destroy(new_state);

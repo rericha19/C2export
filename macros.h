@@ -262,8 +262,8 @@ typedef struct entry_queue {
 // used to represent states in a* alg
 typedef struct state_set_search_struct {
     unsigned short int *entry_chunk_array;
-    unsigned int estimated;
-    unsigned int elapsed;
+    unsigned short int estimated;
+    unsigned short int elapsed;
 } STATE_SEARCH_STR;
 
 

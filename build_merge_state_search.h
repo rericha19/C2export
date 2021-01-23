@@ -72,7 +72,7 @@ int heap_comp_util(STATE_SEARCH_HEAP* heap, int index_parent) {
     return 0;
 }
 
-/*
+
 // pops from the heap, does necessary swaps to maintain the heap
 STATE_SEARCH_STR* heap_pop(STATE_SEARCH_HEAP* heap) {
 
@@ -99,15 +99,16 @@ STATE_SEARCH_STR* heap_pop(STATE_SEARCH_HEAP* heap) {
     }
 
     return result;
-}*/
+}
 
+/*
 STATE_SEARCH_STR* heap_pop(STATE_SEARCH_HEAP *heap) {
     heap->length -= 1;
     STATE_SEARCH_STR* result = heap->heap_array[0];
 
     heap->heap_array[0] = heap->heap_array[heap->length];
     return result;
-}
+}*/
 
 
 // adds state to the heap, makes necessary swap to mainatain the heap
@@ -124,7 +125,7 @@ void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
     heap->heap_array[index_k] = input;
 
     // heap thing sorting thing upkeep thing
-    /*
+    
     STATE_SEARCH_STR *temp;
     while(1)  {
         if (!index_k) break;
@@ -141,7 +142,7 @@ void heap_add(STATE_SEARCH_HEAP* heap, STATE_SEARCH_STR* input) {
         heap->heap_array[index_p] = temp;
 
         index_k = index_p;
-    }*/
+    }
 }
 
 
