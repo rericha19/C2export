@@ -1,5 +1,6 @@
 #include "macros.h"
 // responsible for generating load lists using already input or here collected data and info
+// theres some fucking memory related bug that prevents me from freeing tons of shit
 
 /** \brief
  *  A function that for each zone's each camera path creates new load lists using
@@ -62,7 +63,7 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 // initialise full non-delta load list used to represent the load list during its building
-                LIST* full_load = (LIST*)malloc(cam_length * sizeof(LIST));
+                LIST* full_load = (LIST*) malloc(cam_length * sizeof(LIST));    // freed here
                 for (k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
 
@@ -116,8 +117,8 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
 
                 // creates and initialises delta representation of the load list
-                LIST* listA = (LIST*)malloc(cam_length * sizeof(LIST));
-                LIST* listB = (LIST*)malloc(cam_length * sizeof(LIST));
+                LIST* listA = (LIST*) malloc(cam_length * sizeof(LIST));        // freed here
+                LIST* listB = (LIST*) malloc(cam_length * sizeof(LIST));        // freed here
                 for (k = 0; k < cam_length; k++) {
                     listA[k] = init_list();
                     listB[k] = init_list();
@@ -137,6 +138,8 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 free(full_load);
                 free(listA);
                 free(listB);
+                //free(prop_0x208.data);
+                //free(prop_0x209.data);
             }
         }
 }
@@ -278,7 +281,7 @@ PROPERTY build_make_load_list_prop(LIST* list_array, int cam_length, int code) {
     *(short int*)(prop.header + 6) = delta_counter;
 
     prop.length = total_length;
-    prop.data = (unsigned char*)malloc(total_length * sizeof(unsigned char));
+    prop.data = (unsigned char*) malloc(total_length * sizeof(unsigned char));        // freed by caller
 
     int indexer = 0;
     int offset = 4 * delta_counter;

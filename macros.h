@@ -275,14 +275,6 @@ typedef struct state_set_search_heap {
 } STATE_SEARCH_HEAP;
 
 
-// stores load lists to prevent having to read them in every eval function call
-typedef struct state_set_search_load_list {
-    LIST entries;
-    unsigned int zone_eid;
-    int cam_path;
-} STATE_SEARCH_LOAD_LIST;
-
-
 // used to store visited/considered/not-to-be-visited again configurations of entry-chunk assignments
 typedef struct hash_item {
     struct hash_item* next;
@@ -474,7 +466,7 @@ void         build_ask_build_flags(int* ll_flag, int* merge_type);
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 STATE_SEARCH_STR*  build_state_search_str_init(int length);
 void         build_state_search_str_destroy(STATE_SEARCH_STR* state);
-unsigned int build_state_search_eval_state(STATE_SEARCH_LOAD_LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
+unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                                    ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
 int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
 STATE_SEARCH_STR*  build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
