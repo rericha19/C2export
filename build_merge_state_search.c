@@ -19,10 +19,9 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
     int permaloaded_chunk_end_index = *chunk_count;
 
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
-    //build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 0.05);
-
+    // TODO premerge
     build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 1);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
@@ -295,11 +294,12 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_el
 }
 
 
-void build_state_search_solve_cleanup(STATE_SEARCH_HEAP *heap, HASH_TABLE *table, LIST *stored_load_lists, ENTRY *temp_elist) {
+void build_state_search_solve_cleanup(STATE_SEARCH_HEAP *heap, HASH_TABLE *table, LIST *stored_load_lists, ENTRY *temp_elist, unsigned int* EID_list) {
     heap_destroy(heap);
     hash_destroy_table(table);
     free(stored_load_lists);
     free(temp_elist);
+    free(EID_list);
 }
 
 int cmp_state_search_a(const void *a, const void *b) {
@@ -322,7 +322,7 @@ int cmp_state_search_a(const void *a, const void *b) {
  * \param start_chunk_index int         index of the first chunk the entering entries are in
  * \param chunk_count int*              unused
  * \param key_length int                amount of entries entering the process (non-permaloaded normal chunk entries)
- * \return A_STAR_STR*                  struct with good enough solution or NULL
+ * \return void
  */
 void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count) {
 
@@ -330,7 +330,7 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
     unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, start_chunk_index, &key_length);
     STATE_SEARCH_STR* init_state = build_state_search_init_state_convert(elist, entry_count, start_chunk_index, key_length);
 
-    HASH_TABLE* table = hash_init_table(hash_func_chek, key_length);
+    HASH_TABLE* table = hash_init_table(hash_func, key_length);
     hash_add(table, init_state->entry_chunk_array);
 
     STATE_SEARCH_HEAP* heap = heap_init_heap();
@@ -391,8 +391,7 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
                         //char temp[100] = "";
                         //printf("entry %s size %5d: chunk %2d\n", eid_conv(EID_list[i], temp), elist[build_elist_get_index(EID_list[i], elist, entry_count)].esize, new_state->entry_chunk_array[i]);
                     }
-                    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
-                    free(EID_list);
+                    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist, EID_list);
                     return;
                 }
             }
@@ -400,7 +399,6 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
         build_state_search_str_destroy(top);
     }
     printf("A-STAR Ran out of states\n");
-    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist);
-    free(EID_list);
+    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist, EID_list);
     return;
 }

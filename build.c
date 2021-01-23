@@ -396,20 +396,19 @@ void build_main(int build_rebuild_flag) {
         0,  // 4 - [neighbour distance]         set by user in function build_ask_distances(config);
         0,  // 5 - [draw list distance]         set by user in function build_ask_distances(config);
         0,  // 6 - transition pre-load flag     set by user in function build_ask_distances(config);
-        0,  // 7 - backwards penalty            set by user in func ask_dist...;    is 1M times the float value because int, range 0 - 0.5
+        0,  // 7 - backwards penalty            set by user in func ask_dist...;            is 1M times the float value because int, range 0 - 0.5
         0,  // 8 - relation array sort          0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
         0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
         0,  //10 - load list merge flag         0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
         0,  //11 - merge technique flag         0 - matrix      |   1 - a-star (wip)    |   2 - deprecate.. set by user in build_ask_build_flags
-        0,  //12 - perma inc. in matrix         0 - dont include|   1 - do include                          set here
-        1   //13 - inc. 0-values in rel.array   0 - dont include|   1 - do include                          set here
+        0,  //12 - perma inc. in matrix         0 - dont include|   1 - do include                          set here, used by matrix merges
+        1   //13 - inc. 0-values in rel.array   0 - dont include|   1 - do include                          set here, used by matrix merges
     };
 
     int input_parse_rtrn_value;
     // reading contents of the nsf/folder and collecting metadata
     if (build_rebuild_flag == FUNCTION_BUILD)
         input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
-
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
     if (build_rebuild_flag == FUNCTION_REBUILD)
@@ -499,6 +498,5 @@ void build_main(int build_rebuild_flag) {
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
     build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
-
     printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }

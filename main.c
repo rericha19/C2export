@@ -4,10 +4,10 @@
 // half the stuff barely works so dont touch it much
 // imo the only part thats in a reasonable shape is the level build related code
 
-DEPRECATE_INFO_STRUCT status;
 
 //actual main
 int main() {
+    DEPRECATE_INFO_STRUCT status;
     status.print_en = 2;
     status.flog = NULL;
     int zonetype = 8;
@@ -48,7 +48,7 @@ int main() {
                 printf("Input the path to the file whose contents you want to export:\n");
                 scanf(" %[^\n]",fpath);
                 path_fix(fpath);
-                export_main(zonetype,fpath,lcltemp);
+                export_main(zonetype, fpath, lcltemp, &status);
                 printf("\n");
                 break;
             case EXPORTALL:
@@ -67,11 +67,11 @@ int main() {
                 }
 
                 while ((de = readdir(df)) != NULL) {
-                    strncpy(nsfcheck,strchr(de->d_name,'\0')-3,3);
-                    strcpy(moretemp,de->d_name);
+                    strncpy(nsfcheck, strchr(de->d_name,'\0')-3, 3);
+                    strcpy(moretemp, de->d_name);
                     if (de->d_name[0]!='.' && !strcmp(nsfcheck,"NSF")) {
                         sprintf(fpath,"%s\\%s",dpath,de->d_name);
-                        export_main(zonetype, fpath, lcltemp);
+                        export_main(zonetype, fpath, lcltemp, &status);
                     }
                 }
                 closedir(df);

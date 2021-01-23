@@ -17,6 +17,8 @@
 #define HEAP_SIZE_INCREMENT             200000
 #define ELAPSED_INCREMENT               3           // clowny as fuck
 
+#define PAYLOAD_MERGE_STATS_ONLY        1
+#define PAYLOAD_MERGE_FULL_USE          0
 
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
@@ -348,18 +350,18 @@ int          get_nth_item_offset(unsigned char *entry, int n);
 
 
 // export.c
-int          export_main(int zone, char *fpath, char *date);
-int          export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype);
-int          export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype);
-int          export_texture_chunk(unsigned char *buffer, char *lvlid, char *date);
+int          export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT* status);
+int          export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
+int          export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
+int          export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
 int          export_camera_fix(unsigned char *cam, int length);
 void         export_entity_coord_fix(unsigned char *item, int itemlength);
-void         export_scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void         export_generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void         export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void         export_zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype);
-void         export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date);
-void         export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date);
+void         export_scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void         export_generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void         export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void         export_zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
+void         export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void         export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
 
 // import.c
 int          import_main(char *time, DEPRECATE_INFO_STRUCT status);
@@ -392,7 +394,7 @@ void         build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char *
 void         build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count);
 void         build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture,
                                int *entry_count, SPAWNS *spawns, unsigned int* gool_table);
-void         build_print_relatives(ENTRY *elist, int entry_count);
+void         deprecate_build_print_relatives(ENTRY *elist, int entry_count);
 void         build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
 void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
@@ -464,7 +466,7 @@ void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* ll_flag, int* merge_type);
 
 
-// a star merge
+// state thing
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 STATE_SEARCH_STR*  build_state_search_str_init(int length);
 void         build_state_search_str_destroy(STATE_SEARCH_STR* state);

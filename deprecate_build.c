@@ -86,7 +86,7 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
     deprecate_build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
     deprecate_build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
 
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 0);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_FULL_USE);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
@@ -698,7 +698,7 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
  * \param entry_count int               entry count
  * \return void
  */
-void build_print_relatives(ENTRY *elist, int entry_count) {
+void deprecate_build_print_relatives(ENTRY *elist, int entry_count) {
     char temp[100] = "";
     int i, j;
     for (i = 0; i < entry_count; i++) {

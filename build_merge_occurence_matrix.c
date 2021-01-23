@@ -16,11 +16,11 @@
  */
 void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
-    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);     // merge permaloaded entries' chunks as well as possible
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                               // chunks start off having one entry per chunk
-    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);  // current best algorithm
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 1);         // for payload printout, doesnt do much anymore
-    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                         // jic something didnt get merged it gets merged
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                     // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
+    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);                  // current best algorithm
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);  // for payload printout, doesnt do much anymore
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                                         // jic something didnt get merged it gets merged
 }
 
 
@@ -28,7 +28,7 @@ void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_b
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     build_matrix_merge_relative_util(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0);
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, 1);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
