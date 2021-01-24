@@ -153,3 +153,29 @@ void build_ask_build_flags(int* ll_flag, int* merge_type) {
     *merge_type = ans;
     printf("\n");
 }
+
+void build_ask_premerge(int *premerge_type, double *merge_ratio) {
+    int ans;
+    printf("\nWhich premerge method do you want to use?\n");
+    printf("[0] - no premerge\n");
+    printf("[1] - partial occurence count matrix merge (absolute)\n");
+    printf("[2] - partial occurence count matrix merge (relative)\n");
+    printf("[3] - place models with their most used available animation\n");
+    printf("[4] - place SLSTs with their zone\n");
+    printf("[5] - 3 & 4 combined\n");
+    scanf("%d", &ans);
+    if (ans < 0 || ans > 5) {
+        printf("Invalid choice, defaulting to [0]\n");
+        ans = 0;
+    }
+
+    if (ans == 1 || ans == 2) {
+        printf("\nPartial premerge ratio? [0 - no premerge, 1 - full merge]\n");
+        double ans2;
+        scanf("%lf", &ans2);
+        *merge_ratio = ans2;
+    }
+
+    *premerge_type = ans;
+    printf("\n");
+}

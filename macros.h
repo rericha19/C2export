@@ -401,7 +401,7 @@ void         build_increment_common(LIST list, LIST entries, int **entry_matrix,
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
-void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded);
+void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
@@ -445,7 +445,7 @@ int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entr
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-void         build_matrix_merge_relative_util(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded,
+void         build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded,
                                               double merge_ratio);
 void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
 void         build_ask_spawn(SPAWNS spawns);
@@ -464,6 +464,8 @@ int          build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **n
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* ll_flag, int* merge_type);
+void         build_ask_premerge(int *premerge_type, double *merge_ratio);
+
 
 
 // state thing

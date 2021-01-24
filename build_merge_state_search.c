@@ -1,6 +1,28 @@
 #include "macros.h"
 #include "build_merge_state_search.h"
 
+void build_state_search_premerge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int *config, LIST permaloaded) {
+    int type = 0;
+    double merge_ratio = 0.0;
+    build_ask_premerge(&type, &merge_ratio);
+    switch(type) {
+
+        default:
+        case 0:
+            break;
+        case 1:
+            build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, merge_ratio);
+            break;
+        case 2:
+            build_matrix_merge_relative(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, merge_ratio);
+            break;
+        case 3:
+        case 4:
+            printf("TODO TODO TODO\n"); // TODO
+            break;
+    }
+}
+
 /** \brief
  *  Main function for the a* merge implementation. Used only for non-permaloaded entries.
  *
@@ -19,7 +41,7 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
     int permaloaded_chunk_end_index = *chunk_count;
 
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
-    // TODO premerge
+    build_state_search_premerge_main(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);
     build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
@@ -398,7 +420,7 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
         }
         build_state_search_str_destroy(top);
     }
-    printf("A-STAR Ran out of states\n");
+    printf("Ran out of states\n");
     build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist, EID_list);
     return;
 }

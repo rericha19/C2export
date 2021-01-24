@@ -4,6 +4,62 @@
 
 
 /** \brief
+ *  Merges chunks prioritising highest combined size.
+ *  Does not consider anything else.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param chunk_index_start int         start of the range
+ * \param chunk_index_end int*          end of the range
+ * \param entry_count int               entry count
+ * \return void
+ */
+void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count) {
+    int i, j, k;
+    while(1) {
+        int merge_happened = 0;
+        for (i = chunk_index_start; i < *chunk_index_end; i++) {
+            int size1 = 0;
+            int count1 = 0;
+
+            for (j = 0; j < entry_count; j++)
+                if (elist[j].chunk == i) {
+                    size1 += elist[j].esize;
+                    count1++;
+                }
+
+            int maxsize = 0;
+            int maxentry_count = 0;
+
+            for (j = i + 1; j < *chunk_index_end; j++) {
+                int size2 = 0;
+                int count2 = 0;
+                for (k = 0; k < entry_count; k++)
+                    if (elist[k].chunk == j) {
+                        size2 += elist[k].esize;
+                        count2++;
+                    }
+
+                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
+                    if (size2 > maxsize) {
+                        maxsize = size2;
+                        maxentry_count = j;
+                    }
+            }
+
+            if (maxentry_count) {
+                for (j = 0; j < entry_count; j++)
+                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
+                merge_happened++;
+            }
+        }
+        if (!merge_happened) break;
+    }
+
+    *chunk_index_end = build_remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
+}
+
+
+/** \brief
  *  Just returns the model reference of an animation.
  *  Only looks at the first frame of the animation.
  *
@@ -488,8 +544,7 @@ void build_main(int build_rebuild_flag) {
             build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;
     }
-    clock_t time_end = clock();
-    printf("Merge took %.3fs\n", ((double) time_end - time_start) / CLOCKS_PER_SEC);
+    printf("Merge took %.3fs\n", ((double) clock() - time_start) / CLOCKS_PER_SEC);
 
     // build and write nsf and nsd file
     build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
