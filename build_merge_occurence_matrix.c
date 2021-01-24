@@ -11,7 +11,7 @@
  * \param entry_count int               entry count
  * \param chunk_border_sounds int       index of last sound chunk
  * \param chunk_count int*              chunk count
- * \param config int*                   config[2]: 0/1, determines whether each point of cam paths or only main/deltas are considered
+ * \param config int*                   config
  * \return void
  */
 void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
@@ -52,8 +52,10 @@ int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_co
 }
 
 
-// builds a triangular matrix that will contain the amount of common load list occurences of i-th and j-th entry
-int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag) {
+// builds a triangular matrix that contains the count of common load list occurences of i-th and j-th entry
+int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int *config) {
+    int ll_pollin_flag = config[CNFG_IDX_MTRX_LL_POLL_FLAG];
+
     int i,j,l,m;
     int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));     // freed by caller
     for (i = 0; i < entries.count; i++)
@@ -69,7 +71,7 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 LIST list = init_list();
-                switch(merge_flag) {
+                switch(ll_pollin_flag) {
                     // per point (seems to generally be better), but its actually kinda fucky because if its not it gives worse results
                     // if it were properly per point, the 'build_increment_common' function would use the 'counter' variable as 4th arg instead of 1
                     case 2:
@@ -88,9 +90,9 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                                         list_remove(&list, load_list.array[sublist_index].list[m]);
 
                                 sublist_index++;
-                                if (merge_flag == 1)
+                                if (ll_pollin_flag == 1)
                                     build_increment_common(list, entries, entry_matrix, 1);
-                                if (merge_flag == 2)
+                                if (ll_pollin_flag == 2)
                                     build_increment_common(list, entries, entry_matrix, counter);
                                 counter = 0;
                             }
@@ -159,14 +161,14 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
  */
 void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio) {
 
-    int permaloaded_include_flag = config[12];
+    int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
 
     LIST entries = build_get_normal_entry_list(elist, entry_count);
     if (permaloaded_include_flag == 0)
         for (int i = 0; i < permaloaded.count; i++)
             list_remove(&entries, permaloaded.eids[i]);
 
-    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
+    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
     // frees the contents of the matrix
@@ -184,14 +186,14 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
 
 void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio) {
 
-    int permaloaded_include_flag = config[12];
+    int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
 
     LIST entries = build_get_normal_entry_list(elist, entry_count);
     if (permaloaded_include_flag == 0)
         for (int i = 0; i < permaloaded.count; i++)
             list_remove(&entries, permaloaded.eids[i]);
 
-    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config[2]);
+    int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
 
     int* total_occurences = (int*) malloc(entries.count * sizeof(int));                 // freed here
     for (int i = 0; i < entries.count; i++) {
@@ -315,8 +317,8 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
  */
 RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) {
 
-    int relation_array_sort_flag = config[8];
-    int zeroval_inc_flag = config[13];
+    int relation_array_sort_flag = config[CNFG_IDX_MTRI_REL_SORT_FLAG];
+    int zeroval_inc_flag = config[CNFG_IDX_MTRI_ZEROVAL_INC_FLAG];
 
 
     int rel_counter = 0, i, j, indexer = 0;

@@ -27,7 +27,7 @@ int build_ask_ID() {
  */
 void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int* config) {
 
-    int remaking_load_lists_flag = config[10];
+    int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
 
     printf("\nInput path to file with permaloaded entries:\n");
     scanf(" %[^\n]",fpaths[0]);
@@ -84,24 +84,24 @@ void build_ask_distances(int *config) {
     int ans;
     printf("\nSLST distance?      (recommended is approx 7250)\n");
     scanf("%d", &temp);
-    config[3] = temp;
+    config[CNFG_IDX_LL_SLST_DIST_VALUE] = temp;
 
     printf("\nNeighbour distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
-    config[4] = temp;
+    config[CNFG_IDX_LL_NEIGH_DIST_VALUE] = temp;
 
     printf("\nDraw list distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
-    config[5] = temp;
+    config[CNFG_IDX_LL_DRAW_DIST_VALUE] = temp;
 
     printf("\nPre-load stuff for transitions? (not pre-loading is safer) [0/1]\n");
     scanf("%d", &ans);
     if (ans) {
-        config[6] = 1;
+        config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 1;
         printf("Pre-loading\n\n");
     }
     else {
-        config[6] = 0;
+        config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
         printf("Not pre-loading\n\n");
     }
 
@@ -112,7 +112,7 @@ void build_ask_distances(int *config) {
         printf("Invalid, defaulting to 0\n");
         backw = 0;
     }
-    config[7] = (int) (PENALTY_MULT_CONSTANT * backw);
+    config[CNFG_IDX_LL_BACKWARDS_PENALTY] = (int) (PENALTY_MULT_CONSTANT * backw);
 }
 
 
@@ -131,16 +131,16 @@ void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB) {
 }
 
 
-void build_ask_build_flags(int* ll_flag, int* merge_type) {
+void build_ask_build_flags(int* config) {
     printf("\nRemake load lists? [0/1]\n");
     int ans;
     scanf("%d", &ans);
     if (ans) {
-        *ll_flag = 1;
+        config[CNFG_IDX_LL_REMAKE_FLAG] = 1;
         printf("Will remake load lists\n\n");
     }
     else {
-        *ll_flag = 0;
+        config[CNFG_IDX_LL_REMAKE_FLAG] = 0;
         printf("Won't remake load lists\n\n");
     }
 
@@ -150,7 +150,7 @@ void build_ask_build_flags(int* ll_flag, int* merge_type) {
     printf("[2] - relatives & payload merge [deprecate, bad]\n");
     printf("[3] - state set graph search based merge (A*/DFS) [slow, no guaranteed result]\n");
     scanf("%d", &ans);
-    *merge_type = ans;
+    config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
     printf("\n");
 }
 
@@ -160,7 +160,7 @@ void build_ask_premerge(int *premerge_type, double *merge_ratio) {
     printf("[0] - no premerge\n");
     printf("[1] - partial occurence count matrix merge (absolute)\n");
     printf("[2] - partial occurence count matrix merge (relative)\n");
-    printf("[3] - place models with their most used available animation\n");
+    printf("[3] - place models with their most used animation available\n");
     printf("[4] - place SLSTs with their zone\n");
     printf("[5] - 3 & 4 combined\n");
     scanf("%d", &ans);

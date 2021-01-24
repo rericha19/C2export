@@ -133,7 +133,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
  */
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
 
-    int remaking_load_lists_flag = config[10];
+    int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
     int i, j, perma_count, subcount, valid = 1;
     char temp[6];
 
@@ -221,7 +221,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         fclose(file);
         file = fopen(fpaths[2], "r");
         if (file == NULL) {
-            printf("File with collision dependencie (not input by user now, instead hardcoded to be searched for in current directory\n");
+            printf("File with collision dependencies could not be opened\n");
             return 0;
         }
 

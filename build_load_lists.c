@@ -20,7 +20,7 @@
  */
 void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int* config) {
 
-    int load_list_sound_entry_inc_flag = config[9];
+    int load_list_sound_entry_inc_flag = config[CNFG_IDX_LL_SND_INCLUSION_FLAG];
     int i, j, k, l;
 
     // gets a list of sound EIDs (one per chunk) to make load lists smaller
@@ -313,10 +313,10 @@ PROPERTY build_make_load_list_prop(LIST* list_array, int cam_length, int code) {
  * \return void
  */
 void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST* full_list, int cam_length, ENTRY* elist, int entry_count, int* config, DEPENDENCIES collisisons) {
-    int slst_distance = config[3];
-    int neig_distance = config[4];
-    int preloading_flag = config[6];
-    int backwards_penalty = config[7];
+    int slst_distance = config[CNFG_IDX_LL_SLST_DIST_VALUE];
+    int neig_distance = config[CNFG_IDX_LL_NEIGH_DIST_VALUE];
+    int preloading_flag = config[CNFG_IDX_LL_TRNS_PRLD_FLAG];
+    int backwards_penalty = config[CNFG_IDX_LL_BACKWARDS_PENALTY];
 
     int i, j, item1off = get_nth_item_offset(elist[zone_index].data, 0);
     short int* coords;
@@ -576,9 +576,9 @@ int build_is_before(ENTRY* elist, int zone_index, int camera_index, int neighbou
  * \return LIST                         list of IDs it came across during the search
  */
 LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY* elist, int entry_count, LIST* neighbours, int* config) {
-    int preloading_flag = config[6];
-    int draw_dist = config[5];
-    int backwards_penalty = config[7];
+    int draw_dist = config[CNFG_IDX_LL_DRAW_DIST_VALUE];
+    int preloading_flag = config[CNFG_IDX_LL_TRNS_PRLD_FLAG];
+    int backwards_penalty = config[CNFG_IDX_LL_BACKWARDS_PENALTY];
 
     LIST entity_list = init_list();
     int i, j, k, coord_count;

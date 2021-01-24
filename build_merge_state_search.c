@@ -1,12 +1,25 @@
 #include "macros.h"
 #include "build_merge_state_search.h"
 
-void build_state_search_premerge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int *config, LIST permaloaded) {
+
+void build_animation_model_premerge(ENTRY *elist, int entry_count, int* chunk_count, int* config) {
+    LIST temp_entries = build_get_normal_entry_list(elist, entry_count);
+    LIST anims_models = init_list();
+    for (int i = 0; i < temp_entries.count; i++) {
+        int entry_type = build_entry_type(elist[build_elist_get_index(temp_entries.eids[i], elist, entry_count)]);
+        if (entry_type == ENTRY_TYPE_ANIM || entry_type == ENTRY_TYPE_MODEL)
+            list_insert(&anims_models, temp_entries.eids[i]);
+    }
+
+
+}
+
+void build_state_search_premerge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int *config, LIST permaloaded) {
     int type = 0;
     double merge_ratio = 0.0;
     build_ask_premerge(&type, &merge_ratio);
-    switch(type) {
 
+    switch(type) {
         default:
         case 0:
             break;
@@ -17,7 +30,10 @@ void build_state_search_premerge_main(ENTRY *elist, int entry_count, int chunk_b
             build_matrix_merge_relative(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, merge_ratio);
             break;
         case 3:
+            build_animation_model_premerge(elist, entry_count, chunk_count, config);
+            break;
         case 4:
+        case 5:
             printf("TODO TODO TODO\n"); // TODO
             break;
     }
@@ -41,7 +57,7 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
     int permaloaded_chunk_end_index = *chunk_count;
 
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
-    build_state_search_premerge_main(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);
+    build_state_search_premerge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);
     build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);

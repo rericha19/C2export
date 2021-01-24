@@ -20,6 +20,22 @@
 #define PAYLOAD_MERGE_STATS_ONLY        1
 #define PAYLOAD_MERGE_FULL_USE          0
 
+#define CNFG_IDX_DPR_MERGE_GOOL_FLAG    0
+#define CNFG_IDX_DPR_MERGE_ZONE_FLAG    1
+#define CNFG_IDX_MTRX_LL_POLL_FLAG      2
+#define CNFG_IDX_LL_SLST_DIST_VALUE     3
+#define CNFG_IDX_LL_NEIGH_DIST_VALUE    4
+#define CNFG_IDX_LL_DRAW_DIST_VALUE     5
+#define CNFG_IDX_LL_TRNS_PRLD_FLAG      6
+#define CNFG_IDX_LL_BACKWARDS_PENALTY   7
+#define CNFG_IDX_MTRI_REL_SORT_FLAG     8
+#define CNFG_IDX_LL_SND_INCLUSION_FLAG  9
+#define CNFG_IDX_LL_REMAKE_FLAG         10
+#define CNFG_IDX_MERGE_METHOD_VALUE     11
+#define CNFG_IDX_MTRX_PERMA_INC_FLAG    12
+#define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
+
+
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
@@ -441,7 +457,7 @@ void         build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_c
 void         build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char** chunks);
 int          build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
 LIST         build_get_normal_entry_list(ENTRY *elist, int entry_count);
-int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int merge_flag);
+int**        build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int *config);
 int          build_is_normal_chunk_entry(ENTRY entry);
 void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
@@ -463,7 +479,7 @@ int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd
 int          build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
-void         build_ask_build_flags(int* ll_flag, int* merge_type);
+void         build_ask_build_flags(int* config);
 void         build_ask_premerge(int *premerge_type, double *merge_ratio);
 
 

@@ -82,8 +82,8 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);     // good
 
     // primary chunk assignments
-    deprecate_build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[0]);
-    deprecate_build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[1]);
+    deprecate_build_assign_primary_chunks_gool(elist, entry_count, chunk_count, config[CNFG_IDX_DPR_MERGE_GOOL_FLAG]);
+    deprecate_build_assign_primary_chunks_zones(elist, entry_count, chunk_count, config[CNFG_IDX_DPR_MERGE_ZONE_FLAG]);
     deprecate_build_assign_primary_chunks_rest(elist, entry_count, chunk_count);
 
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_FULL_USE);
