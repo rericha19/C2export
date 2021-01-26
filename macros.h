@@ -35,7 +35,7 @@
 #define CNFG_IDX_MTRX_PERMA_INC_FLAG    12
 #define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
 
-
+#define C2_GOOL_TABLE_SIZE              0x40
 #define FPATH_COUNT                     3
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
@@ -137,7 +137,6 @@
 #define abs(a)   (((a)< 0) ?(a):(-a))
 
 // in export script used to keep track of status stuff
-// big mistake, fuck global variables
 typedef struct info{
     int counter[22];                // counts entry types, counter[0] is total entry count
     int print_en;                   // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
@@ -362,7 +361,7 @@ void         path_fix(char *fpath);
 DIST_GRAPH_Q graph_init();
 void         graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index);
 void         graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index);
-int          get_nth_item_offset(unsigned char *entry, int n);
+int          build_get_nth_item_offset(unsigned char *entry, int n);
 
 
 // export.c
@@ -392,7 +391,7 @@ int          build_remove_empty_chunks(int index_start, int index_end, int entry
 void         build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base);
 int          build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end);
 void         build_get_model_references(ENTRY *elist, int entry_count);
-int          build_elist_get_index(unsigned int eid, ENTRY *elist, int entry_count);
+int          build_get_index(unsigned int eid, ENTRY *elist, int entry_count);
 unsigned int build_get_slst(unsigned char *item);
 unsigned int build_get_path_length(unsigned char *item);
 short int *  build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len);
@@ -491,11 +490,11 @@ void         build_state_search_str_destroy(STATE_SEARCH_STR* state);
 unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
                                    ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
 int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
-STATE_SEARCH_STR*  build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int perma_count);
+STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int first_nonperma_chunk, ENTRY* temp_elist) ;
 STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
 int          build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length);
 unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length);
-void         build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count);
+void         build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count, LIST permaloaded);
 
 
 

@@ -48,7 +48,7 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
         unsigned int *offsets = (unsigned int *) malloc( (local_entry_count + 2) * sizeof(unsigned int));   // idr why +2 but ok, freed here
         // calculates offsets
         int indexer = 0;
-        offsets[indexer] = 0x10 + (local_entry_count + 1) * 4;
+        offsets[0] = 0x10 + (local_entry_count + 1) * 4;
 
         for (j = 0; j < entry_count; j++)
         if (elist[j].chunk == i) {
@@ -164,7 +164,7 @@ void build_sort_load_lists(ENTRY *elist, int entry_count) {
                             LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *) malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL)); // freed here
                             for (int m = 0; m < item_count; m++) {
                                 item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
-                                item_list[m].index = build_elist_get_index(item_list[m].eid, elist, entry_count);
+                                item_list[m].index = build_get_index(item_list[m].eid, elist, entry_count);
                             }
                             qsort(item_list, item_count, sizeof(LOAD_LIST_ITEM_UTIL), load_list_sort);
                             for (int m = 0; m < item_count; m++)

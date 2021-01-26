@@ -156,7 +156,7 @@ void build_ask_build_flags(int* config) {
 
 void build_ask_premerge(int *premerge_type, double *merge_ratio) {
     int ans;
-    printf("\nWhich premerge method do you want to use?\n");
+    printf("\nWhich premerge method do you want to use? (Can speed the process up, but premerging too much might prevent complex levels from building properly)\n");
     printf("[0] - no premerge\n");
     printf("[1] - partial occurence count matrix merge (absolute)\n");
     printf("[2] - partial occurence count matrix merge (relative)\n");

@@ -100,7 +100,7 @@ int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int 
  * \param entry_count int               amount of entries
  * \return int                          index of the searched EID or -1
  */
-int build_elist_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
+int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
     int first = 0;
     int last = entry_count - 1;
     int middle = (first + last)/2;
@@ -130,7 +130,7 @@ unsigned int build_get_slst(unsigned char *item) {
     int i, offset = 0;
     for (i = 0; i < item[0xC]; i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_CAM_SLST)
-            offset = 0xC + from_u16(item + 0x10 + 8 * i + 2);
+            offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
     if (offset) return from_u32(item + offset + 4);
         else return 0;
@@ -159,7 +159,7 @@ unsigned int build_get_path_length(unsigned char *item) {
  * \return int                          neighbour count
  */
 int build_get_neighbour_count(unsigned char *entry) {
-    int item1off = get_nth_item_offset(entry, 0);
+    int item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + C2_NEIGHBOURS_START];
 }
 
@@ -170,7 +170,7 @@ int build_get_neighbour_count(unsigned char *entry) {
  * \return LIST                        list containing neighbour eids
  */
 LIST build_get_neighbours(unsigned char *entry) {
-    int item1off = get_nth_item_offset(entry, 0);
+    int item1off = build_get_nth_item_offset(entry, 0);
     int count = entry[item1off + C2_NEIGHBOURS_START];
 
     LIST neighbours = init_list();
@@ -188,7 +188,7 @@ LIST build_get_neighbours(unsigned char *entry) {
  * \return int                          camera entity count (total count, not camera path count)
  */
 int build_get_cam_item_count(unsigned char *entry) {
-    int item1off = get_nth_item_offset(entry, 0);
+    int item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x188];
 }
 
@@ -200,7 +200,7 @@ int build_get_cam_item_count(unsigned char *entry) {
  * \return int                          entity count (not including camera entities)
  */
 int build_get_entity_count(unsigned char *entry) {
-    int item1off = get_nth_item_offset(entry, 0);
+    int item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x18C];
 }
 
@@ -384,7 +384,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
             int entity_count = build_get_entity_count(elist[i].data);
             int camera_count = build_get_cam_item_count(elist[i].data);
             for (int j = 0; j < entity_count; j++) {
-                unsigned char *entity = elist[i].data + get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+                unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -439,8 +439,8 @@ void build_main(int build_rebuild_flag) {
         entry_count_base        = 0,
         entry_count             = 0;
 
-    unsigned int gool_table[0x40];              // table w/ EIDs of gool entries, needed for nsd, filled using input entries
-    for (int i = 0; i < 0x40; i++)
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];                // table w/ EIDs of gool entries, needed for nsd, filled using input entries
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     // config:
@@ -448,17 +448,17 @@ void build_main(int build_rebuild_flag) {
         0,  // 0 - gool initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         0,  // 1 - zone initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         1,  // 2 - merge type flag              0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
-        0,  // 3 - slst distance                set by user in function build_ask_distances(config);
-        0,  // 4 - neighbour distance           set by user in function build_ask_distances(config);
-        0,  // 5 - draw list distance           set by user in function build_ask_distances(config);
-        0,  // 6 - transition pre-load flag     set by user in function build_ask_distances(config);
-        0,  // 7 - backwards penalty            set by user in func ask_dist...;            is 1M times the float value because int, range 0 - 0.5
+        0,  // 3 - slst distance value              set by user in function build_ask_distances(config);
+        0,  // 4 - neighbour distance value         set by user in function build_ask_distances(config);
+        0,  // 5 - draw list distance value         set by user in function build_ask_distances(config);
+        0,  // 6 - transition pre-load flag         set by user in function build_ask_distances(config);
+        0,  // 7 - backwards penalty value          set by user in function build_ask_dist...;              is 1M times the float value because int, range 0 - 0.5
         0,  // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
         0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
         0,  //10 - load list merge value        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
         0,  //11 - merge technique value        0 - matrix                                                  set by user in build_ask_build_flags
-        0,  //12 - perma inc. in matrix         0 - dont include|   1 - do include                          set here, used by matrix merges
-        1   //13 - inc. 0-values in rel.array   0 - dont include|   1 - do include                          set here, used by matrix merges
+        0,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
+        1   //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
     };
 
     int input_parse_rtrn_value;
@@ -519,7 +519,7 @@ void build_main(int build_rebuild_flag) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified
         build_find_unspecified_entities(elist, entry_count, subtype_info);
 
-        // ask user desired distances for various things aka how much in advance in terms of camera rail distance things get loaded
+        // ask user desired distances for various things, eg how much in advance in terms of camera rail distance things get loaded
         // there are some restrictions in terms of path link depth so its not entirely accurate, but it still matters
         build_ask_distances(config);
 

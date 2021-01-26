@@ -66,7 +66,7 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++) {
-                int cam_offset = get_nth_item_offset(elist[i].data, 2 + 3 * j);
+                int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
@@ -288,8 +288,8 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
         int index1 = relations.relations[x].index1;
         int index2 = relations.relations[x].index2;
 
-        int elist_index1 = build_elist_get_index(entries.eids[index1], elist, entry_count);
-        int elist_index2 = build_elist_get_index(entries.eids[index2], elist, entry_count);
+        int elist_index1 = build_get_index(entries.eids[index1], elist, entry_count);
+        int elist_index2 = build_get_index(entries.eids[index2], elist, entry_count);
 
         int chunk_index1 = elist[elist_index1].chunk;
         int chunk_index2 = elist[elist_index2].chunk;
