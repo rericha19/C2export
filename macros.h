@@ -15,7 +15,7 @@
 // various constants
 #define HASH_TABLE_SIZE                 100000000
 #define HEAP_SIZE_INCREMENT             200000
-#define ELAPSED_INCREMENT               3           // clowny as fuck
+#define ELAPSED_INCREMENT               0           // clowny as fuck
 
 #define PAYLOAD_MERGE_STATS_ONLY        1
 #define PAYLOAD_MERGE_FULL_USE          0

@@ -208,8 +208,8 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     build_state_search_premerge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);
     build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count, permaloaded);
-    //deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
-    //build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
 
@@ -322,7 +322,7 @@ int build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length) {
  *
  * \param state A_STAR_STR*             input state
  * \param chunk1 unsigned int           index of first chunk
- * \param chunk2 unsigned int           index of second chunk
+ * \param chunk2 unsigned int           index of second chunk (higher than chunk1)
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  new state
  */
@@ -346,8 +346,7 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
         return NULL;
     }
 
-    // TODO get rid of 'empty' chunks (move entries to lower chunks) should make it faster
-    // only one 'hole' can be created at a time, so only doing it once will suffice
+    /*// only one 'hole' can be created at a time, so only doing it once will suffice
     int last_chunk = build_state_search_str_chunk_max(new_state, key_length);
     int *chunks = (int*) calloc( (last_chunk + 1), sizeof(int));
 
@@ -368,7 +367,10 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
         for (i = 0; i < key_length; i++)
             if (new_state->entry_chunk_array[i] == last_chunk)
                 new_state->entry_chunk_array[i] = empty_chunk_index;
-    }
+    }*/
+    /*for (int i = 0; i < key_length; i++)
+        if (new_state->entry_chunk_array[i] > chunk2)
+            new_state->entry_chunk_array[i] -= 1;*/
 
     return new_state;
 }
@@ -579,14 +581,17 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
         int end_index = build_state_search_str_chunk_max(top, key_length);
         //int end_index = *chunk_count;
         for (unsigned int i = start_chunk_index; i < (unsigned) end_index; i++) {
-            // printf("i: %10d\n", i);
+
+            if (build_state_search_is_empty_chunk(top, i, key_length))
+                    continue;
+
             for (unsigned int j = start_chunk_index; j < i; j++) {
 
                 // theres no reason to try to merge if the second chunk (the one that gets merged into the first one) is empty
                 if (build_state_search_is_empty_chunk(top, j, key_length))
                     continue;
 
-                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, i, j, key_length, start_chunk_index, temp_elist);
+                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, j, i, key_length, start_chunk_index, temp_elist);
                 // merge would result in an invalid state
                 if (new_state == NULL)
                     continue;
