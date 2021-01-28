@@ -491,8 +491,8 @@ void         build_ask_premerge(int *premerge_type, double *merge_ratio);
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 STATE_SEARCH_STR*  build_state_search_str_init(int length);
 void         build_state_search_str_destroy(STATE_SEARCH_STR* state);
-unsigned int build_state_search_eval_state(LIST* stored_load_lists, int total_cam_count, STATE_SEARCH_STR* state, int key_length,
-                                   ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) ;
+unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_list_snapshot_count, STATE_SEARCH_STR* state, int key_length,
+                                           int first_nonperma_chunk, int perma_count, int* max_pay);
 int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
 STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int first_nonperma_chunk, ENTRY* temp_elist) ;
 STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);

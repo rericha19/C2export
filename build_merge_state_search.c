@@ -241,57 +241,44 @@ void build_state_search_str_destroy(STATE_SEARCH_STR* state) {
 
 
 unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_list_snapshot_count, STATE_SEARCH_STR* state, int key_length,
-                          ENTRY* temp_elist, int first_nonperma_chunk, int perma_count, int* max_pay) {
+                                           int first_nonperma_chunk, int perma_count, int* max_pay) {
 
     int chunk_count = build_state_search_str_chunk_max(state, key_length) + 1;
-    for (int i = 0; i < key_length; i++)
-        temp_elist[i].chunk = state->entry_chunk_array[i];
 
-    /*int *chunk_sizes = (int*) malloc(chunk_count * sizeof(int));
-    for (int i = 0; i < chunk_count; i++)
-        chunk_sizes[i] = 0x14;
+    static int i, j;
+    static int index, chunk, counter, maxp, eval;
 
-    for (int i = 0; i < key_length; i++)
-        chunk_sizes[state->entry_chunk_array[i]] += (4 + temp_elist[i].esize);
+    //static int chunks[1024];    // idc
+    unsigned char *chunks = (unsigned char *) malloc(chunk_count * sizeof(unsigned char));
+    static unsigned char step = 0;
 
+    maxp = 0;
+    eval = 0;
+    step = 0;
 
-    for (int i = 0; i < chunk_count; i++)
-        if (chunk_sizes[i] > CHUNKSIZE) {
-            free(chunk_sizes);
-            return STATE_SEARCH_EVAL_INVALID;
-        }
+    for (i = 0; i < load_list_snapshot_count; i++) {
 
-    free(chunk_sizes);
-    */
+        counter = 0;
+        step++;
+        if (step == 1)
+            memset(chunks, 0, chunk_count);
 
+        for (j = 0; j < stored_load_lists[i].count; j++){
+            index = stored_load_lists[i].eids[j];
+            chunk = state->entry_chunk_array[index];
 
-    unsigned int eval = 0;
-    int maxp = 0;
-    int *chunks = (int*) malloc(chunk_count * sizeof(int));
-
-    for (int i = 0; i < load_list_snapshot_count; i++)
-    {
-        for (int j = 0; j < chunk_count; j++)
-            chunks[j] = 0;
-
-        for (int j = 0; j < stored_load_lists[i].count; j++){
-            int index = stored_load_lists[i].eids[j];
-            //int index = build_elist_get_index(eid, temp_elist, key_length);
-            int chunk = temp_elist[index].chunk;
-
-            chunks[chunk] = 1;
-        }
-
-        int counter = 0;
-        for (int j = first_nonperma_chunk; j < chunk_count; j++)
-            if (chunks[j] == 1)
+            if (chunk >= first_nonperma_chunk && chunks[chunk]!= step) {
+                chunks[chunk] = step;
                 counter++;
+            }
+        }
 
-        counter += perma_count;
         eval += counter;
         maxp = max(maxp, counter);
     }
 
+    eval += perma_count * load_list_snapshot_count;
+    maxp += perma_count;
     free(chunks);
 
     if (max_pay != NULL)
@@ -517,6 +504,42 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_el
             }
         }
 
+    while (1) {
+        int found_condensation = 0;
+        for (int i = 0; i < snapshot_counter; i++) {
+            // to prevent possibly breaking things
+            if (found_condensation)
+                break;
+            LIST listA = stored_load_lists[i];
+
+            // see whether any list is a superset of listA
+            for (int j = 0; j < i; j++) {
+                LIST listB = stored_load_lists[j];
+                int is_proper_subset = 1;
+
+                // check whether everything from listA is in listB (listA c ListB)
+                for (int k = 0; k < listA.count; k++) {
+                    if (list_find(listB, listA.eids[k]) == -1) {
+                        is_proper_subset = 0;
+                        break;
+                    }
+                }
+
+                // if listA is subset of current listB, listA is not necessary
+                // shove the last thing there, realloc array
+                if (is_proper_subset) {
+                    found_condensation = 1;
+                    stored_load_lists[i] = stored_load_lists[snapshot_counter - 1];
+                    snapshot_counter--;
+                    stored_load_lists = realloc(stored_load_lists, snapshot_counter * sizeof(LIST));
+                    break;
+                }
+            }
+        }
+
+        if (!found_condensation)
+            break;
+    }
     *load_list_snapshot_count = snapshot_counter;
     return stored_load_lists;
 }
@@ -575,7 +598,7 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
         // qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
         top = heap_pop(heap);
         int temp;
-        build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, temp_elist, start_chunk_index, perma_chunk_count, &temp);
+        build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, start_chunk_index, perma_chunk_count, &temp);
         printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
         int end_index = build_state_search_str_chunk_max(top, key_length);
@@ -604,7 +627,13 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
 
                 new_state->elapsed = top->elapsed + ELAPSED_INCREMENT;
                 new_state->estimated =
-                    build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, new_state, key_length, temp_elist, start_chunk_index, perma_chunk_count, NULL);
+                    build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, new_state, key_length, start_chunk_index, perma_chunk_count, NULL);
+
+                // attempt to make it aggressive and to cut down on the state count
+                if (new_state->estimated == top->estimated) {
+                    build_state_search_str_destroy(new_state);
+                    continue;
+                }
 
                 // shouldnt happen anymore (moved size check to merge_chunks)
                 if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
