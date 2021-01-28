@@ -3,9 +3,9 @@
 #include "dirent.h"
 #include <time.h>
 #include <math.h>
+#include <stdio.h>
 
 //#include <ctype.h>
-//#include <stdio.h>
 //#include <stdlib.h>
 //#include <string.h>
 //#include <io.h>
@@ -363,6 +363,9 @@ DIST_GRAPH_Q graph_init();
 void         graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index);
 void         graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index);
 int          build_get_nth_item_offset(unsigned char *entry, int n);
+int          getline(char **linep, int *n, FILE *fp);
+int          getdelim(char **linep, int *n, int delim, FILE *fp);
+
 
 
 // export.c

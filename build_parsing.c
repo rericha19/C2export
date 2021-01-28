@@ -134,7 +134,10 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
 
     int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
-    int i, j, perma_count, subcount, valid = 1;
+    int j, valid = 1;
+
+    char *line = NULL;
+    int line_len, read;
     char temp[6];
 
     char fpaths[FPATH_COUNT][MAX] = {0};      // paths to files, fpaths contains user-input metadata like perma list file
@@ -155,9 +158,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         return 0;
     }
 
-    fscanf(file, "%d", &perma_count);
-    for (i = 0; i < perma_count; i++) {
-        fscanf(file, "%5s\n", temp);
+    while ((read = getline(&line, &line_len, file)) != -1) {
+
+        sscanf(line, "%5s", temp);
         int index = build_get_index(eid_to_int(temp), elist, entry_count);
         if (index == -1) {
             printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", temp);
@@ -177,6 +180,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             build_add_model_textures_to_list(elist[model_index].data, &perma);
         }
     }
+    free(line);
     fclose(file);
 
     // if making load lists
@@ -186,13 +190,20 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             printf("File with type/subtype dependencies could not be opened\n");
             return 0;
         }
-        fscanf(file, "%d", &subcount);
 
-        subinfo.count = subcount;
-        subinfo.array = (DEPENDENCY *) malloc(subcount * sizeof(DEPENDENCY));   // freed by caller
+        int i = 0;
+        int subcount = 0;
         int type, subtype, counter;
-        for (i = 0; i < subcount; i++) {
-            fscanf(file, "%d, %d, %d", &type, &subtype, &counter);
+        while(1) {
+            if (3 > fscanf(file, "%d, %d, %d", &type, &subtype, &counter))
+                break;
+            i = subcount;
+            subcount++;
+            if (subcount == 1)
+                subinfo.array = (DEPENDENCY *) malloc(subcount * sizeof(DEPENDENCY));   // freed by caller
+            else
+                subinfo.array = (DEPENDENCY *) realloc(subinfo.array, subcount * sizeof(DEPENDENCY));
+
             subinfo.array[i].type = type;
             subinfo.array[i].subtype = subtype;
             subinfo.array[i].dependencies = init_list();
@@ -217,22 +228,29 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 }
             }
         }
-
+        subinfo.count = subcount;
         fclose(file);
+
+
         file = fopen(fpaths[2], "r");
         if (file == NULL) {
             printf("File with collision dependencies could not be opened\n");
             return 0;
         }
 
-        int coll_count;
-        fscanf(file,"%d", &coll_count);
+        int coll_count = 0;
+        int code;
 
-        coll.count = coll_count;
-        coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));            // freed by caller
-        for (i = 0; i < coll_count; i++) {
-            int code;
-            fscanf(file, "%x, %d", &code, &counter);
+
+        while (1) {
+            if (2 > fscanf(file, "%x, %d", &code, &counter))
+                break;
+            i = coll_count;
+            coll_count++;
+            if (coll_count == 1)
+                coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));            // freed by caller
+            else
+                coll.array = (DEPENDENCY *) realloc(coll.array, coll_count * sizeof(DEPENDENCY));
             coll.array[i].type = code;
             coll.array[i].subtype = -1;
             coll.array[i].dependencies = init_list();
@@ -257,12 +275,13 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 }
             }
         }
+        coll.count = coll_count;
+        fclose(file);
     }
 
     *permaloaded = perma;
     *subtype_info = subinfo;
     *collisions = coll;
-    fclose(file);
     if (!valid) {
         printf("Cannot proceed with invalid items, fix that\n");
         return 0;
