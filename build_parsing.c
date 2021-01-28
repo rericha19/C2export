@@ -689,7 +689,7 @@ int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
     return 0;
 }
 
-int build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
+int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                   ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS* spawns) {
     char nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
     printf("Input the path to the level (.nsf) you want to rebuild:\n");
@@ -746,9 +746,9 @@ int build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* 
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && from_u32(elist[*entry_count].data + 0xC) == 6)
                 elist[*entry_count].related = build_get_gool_relatives(elist[*entry_count].data, entry_size);
 
-            if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && *(elist[*entry_count].data + 8) > 3) {
-                int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
-                int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
+            if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && (*(elist[*entry_count].data + 0xC) == 6)) {
+                int item1_offset =  *(int*)(elist[*entry_count].data + 0x10);
+                int gool_type =     *(int*)(elist[*entry_count].data + item1_offset);
                 if (gool_type > 63 || gool_type < 0) {
                     char temp[100] = "";
                     printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);

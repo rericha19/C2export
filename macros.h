@@ -51,6 +51,7 @@
 #define C2_SPECIAL_METADATA_OFFSET      0x1DC
 #define C2_NSD_CHUNK_COUNT_OFFSET       0x400
 #define C2_NSD_ENTRY_COUNT_OFFSET       0x404
+#define C2_NSD_DATxL_EID                0x408
 #define C2_NSD_ENTRY_TABLE_OFFSET       0x520
 #define MAGIC_ENTRY                     0x100FFFF
 #define MAGIC_CHUNK                     0x1234
@@ -475,7 +476,7 @@ int          build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_bo
 void         build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j);
 int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
-int          build_read_and_parse_rebuild(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
+int          build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* config);

@@ -234,7 +234,7 @@ void swap_ints(int *a, int *b)
 //converts int eid to string eid
 const char* eid_conv(unsigned int m_value, char *eid)
 {
-    static const char charset[] =
+    const char charset[] =
     "0123456789"
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -256,7 +256,7 @@ const char* eid_conv(unsigned int m_value, char *eid)
 unsigned int eid_to_int(char *eid)
 {
     unsigned int result = 0;
-    static const char charset[] =
+    const char charset[] =
     "0123456789"
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

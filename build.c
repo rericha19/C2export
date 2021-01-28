@@ -447,29 +447,30 @@ void build_main(int build_rebuild_flag) {
     int config[] = {
         0,  // 0 - gool initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         0,  // 1 - zone initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
-        1,  // 2 - merge type flag              0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
-        0,  // 3 - slst distance value              set by user in function build_ask_distances(config);
-        0,  // 4 - neighbour distance value         set by user in function build_ask_distances(config);
-        0,  // 5 - draw list distance value         set by user in function build_ask_distances(config);
-        0,  // 6 - transition pre-load flag         set by user in function build_ask_distances(config);
-        0,  // 7 - backwards penalty value          set by user in function build_ask_dist...;              is 1M times the float value because int, range 0 - 0.5
-        0,  // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge
+        1,  // 2 - merge type value             0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
+        0,  // 3 - slst distance value              set by user in function build_ask_distances(config); affects load lists
+        0,  // 4 - neighbour distance value         set by user in function build_ask_distances(config); affects load lists
+        0,  // 5 - draw list distance value         set by user in function build_ask_distances(config); affects load lists
+        0,  // 6 - transition pre-load flag         set by user in function build_ask_distances(config); affects load lists
+        0,  // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int, range 0 - 0.5
+        0,  // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge (1 is kinda meh)
         0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
-        0,  //10 - load list merge value        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
-        0,  //11 - merge technique value        0 - matrix                                                  set by user in build_ask_build_flags
-        0,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
+        0,  //10 - load list remake flag        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
+        0,  //11 - merge technique value                                                                    set by user in build_ask_build_flags
+        1,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
         1   //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
     };
 
-    int input_parse_rtrn_value;
+    int input_parse_rtrn_value = 1;
     // reading contents of the nsf/folder and collecting metadata
     if (build_rebuild_flag == FUNCTION_BUILD)
         input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
     if (build_rebuild_flag == FUNCTION_REBUILD)
-        input_parse_rtrn_value = build_read_and_parse_rebuild(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+        input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
 
+    chunk_count = chunk_border_texture;
 
     // end if something went wrong
     if (input_parse_rtrn_value) {
@@ -477,7 +478,6 @@ void build_main(int build_rebuild_flag) {
         return;
     }
 
-    chunk_count = chunk_border_texture;
 
     // user picks whether to remake load lists or not, also merge method
     build_ask_build_flags(config);
@@ -499,7 +499,6 @@ void build_main(int build_rebuild_flag) {
     // gets model references from gools, was useful in a deprecate chunk merging/building algorithm, but might be useful later and barely takes any time so idc
     build_get_model_references(elist, entry_count);
     build_remove_invalid_references(elist, entry_count, entry_count_base);
-    // qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);    // not sure why this is here anymore, might be necessary but shouldnt
 
     // builds instrument and sound chunks, chunk_border_sounds is used to make chunk merging and chunk building more convenient, especially in deprecate methods
     build_instrument_chunks(elist, entry_count, &chunk_count, chunks);
@@ -508,7 +507,6 @@ void build_main(int build_rebuild_flag) {
 
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
-    // end if something went wrong
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table, config)) {
         printf("[ERROR] File could not be opened or a different error occured\n\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);

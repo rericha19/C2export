@@ -77,6 +77,20 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
     printf("Average normal chunk portion taken: %.3f%c\n", (100 * (double) sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE, '%');
 }
 
+unsigned int build_get_ldat_eid(int level_ID) {
+    char eid[6] = "DATxL\0";
+
+    const char charset[] =
+    "0123456789"
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "_!";
+
+    eid[3] = charset[level_ID];
+
+    return eid_to_int(eid);
+
+}
 
 /** \brief
  *  Builds nsd, sorts load lists according to the nsd entry table order.
@@ -111,6 +125,7 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     // write chunk and real entry count
     *(int *)(nsddata + C2_NSD_CHUNK_COUNT_OFFSET) = chunk_count;
     *(int *)(nsddata + C2_NSD_ENTRY_COUNT_OFFSET) = real_entry_count;
+    *(unsigned int *)(nsddata + C2_NSD_DATxL_EID) = build_get_ldat_eid(level_ID);
 
     // write spawn count, level ID
     int real_nsd_size = C2_NSD_ENTRY_TABLE_OFFSET + real_entry_count * 8;
