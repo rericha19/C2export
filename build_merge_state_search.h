@@ -290,7 +290,7 @@ int hash_add(HASH_TABLE *table, unsigned short int* entry_chunk_array) {
         return -1;
     }
 
-    /*// resize thing, i think it causes trouble, i just made the table static size
+    /*// resize thing, i think it causes trouble, i just made the table fixed size
     table->item_count += 1;
     if (((double) table->item_count / table->table_length) >= HASH_FULLNESS_RATIO) {
         HASH_ITEM** things = (HASH_ITEM**) malloc((table->item_count + 1) * sizeof(HASH_ITEM *));       // unused

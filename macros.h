@@ -495,10 +495,10 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_lis
                                            int first_nonperma_chunk, int perma_count, int* max_pay);
 int          build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length);
 STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int first_nonperma_chunk, ENTRY* temp_elist) ;
-STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length);
+STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int first_nonperma_chunk_index, int key_length);
 int          build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length);
-unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length);
-void         build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count, LIST permaloaded);
+unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int *key_length);
+void         build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count, LIST permaloaded);
 
 
 

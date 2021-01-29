@@ -404,7 +404,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
 
     // place where fits
     for (i = 0; i < perma_normal_entry_count; i++)
-        for (j = 0; j < MAX; j++)
+        for (j = 0; j < perma_chunk_count; j++)
             if (sizes[j] + 4 + perma_elist[i].esize <= CHUNKSIZE) {
                 perma_elist[i].chunk = temp_count + j;
                 sizes[j] += 4 + perma_elist[i].esize;
@@ -418,7 +418,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
 
     // counts used chunks
     int counter = 0;
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < perma_chunk_count; i++)
         if (sizes[i] > 0x14)
             counter = i + 1;
 

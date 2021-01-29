@@ -203,11 +203,11 @@ void build_state_search_premerge(ENTRY *elist, int entry_count, int chunk_border
 void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
     int perma_chunk_count = build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
-    int permaloaded_chunk_end_index = *chunk_count;
+    int first_nonperma_chunk_index = *chunk_count;
 
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     build_state_search_premerge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);
-    build_state_search_solve(elist, entry_count, permaloaded_chunk_end_index, chunk_count, perma_chunk_count, permaloaded);
+    build_state_search_solve(elist, entry_count, first_nonperma_chunk_index, perma_chunk_count, permaloaded);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
@@ -245,12 +245,11 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_lis
 
     int chunk_count = build_state_search_str_chunk_max(state, key_length) + 1;
 
-    static int i, j;
-    static int index, chunk, counter, maxp, eval;
+    int i, j;
+    int index, chunk, counter, maxp, eval;
 
-    //static int chunks[1024];    // idc
     unsigned char *chunks = (unsigned char *) malloc(chunk_count * sizeof(unsigned char));
-    static unsigned char step = 0;
+    unsigned char step = 0;
 
     maxp = 0;
     eval = 0;
@@ -323,7 +322,8 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
         unsigned short int curr_chunk = state->entry_chunk_array[i];
         if (curr_chunk == chunk2)
             curr_chunk = chunk1;
-        if (curr_chunk == chunk2 || curr_chunk == chunk1)
+
+        if (curr_chunk == chunk1)
             resulting_size += (4 + temp_elist[i].esize);
         new_state->entry_chunk_array[i] = curr_chunk;
     }
@@ -332,32 +332,6 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
         build_state_search_str_destroy(new_state);
         return NULL;
     }
-
-    /*// only one 'hole' can be created at a time, so only doing it once will suffice
-    int last_chunk = build_state_search_str_chunk_max(new_state, key_length);
-    int *chunks = (int*) calloc( (last_chunk + 1), sizeof(int));
-
-    for (i = 0; i < key_length; i++) {
-        chunks[new_state->entry_chunk_array[i]] = 1;
-    }
-
-    int empty_chunk_index = -1;
-    for (i = first_nonperma_chunk + 1; i <= last_chunk; i++) {
-        if (!chunks[i]) {
-            empty_chunk_index = i;
-            break;
-        }
-    }
-
-    free(chunks);
-    if (empty_chunk_index != -1) {
-        for (i = 0; i < key_length; i++)
-            if (new_state->entry_chunk_array[i] == last_chunk)
-                new_state->entry_chunk_array[i] = empty_chunk_index;
-    }*/
-    /*for (int i = 0; i < key_length; i++)
-        if (new_state->entry_chunk_array[i] > chunk2)
-            new_state->entry_chunk_array[i] -= 1;*/
 
     return new_state;
 }
@@ -368,15 +342,15 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
- * \param start_chunk_index int         chunk where involved entries start
+ * \param first_nonperma_chunk_index int         chunk where involved entries start
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  struct with entry-chunk assignments recorded
  */
-STATE_SEARCH_STR* build_state_search_init_state_convert(ENTRY* elist, int entry_count, int start_chunk_index, int key_length) {
+STATE_SEARCH_STR* build_state_search_init_state_convert(ENTRY* elist, int entry_count, int first_nonperma_chunk_index, int key_length) {
     STATE_SEARCH_STR* init_state = build_state_search_str_init(key_length);
     int indexer = 0;
     for (int i = 0; i < entry_count; i++)
-        if (elist[i].chunk >= start_chunk_index) {
+        if (elist[i].chunk >= first_nonperma_chunk_index) {
             init_state->entry_chunk_array[indexer] = elist[i].chunk;
             indexer++;
         }
@@ -397,18 +371,18 @@ int build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chun
 }
 
 
-unsigned int* build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int start_chunk_index, int *key_length) {
+unsigned int* build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int *key_length) {
 
     int counter = 0;
     for (int i = 0; i < entry_count; i++)
-        if (elist[i].chunk >= start_chunk_index)
+        if (elist[i].chunk >= first_nonperma_chunk_index)
             counter++;
 
     unsigned int* EID_list =(unsigned int*) malloc(counter * sizeof(unsigned int));     // freed by caller
 
     counter = 0;
     for (int i = 0; i < entry_count; i++)
-        if (elist[i].chunk >= start_chunk_index)
+        if (elist[i].chunk >= first_nonperma_chunk_index)
             EID_list[counter++] = elist[i].EID;
 
     *key_length = counter;
@@ -434,7 +408,7 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, ENTRY *temp_el
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++)
             {
-                // part that gets full load lists
+                // part that gets load lists
                 int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
                 LOAD_LIST load_list = init_load_list();
                 for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
@@ -570,27 +544,26 @@ int cmp_state_search_a(const void *a, const void *b) {
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
- * \param start_chunk_index int         index of the first chunk the entering entries are in
- * \param chunk_count int*              unused
- * \param key_length int                amount of entries entering the process (non-permaloaded normal chunk entries)
+ *\param first_nonperma_chunk_index int index of the first chunk the entering entries are in
+ * \param perma_chunk_count int         number of permaloaded chunks (so perma chunks and entries arent involved in state eval etc)
+ * \param permaloaded LIST              list of permaloaded entries
  * \return void
  */
-void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_index, int *chunk_count, int perma_chunk_count, LIST permaloaded) {
+void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count, LIST permaloaded) {
 
     int key_length;
-    unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, start_chunk_index, &key_length);
-    STATE_SEARCH_STR* init_state = build_state_search_init_state_convert(elist, entry_count, start_chunk_index, key_length);
+    unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, first_nonperma_chunk_index, &key_length);
+    STATE_SEARCH_STR* init_state = build_state_search_init_state_convert(elist, entry_count, first_nonperma_chunk_index, key_length);
 
     HASH_TABLE* table = hash_init_table(hash_func, key_length);
-    hash_add(table, init_state->entry_chunk_array);
-
     STATE_SEARCH_HEAP* heap = heap_init_heap();
+
+    hash_add(table, init_state->entry_chunk_array);
     heap_add(heap, init_state);
 
     int load_list_snapshot_count;
     ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));                   // freed here
     LIST *stored_load_lists = build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, permaloaded, &load_list_snapshot_count);
-
 
     STATE_SEARCH_STR* top;
     while(!heap_is_empty(*heap)) {
@@ -598,23 +571,23 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
         // qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
         top = heap_pop(heap);
         int temp;
-        build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, start_chunk_index, perma_chunk_count, &temp);
+        build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, first_nonperma_chunk_index, perma_chunk_count, &temp);
         printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
 
         int end_index = build_state_search_str_chunk_max(top, key_length);
-        //int end_index = *chunk_count;
-        for (unsigned int i = start_chunk_index; i < (unsigned) end_index; i++) {
-
+        for (unsigned int i = first_nonperma_chunk_index; i < (unsigned) end_index; i++)
+        {
+            // dont merge into empty chunks
             if (build_state_search_is_empty_chunk(top, i, key_length))
-                    continue;
+                continue;
 
-            for (unsigned int j = start_chunk_index; j < i; j++) {
-
+            for (unsigned int j = first_nonperma_chunk_index; j < i; j++)
+            {
                 // theres no reason to try to merge if the second chunk (the one that gets merged into the first one) is empty
                 if (build_state_search_is_empty_chunk(top, j, key_length))
                     continue;
 
-                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, j, i, key_length, start_chunk_index, temp_elist);
+                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, j, i, key_length, first_nonperma_chunk_index, temp_elist);
                 // merge would result in an invalid state
                 if (new_state == NULL)
                     continue;
@@ -625,18 +598,12 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int start_chunk_ind
                     continue;
                 }
 
-                new_state->elapsed = top->elapsed + ELAPSED_INCREMENT;
+                new_state->elapsed = 0; //top->elapsed + ELAPSED_INCREMENT;
                 new_state->estimated =
-                    build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, new_state, key_length, start_chunk_index, perma_chunk_count, NULL);
+                    build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, new_state, key_length, first_nonperma_chunk_index, perma_chunk_count, NULL);
 
                 // attempt to make it aggressive and to cut down on the state count
                 if (new_state->estimated == top->estimated) {
-                    build_state_search_str_destroy(new_state);
-                    continue;
-                }
-
-                // shouldnt happen anymore (moved size check to merge_chunks)
-                if (new_state->estimated == STATE_SEARCH_EVAL_INVALID) {
                     build_state_search_str_destroy(new_state);
                     continue;
                 }

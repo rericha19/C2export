@@ -507,15 +507,16 @@ int* build_seek_spawn(unsigned char *item) {
         if (code == ENTITY_PROP_SUBTYPE)
             subtype = from_u32(item + offset + 4);
         if (code == ENTITY_PROP_PATH)
-            coords_offset = offset;
+            coords_offset = offset + 4;
     }
 
-    if ((!type && !subtype && coords_offset != -1) || (type == 34 && subtype == 4 && coords_offset != -1)) {
-        int *coords = (int*) malloc(3 * sizeof(int));           // freed by caller
-        for (i = 0; i < 3; i++)
-            coords[i] = (*(short int*)(item + coords_offset + 4 + 2 * i)) * 4;
-        return coords;
-    }
+    if (coords_offset != -1)
+        if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4)) {
+            int *coords = (int*) malloc(3 * sizeof(int));           // freed by caller
+            for (i = 0; i < 3; i++)
+                coords[i] = (*(short int*)(item + coords_offset + 2 * i)) * 4;
+            return coords;
+        }
 
     return NULL;
 }

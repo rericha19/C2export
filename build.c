@@ -421,8 +421,8 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
 void build_main(int build_rebuild_flag) {
     FILE *nsfnew = NULL, *nsd = NULL;           // file pointers for input nsf, output nsf (nsfnew) and output nsd
     SPAWNS spawns = init_spawns();              // struct with spawns found during reading and parsing of the level data
-    ENTRY elist[2500];                          // array of structs used to store entries, static cuz lazy & struct is small
-    unsigned char *chunks[1024];                // array of pointers to potentially built chunks, static cuz lazy
+    ENTRY elist[2500];                          // array of structs used to store entries, fixed length cuz lazy & struct is small
+    unsigned char *chunks[1024];                // array of pointers to potentially built chunks, fixed length cuz lazy
     LIST permaloaded;                           // list containing EIDs of permaloaded entries provided by the user
     DEPENDENCIES subtype_info;                  // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions;                    // struct containing info about dependencies of certain collision types
