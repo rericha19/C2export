@@ -52,7 +52,7 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 continue;
 
             char temp[100] = "";
-            printf("Doing load lists for %s\n", eid_conv(elist[i].EID, temp));
+            printf("Making load lists for %s\n", eid_conv(elist[i].EID, temp));
 
             // get list of special entries that can be placed inside zones' first item
             // as a special zone-specific dependency/load list

@@ -208,8 +208,8 @@ void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_bord
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     build_state_search_premerge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded);
     build_state_search_solve(elist, entry_count, first_nonperma_chunk_index, perma_chunk_count, permaloaded);
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
-    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
+    //deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
+    //build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
 
@@ -241,19 +241,15 @@ void build_state_search_str_destroy(STATE_SEARCH_STR* state) {
 
 
 unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_list_snapshot_count, STATE_SEARCH_STR* state, int key_length,
-                                           int first_nonperma_chunk, int perma_count, int* max_pay) {
+                                           int first_nonperma_chunk, int perma_count, int max_payload_limit, int* max_pay) {
 
     int chunk_count = build_state_search_str_chunk_max(state, key_length) + 1;
 
     int i, j;
-    int index, chunk, counter, maxp, eval;
+    int index, chunk, counter, maxp = 0, eval = 0;
 
     unsigned char *chunks = (unsigned char *) malloc(chunk_count * sizeof(unsigned char));
     unsigned char step = 0;
-
-    maxp = 0;
-    eval = 0;
-    step = 0;
 
     for (i = 0; i < load_list_snapshot_count; i++) {
 
@@ -283,7 +279,7 @@ unsigned int build_state_search_eval_state(LIST* stored_load_lists, int load_lis
     if (max_pay != NULL)
         *max_pay = maxp;
 
-    if (maxp <= 21)
+    if (maxp <= max_payload_limit)
         return STATE_SEARCH_EVAL_SUCCESS;
     return eval + maxp * load_list_snapshot_count;
 }
@@ -312,13 +308,14 @@ int build_state_search_str_chunk_max(STATE_SEARCH_STR* state, int key_length) {
  * \param key_length int              amount of involved entries
  * \return A_STAR_STR*                  new state
  */
-STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2, int key_length, int first_nonperma_chunk, ENTRY* temp_elist) {
+STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsigned int chunk1, unsigned int chunk2,
+                                                  int key_length, int first_nonperma_chunk, ENTRY* temp_elist) {
     int i;
     STATE_SEARCH_STR* new_state = build_state_search_str_init(key_length);
 
+    // tries to merge chunk2 into chunk1, if the resulting chunk would have invalid size, returns NULL
     int resulting_size = 0x14;
     for (i = 0; i < key_length; i++) {
-        // makes sure chunk2 gets merged into chunk1
         unsigned short int curr_chunk = state->entry_chunk_array[i];
         if (curr_chunk == chunk2)
             curr_chunk = chunk1;
@@ -333,6 +330,18 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
         return NULL;
     }
 
+    // orders the chunks in the state in descending order by used chunk size
+    int chunk_count = 1 + build_state_search_str_chunk_max(new_state, key_length);
+
+    unsigned short int *chunk_sizes = (unsigned short int *) malloc(chunk_count * sizeof(unsigned short int));
+    for (i = 0; i < chunk_count; i++)
+        chunk_sizes[i] = 0x14;
+
+    for (i = 0; i < key_length; i++)
+        chunk_sizes[new_state->entry_chunk_array[i]] += (4 + temp_elist[i].esize);
+
+
+    free(chunk_sizes);
     return new_state;
 }
 
@@ -549,11 +558,12 @@ int cmp_state_search_a(const void *a, const void *b) {
  * \param permaloaded LIST              list of permaloaded entries
  * \return void
  */
-void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count, LIST permaloaded) {
+void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk, int perma_chunk_count, LIST permaloaded) {
 
+    int max_payload_limit = 21;
     int key_length;
-    unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, first_nonperma_chunk_index, &key_length);
-    STATE_SEARCH_STR* init_state = build_state_search_init_state_convert(elist, entry_count, first_nonperma_chunk_index, key_length);
+    unsigned int* EID_list = build_state_search_init_elist_convert(elist, entry_count, first_nonperma_chunk, &key_length);
+    STATE_SEARCH_STR* init_state = build_state_search_init_state_convert(elist, entry_count, first_nonperma_chunk, key_length);
 
     HASH_TABLE* table = hash_init_table(hash_func, key_length);
     STATE_SEARCH_HEAP* heap = heap_init_heap();
@@ -561,33 +571,61 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_
     hash_add(table, init_state->entry_chunk_array);
     heap_add(heap, init_state);
 
-    int load_list_snapshot_count;
+    int ll_count;
     ENTRY *temp_elist = (ENTRY *) malloc(key_length * sizeof(ENTRY));                   // freed here
-    LIST *stored_load_lists = build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, permaloaded, &load_list_snapshot_count);
+    LIST *load_lists = build_state_search_eval_util(elist, entry_count, temp_elist, EID_list, key_length, permaloaded, &ll_count);
 
+    int temp_max, temp_eval, min = 0x7FFFFFFF;
     STATE_SEARCH_STR* top;
-    while(!heap_is_empty(*heap)) {
+    STATE_SEARCH_STR* best = build_state_search_str_init(key_length);
+    long long int iter_limit = 0;
+    int iter_print = 1000;
 
+    printf("Max payload limit? [usually 21 or 20]\n");
+    scanf("%d", &max_payload_limit);
+    printf("\n");
+
+    printf("Iteration limit? [try 10000 if you're not sure] [0 removes the limit]\n");
+    scanf("%I64d", &iter_limit);
+    printf("\n");
+
+    printf("Printing status line every time new best is reached, or every %d iterations\n", iter_print);
+    for (long long int iter = 0; (!heap_is_empty(*heap)); iter++) {
+
+        if ((iter_limit != 0) && (iter > iter_limit))
+                break;
         // qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
         top = heap_pop(heap);
-        int temp;
-        build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, top, key_length, first_nonperma_chunk_index, perma_chunk_count, &temp);
-        printf("Top: %p %d, max: %d\n", top, top->estimated, temp);
+        int new_best = 0;
+        temp_eval =
+            build_state_search_eval_state(load_lists, ll_count, top, key_length, first_nonperma_chunk, perma_chunk_count, max_payload_limit, &temp_max);
+        if (temp_eval < min) {
+            for (int i = 0; i < key_length; i++)
+                best->entry_chunk_array[i] = top->entry_chunk_array[i];
+            min = temp_eval;
+            new_best = 1;
+        }
+        if (new_best || (iter + 1) % iter_print == 0) {
+            char temp[100] = "";
+            if (iter_limit != 0)
+                sprintf(temp, "/%I64d", iter_limit);
+            printf("Iter %I64d%s; Top: %p %5d, max: %3d, heap length: %d\n", iter+1, temp, top, temp_eval, temp_max, heap->length);
+        }
 
         int end_index = build_state_search_str_chunk_max(top, key_length);
-        for (unsigned int i = first_nonperma_chunk_index; i < (unsigned) end_index; i++)
+        for (unsigned int i = first_nonperma_chunk; i < (unsigned) end_index; i++)
         {
             // dont merge into empty chunks
             if (build_state_search_is_empty_chunk(top, i, key_length))
                 continue;
 
-            for (unsigned int j = first_nonperma_chunk_index; j < i; j++)
+            for (unsigned int j = first_nonperma_chunk; j < i; j++)
             {
                 // theres no reason to try to merge if the second chunk (the one that gets merged into the first one) is empty
                 if (build_state_search_is_empty_chunk(top, j, key_length))
                     continue;
 
-                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, j, i, key_length, first_nonperma_chunk_index, temp_elist);
+                STATE_SEARCH_STR* new_state = build_state_search_merge_chunks(top, j, i, key_length, first_nonperma_chunk, temp_elist);
                 // merge would result in an invalid state
                 if (new_state == NULL)
                     continue;
@@ -600,7 +638,7 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_
 
                 new_state->elapsed = 0; //top->elapsed + ELAPSED_INCREMENT;
                 new_state->estimated =
-                    build_state_search_eval_state(stored_load_lists, load_list_snapshot_count, new_state, key_length, first_nonperma_chunk_index, perma_chunk_count, NULL);
+                    build_state_search_eval_state(load_lists, ll_count, new_state, key_length, first_nonperma_chunk, perma_chunk_count, max_payload_limit, NULL);
 
                 // attempt to make it aggressive and to cut down on the state count
                 if (new_state->estimated == top->estimated) {
@@ -618,7 +656,8 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_
                     for (int i = 0; i < key_length; i++)
                         elist[build_get_index(EID_list[i], elist, entry_count)].chunk = new_state->entry_chunk_array[i];
 
-                    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist, EID_list);
+                    build_state_search_solve_cleanup(heap, table, load_lists, temp_elist, EID_list);
+                    build_state_search_str_destroy(best);
                     printf("Solved\n");
                     return;
                 }
@@ -626,7 +665,11 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_
         }
         build_state_search_str_destroy(top);
     }
-    printf("Ran out of states\n");
-    build_state_search_solve_cleanup(heap, table, stored_load_lists, temp_elist, EID_list);
+    for (int i = 0; i < key_length; i++)
+        elist[build_get_index(EID_list[i], elist, entry_count)].chunk = best->entry_chunk_array[i];
+
+    build_state_search_solve_cleanup(heap, table, load_lists, temp_elist, EID_list);
+    build_state_search_str_destroy(best);
+    printf("Ran out of states or iteration limit reached\n");
     return;
 }

@@ -411,6 +411,13 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
     printf("NITRO COUNT: %3d\n", nitro_counter);
 }
 
+DEPENDENCIES build_init_dep() {
+    DEPENDENCIES dep;
+    dep.array = NULL;
+    dep.count = 0;
+
+    return dep;
+}
 
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
@@ -419,17 +426,14 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
  * \return void
  */
 void build_main(int build_rebuild_flag) {
-    FILE *nsfnew = NULL, *nsd = NULL;           // file pointers for input nsf, output nsf (nsfnew) and output nsd
-    SPAWNS spawns = init_spawns();              // struct with spawns found during reading and parsing of the level data
-    ENTRY elist[2500];                          // array of structs used to store entries, fixed length cuz lazy & struct is small
-    unsigned char *chunks[1024];                // array of pointers to potentially built chunks, fixed length cuz lazy
-    LIST permaloaded;                           // list containing EIDs of permaloaded entries provided by the user
-    DEPENDENCIES subtype_info;                  // struct containing info about dependencies of certain types and subtypes
-    DEPENDENCIES collisions;                    // struct containing info about dependencies of certain collision types
-    int level_ID = 0;                           // level ID, used for naming output files and needed in output nsd
-
-    subtype_info.array = NULL;
-    collisions.array = NULL;
+    FILE *nsfnew = NULL, *nsd = NULL;               // file pointers for input nsf, output nsf (nsfnew) and output nsd
+    SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
+    ENTRY elist[2500];                              // array of structs used to store entries, fixed length cuz lazy & struct is small
+    unsigned char *chunks[2500];                    // array of pointers to potentially built chunks, fixed length cuz lazy
+    LIST permaloaded;                               // list containing EIDs of permaloaded entries provided by the user
+    DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
+    DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types
+    int level_ID = 0;                               // level ID, used for naming output files and needed in output nsd
 
     // used to keep track of counts and to separate groups of chunks
     //int chunk_border_base       = 0;

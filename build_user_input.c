@@ -39,7 +39,7 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int* config) {
         scanf(" %[^\n]",fpaths[1]);
         path_fix(fpaths[1]);
 
-        printf("\nInput path to file with collision dependencies:\n");
+        printf("\nInput path to file with collision dependencies [assumes file is not necessary if path is invalid]:\n");
         scanf(" %[^\n]", fpaths[2]);
         path_fix(fpaths[2]);
         //strcpy(fpaths[2], "collision list.txt");

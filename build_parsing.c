@@ -235,48 +235,49 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         file = fopen(fpaths[2], "r");
         if (file == NULL) {
             printf("File with collision dependencies could not be opened\n");
-            return 0;
+            printf("Assuming file is not necessary\n");
         }
+        else {
+            int coll_count = 0;
+            int code;
 
-        int coll_count = 0;
-        int code;
 
+            while (1) {
+                if (2 > fscanf(file, "%x, %d", &code, &counter))
+                    break;
+                i = coll_count;
+                coll_count++;
+                if (coll_count == 1)
+                    coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));            // freed by caller
+                else
+                    coll.array = (DEPENDENCY *) realloc(coll.array, coll_count * sizeof(DEPENDENCY));
+                coll.array[i].type = code;
+                coll.array[i].subtype = -1;
+                coll.array[i].dependencies = init_list();
+                for (j = 0; j < counter; j++) {
+                    fscanf(file, ", %5s", temp);
+                    int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                    if (index == -1) {
+                        printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
+                        continue;
+                    }
 
-        while (1) {
-            if (2 > fscanf(file, "%x, %d", &code, &counter))
-                break;
-            i = coll_count;
-            coll_count++;
-            if (coll_count == 1)
-                coll.array = (DEPENDENCY *) malloc(coll_count * sizeof(DEPENDENCY));            // freed by caller
-            else
-                coll.array = (DEPENDENCY *) realloc(coll.array, coll_count * sizeof(DEPENDENCY));
-            coll.array[i].type = code;
-            coll.array[i].subtype = -1;
-            coll.array[i].dependencies = init_list();
-            for (j = 0; j < counter; j++) {
-                fscanf(file, ", %5s", temp);
-                int index = build_get_index(eid_to_int(temp), elist, entry_count);
-                if (index == -1) {
-                    printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
-                    continue;
-                }
+                    list_insert(&(coll.array[i].dependencies), eid_to_int(temp));
 
-                list_insert(&(coll.array[i].dependencies), eid_to_int(temp));
+                    if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
+                        unsigned int model = build_get_model(elist[index].data);
+                        list_insert(&coll.array[i].dependencies, model);
 
-                if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
-                    unsigned int model = build_get_model(elist[index].data);
-                    list_insert(&coll.array[i].dependencies, model);
+                        int model_index = build_get_index(model, elist, entry_count);
+                        if (model_index == -1) continue;
 
-                    int model_index = build_get_index(model, elist, entry_count);
-                    if (model_index == -1) continue;
-
-                    build_add_model_textures_to_list(elist[model_index].data, &coll.array[i].dependencies);
+                        build_add_model_textures_to_list(elist[model_index].data, &coll.array[i].dependencies);
+                    }
                 }
             }
+            coll.count = coll_count;
+            fclose(file);
         }
-        coll.count = coll_count;
-        fclose(file);
     }
 
     *permaloaded = perma;
