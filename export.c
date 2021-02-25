@@ -261,6 +261,9 @@ void export_entity_coord_fix(unsigned char *item, int itemlength)
         case 3:
             scale = 2;
             break;
+        case 4:
+            scale = 4; //?
+            break;
         default:
             scale = 1;
             break;

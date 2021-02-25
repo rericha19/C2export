@@ -1,5 +1,74 @@
 #include "macros.h"
 
+int texture_recolor_stupid() {
+    char fpath[1000];
+    printf("Path to color item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("Couldn't open file.\n\n");
+        return 0;
+    }
+
+    int r_wanted, g_wanted, b_wanted;
+    printf("R G B? [hex]\n");
+    scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
+
+    fseek(file1, 0, SEEK_END);
+    int file_len = ftell(file1);
+    unsigned char* buffer = (unsigned char*) malloc(file_len * sizeof(unsigned char*));
+    rewind(file1);
+    fread(buffer, 1, file_len, file1);
+
+    // pseudograyscale of the wanted color
+    int sum_wanted = r_wanted + g_wanted + b_wanted;
+
+    for (int i = 0; i < file_len; i+=2) {
+        unsigned short int temp = *(unsigned short int*) (buffer + i);
+        int r = temp & 0x1F;
+        int g = (temp >> 5) & 0x1F;
+        int b = (temp >> 10) & 0x1F;
+        int a = (temp >> 15) & 1;
+
+        r *= 8;
+        g *= 8;
+        b *= 8;
+
+        // get pseudograyscale of the current color
+        int sum = r + g + b;
+
+        // get new color
+        int r_new = (sum * r_wanted) / sum_wanted;
+        int g_new = (sum * g_wanted) / sum_wanted;
+        int b_new = (sum * b_wanted) / sum_wanted;
+
+        // clip it at 0xFF
+        r_new = min(r_new, 0xFF);
+        g_new = min(g_new, 0xFF);
+        b_new = min(b_new, 0xFF);
+
+        // print stuff
+        printf("old: %2X %2X %2X\n", r, g, b);
+        printf("new: %2X %2X %2X\n", r_new, g_new, b_new);
+
+        r_new /= 8;
+        g_new /= 8;
+        b_new /= 8;
+
+        // write back
+        unsigned short int temp2 = (a << 15) + (b_new << 10) + (g_new << 5) + (r_new);
+        *(unsigned short int*) (buffer + i) = temp2;
+    }
+
+    rewind(file1);
+    fwrite(buffer, 1, file_len, file1);
+    fclose(file1);
+    free(buffer);
+    return 0;
+}
+
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
 int scenery_recolor_main()
 {
@@ -20,7 +89,7 @@ int scenery_recolor_main()
 
     fseek(file1, 0, SEEK_END);
     int color_count = ftell(file1) / 4;
-    unsigned char* buffer = (unsigned char*) ( (color_count * 4) * sizeof(unsigned char*));
+    unsigned char* buffer = (unsigned char*) malloc( (color_count * 4) * sizeof(unsigned char*));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
@@ -47,6 +116,10 @@ int scenery_recolor_main()
         r_new = min(r_new, 0xFF);
         g_new = min(g_new, 0xFF);
         b_new = min(b_new, 0xFF);
+
+        /*r_new = max(0, r - 0x10);
+        g_new = max(0, g - 0x10);
+        b_new = max(0, b - 0x10);*/
 
         // print stuff
         printf("old: %2X %2X %2X\n", r, g, b);
@@ -216,7 +289,7 @@ int texture_copy_main()
         int i;
         int bpp, src_x, src_y, width, height, dest_x, dest_y;
         printf("bpp src_x src_y width height dest-x dest-y? [set bpp to 0 to end]\n");
-        scanf("%d %d %d %d %d %d %d", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
+        scanf("%d %x %x %x %x %x %x", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
         int end = 0;
 
         switch(bpp)
@@ -372,6 +445,158 @@ void prop_main(char* path)
     free(arr);
     fclose(file);
     printf("\n");
+}
+
+void prop_remove_script() {
+    char fpath[1000];
+    printf("Path to item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1 = fopen(fpath, "rb");
+    if (file1 == NULL) {
+        printf("File could not be opened\n");
+        return;
+    }
+
+    fseek(file1, 0, SEEK_END);
+    int fsize = ftell(file1);
+    rewind(file1);
+
+    unsigned char* item = malloc(fsize * sizeof(unsigned char));
+    fread(item, 1, fsize, file1);
+    fclose(file1);
+
+    int prop_code;
+    printf("\nWhat prop do you wanna remove? (hex)\n");
+    scanf("%x", &prop_code);
+    int fsize2 = fsize;
+    item = build_rem_property(prop_code, item, &fsize2, NULL);
+
+    char fpath2[1004];
+    sprintf(fpath2, "%s-alt", fpath);
+
+    FILE* file2 = fopen(fpath2, "wb");
+    fwrite(item, 1, fsize, file2);
+    fclose(file2);
+    free(item);
+
+    if (fsize == fsize2)
+        printf("Seems like no changes were made\n");
+    else
+        printf("Property removed\n");
+    printf("Done. Altered file saved as %s\n\n", fpath2);
+}
+
+PROPERTY* get_prop(unsigned char *item, int prop_code) {
+
+    PROPERTY* prop = malloc(sizeof(PROPERTY));
+    prop->length = 0;
+    int property_count = from_u32(item + 0xC);
+    unsigned char property_header[8];
+
+    for (int i = 0; i < property_count; i++) {
+        memcpy(property_header, item + 0x10 + 8 * i, 8);
+        if (from_u16(property_header) == prop_code) {
+            memcpy(prop->header, property_header, 8);
+            int next_offset = 0;
+            if (i == property_count - 1)
+                next_offset = *(unsigned short int*) (item);
+            else
+                next_offset = *(unsigned short int*) (item + 0x12 + (i * 8) + 8) + 0xC;
+            int curr_offset = *(unsigned short int*) (item + 0x12 + 8 * i) + 0xC;
+            prop->length = next_offset - curr_offset;
+            prop->data = malloc(prop->length);
+            memcpy(prop->data, item + curr_offset, prop->length);
+            break;
+        }
+    }
+
+    if (prop->length == 0)
+        return NULL;
+    else
+        return prop;
+
+}
+
+void prop_replace_script() {
+    char fpath[1000];
+    printf("Path to source item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1 = fopen(fpath, "rb");
+    if (file1 == NULL) {
+        printf("File could not be opened\n");
+        return;
+    }
+
+    fseek(file1, 0, SEEK_END);
+    int fsize = ftell(file1);
+    rewind(file1);
+
+    unsigned char* item = malloc(fsize * sizeof(unsigned char));
+    fread(item, 1, fsize, file1);
+    fclose(file1);
+
+
+
+    char fpath2[1000];
+    printf("Path to destination item:\n");
+    scanf(" %[^\n]",fpath2);
+    path_fix(fpath2);
+
+    FILE* file2 = fopen(fpath2, "rb");
+    if (file2 == NULL) {
+        printf("File could not be opened\n");
+        free(item);
+        return;
+    }
+
+    fseek(file2, 0, SEEK_END);
+    int fsize2 = ftell(file2);
+    rewind(file2);
+
+    unsigned char* item2 = malloc(fsize2 * sizeof(unsigned char));
+    fread(item2, 1, fsize2, file2);
+    fclose(file2);
+
+
+    int prop_code;
+    printf("\nWhat prop do you wanna replace/insert? (hex)\n");
+    scanf("%x", &prop_code);
+
+    PROPERTY* prop = get_prop(item, prop_code);
+    if (prop == NULL) {
+        printf("Property wasnt found in the source file");
+        free(item);
+        free(item2);
+        return;
+    }
+
+    int fsize2_before = fsize2;
+    item2 = build_rem_property(prop_code, item2, &fsize2, NULL);
+    int fsize2_after = fsize2;
+    item2 = build_add_property(prop_code, item2, &fsize2, prop);
+
+    char fpath3[1004];
+    sprintf(fpath3, "%s-alt", fpath2);
+    FILE* file3 = fopen(fpath3, "wb");
+    if (file3 == NULL) {
+        printf("File could not be opened\n");
+        free(item);
+        return;
+    }
+
+    fwrite(item2, 1, fsize2, file3);
+    fclose(file3);
+    free(item);
+    free(item2);
+    if (fsize2_before == fsize2_after)
+        printf("Property inserted. ");
+    else
+        printf("Property replaced. ");
+    printf("Done.\n\n");
 }
 
 // im not gonna comment the resize stuff cuz it looks atrocious

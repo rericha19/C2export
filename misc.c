@@ -28,23 +28,23 @@ void print_help()
     printf("\n");
     for (int i = 0; i < 75; i++) printf("-");
     printf("\nCommand list:\n");
-    printf("HELP\n\t prints a list of commands\n");
+    /*printf("HELP\n");
+    printf("\t prints a list of commands\n");*/
 
-    printf("WIPE\n\t wipes current screen\n");
+    printf("WIPE\n");
+    printf("\t wipes current screen\n");
 
-    printf("KILL\n\t ends the program\n");
+    printf("KILL\n");
+    printf("\t ends the program\n");
 
-    printf("CHANGEPRINT\n\t triggers the print selection\n");
+    printf("CHANGEPRINT\n");
+    printf("\t triggers the print selection\n");
 
-    printf("IMPORT\n\t prompts an import screen thing for import of entries into a C2 level\n");
+    printf("IMPORT\n");
+    printf("\t prompts an import screen thing for import of entries into a C2 level\n");
 
-    printf("PROP\n\t prints a list of properties and values the specified item has\n");
-
-    printf("EXPORT\n");
-    printf("\t exports level's contents with given settings\n");
-
-    printf("EXPORTALL\n");
-    printf("\t exports contents of all levels in the folder with given settings.\n");
+    printf("EXPORT & EXPORTALL\n");
+    printf("\t exports level's contents with given settings (EXPORTALL exports all levels in a folder)\n");
 
     printf("RESIZE\n");
     printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
@@ -57,12 +57,11 @@ void print_help()
     printf("TEXTURE\n");
     printf("\t copies from one texture chunk to another (doesnt include CLUTs)\n");
 
-    printf("BUILD or REBUILD\n");
+    printf("BUILD & REBUILD\n");
     printf("\t builds a level from stuff that it asks from you.\n");
     printf("\t somehow rebuild may give slightly different results than build, not inevitably worse though.\n");
 
-
-    printf("SCEN_RECOLOR\n");
+    printf("SCEN_RECOLOR & TEXTURE_RECOLOR\n");
     printf("\t recolors scenery to the color user specifies (kinda sucks but w/e)\n");
 
     printf("A <value>\n");
@@ -70,6 +69,21 @@ void print_help()
 
     printf("NSD\n");
     printf("\t prints gool table from the nsd\n");
+
+    printf("EID <EID>\n");
+    printf("\t prints the EID in hex form\n");
+
+    printf("PROP\n");
+    printf("\t prints a list of properties and values the specified item has\n");
+
+    printf("PROP_REMOVE\n");
+    printf("\t removes requested property from an item\n");
+
+    printf("PROP_REPLACE\n");
+    printf("\t replaces (or inserts) a property in target item with prop from source file\n");
+
+    printf("LL_ANALYZE\n");
+    printf("\t prints full payload ladder of said level\n");
 
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
@@ -252,7 +266,7 @@ const char* eid_conv(unsigned int m_value, char *eid)
     return eid;
 }
 
-// conversion of EID from string form to u32int form
+// conversion of eid from string form to u32int form
 unsigned int eid_to_int(char *eid)
 {
     unsigned int result = 0;
@@ -461,13 +475,13 @@ int cmp_entry(const void *a, const void *b)
 
     if (x != y) return (x - y);
 
-    return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
+    return ((*(ENTRY*) a).eid - (*(ENTRY *) b).eid);
 }
 
 int cmp_entry_eid(const void *a, const void *b)
 // by entry eid
 {
-    return ((*(ENTRY*) a).EID - (*(ENTRY *) b).EID);
+    return ((*(ENTRY*) a).eid - (*(ENTRY *) b).eid);
 }
 
 // used to sort entries by size
@@ -690,7 +704,7 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_ind
     elist[zone_index].visited[camera_index] = 1;
 
     /*char temp[100] = "";
-    printf("Zone %s campath %d distance %d\n", eid_conv(elist[zone_index].EID, temp), camera_index, n);*/
+    printf("Zone %s campath %d distance %d\n", eid_conv(elist[zone_index].eid, temp), camera_index, n);*/
 }
 
 

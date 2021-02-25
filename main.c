@@ -108,6 +108,9 @@ int main() {
             case TEXTURE:
                 texture_copy_main();
                 break;
+            case TEXTURE_RECOLOR:
+                texture_recolor_stupid();
+                break;
             case SCEN_RECOLOR:
                 scenery_recolor_main();
                 break;
@@ -120,6 +123,21 @@ int main() {
                 path_fix(fpath);
                 nsd_gool_table_print(fpath);
                 printf("Done.\n\n");
+                break;
+            case EID:
+                //printf("EID string:\n");
+                scanf(" %[^\n]",fpath);
+                unsigned int eid = eid_to_int(fpath);
+                printf("%X %X %X %X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
+                break;
+            case PROP_REMOVE:
+                prop_remove_script();
+                break;
+            case PROP_REPLACE:
+                prop_replace_script();
+                break;
+            case LL_ANALYZE:
+                build_ll_analyze();
                 break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);

@@ -66,7 +66,8 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                             for (m = 0; m < load_list.array[l].list_length; m++)
                                 list_remove(&list, load_list.array[l].list[m]);
 
-                        payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].EID, chunk_min);
+                        payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
+                        payload.cam_path = j;
                         deprecate_build_insert_payload(&payloads, payload);
                     }
                 delete_load_list(load_list);
@@ -107,11 +108,18 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
         printf("\n\"Heaviest\" zones:\n");
-        for (int k = 0; k < 10; k++) {
-            printf("%d\t", k);
-            deprecate_build_print_payload(payloads.arr[k], 0);
+        if (stats_only_flag == PAYLOAD_MERGE_MORE_STATS) {
+            for (int k = 0; k < payloads.count; k++) {
+                printf("%d\t", k + 1);
+                deprecate_build_print_payload(payloads.arr[k], 0);
+            }
+        } else {
+            for (int k = 0; k < 10; k++) {
+                printf("%d\t", k + 1);
+                deprecate_build_print_payload(payloads.arr[k], 0);
+            }
+            printf("\n");
         }
-        printf("\n");
 
         if (stats_only_flag)
             break;
@@ -174,7 +182,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
  */
 void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
     for (int i = 0; i < payloads->count; i++)
-        if (payloads->arr[i].zone == insertee.zone) {
+        if (payloads->arr[i].zone == insertee.zone && payloads->arr[i].cam_path == insertee.cam_path) {
             if (payloads->arr[i].count < insertee.count) {
                     payloads->arr[i].count = insertee.count;
                     free(payloads->arr[i].chunks);
@@ -198,7 +206,7 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
  */
 void deprecate_build_print_payload(PAYLOAD payload, int stopper) {
     char temp[100] = "";
-    printf("Zone: %s; payload: %3d", eid_conv(payload.zone, temp), payload.count);
+    printf("Zone: %s; cam path %d; payload: %3d", eid_conv(payload.zone, temp), payload.cam_path, payload.count);
     if (stopper) printf("; stopper: %2d", stopper);
     printf("\n");
 }
@@ -232,7 +240,7 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
             if (elist[j].chunk == chunks[i]) {
                 size1 += elist[j].esize;
                 count1++;
-                relatives1[relative_count1++] = elist[j].EID;
+                relatives1[relative_count1++] = elist[j].eid;
                 if (elist[j].related != NULL)
                     for (k = 0; (unsigned ) k < elist[j].related[0]; k++)
                     relatives1[relative_count1++] = elist[j].related[k + 1];
@@ -248,7 +256,7 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
                 {
                     size2 += elist[k].esize;
                     count2++;
-                    relatives2[relative_count2++] = elist[j].EID;
+                    relatives2[relative_count2++] = elist[j].eid;
                 }
 
             if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE) {
@@ -354,7 +362,7 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
             if (chunks[j] == curr_chunk) is_there = 1;
 
         char temp[100] = "";
-        if (!is_there && eid_conv(elist[elist_index].EID, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min) {
+        if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min) {
             chunks[count] = curr_chunk;
             count++;
         }
@@ -408,7 +416,7 @@ void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_
                     if (elist[k].chunk == j) {
                         size2 += elist[k].esize;
                         count2++;
-                        has_relative += deprecate_build_is_relative(elist[k].EID, relatives, relative_counter);
+                        has_relative += deprecate_build_is_relative(elist[k].eid, relatives, relative_counter);
                     }
 
                 if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE) {
@@ -473,7 +481,7 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
         for (i = 0; (unsigned) i < elist[index].related[0]; i++)
             list_insert(list, elist[index].related[i + 1]);
 
-    list_insert(list, elist[index].EID);
+    list_insert(list, elist[index].eid);
 
     if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE) {
         int item1off = from_u32(elist[index].data + 0x10);
@@ -510,7 +518,7 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
                                 /*char temp[100] = "";
                                 char temp2[100] = "";
                                 for (int i = 0; i < list->count; i++)
-                                    printf("%s, %d %d %s\n", eid_conv(elist[index].EID, temp2), entity_type, entity_subt, eid_conv(list->eids[i], temp));
+                                    printf("%s, %d %d %s\n", eid_conv(elist[index].eid, temp2), entity_type, entity_subt, eid_conv(list->eids[i], temp));
                                 printf("\n");*/
                             }
                         }
@@ -702,7 +710,7 @@ void deprecate_build_print_relatives(ENTRY *elist, int entry_count) {
     char temp[100] = "";
     int i, j;
     for (i = 0; i < entry_count; i++) {
-        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].EID, temp), elist[i].chunk, elist[i].esize);
+        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].eid, temp), elist[i].chunk, elist[i].esize);
         if (elist[i].related != NULL) {
             printf("------ %5d\n", elist[i].related[0]);
             for (j = 0; j < (signed) elist[i].related[0]; j++) {

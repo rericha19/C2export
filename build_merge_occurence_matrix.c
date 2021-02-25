@@ -142,7 +142,7 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
             default: ;
         }
 
-        list_insert(&entries, elist[i].EID);
+        list_insert(&entries, elist[i].eid);
     }
     return entries;
 }
@@ -385,13 +385,13 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
 
     // find all permaloaded entries, add them to a temporary list, sort the list in descending order by size (biggest first)
     for (i = 0; i < entry_count; i++)
-        if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
+        if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
 
     ENTRY *perma_elist = (ENTRY *) malloc(perma_normal_entry_count * sizeof(ENTRY));        // freed here
     int indexer = 0;
     for (i = 0; i < entry_count; i++)
-        if (list_find(permaloaded, elist[i].EID) != -1 && build_is_normal_chunk_entry(elist[i]))
+        if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_elist[indexer++] = elist[i];
 
     qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
@@ -413,7 +413,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
     // to edit the array of entries that is actually used
     for (i = 0; i < entry_count; i++)
         for (j = 0; j < perma_normal_entry_count; j++)
-            if (elist[i].EID == perma_elist[j].EID)
+            if (elist[i].eid == perma_elist[j].eid)
                 elist[i].chunk = perma_elist[j].chunk;
 
     // counts used chunks

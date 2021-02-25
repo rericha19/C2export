@@ -27,13 +27,13 @@ void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks,
             for (j = 0; j < chunk[8]; j++)
             {
                 offset = *(int*) (chunk + 0x10 + j * 4);
-                elist[*entry_count].EID = from_u32(chunk + offset + 4);
+                elist[*entry_count].eid = from_u32(chunk + offset + 4);
                 elist[*entry_count].chunk = i;
                 elist[*entry_count].esize = -1;
                 if (*(int *)(chunk + offset + 8) == ENTRY_TYPE_GOOL && *(int*)(chunk + offset + 0xC) > 3)
                 {
                     int item1_offset = *(int *)(chunk + offset + 0x10);
-                    gool_table[*(int*)(chunk + offset + item1_offset)] = elist[*entry_count].EID;
+                    gool_table[*(int*)(chunk + offset + item1_offset)] = elist[*entry_count].eid;
                 }
                 (*entry_count)++;
             }
@@ -78,7 +78,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             if (build_get_base_chunk_border(from_u32(entry + 4), chunks, *chunk_border_texture) > 0) continue;
             chunks[*chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));         // freed by build_main
             memcpy(chunks[*chunk_border_texture], entry, CHUNKSIZE);
-            elist[*entry_count].EID = from_u32(entry + 4);
+            elist[*entry_count].eid = from_u32(entry + 4);
             elist[*entry_count].chunk = *chunk_border_texture;
             elist[*entry_count].data = NULL;
             elist[*entry_count].related = NULL;
@@ -90,12 +90,12 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
         if (from_u32(entry) != MAGIC_ENTRY) continue;
         if (build_get_index(from_u32(entry + 4), elist, *entry_count) >= 0) continue;
 
-        elist[*entry_count].EID = from_u32(entry + 4);
+        elist[*entry_count].eid = from_u32(entry + 4);
         elist[*entry_count].chunk = -1;
         elist[*entry_count].esize = fsize;
 
         if (entry[8] == ENTRY_TYPE_ZONE)
-            build_check_item_count(entry, elist[*entry_count].EID);
+            build_check_item_count(entry, elist[*entry_count].eid);
         if (entry[8] == ENTRY_TYPE_ZONE)
             elist[*entry_count].related = build_get_zone_relatives(entry, spawns);
         if (entry[8] == ENTRY_TYPE_GOOL && from_u32(entry + 0xC) == 6)
@@ -107,10 +107,10 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
             int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
             if (gool_type > 63 || gool_type < 0) {
-                printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);
+                printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
                 continue;
             }
-            gool_table[gool_type] = elist[*entry_count].EID;
+            gool_table[gool_type] = elist[*entry_count].eid;
         }
         (*entry_count)++;
         qsort(elist, *entry_count, sizeof(ENTRY), cmp_entry_eid);
@@ -280,6 +280,14 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         }
     }
 
+    /*for (int i = 0; i < subinfo.count; i++) {
+        printf("\nType %2d subtype %2d\n", subinfo.array[i].type, subinfo.array[i].subtype);
+        for (int j = 0; j < subinfo.array[i].dependencies.count; j++) {
+            char temp[100] = "";
+            printf("\t%s\n", eid_conv(subinfo.array[i].dependencies.eids[j], temp));
+        }
+    }*/
+
     *permaloaded = perma;
     *subtype_info = subinfo;
     *collisions = coll;
@@ -336,7 +344,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count) {
         int item = iteration_clone.eids[i];
         int index = build_get_index(item, elist, entry_count);
         if (index == -1) {
-            printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.EID, temp), eid_conv(item, temp2));
+            printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.eid, temp), eid_conv(item, temp2));
             list_remove(&special_entries, item);
             continue;
         }
@@ -346,7 +354,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count) {
             int model_index = build_get_index(model, elist, entry_count);
             if (model_index == -1 || build_entry_type(elist[model_index]) != ENTRY_TYPE_MODEL) {
                 printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
-                       eid_conv(zone.EID, temp), eid_conv(item, temp2), eid_conv(model, temp3));
+                       eid_conv(zone.eid, temp), eid_conv(item, temp2), eid_conv(model, temp3));
                 continue;
             }
 
@@ -376,14 +384,14 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
     if (!(item1len == 0x358 || item1len == 0x318)) return NULL;
 
     camcount = build_get_cam_item_count(entry);
-    if (camcount == 0) return NULL;
+    //if (camcount == 0) return NULL;
 
     entity_count = build_get_entity_count(entry);
     scencount = build_get_scen_count(entry);
     neighbourcount = build_get_neighbour_count(entry);
     relcount = camcount/3 + neighbourcount + scencount + 1;
 
-    if (relcount == 1) return NULL;
+    if (relcount == 0) return NULL;
 
     if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != EID_NONE)
         relcount++;
@@ -409,7 +417,7 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
     for (i = 0; i < entity_count; i++) {
         int *coords_ptr;
         coords_ptr = build_seek_spawn(entry + from_u32(entry + 0x18 + 4 * camcount + 4 * i));
-        if (coords_ptr != NULL) {
+        if (coords_ptr != NULL && spawns != NULL) {
             spawns->spawn_count += 1;
             int cnt = spawns->spawn_count;
             spawns->spawns = (SPAWN *) realloc(spawns->spawns, cnt * sizeof(SPAWN));
@@ -609,7 +617,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
                 char temp1[100] = "";
                 char temp2[100] = "";
                 printf("[warning] %s references %s that does not seem to be present\n",
-                       eid_conv(elist[top_zone].EID, temp1), eid_conv(neighbours[link.zone_index], temp2));
+                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2));
                 continue;
             }
 
@@ -625,7 +633,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
         {
             int cam_count = build_get_cam_count(elist[i].data)/3;
             for (int j = 0; j < cam_count; j++)
-                printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].EID, temp), j, elist[i].distances[j]);
+                printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].eid, temp), j, elist[i].distances[j]);
         }*/
 }
 
@@ -648,7 +656,7 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
             int relative_index;
             relative_index = build_get_index(elist[i].related[j], elist, entry_count);
             if (relative_index < entry_count_base) elist[i].related[j] = 0;
-            if (elist[i].related[j] == elist[i].EID) elist[i].related[j] = 0;
+            if (elist[i].related[j] == elist[i].eid) elist[i].related[j] = 0;
 
             for (k = j + 1; (unsigned) k < elist[i].related[0] + 1; k++)
                 if (elist[i].related[j] == elist[i].related[k])
@@ -711,41 +719,55 @@ int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
 }
 
 int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
-                                  ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS* spawns) {
-    char nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
-    printf("Input the path to the level (.nsf) you want to rebuild:\n");
-    scanf(" %[^\n]", nsfpath);
-    path_fix(nsfpath);
-
+                                  ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS* spawns, int stats_only) {
     FILE *nsf = NULL;
-    if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
-        printf("[ERROR] Could not open selected NSF\n\n");
-        return 1;
+    char nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
+
+    if (!stats_only) {
+        printf("Input the path to the level (.nsf) you want to rebuild:\n");
+        scanf(" %[^\n]", nsfpath);
+        path_fix(nsfpath);
+
+        if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
+            printf("[ERROR] Could not open selected NSF\n\n");
+            return 1;
+        }
+
+        *level_ID = build_ask_ID();
+
+        *(strrchr(nsfpath,'\\') + 1) = '\0';
+        sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, *level_ID);
+        *nsfnew = fopen(lcltemp, "wb");
+        *(strchr(lcltemp, '\0') - 1) = 'D';
+        *nsd = fopen(lcltemp, "wb");
+    }
+    else {
+        printf("Input the path to the level (.nsf) you want to analyze:\n");
+        scanf(" %[^\n]", nsfpath);
+        path_fix(nsfpath);
+
+        if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
+            printf("[ERROR] Could not open selected NSF\n\n");
+            return 1;
+        }
     }
 
-    *level_ID = build_ask_ID();
-
-    *(strrchr(nsfpath,'\\') + 1) = '\0';
-    sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, *level_ID);
-    *nsfnew = fopen(lcltemp, "wb");
-    *(strchr(lcltemp, '\0') - 1) = 'D';
-    *nsd = fopen(lcltemp, "wb");
-
     int nsf_chunk_count = build_get_chunk_count_base(nsf);
+    int lcl_chunk_border_texture = 0;
 
     unsigned char buffer[CHUNKSIZE];
     for (int i = 0; i < nsf_chunk_count; i++) {
         fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf);
         int chunk_entry_count = from_u32(buffer + 0x8);
         if (from_u16(buffer + 0x2) == CHUNK_TYPE_TEXTURE) {
-            chunks[*chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));     // freed by build_main
-            memcpy(chunks[*chunk_border_texture], buffer, CHUNKSIZE);
-            elist[*entry_count].EID = from_u32(buffer + 4);
-            elist[*entry_count].chunk = *chunk_border_texture;
+            chunks[lcl_chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));     // freed by build_main
+            memcpy(chunks[lcl_chunk_border_texture], buffer, CHUNKSIZE);
+            elist[*entry_count].eid = from_u32(buffer + 4);
+            elist[*entry_count].chunk = lcl_chunk_border_texture;
             elist[*entry_count].data = NULL;
             elist[*entry_count].related = NULL;
             *entry_count += 1;
-            *chunk_border_texture += 1;
+            lcl_chunk_border_texture++;
         }
         else
         for (int j = 0; j < chunk_entry_count; j++) {
@@ -753,29 +775,34 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
             int end_offset = build_get_nth_item_offset(buffer, j + 1);
             int entry_size = end_offset - start_offset;
 
-            elist[*entry_count].chunk = -1;
-            elist[*entry_count].EID = from_u32(buffer + start_offset + 0x4);
+            elist[*entry_count].eid = from_u32(buffer + start_offset + 0x4);
             elist[*entry_count].esize = entry_size;
             elist[*entry_count].related = NULL;
             elist[*entry_count].data = (unsigned char *) malloc(entry_size);            // freed by build_main
             memcpy(elist[*entry_count].data, buffer + start_offset, entry_size);
 
+            if (!stats_only || build_entry_type(elist[*entry_count]) == ENTRY_TYPE_SOUND)
+                elist[*entry_count].chunk = -1;
+            else
+                elist[*entry_count].chunk = i;
+
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_ZONE)
-                build_check_item_count(elist[*entry_count].data, elist[*entry_count].EID);
+                build_check_item_count(elist[*entry_count].data, elist[*entry_count].eid);
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_ZONE)
                 elist[*entry_count].related = build_get_zone_relatives(elist[*entry_count].data, spawns);
-            if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && from_u32(elist[*entry_count].data + 0xC) == 6)
-                elist[*entry_count].related = build_get_gool_relatives(elist[*entry_count].data, entry_size);
+            /*if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && from_u32(elist[*entry_count].data + 0xC) == 6)
+                elist[*entry_count].related = build_get_gool_relatives(elist[*entry_count].data, entry_size);*/  // causes issues sometimes
 
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && (*(elist[*entry_count].data + 0xC) == 6)) {
                 int item1_offset =  *(int*)(elist[*entry_count].data + 0x10);
                 int gool_type =     *(int*)(elist[*entry_count].data + item1_offset);
                 if (gool_type > 63 || gool_type < 0) {
                     char temp[100] = "";
-                    printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].EID, temp), gool_type);
+                    printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
                     continue;
                 }
-                gool_table[gool_type] = elist[*entry_count].EID;
+                if (gool_table != NULL)
+                    gool_table[gool_type] = elist[*entry_count].eid;
             }
 
             *entry_count += 1;
@@ -783,5 +810,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
         }
     }
     fclose(nsf);
+    if (chunk_border_texture != NULL)
+        *chunk_border_texture = lcl_chunk_border_texture;
     return 0;
 }

@@ -17,6 +17,7 @@
 #define HEAP_SIZE_INCREMENT             200000
 #define ELAPSED_INCREMENT               0           // clowny as fuck
 
+#define PAYLOAD_MERGE_MORE_STATS        2
 #define PAYLOAD_MERGE_STATS_ONLY        1
 #define PAYLOAD_MERGE_FULL_USE          0
 
@@ -43,6 +44,8 @@
 #define MAX                             1000
 #define PI                              3.1415926535
 #define QUEUE_ITEM_COUNT                2500
+#define ELIST_DEFAULT_SIZE              2500
+#define CHUNK_LIST_DEFAULT_SIZE         2500
 #define PENALTY_MULT_CONSTANT           1000000
 
 #define C2_NEIGHBOURS_START             0x190
@@ -83,6 +86,11 @@
 #define SCEN_RECOLOR                    2919463267u
 #define NSD                             193464746u
 #define REBUILD                         1370829996u
+#define TEXTURE_RECOLOR                 1888631019u
+#define PROP_REMOVE                     4293790963u
+#define PROP_REPLACE                    4259575393u
+#define EID                             193454615u
+#define LL_ANALYZE                      4033854192u
 
 #define STATUS                          3482341513u
 
@@ -175,7 +183,7 @@ typedef struct list {
 
 // used to store entry information in the build script
 typedef struct entry{
-    unsigned int EID;
+    unsigned int eid;
     int esize;
     int chunk;
     unsigned char *data;
@@ -197,6 +205,7 @@ typedef struct payload {
     int *chunks;
     int count;
     unsigned int zone;
+    int cam_path;
 } PAYLOAD;
 
 
@@ -313,6 +322,14 @@ typedef struct hash_table {
 } HASH_TABLE;
 
 
+// used to sort chunks in states in state search to get rid of as many permutations as possible
+typedef struct chunk_str {
+    int chunk_index;
+    unsigned short int chunk_size;
+    unsigned short int entry_count;
+} CHUNK_STR;
+
+
 // misc.c
 void         printstatus(int zonetype, int gamemode, int portmode);
 void         intro_text();
@@ -390,6 +407,7 @@ void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, i
 
 
 // build files in no particular order
+void         build_ll_analyze();
 int          build_align_sound(int input);
 unsigned int build_get_model(unsigned char *anim);
 int          build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
@@ -481,7 +499,7 @@ void         build_texture_count_check(ENTRY *elist, int entry_count, LIST *full
 int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 int          build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
-                                        ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
+                                        ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns, int stats_only);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* config);
 void         build_ask_premerge(int *premerge_type, double *merge_ratio);
@@ -499,8 +517,7 @@ STATE_SEARCH_STR* build_state_search_merge_chunks(STATE_SEARCH_STR* state, unsig
 STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry_count, int first_nonperma_chunk_index, int key_length);
 int          build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length);
 unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int *key_length);
-void         build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count, LIST permaloaded);
-
+void         build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count);
 
 
 // deprecate_build.c
@@ -522,6 +539,7 @@ void         deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, i
                                                 int* chunk_count, int* config, LIST permaloaded);
 
 // side_scripts.cpp
+int          texture_recolor_stupid();
 int          scenery_recolor_main();
 int          texture_copy_main();
 void         prop_main(char* path);
@@ -538,3 +556,5 @@ void         rotate_zone(unsigned char *buffer, char *filepath, double rotation)
 void         rotate_rotate(unsigned int *y,unsigned int *x, double rotation);
 void         crate_rotation_angle();
 void         nsd_gool_table_print(char *fpath);
+void         prop_remove_script();
+void         prop_replace_script();

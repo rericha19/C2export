@@ -118,7 +118,7 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
     for (int i = 0; i < entry_count; i++)
         if (elist[i].chunk != -1) {
             *(int *)(nsddata + C2_NSD_ENTRY_TABLE_OFFSET + 8 * real_entry_count) = elist[i].chunk * 2 + 1;
-            *(int *)(nsddata + C2_NSD_ENTRY_TABLE_OFFSET + 8 * real_entry_count + 4) = elist[i].EID;
+            *(int *)(nsddata + C2_NSD_ENTRY_TABLE_OFFSET + 8 * real_entry_count + 4) = elist[i].eid;
             real_entry_count++;
         }
 

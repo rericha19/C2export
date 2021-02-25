@@ -170,6 +170,7 @@ void hash_destroy_table(HASH_TABLE *table) {
     for (int i = 0; i < table->table_length; i++) {
         for (curr = table->items[i]; curr != NULL; curr = next) {
             next = curr->next;
+            free(curr->entry_chunk_array);
             free(curr);
         }
     }
@@ -238,10 +239,11 @@ HASH_ITEM* hash_find(HASH_TABLE* table, unsigned short int* entry_chunk_array)
 
 
 // initialises hash item
-HASH_ITEM* hash_make_item(unsigned short int* entry_chunk_array) {
+HASH_ITEM* hash_make_item(unsigned short int* entry_chunk_array, int key_length) {
 	HASH_ITEM* item = NULL;
 	item = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));              // freed when table is destroyed
-	item->entry_chunk_array = entry_chunk_array;
+	item->entry_chunk_array = (unsigned short int*) malloc(key_length * sizeof(unsigned short int));
+	memcpy(item->entry_chunk_array, entry_chunk_array, key_length * sizeof(unsigned short int));
 	item->next = NULL;
 
 	return item;
@@ -284,8 +286,9 @@ int hash_add(HASH_TABLE *table, unsigned short int* entry_chunk_array) {
 	int hash_val = table->hash_function(table, entry_chunk_array);
 
 	// if adding it was not successful it gets rid of the item and returns, else goes on
-    HASH_ITEM *curr = hash_make_item(entry_chunk_array);
+    HASH_ITEM *curr = hash_make_item(entry_chunk_array, table->key_length);
     if (!hash_try_to_add_item(table, curr, hash_val)) {
+        free(curr->entry_chunk_array);
         free(curr);
         return -1;
     }

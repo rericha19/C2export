@@ -64,7 +64,7 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
  *  Only looks at the first frame of the animation.
  *
  * \param anim unsigned char*           pointer to the data of the searched animation
- * \return unsigned int                 EID of the animation's model reference (as unsigned int)
+ * \return unsigned int                 eid of the animation's model reference (as unsigned int)
  */
 unsigned int build_get_model(unsigned char *anim) {
     return from_u32(anim + 0x10 + from_u32(anim + 0x10));
@@ -73,7 +73,7 @@ unsigned int build_get_model(unsigned char *anim) {
 
 /** \brief
  *  Used during reading from the folder to prevent duplicate texture chunks.
- *  Searches existing chunks (base level's chunks) and if the texture EID matches
+ *  Searches existing chunks (base level's chunks) and if the texture eid matches
  *  it returns the index of the matching chunk, else returns -1
  *
  * \param textr unsigned int            searched texture chunk eid
@@ -92,13 +92,13 @@ int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int 
 
 
 /** \brief
- *  Searches the entry list looking for the specified EID.
- *  Binary search, entry list should be sorted by EID (ascending).
+ *  Searches the entry list looking for the specified eid.
+ *  Binary search, entry list should be sorted by eid (ascending).
  *
- * \param eid unsigned int              searched EID
+ * \param eid unsigned int              searched eid
  * \param elist ENTRY*                  list of entries
  * \param entry_count int               amount of entries
- * \return int                          index of the searched EID or -1
+ * \return int                          index of the searched eid or -1
  */
 int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
     int first = 0;
@@ -106,9 +106,9 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
     int middle = (first + last)/2;
 
     while (first <= last) {
-        if (elist[middle].EID < eid)
+        if (elist[middle].eid < eid)
             first = middle + 1;
-        else if (elist[middle].EID == eid)
+        else if (elist[middle].eid == eid)
             return middle;
         else
             last = middle - 1;
@@ -121,7 +121,7 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
 
 /** \brief
  *  Searches the properties, finds the offset of the slst property,
- *  returns EID of the slst.
+ *  returns eid of the slst.
  *
  * \param item unsigned char*           camera entity data
  * \return unsigned int                 slst reference or 0 if theres no slst reference property
@@ -377,8 +377,9 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
 // actually unused at the time
 void build_get_box_count(ENTRY *elist, int entry_count) {
     char temp[100] = "";
-    int counter = 0;
+    int box_counter = 0;
     int nitro_counter = 0;
+    int entity_counter = 0;
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
             int entity_count = build_get_entity_count(elist[i].data);
@@ -389,26 +390,29 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
+                if (id == -1)
+                    continue;
+
+                entity_counter++;
+
                 if ((type >= 34 && type <= 43) &&
                     (subt == 0 || subt == 2 || subt == 3 || subt == 4 || subt == 6 || subt == 8 || subt == 9 ||
                      subt == 10 || subt == 11 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
-                /*if (id != -1)*/
                 {
-                    counter++;
-                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].EID, temp), type, subt, id);
+                    box_counter++;
+                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].eid, temp), type, subt, id);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18) {
                     nitro_counter++;
-                    if (type == 43)
-                        printf("gotem %d\n", id);
                     printf("NITRO %3d\n", id);
                 }
             }
         }
     }
-    printf("BOX COUNT:   %3d\n", counter);
-    printf("NITRO COUNT: %3d\n", nitro_counter);
+    printf("ENTITY COUNT: %3d\n", entity_counter);
+    printf("BOX COUNT:    %3d\n", box_counter);
+    printf("NITRO COUNT:  %3d\n", nitro_counter);
 }
 
 DEPENDENCIES build_init_dep() {
@@ -419,6 +423,24 @@ DEPENDENCIES build_init_dep() {
     return dep;
 }
 
+void build_ll_analyze() {
+    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    int chunk_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, chunks, NULL, 1))
+        return;
+
+    for (int i = 0; i < entry_count; i++)
+        if (elist[i].chunk >= chunk_count)
+            chunk_count = elist[i].chunk + 1;
+
+    deprecate_build_payload_merge(elist, entry_count, 0, &chunk_count, PAYLOAD_MERGE_MORE_STATS);
+    printf("Done.\n\n");
+}
+
+
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
  *
@@ -428,9 +450,9 @@ DEPENDENCIES build_init_dep() {
 void build_main(int build_rebuild_flag) {
     FILE *nsfnew = NULL, *nsd = NULL;               // file pointers for input nsf, output nsf (nsfnew) and output nsd
     SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
-    ENTRY elist[2500];                              // array of structs used to store entries, fixed length cuz lazy & struct is small
-    unsigned char *chunks[2500];                    // array of pointers to potentially built chunks, fixed length cuz lazy
-    LIST permaloaded;                               // list containing EIDs of permaloaded entries provided by the user
+    ENTRY elist[ELIST_DEFAULT_SIZE];                // array of structs used to store entries, fixed length cuz lazy & struct is small
+    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE]; // array of pointers to potentially built chunks, fixed length cuz lazy
+    LIST permaloaded;                               // list containing eids of permaloaded entries provided by the user
     DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types
     int level_ID = 0;                               // level ID, used for naming output files and needed in output nsd
@@ -443,7 +465,7 @@ void build_main(int build_rebuild_flag) {
         entry_count_base        = 0,
         entry_count             = 0;
 
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE];                // table w/ EIDs of gool entries, needed for nsd, filled using input entries
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];                // table w/ eids of gool entries, needed for nsd, filled using input entries
     for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
@@ -472,7 +494,7 @@ void build_main(int build_rebuild_flag) {
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
     if (build_rebuild_flag == FUNCTION_REBUILD)
-        input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+        input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0);
 
     chunk_count = chunk_border_texture;
 
@@ -482,6 +504,7 @@ void build_main(int build_rebuild_flag) {
         return;
     }
 
+    //build_get_box_count(elist, entry_count);
 
     // user picks whether to remake load lists or not, also merge method
     build_ask_build_flags(config);
@@ -509,6 +532,8 @@ void build_main(int build_rebuild_flag) {
     build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
+    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
+
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table, config)) {
@@ -516,6 +541,9 @@ void build_main(int build_rebuild_flag) {
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
         return;
     }
+
+    /*for (int i = 0; i < entry_count; i++)
+        list_add(&permaloaded, elist[i].eid);*/
 
     if (load_list_flag == 1) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified
@@ -526,6 +554,7 @@ void build_main(int build_rebuild_flag) {
         build_ask_distances(config);
 
         // build load lists based on user input and metadata, and already or not yet collected metadata
+        printf("Permaloaded len: %d\n", permaloaded.count);
         build_remake_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
     }
 

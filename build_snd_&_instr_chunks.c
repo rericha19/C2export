@@ -130,7 +130,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     // update the chunk assignment in the actual master entry list, this function only worked with copies of the entries
     for (i = 0; i < entry_count; i++)
         for (j = 0; j < sound_entry_count; j++)
-            if (elist[i].EID == sound_list[j].EID)
+            if (elist[i].eid == sound_list[j].eid)
                 elist[i].chunk = sound_list[j].chunk;
     // update chunk count
     *chunk_count = temp_chunk_count + snd_chunk_count;
