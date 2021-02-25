@@ -66,6 +66,11 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                             for (m = 0; m < load_list.array[l].list_length; m++)
                                 list_remove(&list, load_list.array[l].list[m]);
 
+                        // for simultaneous loads and deloads
+                        if (l + 1 != load_list.count)
+                            if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
+                                if (load_list.array[l].index == load_list.array[l + 1].index)
+                                    continue;
                         payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
                         payload.cam_path = j;
                         deprecate_build_insert_payload(&payloads, payload);
@@ -112,6 +117,13 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
             for (int k = 0; k < payloads.count; k++) {
                 printf("%d\t", k + 1);
                 deprecate_build_print_payload(payloads.arr[k], 0);
+                if (payloads.arr[k].count >= 21) {
+                    qsort(payloads.arr[k].chunks, payloads.arr[k].count, sizeof(int), cmpfunc);
+                    printf("    chunks:");
+                    for (int l = 0; l < payloads.arr[k].count; l++)
+                        printf(" %3d", 1 + 2 *payloads.arr[k].chunks[l]);
+                    printf("\n");
+                }
             }
         } else {
             for (int k = 0; k < 10; k++) {
@@ -357,12 +369,17 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     for (int i = 0; i < list.count; i++) {
         int elist_index = build_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].chunk;
+
         is_there = 0;
         for (int j = 0; j < count; j++)
             if (chunks[j] == curr_chunk) is_there = 1;
 
         char temp[100] = "";
         if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min) {
+            if (curr_chunk > 162) {
+                char temp[100];
+                printf("bruh %s %d\n", eid_conv(list.eids[i], temp), curr_chunk);
+            }
             chunks[count] = curr_chunk;
             count++;
         }

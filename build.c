@@ -437,6 +437,27 @@ void build_ll_analyze() {
             chunk_count = elist[i].chunk + 1;
 
     deprecate_build_payload_merge(elist, entry_count, 0, &chunk_count, PAYLOAD_MERGE_MORE_STATS);
+
+    int *chunksizes = (int *) calloc(chunk_count, sizeof(int));
+    for (int i = 0; i < entry_count; i++) {
+        if (build_is_normal_chunk_entry(elist[i])) {
+            int chunk = elist[i].chunk;
+            if (chunksizes[chunk] == 0)
+                chunksizes[chunk] = 0x14;
+            chunksizes[chunk] += 4 + elist[i].esize;
+        }
+    }
+
+    int normal_chunk_counter = 0;
+    int total_size = 0;
+    for (int i = 0; i < chunk_count; i++)
+        if (chunksizes[i] != 0) {
+            normal_chunk_counter++;
+            total_size += chunksizes[i];
+        }
+
+    printf("Average normal chunk portion taken: %.3f%c\n", (100 * (double) total_size / normal_chunk_counter) / CHUNKSIZE, '%');
+    free(chunksizes);
     printf("Done.\n\n");
 }
 

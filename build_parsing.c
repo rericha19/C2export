@@ -768,6 +768,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
             elist[*entry_count].related = NULL;
             *entry_count += 1;
             lcl_chunk_border_texture++;
+            qsort(elist, *entry_count, sizeof(ENTRY), cmp_entry_eid);
         }
         else
         for (int j = 0; j < chunk_entry_count; j++) {

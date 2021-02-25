@@ -83,7 +83,7 @@ void print_help()
     printf("\t replaces (or inserts) a property in target item with prop from source file\n");
 
     printf("LL_ANALYZE\n");
-    printf("\t prints full payload ladder of said level\n");
+    printf("\t prints some stats about the level\n");
 
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
@@ -409,7 +409,10 @@ int pay_cmp(const void *a, const void *b)
     PAYLOAD x = *(PAYLOAD *) a;
     PAYLOAD y = *(PAYLOAD *) b;
 
-    return (y.count - x.count);
+    if (y.count != x.count)
+        return (y.count - x.count);
+    else
+        return (x.zone - y.zone);
 }
 
 // used in LIST struct
