@@ -191,6 +191,12 @@ typedef struct entry{
     unsigned int *visited;
 } ENTRY;
 
+typedef struct draw_item {
+    unsigned char neighbour_zone_index;
+    unsigned short int ID;
+    unsigned char neighbour_item_index;
+} DRAW_ITEM;
+
 
 // used to sort load lists
 typedef struct item {
@@ -409,7 +415,7 @@ void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, i
 LOAD_LIST    build_get_draw_lists(unsigned char *entry, int cam_index);
 LOAD_LIST    build_get_load_lists(unsigned char *entry, int cam_index);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_index);
-
+DRAW_ITEM    build_decode_draw_item(unsigned int value);
 void         build_ll_analyze();
 int          build_align_sound(int input);
 unsigned int build_get_model(unsigned char *anim);

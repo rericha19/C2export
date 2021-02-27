@@ -801,12 +801,16 @@ LIST* build_get_complete_draw_list(ENTRY* elist, int zone_index, int cam_index, 
     for (i = 0; i < cam_length; i++) {
         if (draw_list2.array[sublist_index].index == i) {
             if (draw_list2.array[sublist_index].type == 'B')
-                for (m = 0; m < draw_list2.array[sublist_index].list_length; m++)
-                    list_insert(&list, (draw_list2.array[sublist_index].list[m] & 0x3FF00) >> 8);
+                for (m = 0; m < draw_list2.array[sublist_index].list_length; m++) {
+                    DRAW_ITEM draw_item = build_decode_draw_item(draw_list2.array[sublist_index].list[m]);
+                    list_add(&list, draw_item.ID);
+                }
 
             if (draw_list2.array[sublist_index].type == 'A')
-                for (m = 0; m < draw_list2.array[sublist_index].list_length; m++)
-                    list_remove(&list, (draw_list2.array[sublist_index].list[m] & 0x3FF00) >> 8);
+                for (m = 0; m < draw_list2.array[sublist_index].list_length; m++) {
+                    DRAW_ITEM draw_item = build_decode_draw_item(draw_list2.array[sublist_index].list[m]);
+                    list_remove(&list, draw_item.ID);
+                }
 
             sublist_index++;
         }
