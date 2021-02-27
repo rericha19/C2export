@@ -17,7 +17,6 @@
 #define HEAP_SIZE_INCREMENT             200000
 #define ELAPSED_INCREMENT               0           // clowny as fuck
 
-#define PAYLOAD_MERGE_MORE_STATS        2
 #define PAYLOAD_MERGE_STATS_ONLY        1
 #define PAYLOAD_MERGE_FULL_USE          0
 
@@ -407,6 +406,10 @@ void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, i
 
 
 // build files in no particular order
+LOAD_LIST    build_get_draw_lists(unsigned char *entry, int cam_index);
+LOAD_LIST    build_get_load_lists(unsigned char *entry, int cam_index);
+LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_index);
+
 void         build_ll_analyze();
 int          build_align_sound(int input);
 unsigned int build_get_model(unsigned char *anim);
@@ -437,7 +440,6 @@ void         build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
 void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
-LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_offset);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
 void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);

@@ -107,7 +107,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
             int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
             if (gool_type > 63 || gool_type < 0) {
-                printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
+                printf("[warning] GOOL entry %s has invalid type specified in the first item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
                 continue;
             }
             gool_table[gool_type] = elist[*entry_count].eid;

@@ -444,7 +444,7 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, int first_nonp
     LIST *stored_load_lists = NULL;
 
     int snapshot_counter = 0;
-    int j, k, l, m;
+    int j, l, m;
     for (int i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
         {
@@ -452,70 +452,40 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, int first_nonp
             for (j = 0; j < cam_count; j++)
             {
                 // part that gets load lists
-                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
-                LOAD_LIST load_list = init_load_list();
-                for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
-                {
-                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
-                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
-                    {
-                        int sub_list_offset = offset + 4 * list_count;
-                        int point;
-                        int load_list_item_count = 0;
-                        for (l = 0; l < list_count; l++, sub_list_offset += load_list_item_count * 4) {
-                            load_list_item_count = from_u16(elist[i].data + offset + l * 2);
-                            point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
-
-                            load_list.array[load_list.count].list_length = load_list_item_count;
-                            load_list.array[load_list.count].list = (unsigned int *)
-                                        malloc(load_list_item_count * sizeof(unsigned int));        // freed here
-                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int));
-                            if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
-                                load_list.array[load_list.count].type = 'A';
-                            else
-                                load_list.array[load_list.count].type = 'B';
-                            load_list.array[load_list.count].index = point;
-                            load_list.count++;
-                        }
-                    }
-                    qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
-                }
+                LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
 
                 // part that stores 'snapshots' used by eval_state
                 LIST list = init_list();
                 for (l = 0; l < load_list.count; l++) {
-                        if (load_list.array[l].type == 'A')
-                            for (m = 0; m < load_list.array[l].list_length; m++) {
-                                unsigned int eid = load_list.array[l].list[m];
-                                int index = build_get_index(eid, local_temp_elist, lcl_key_length);
-                                if (index == -1)
-                                    continue;
+                    if (load_list.array[l].type == 'A')
+                        for (m = 0; m < load_list.array[l].list_length; m++) {
+                            unsigned int eid = load_list.array[l].list[m];
+                            int index = build_get_index(eid, local_temp_elist, lcl_key_length);
+                            if (index == -1)
+                                continue;
 
-                                list_add(&list, index);
-                            }
+                            list_add(&list, index);
+                        }
 
-                        if (load_list.array[l].type == 'B')
-                            for (m = 0; m < load_list.array[l].list_length; m++) {
-                                unsigned int eid = load_list.array[l].list[m];
-                                int index = build_get_index(eid, local_temp_elist, lcl_key_length);
-                                if (index == -1)
-                                    continue;
+                    if (load_list.array[l].type == 'B')
+                        for (m = 0; m < load_list.array[l].list_length; m++) {
+                            unsigned int eid = load_list.array[l].list[m];
+                            int index = build_get_index(eid, local_temp_elist, lcl_key_length);
+                            if (index == -1)
+                                continue;
 
-                                list_remove(&list, index);
-                            }
+                            list_remove(&list, index);
+                        }
 
-                        if (stored_load_lists == NULL)
-                            stored_load_lists = (LIST*) malloc(1 * sizeof(LIST));
-                        else
-                            stored_load_lists = (LIST*) realloc(stored_load_lists, (snapshot_counter + 1) * sizeof(LIST));
+                    if (stored_load_lists == NULL)
+                        stored_load_lists = (LIST*) malloc(1 * sizeof(LIST));
+                    else
+                        stored_load_lists = (LIST*) realloc(stored_load_lists, (snapshot_counter + 1) * sizeof(LIST));
 
-                        stored_load_lists[snapshot_counter] = init_list();
-                        list_copy_in(&stored_load_lists[snapshot_counter], list);
-                        snapshot_counter++;
-                    }
-
+                    stored_load_lists[snapshot_counter] = init_list();
+                    list_copy_in(&stored_load_lists[snapshot_counter], list);
+                    snapshot_counter++;
+                }
 
                 delete_load_list(load_list);
             }

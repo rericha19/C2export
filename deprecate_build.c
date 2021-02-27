@@ -15,66 +15,36 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
     PAYLOADS payloads;
     payloads.count = 0;
     payloads.arr = NULL;
-    int i, j, k, l, m;
+    int i, j, l, m;
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
         {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++)
             {
-                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
-                LOAD_LIST load_list = init_load_list();
+                LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+
                 LIST list = init_list();
                 PAYLOAD payload;
-                for (k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++)
-                {
-                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
-                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
-                    {
-                        int sub_list_offset = offset + 4 * list_count;
-                        int point;
-                        int load_list_item_count;
-                        for (l = 0; l < list_count; l++, sub_list_offset += load_list_item_count * 4)
-                        {
-                            load_list_item_count = from_u16(elist[i].data + offset + l * 2);
-                            point = from_u16(elist[i].data + offset + l * 2 + list_count * 2);
-
-                            load_list.array[load_list.count].list_length = load_list_item_count;
-                            load_list.array[load_list.count].list = (unsigned int *)
-                                    malloc(load_list_item_count * sizeof(unsigned int));   // freed here
-                            memcpy(load_list.array[load_list.count].list, elist[i].data + sub_list_offset, load_list_item_count * sizeof(unsigned int));
-                            if (code == ENTITY_PROP_CAM_LOAD_LIST_A)
-                                load_list.array[load_list.count].type = 'A';
-                            else
-                                load_list.array[load_list.count].type = 'B';
-                            load_list.array[load_list.count].index = point;
-                            load_list.count++;
-                        }
-                    }
-                    qsort(load_list.array, load_list.count, sizeof(LOAD), comp);
-                }
-
                 for (l = 0; l < load_list.count; l++)
-                    {
-                        if (load_list.array[l].type == 'A')
-                            for (m = 0; m < load_list.array[l].list_length; m++)
-                                list_add(&list, load_list.array[l].list[m]);
+                {
+                    if (load_list.array[l].type == 'A')
+                        for (m = 0; m < load_list.array[l].list_length; m++)
+                            list_add(&list, load_list.array[l].list[m]);
 
-                        if (load_list.array[l].type == 'B')
-                            for (m = 0; m < load_list.array[l].list_length; m++)
-                                list_remove(&list, load_list.array[l].list[m]);
+                    if (load_list.array[l].type == 'B')
+                        for (m = 0; m < load_list.array[l].list_length; m++)
+                            list_remove(&list, load_list.array[l].list[m]);
 
-                        // for simultaneous loads and deloads
-                        if (l + 1 != load_list.count)
-                            if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
-                                if (load_list.array[l].index == load_list.array[l + 1].index)
-                                    continue;
-                        payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
-                        payload.cam_path = j;
-                        deprecate_build_insert_payload(&payloads, payload);
-                    }
+                    // for simultaneous loads and deloads
+                    if (l + 1 != load_list.count)
+                        if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
+                            if (load_list.array[l].index == load_list.array[l + 1].index)
+                                continue;
+                    payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
+                    payload.cam_path = j;
+                    deprecate_build_insert_payload(&payloads, payload);
+                }
                 delete_load_list(load_list);
             }
         }
@@ -96,6 +66,7 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
 
+
 /** \brief
  *  Deprecate merge function based on payloads.
  *  In each iteration gets a payload ladder and tries to merge chunks loaded by
@@ -113,25 +84,11 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
 
         printf("\n\"Heaviest\" zones:\n");
-        if (stats_only_flag == PAYLOAD_MERGE_MORE_STATS) {
-            for (int k = 0; k < payloads.count; k++) {
-                printf("%d\t", k + 1);
-                deprecate_build_print_payload(payloads.arr[k], 0);
-                if (payloads.arr[k].count >= 21) {
-                    qsort(payloads.arr[k].chunks, payloads.arr[k].count, sizeof(int), cmpfunc);
-                    printf("    chunks:");
-                    for (int l = 0; l < payloads.arr[k].count; l++)
-                        printf(" %3d", 1 + 2 *payloads.arr[k].chunks[l]);
-                    printf("\n");
-                }
-            }
-        } else {
-            for (int k = 0; k < 10; k++) {
-                printf("%d\t", k + 1);
-                deprecate_build_print_payload(payloads.arr[k], 0);
-            }
-            printf("\n");
+        for (int k = 0; k < 10; k++) {
+            printf("%d\t", k + 1);
+            deprecate_build_print_payload(payloads.arr[k], 0);
         }
+        printf("\n");
 
         if (stats_only_flag)
             break;
@@ -376,10 +333,6 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
 
         char temp[100] = "";
         if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min) {
-            if (curr_chunk > 162) {
-                char temp[100];
-                printf("bruh %s %d\n", eid_conv(list.eids[i], temp), curr_chunk);
-            }
             chunks[count] = curr_chunk;
             count++;
         }

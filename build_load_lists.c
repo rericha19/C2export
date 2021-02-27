@@ -794,10 +794,9 @@ LIST* build_get_complete_draw_list(ENTRY* elist, int zone_index, int cam_index, 
     for (i = 0; i < cam_length; i++)
         draw_list[i] = init_list();
 
-    int cam_offset = build_get_nth_item_offset(elist[zone_index].data, cam_index);
-    LOAD_LIST draw_list2 = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, elist[zone_index].data, cam_offset);
-
+    LOAD_LIST draw_list2 = build_get_draw_lists(elist[zone_index].data, cam_index);
     qsort(draw_list2.array, draw_list2.count, sizeof(LOAD), comp2);
+
     int sublist_index = 0;
     for (i = 0; i < cam_length; i++) {
         if (draw_list2.array[sublist_index].index == i) {

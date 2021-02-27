@@ -66,8 +66,10 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++) {
+
+                LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+
                 int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
-                LOAD_LIST load_list = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, elist[i].data, cam_offset);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 LIST list = init_list();

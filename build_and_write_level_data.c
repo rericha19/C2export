@@ -167,7 +167,7 @@ void build_sort_load_lists(ENTRY *elist, int entry_count) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
 
             for (int j = 0; j < cam_count; j++) {
-                int cam_offset = from_u32(elist[i].data + 0x18 + 0xC * j);
+                int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 for (int k = 0; (unsigned) k < from_u32(elist[i].data + cam_offset + 0xC); k++) {
                     int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
                     int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
