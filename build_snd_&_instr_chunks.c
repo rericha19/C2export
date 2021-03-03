@@ -63,7 +63,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
             sound_list[indexer++] = elist[i];
 
     // sort entries in the list by size cuz largest first packing algorithm is used
-    qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_entry_size);
+    qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_func_esize);
 
     // assumes 8 sound chunks, i dont think theres anywhere the vanilla game uses more than 8 soooo
     // default header is 0x14B
@@ -88,7 +88,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
             snd_chunk_count = i + 1;
 
     // not sure why this is here anymore, but i remember things not working properly without this
-    qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_entry_eid);
+    qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_func_eid);
 
     // write the actual chunks, almost identical to the build_normal_chunks function
     for (i = 0; i < snd_chunk_count; i++) {

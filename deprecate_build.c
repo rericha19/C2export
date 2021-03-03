@@ -30,7 +30,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                 {
                     if (load_list.array[l].type == 'A')
                         for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_add(&list, load_list.array[l].list[m]);
+                            list_insert(&list, load_list.array[l].list[m]);
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
@@ -82,7 +82,7 @@ void deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk
 void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count, int stats_only_flag) {
     while (1)    {
         PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, chunk_min);
-        qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
+        qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         printf("\n\"Heaviest\" zones:\n");
         for (int k = 0; k < 10; k++) {
@@ -100,7 +100,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
             break;
         }
 
-        qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmpfunc);
+        qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmp_func_int);
 
         int chunks[1024];
         int count;
@@ -114,7 +114,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
                 if (curr_chunk >= chunk_min)
                     chunks[count++] = curr_chunk;
             }
-            qsort(chunks, count, sizeof(int), cmpfunc);
+            qsort(chunks, count, sizeof(int), cmp_func_int);
             if (deprecate_build_merge_thing(elist, entry_count, chunks, count))
                 check = 1;
 
@@ -262,8 +262,8 @@ int deprecate_build_get_common(int* listA, int countA, int *listB, int countB) {
     int i, j, copy_countA = 0, copy_countB = 0;
     int copyA[100];
     int copyB[100];
-    qsort(listA, countA, sizeof(int), cmpfunc);
-    qsort(listB, countB, sizeof(int), cmpfunc);
+    qsort(listA, countA, sizeof(int), cmp_func_int);
+    qsort(listB, countB, sizeof(int), cmp_func_int);
 
     for (i = 0; i < countA; i++)
         if (i) {

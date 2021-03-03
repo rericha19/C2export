@@ -193,3 +193,13 @@ void build_sort_load_lists(ENTRY *elist, int entry_count) {
         }
     }
 }
+
+
+// used to sort load lists by index
+int load_list_sort(const void *a, const void *b)
+{
+    LOAD_LIST_ITEM_UTIL x = *(LOAD_LIST_ITEM_UTIL *) a;
+    LOAD_LIST_ITEM_UTIL y = *(LOAD_LIST_ITEM_UTIL *) b;
+
+    return (x.index - y.index);
+}

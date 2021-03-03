@@ -15,7 +15,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                 for (l = 0; l < load_list.count; l++) {
                     if (load_list.array[l].type == 'A')
                         for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_add(&list, load_list.array[l].list[m]);
+                            list_insert(&list, load_list.array[l].list[m]);
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
@@ -31,7 +31,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_add(&list2, load_list.array[l].list[m]);
+                            list_insert(&list2, load_list.array[l].list[m]);
                 }
 
                 char temp[100] = "";
@@ -64,7 +64,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                      if (draw_list.array[k].type == 'B')
                         for (int m = 0; m < draw_list.array[k].list_length; m++) {
                             DRAW_ITEM draw_item = build_decode_draw_item(draw_list.array[k].list[m]);
-                            list_add(&ids, draw_item.ID);
+                            list_insert(&ids, draw_item.ID);
                         }
 
                     if (draw_list.array[k].type == 'A')
@@ -85,7 +85,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                     if (draw_list.array[k].type == 'A')
                         for (int m = 0; m < draw_list.array[k].list_length; m++){
                             DRAW_ITEM draw_item = build_decode_draw_item(draw_list.array[k].list[m]);
-                            list_add(&ids2, draw_item.ID);
+                            list_insert(&ids2, draw_item.ID);
                         }
                 }
 
@@ -203,7 +203,7 @@ void build_ll_analyze() {
     if (ans)
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp2);
     else
-        qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp);
+        qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
     for (int k = 0; k < payloads.count; k++) {
 
@@ -213,7 +213,7 @@ void build_ll_analyze() {
         }
 
         if (payloads.arr[k].count >= 21) {
-            qsort(payloads.arr[k].chunks, payloads.arr[k].count, sizeof(int), cmpfunc);
+            qsort(payloads.arr[k].chunks, payloads.arr[k].count, sizeof(int), cmp_func_int);
             printf("    chunks:");
             for (int l = 0; l < payloads.arr[k].count; l++)
                 printf(" %3d", 1 + 2 *payloads.arr[k].chunks[l]);

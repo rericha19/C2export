@@ -709,7 +709,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
             if (!strcmp("scene",lcltemp))
             {
                 sprintf(status.temp,"%s\n",de->d_name);
-                condprint(status);
+                export_condprint(status);
                 file = fopen(fpath,"rb");
                 fseek(file,0,SEEK_END);
                 filesize = ftell(file);
@@ -727,7 +727,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
             if (!strcmp("zone ",lcltemp))
             {
                 sprintf(status.temp,"%s\n",de->d_name);
-                condprint(status);
+                export_condprint(status);
                 file = fopen(fpath,"rb");
                 fseek(file,0,SEEK_END);
                 filesize = ftell(file);

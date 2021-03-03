@@ -4,11 +4,170 @@
 // convoluted, but does the thing (i think)
 // absolutely fucking awful never look at it again
 
+void export_printstatus(int zonetype, int gamemode, int portmode)
+// prints current settings
+{
+    printf("Selected game: Crash %d, porting: %d, zone neighbours (if C2->C3): %d\n\n", gamemode, portmode, zonetype);
+}
+
+
+void export_countwipe(DEPRECATE_INFO_STRUCT *status)
+// wipes the stats
+{
+    for (int i = 0; i < 22; i++)
+        status->counter[i] = 0;
+}
+
+void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
+//creates a string thats a save path for the currently processed file
+{
+    char eidstr[6];
+    eid_conv(eid,eidstr);
+    int port;
+
+    if (status.portmode == 1)
+       {
+        if (status.gamemode == 2) port = 3;
+            else port = 2;
+       }
+    else port = status.gamemode;
+
+    if (strcmp(type,"texture") == 0)
+        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
+    else
+        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
+}
+
+void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status)
+// gets the info about the game and what to do with it
+{
+    char c;
+    int help;
+    printf("Which game are the files from? [2/3]\n");
+    printf("Change to other game's format? [Y/N]\n");
+    scanf("%d %c",&help, &c);
+    c = toupper(c);
+
+    status->gamemode = help;
+
+    if (status->gamemode > 3 || status->gamemode < 2)
+    {
+    	printf("[error] invalid game, defaulting to Crash 2\n");
+    	status->gamemode = 2;
+    }
+
+    if (c == 'Y')
+		status->portmode = 1;
+    else
+		{
+		if (c == 'N')
+			status->portmode = 0;
+        else
+            {
+                printf("[error] invalid portmode, defaulting to 0 (not changing format)\n");
+                status->portmode = 0;
+            }
+    	}
+
+    if (status->gamemode == 2 && status->portmode == 1)
+    {
+        printf("How many neighbours should the exported files' zones have? [8/16]\n");
+        scanf("%d",zonetype);
+        if (!(*zonetype == 8 || *zonetype == 16))
+        {
+            printf("[error] invalid neighbour count, defaulting to 8\n");
+            *zonetype = 8;
+        }
+    }
+    export_printstatus(*zonetype,status->gamemode,status->portmode);
+}
+
+// pops up the dialog that lets you pick where to write most of the print statements
+// broken
+void export_askprint(DEPRECATE_INFO_STRUCT *status)
+{
+    char dest[4][10] = {"to both", "to file", "here", "nowhere"};
+    char pc;
+    printf("Where to print status messages? [N - nowhere|F - file|H - here|B - both] (from fastest to slowest)[broken rn, doesnt write to file]\n");
+    scanf(" %c",&pc);
+    switch (toupper(pc))
+    {
+    case 'B':
+        status->print_en = 3;
+        break;
+    case 'F':
+        status->print_en = 2;
+        break;
+    case 'H':
+        status->print_en = 1;
+        break;
+    case 'N':
+        status->print_en = 0;
+        break;
+    default:
+        status->print_en = 0;
+        printf("[error] invalid input, defaulting to 'N'\n");
+        break;
+    }
+    printf("Printing %s.\n\n",dest[3 - status->print_en]);
+}
+
+void export_countprint(DEPRECATE_INFO_STRUCT status)
+// prints the stats
+{
+    int i;
+    char lcltemp[] = "(fixed)";
+    char lcltemp2[10] = "";
+    char prefix[22][30] = {"Entries: \t", "Animations: \t", "Models:\t\t", "Sceneries: \t", "SLSTs: \t\t", "Textures: \t", "", \
+    "Zones: \t\t",  "", "", "", "GOOL entries: \t", "Sound entries: \t", "Music tracks:\t", "Instruments: \t", "VCOL entries:\t", \
+     "", "", "", "Demo entries:\t", "Speech entries:\t", "T21 entries: \t"};
+
+    for (i = 0; i < 22; i++)
+        if (status.counter[i])
+        {
+            if (status.portmode && (i == 2 || i == 7 || (i == 11 && status.portmode && (status.gamemode == 3))))
+                strcpy(lcltemp2,lcltemp);
+            else strcpy(lcltemp2,"\t");
+            sprintf(status.temp,"%s %s%3d\t",prefix[i],lcltemp2,status.counter[i]);
+            export_condprint(status);
+            for (int j = 0; j < (double) status.counter[i]/6; j++)
+            {
+                sprintf(status.temp,"|");
+                export_condprint(status);
+            }
+            sprintf(status.temp,"\n");
+            export_condprint(status);
+        }
+    sprintf(status.temp,"\n");
+    export_condprint(status);
+}
+
+
+void export_condprint(DEPRECATE_INFO_STRUCT status)
+// conditional print controlled by print_en (print state) - both(3) file(2) here(1) or nowhere(0)
+{
+    switch (status.print_en)
+    {
+    case 3:
+        printf("%s",status.temp);
+        //fprintf(status.flog,"%s",status.temp);
+        break;
+    case 1:
+        printf("%s",status.temp);
+        break;
+    case 2:
+        //fprintf(status.flog,"%s",status.temp);
+        break;
+    default:
+        break;
+    }
+}
+
 int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT* status)
 // does the thing yea
 {
     char sid[3] = "";
-    countwipe(status);
+    export_countwipe(status);
     FILE *file;     //the NSF thats to be exported
     unsigned int numbytes, i; //zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
     char temp[MAX] = ""; //, nsfcheck[4];
@@ -66,7 +225,7 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT* status
     numbytes = ftell(file);
     rewind(file);
     sprintf(status->temp,"The NSF [ID %s] has %d pages/chunks\n",sid,(numbytes / CHUNKSIZE)*2 - 1);
-    condprint(*status);
+    export_condprint(*status);
 
     //hands the chunks to chunk_handler one by one
     for (i = 0; (unsigned int) i < (numbytes/CHUNKSIZE); i++)
@@ -75,10 +234,10 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT* status
         export_chunk_handler(chunk,i,sid,date,zone,status);
     }
     strcpy(status->temp,"\n");
-    condprint(*status);
+    export_condprint(*status);
 
     //closing and printing
-    countprint(*status);
+    export_countprint(*status);
     if (fclose(file) == EOF)
     {
         sprintf(temp,"[ERROR] file could not be closed\n");
@@ -87,7 +246,7 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT* status
     }
     if (status->print_en >= 2) fclose(status->flog);
     sprintf(status->temp,"\n");
-    condprint(*status);
+    export_condprint(*status);
 
     for (i = 0; (unsigned int) i < status->animrefcount; i++)
     {
@@ -108,7 +267,7 @@ int export_chunk_handler(unsigned char *buffer,int chunkid, char *lvlid, char *d
 {
     char ctypes[7][20]={"Normal","Texture","Proto sound","Sound","Wavebank","Speech","Unknown"};
     sprintf(status->temp,"%s chunk \t%03d\n", ctypes[buffer[2]], chunkid*2 +1);
-    condprint(*status);
+    export_condprint(*status);
     switch (buffer[2]) {
         case 0: case 3: case 4: case 5:
             export_normal_chunk(buffer, lvlid, date, zonetype, status);
@@ -168,7 +327,7 @@ int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zone
                 eidnum = (eidnum * BYTE) + entry[7 - j];
             eid_conv(eidnum,eid);
             sprintf(status->temp,"\t T%2d, unknown entry\t%s\n",entry[8],eid);
-            condprint(*status);
+            export_condprint(*status);
             break;
         }
         free(entry);
@@ -187,14 +346,14 @@ int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECA
     for (int i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
 
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
 
     //opening, writing and closing
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), CHUNKSIZE, f);
     fclose(f);
     sprintf(status->temp,"\t\t saved as '%s'\n",path);
-    condprint(*status);
+    export_condprint(*status);
     status->counter[5]++;
     status->counter[0]++;
     return 0;
@@ -310,7 +469,7 @@ void export_scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date
         eidint = (BYTE * eidint) + buffer[7 - i];
     }
     eid_conv(eidint,eid);
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
 
     if (status->portmode)
     {
@@ -348,7 +507,7 @@ void export_scenery(unsigned char *buffer, int entrysize,char *lvlid, char *date
         }
     }
     sprintf(status->temp,"\t\t saved as '%s'\n", path);
-    condprint(*status);
+    export_condprint(*status);
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), entrysize, f);
     fclose(f);
@@ -403,10 +562,10 @@ void export_generic_entry(unsigned char *buffer, int entrysize,char *lvlid, char
         eidint = (BYTE * eidint) + buffer[7 - i];
     eid_conv(eidint,eid);
 
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
 
     sprintf(status->temp,"\t\t saved as '%s'\n", path);
-    condprint(*status);
+    export_condprint(*status);
 
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), entrysize, f);
@@ -493,9 +652,9 @@ void export_gool(unsigned char *buffer, int entrysize,char *lvlid, char *date, D
         }
     }
 
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
     sprintf(status->temp,"\t\t saved as '%s'\n", path);
-    condprint(*status);
+    export_condprint(*status);
     f = fopen(path,"wb");
     fwrite(cpy, sizeof(char), entrysize, f);
     free(cpy);
@@ -601,10 +760,10 @@ void export_zone(unsigned char *buffer, int entrysize,char *lvlid, char *date, i
     }
 
     strncpy(cur_type,"zone",10);
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
 
     sprintf(status->temp,"\t\t saved as '%s'\n", path);
-    condprint(*status);
+    export_condprint(*status);
     f = fopen(path,"wb");
     fwrite(cpy, sizeof(char), lcl_entrysize, f);
     free(cpy);
@@ -646,10 +805,10 @@ void export_model(unsigned char *buffer, int entrysize,char *lvlid, char *date, 
     strncpy(cur_type,"model",10);
     eid_conv(eidint,eid);
 
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
 
     sprintf(status->temp,"\t\t saved as '%s'\n", path);
-    condprint(*status);
+    export_condprint(*status);
     f = fopen(path,"wb");
     fwrite(buffer, sizeof(char), entrysize, f);
     fclose(f);
@@ -706,9 +865,9 @@ void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *d
         }
     }
 
-    make_path(path, cur_type, eidint, lvlid, date, *status);
+    export_make_path(path, cur_type, eidint, lvlid, date, *status);
     sprintf(status->temp,"\t\t saved as '%s'\n", path);
-    condprint(*status);
+    export_condprint(*status);
     f = fopen(path,"wb");
     fwrite(cpy, sizeof(char), entrysize, f);
     free(cpy);

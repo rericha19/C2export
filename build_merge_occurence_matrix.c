@@ -85,7 +85,7 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                             if (load_list.array[sublist_index].index == l) {
                                 if (load_list.array[sublist_index].type == 'A')
                                     for (m = 0; m < load_list.array[sublist_index].list_length; m++)
-                                        list_add(&list, load_list.array[sublist_index].list[m]);
+                                        list_insert(&list, load_list.array[sublist_index].list[m]);
 
                                 if (load_list.array[sublist_index].type == 'B')
                                     for (m = 0; m < load_list.array[sublist_index].list_length; m++)
@@ -106,7 +106,7 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                         for (l = 0; l < load_list.count; l++) {
                             if (load_list.array[l].type == 'A')
                                 for (m = 0; m < load_list.array[l].list_length; m++)
-                                    list_add(&list, load_list.array[l].list[m]);
+                                    list_insert(&list, load_list.array[l].list[m]);
 
                             if (load_list.array[l].type == 'B')
                                 for (m = 0; m < load_list.array[l].list_length; m++)
@@ -255,8 +255,11 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
             int indexB = list_find(entries, list.eids[j]);
 
             // matrix is triangular
-            if (indexA < indexB)
-                swap_ints(&indexA, &indexB);
+            if (indexA < indexB) {
+                int temp = indexA;
+                indexA = indexB;
+                indexB = temp;
+            }
 
             // something done goofed, shouldnt happen
             if (indexA == -1 || indexB == -1)
@@ -396,7 +399,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
         if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_elist[indexer++] = elist[i];
 
-    qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_entry_size);
+    qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_func_esize);
 
     // keep putting them into existing chunks if they fit
     int perma_chunk_count = perma_normal_entry_count;   //idrc about optimising this
@@ -467,5 +470,29 @@ int build_remove_empty_chunks(int index_start, int index_end, int entry_count, E
     }
 
     return index_end;
+}
+
+
+
+// used to sort relations that store how much entries are loaded simultaneously, sorts in descending order, also takes total occurence count into consideration (experimental)
+int relations_cmp2(const void *a, const void *b)
+{
+    RELATION x = *(RELATION *) a;
+    RELATION y = *(RELATION *) b;
+
+    if (y.value - x.value != 0)
+        return y.value - x.value;
+
+    return x.total_occurences - y.total_occurences;
+}
+
+
+// used to sort relations that store how much entries are loaded simultaneously, sorts in descending order
+int relations_cmp(const void *a, const void *b)
+{
+    RELATION x = *(RELATION *) a;
+    RELATION y = *(RELATION *) b;
+
+    return y.value - x.value;
 }
 

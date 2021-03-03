@@ -44,7 +44,7 @@ int main() {
                 printf("\n");
                 break;
             case EXPORT:
-                askmode(&zonetype,&status);
+                export_askmode(&zonetype,&status);
                 printf("Input the path to the file whose contents you want to export:\n");
                 scanf(" %[^\n]",fpath);
                 path_fix(fpath);
@@ -53,7 +53,7 @@ int main() {
                 break;
             case EXPORTALL:
             {
-                askmode(&zonetype, &status);
+                export_askmode(&zonetype, &status);
                 printf("\nInput the path to the folder whose NSFs you want to export:\n");
                 scanf(" %[^\n]",dpath);
                 path_fix(dpath);
@@ -78,10 +78,11 @@ int main() {
                 break;
             }
             case CHANGEPRINT:
-                askprint(&status);
+                export_askprint(&status);
                 break;
             case HASH:
-                hash_main();
+                scanf("%s", fpath);
+                printf("%lu\n", comm_str_hash(fpath));
                 break;
             case WIPE:
                 clrscr();

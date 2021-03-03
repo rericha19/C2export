@@ -113,7 +113,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             gool_table[gool_type] = elist[*entry_count].eid;
         }
         (*entry_count)++;
-        qsort(elist, *entry_count, sizeof(ENTRY), cmp_entry_eid);
+        qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
     }
 
     fclose(file);
@@ -772,7 +772,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
             elist[*entry_count].related = NULL;
             *entry_count += 1;
             lcl_chunk_border_texture++;
-            qsort(elist, *entry_count, sizeof(ENTRY), cmp_entry_eid);
+            qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
         }
         else
         for (int j = 0; j < chunk_entry_count; j++) {
@@ -811,7 +811,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
             }
 
             *entry_count += 1;
-            qsort(elist, *entry_count, sizeof(ENTRY), cmp_entry_eid);
+            qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
         }
     }
     fclose(nsf);

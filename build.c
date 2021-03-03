@@ -238,100 +238,6 @@ DRAW_ITEM build_decode_draw_item(unsigned int value) {
 }
 
 
-
-/** \brief
- *  Deconstructs the load or draw lists and saves into a convenient struct.
- *
- * \param prop_code int                 first of the two list properties (either 0x13B or 0x208)
- * \param entry unsigned char*          entry data
- * \param cam_offset int                offset of the camera item
- * \return LOAD_LIST                    load or draw list struct
- */
-LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
-    int k, l;
-    LOAD_LIST load_list = init_load_list();
-
-    int cam_offset = build_get_nth_item_offset(entry, cam_index);
-    int prop_count = from_u32(entry + cam_offset + OFFSET);
-
-    for (k = 0; (unsigned) k < prop_count; k++) {
-        int code = from_u16(entry + cam_offset + 0x10 + 8 * k);
-        int offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-        int list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
-
-        int next_offset = (k + 1 < prop_count)
-            ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
-            : (from_u16(entry + cam_offset) + cam_offset);
-        int prop_length = next_offset - offset;
-
-        if (code == prop_code || code == prop_code + 1) {
-            int sub_list_offset;
-            int load_list_item_count;
-            int condensed_check1 = 0;
-            int condensed_check2 = 0;
-
-            // i should use 0x40 flag in prop header[4] but my spaghetti doesnt work with it so this thing stays here
-            int potentially_condensed_length = from_u16(entry + offset) * 4 * list_count;
-            potentially_condensed_length += 2 + 2 * list_count;
-            if (from_u16(entry + offset + 2 + 2 * list_count) == 0)
-                potentially_condensed_length += 2;
-            if (potentially_condensed_length == prop_length && list_count > 1)
-                condensed_check1 = 1;
-
-
-            int len = 4 * list_count;
-            for (l = 0; l < list_count; l++)
-                len += from_u16(entry + offset + l * 2) * 4;
-            if (len != prop_length)
-                condensed_check2 = 1;
-
-            if (condensed_check1 && condensed_check2) {
-
-                load_list_item_count = from_u16(entry + offset);
-                unsigned short int *indices = (unsigned short int *) malloc(list_count * sizeof(unsigned short int));
-                memcpy(indices, entry + offset + 2, list_count * 2);
-                sub_list_offset = offset + 2 + 2 * list_count;
-                if (sub_list_offset % 4)
-                    sub_list_offset += 2;
-                for (l = 0; l < list_count; l++) {
-                    load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (unsigned int *)
-                            malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
-                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
-                    if (code == prop_code)
-                        load_list.array[load_list.count].type = 'A';
-                    else
-                        load_list.array[load_list.count].type = 'B';
-                    load_list.array[load_list.count].index = indices[l];
-                    load_list.count++;
-                    sub_list_offset += load_list_item_count * 4;
-                }
-            } else {
-                sub_list_offset = offset + 4 * list_count;;
-                for (l = 0; l < list_count; l++) {
-                    load_list_item_count = from_u16(entry + offset + l * 2);
-                    int index = from_u16(entry + offset + l * 2 + list_count * 2);
-
-                    load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (unsigned int *)
-                            malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
-                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
-                    if (code == prop_code)
-                        load_list.array[load_list.count].type = 'A';
-                    else
-                        load_list.array[load_list.count].type = 'B';
-                    load_list.array[load_list.count].index = index;
-                    load_list.count++;
-                    sub_list_offset += load_list_item_count * 4;
-                }
-            }
-        }
-    }
-
-    return load_list;
-}
-
-
 /** \brief
  *  Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
  *
@@ -482,20 +388,135 @@ DEPENDENCIES build_init_dep() {
     return dep;
 }
 
+// used to sort load lists and to avoid stuff getting removed before its been added
+int cmp_func_load(const void *a, const void *b)
+{
+    LOAD x = *(LOAD *) a;
+    LOAD y = *(LOAD *) b;
 
+    if (x.index != y.index)
+        return (x.index - y.index);
+    else
+        return (x.type - y.type);
+}
+
+// used to sort draw list to avoid stuff getting removed before its been added
+int cmp_func_load2(const void *a, const void *b)
+{
+    LOAD x = *(LOAD *) a;
+    LOAD y = *(LOAD *) b;
+
+    if (x.index != y.index)
+        return (x.index - y.index);
+    else
+        return (y.type - x.type);
+}
 
 LOAD_LIST build_get_draw_lists(unsigned char *entry, int cam_index) {
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
-    qsort(temp.array, temp.count, sizeof(LOAD), comp2);
+    qsort(temp.array, temp.count, sizeof(LOAD), cmp_func_load2);
     return temp;
 }
 
 LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index) {
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
-    qsort(temp.array, temp.count, sizeof(LOAD), comp);
+    qsort(temp.array, temp.count, sizeof(LOAD), cmp_func_load);
     return temp;
+}
+
+
+/** \brief
+ *  Deconstructs the load or draw lists and saves into a convenient struct.
+ *
+ * \param prop_code int                 first of the two list properties (either 0x13B or 0x208)
+ * \param entry unsigned char*          entry data
+ * \param cam_offset int                offset of the camera item
+ * \return LOAD_LIST                    load or draw list struct
+ */
+LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
+    int k, l;
+    LOAD_LIST load_list = init_load_list();
+
+    int cam_offset = build_get_nth_item_offset(entry, cam_index);
+    int prop_count = from_u32(entry + cam_offset + OFFSET);
+
+    for (k = 0; (unsigned) k < prop_count; k++) {
+        int code = from_u16(entry + cam_offset + 0x10 + 8 * k);
+        int offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+        int list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
+
+        int next_offset = (k + 1 < prop_count)
+            ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
+            : (from_u16(entry + cam_offset) + cam_offset);
+        int prop_length = next_offset - offset;
+
+        if (code == prop_code || code == prop_code + 1) {
+            int sub_list_offset;
+            int load_list_item_count;
+            int condensed_check1 = 0;
+            int condensed_check2 = 0;
+
+            // i should use 0x40 flag in prop header[4] but my spaghetti doesnt work with it so this thing stays here
+            int potentially_condensed_length = from_u16(entry + offset) * 4 * list_count;
+            potentially_condensed_length += 2 + 2 * list_count;
+            if (from_u16(entry + offset + 2 + 2 * list_count) == 0)
+                potentially_condensed_length += 2;
+            if (potentially_condensed_length == prop_length && list_count > 1)
+                condensed_check1 = 1;
+
+
+            int len = 4 * list_count;
+            for (l = 0; l < list_count; l++)
+                len += from_u16(entry + offset + l * 2) * 4;
+            if (len != prop_length)
+                condensed_check2 = 1;
+
+            if (condensed_check1 && condensed_check2) {
+
+                load_list_item_count = from_u16(entry + offset);
+                unsigned short int *indices = (unsigned short int *) malloc(list_count * sizeof(unsigned short int));
+                memcpy(indices, entry + offset + 2, list_count * 2);
+                sub_list_offset = offset + 2 + 2 * list_count;
+                if (sub_list_offset % 4)
+                    sub_list_offset += 2;
+                for (l = 0; l < list_count; l++) {
+                    load_list.array[load_list.count].list_length = load_list_item_count;
+                    load_list.array[load_list.count].list = (unsigned int *)
+                            malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
+                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
+                    if (code == prop_code)
+                        load_list.array[load_list.count].type = 'A';
+                    else
+                        load_list.array[load_list.count].type = 'B';
+                    load_list.array[load_list.count].index = indices[l];
+                    load_list.count++;
+                    sub_list_offset += load_list_item_count * 4;
+                }
+            } else {
+                sub_list_offset = offset + 4 * list_count;;
+                for (l = 0; l < list_count; l++) {
+                    load_list_item_count = from_u16(entry + offset + l * 2);
+                    int index = from_u16(entry + offset + l * 2 + list_count * 2);
+
+                    load_list.array[load_list.count].list_length = load_list_item_count;
+                    load_list.array[load_list.count].list = (unsigned int *)
+                            malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
+                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
+                    if (code == prop_code)
+                        load_list.array[load_list.count].type = 'A';
+                    else
+                        load_list.array[load_list.count].type = 'B';
+                    load_list.array[load_list.count].index = index;
+                    load_list.count++;
+                    sub_list_offset += load_list_item_count * 4;
+                }
+            }
+        }
+    }
+
+    return load_list;
 }
 
 
@@ -590,7 +611,7 @@ void build_main(int build_rebuild_flag) {
     build_sound_chunks(elist, entry_count, &chunk_count, chunks);
     chunk_border_sounds = chunk_count;
 
-    qsort(elist, entry_count, sizeof(ENTRY), cmp_entry_eid);
+    qsort(elist, entry_count, sizeof(ENTRY), cmp_func_eid);
 
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
@@ -601,7 +622,7 @@ void build_main(int build_rebuild_flag) {
     }
 
     /*for (int i = 0; i < entry_count; i++)
-        list_add(&permaloaded, elist[i].eid);*/
+        list_insert(&permaloaded, elist[i].eid);*/
 
     if (load_list_flag == 1) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified

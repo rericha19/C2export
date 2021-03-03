@@ -1,10 +1,5 @@
 #include "macros.h"
 
-void printstatus(int zonetype, int gamemode, int portmode)
-// prints current settings
-{
-    printf("Selected game: Crash %d, porting: %d, zone neighbours (if C2->C3): %d\n\n", gamemode, portmode, zonetype);
-}
 
 void intro_text()
  //self-explanatory
@@ -98,57 +93,6 @@ void print_help()
     printf("\n\n");
 }
 
-void countprint(DEPRECATE_INFO_STRUCT status)
-// prints the stats
-{
-    int i;
-    char lcltemp[] = "(fixed)";
-    char lcltemp2[10] = "";
-    char prefix[22][30] = {"Entries: \t", "Animations: \t", "Models:\t\t", "Sceneries: \t", "SLSTs: \t\t", "Textures: \t", "", \
-    "Zones: \t\t",  "", "", "", "GOOL entries: \t", "Sound entries: \t", "Music tracks:\t", "Instruments: \t", "VCOL entries:\t", \
-     "", "", "", "Demo entries:\t", "Speech entries:\t", "T21 entries: \t"};
-
-    for (i = 0; i < 22; i++)
-        if (status.counter[i])
-        {
-            if (status.portmode && (i == 2 || i == 7 || (i == 11 && status.portmode && (status.gamemode == 3))))
-                strcpy(lcltemp2,lcltemp);
-            else strcpy(lcltemp2,"\t");
-            sprintf(status.temp,"%s %s%3d\t",prefix[i],lcltemp2,status.counter[i]);
-            condprint(status);
-            for (int j = 0; j < (double) status.counter[i]/6; j++)
-            {
-                sprintf(status.temp,"|");
-                condprint(status);
-            }
-            sprintf(status.temp,"\n");
-            condprint(status);
-        }
-    sprintf(status.temp,"\n");
-    condprint(status);
-}
-
-
-void condprint(DEPRECATE_INFO_STRUCT status)
-// conditional print controlled by print_en (print state) - both(3) file(2) here(1) or nowhere(0)
-{
-    switch (status.print_en)
-    {
-    case 3:
-        printf("%s",status.temp);
-        fprintf(status.flog,"%s",status.temp);
-        break;
-    case 1:
-        printf("%s",status.temp);
-        break;
-    case 2:
-        fprintf(status.flog,"%s",status.temp);
-        break;
-    default:
-        break;
-    }
-}
-
 void clrscr()
 // wipes the current screen
 {
@@ -176,45 +120,6 @@ unsigned int from_u16(unsigned char *data)
 }
 
 
-void countwipe(DEPRECATE_INFO_STRUCT *status)
-// wipes the stats
-{
-    for (int i = 0; i < 22; i++)
-        status->counter[i] = 0;
-}
-
-
-// pops up the dialog that lets you pick where to write most of the print statements
-// broken
-void askprint(DEPRECATE_INFO_STRUCT *status)
-{
-    char dest[4][10] = {"to both", "to file", "here", "nowhere"};
-    char pc;
-    printf("Where to print status messages? [N - nowhere|F - file|H - here|B - both] (from fastest to slowest)[broken rn, doesnt write to file]\n");
-    scanf(" %c",&pc);
-    switch (toupper(pc))
-    {
-    case 'B':
-        status->print_en = 3;
-        break;
-    case 'F':
-        status->print_en = 2;
-        break;
-    case 'H':
-        status->print_en = 1;
-        break;
-    case 'N':
-        status->print_en = 0;
-        break;
-    default:
-        status->print_en = 0;
-        printf("[error] invalid input, defaulting to 'N'\n");
-        break;
-    }
-    printf("Printing %s.\n\n",dest[3 - status->print_en]);
-}
-
-
 //changes the input string to a number, i just copied this over from somewhere
 unsigned long comm_str_hash(const char *str)
 {
@@ -226,24 +131,6 @@ unsigned long comm_str_hash(const char *str)
     return comm_str_hash;
 }
 
- // used to get hash values for commands in main
-int hash_main()
-{
-    char s[MAX];
-
-    scanf("%s",s);
-    printf("%lu\n",comm_str_hash(s));
-
-    return 0;
-}
-
-// swaps two int variables' values
-void swap_ints(int *a, int *b)
-{
-    int temp = *a;
-    *a = *b;
-    *b = temp;
-}
 
 //converts int eid to string eid
 const char* eid_conv(unsigned int m_value, char *eid)
@@ -299,112 +186,15 @@ unsigned int nsfChecksum(const unsigned char *data)
 }
 
 
-void make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
-//creates a string thats a save path for the currently processed file
-{
-    char eidstr[6];
-    eid_conv(eid,eidstr);
-    int port;
-
-    if (status.portmode == 1)
-       {
-        if (status.gamemode == 2) port = 3;
-            else port = 2;
-       }
-    else port = status.gamemode;
-
-    if (strcmp(type,"texture") == 0)
-        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
-    else
-        sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
-}
-
-void askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status)
-// gets the info about the game and what to do with it
-{
-    char c;
-    int help;
-    printf("Which game are the files from? [2/3]\n");
-    printf("Change to other game's format? [Y/N]\n");
-    scanf("%d %c",&help, &c);
-    c = toupper(c);
-
-    status->gamemode = help;
-
-    if (status->gamemode > 3 || status->gamemode < 2)
-    {
-    	printf("[error] invalid game, defaulting to Crash 2\n");
-    	status->gamemode = 2;
-    }
-
-    if (c == 'Y')
-		status->portmode = 1;
-    else
-		{
-		if (c == 'N')
-			status->portmode = 0;
-        else
-            {
-                printf("[error] invalid portmode, defaulting to 0 (not changing format)\n");
-                status->portmode = 0;
-            }
-    	}
-
-    if (status->gamemode == 2 && status->portmode == 1)
-    {
-        printf("How many neighbours should the exported files' zones have? [8/16]\n");
-        scanf("%d",zonetype);
-        if (!(*zonetype == 8 || *zonetype == 16))
-        {
-            printf("[error] invalid neighbour count, defaulting to 8\n");
-            *zonetype = 8;
-        }
-    }
-    printstatus(*zonetype,status->gamemode,status->portmode);
-}
-
-// factorial of n
-long long int fact(int n)
-{
-    long long int result = 1;
-    for (int i = 1; i <= n; i++)
-        result *= i;
-
-    return result;
-}
-
 // integer comparison func for qsort
-int cmpfunc(const void *a, const void *b)
+int cmp_func_int(const void *a, const void *b)
 {
    return (*(int*) a - *(int*) b);
 }
 
-// used to sort load lists and to avoid stuff getting removed before its been added
-int comp(const void *a, const void *b)
-{
-    LOAD x = *(LOAD *) a;
-    LOAD y = *(LOAD *) b;
-
-    if (x.index != y.index)
-        return (x.index - y.index);
-    else
-        return (x.type - y.type);
-}
-
-// used to sort draw list to avoid stuff getting removed before its been added
-int comp2(const void *a, const void *b)
-{
-    LOAD x = *(LOAD *) a;
-    LOAD y = *(LOAD *) b;
-
-    if (x.index != y.index)
-        return (x.index - y.index);
-    else
-        return (y.type - x.type);
-}
 
 // used to sort payload ladder in descending order
-int pay_cmp(const void *a, const void *b)
+int cmp_func_payload(const void *a, const void *b)
 {
     PAYLOAD x = *(PAYLOAD *) a;
     PAYLOAD y = *(PAYLOAD *) b;
@@ -416,7 +206,7 @@ int pay_cmp(const void *a, const void *b)
 }
 
 // used in LIST struct
-int list_comp(const void *a, const void *b)
+int cmp_func_uint(const void *a, const void *b)
 {
     unsigned int x = *(unsigned int*) a;
     unsigned int y = *(unsigned int*) b;
@@ -424,95 +214,17 @@ int list_comp(const void *a, const void *b)
     return (x - y);
 }
 
-// used to sort load lists by index
-int load_list_sort(const void *a, const void *b)
-{
-    LOAD_LIST_ITEM_UTIL x = *(LOAD_LIST_ITEM_UTIL *) a;
-    LOAD_LIST_ITEM_UTIL y = *(LOAD_LIST_ITEM_UTIL *) b;
 
-    return (x.index - y.index);
-}
-
-
-// used by cmp_entry
-int to_enum(const void *a)
-{
-    ENTRY x = *((ENTRY *) a);
-    int result = 0;
-
-    if (x.data == NULL) return 0;
-
-    switch(*(int *)(x.data + 0x8))
-    {
-        case 0xB:
-            result += 1;
-            break;
-        case 0x2:
-            result += 2;
-            break;
-        case 0x1:
-            result += 3;
-            break;
-        case 0x7:
-            result += 4;
-            break;
-        case 0x4:
-            result += 5;
-            break;
-        case 0x3:
-            result += 6;
-            break;
-        default:
-            result += MAX;
-            break;
-    }
-
-    return result;
-}
-
-int cmp_entry(const void *a, const void *b)
-// by entry type
-{
-    int x = to_enum(a);
-    int y = to_enum(b);
-
-    if (x != y) return (x - y);
-
-    return ((*(ENTRY*) a).eid - (*(ENTRY *) b).eid);
-}
-
-int cmp_entry_eid(const void *a, const void *b)
+int cmp_func_eid(const void *a, const void *b)
 // by entry eid
 {
     return ((*(ENTRY*) a).eid - (*(ENTRY *) b).eid);
 }
 
 // used to sort entries by size
-int cmp_entry_size(const void *a, const void *b)
+int cmp_func_esize(const void *a, const void *b)
 {
     return ((*(ENTRY *) b).esize - (*(ENTRY *) a).esize);
-}
-
-// used to sort relations that store how much entries are loaded simultaneously, sorts in descending order
-int relations_cmp(const void *a, const void *b)
-{
-    RELATION x = *(RELATION *) a;
-    RELATION y = *(RELATION *) b;
-
-    return y.value - x.value;
-}
-
-
-// used to sort relations that store how much entries are loaded simultaneously, sorts in descending order, also takes total occurence count into consideration (experimental)
-int relations_cmp2(const void *a, const void *b)
-{
-    RELATION x = *(RELATION *) a;
-    RELATION y = *(RELATION *) b;
-
-    if (y.value - x.value != 0)
-        return y.value - x.value;
-
-    return x.total_occurences - y.total_occurences;
 }
 
 
@@ -588,7 +300,7 @@ void list_add(LIST *list, unsigned int eid)
         list->eids = (unsigned int *) malloc(sizeof(unsigned int));         // not freed, big issue
     list->eids[list->count] = eid;
     list->count++;
-    qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
+    qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
 }
 
 /** \brief
@@ -606,7 +318,7 @@ void list_remove(LIST *list, unsigned int eid)
     list->eids[index] = list->eids[list->count - 1];
     list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int));    // realloc is slow
     list->count--;
-    qsort(list->eids, list->count, sizeof(unsigned int), list_comp);
+    qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
 }
 
 /** \brief
@@ -705,9 +417,6 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_ind
 
     elist[zone_index].distances[camera_index] = n;
     elist[zone_index].visited[camera_index] = 1;
-
-    /*char temp[100] = "";
-    printf("Zone %s campath %d distance %d\n", eid_conv(elist[zone_index].eid, temp), camera_index, n);*/
 }
 
 
@@ -722,8 +431,6 @@ void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
 int build_get_nth_item_offset(unsigned char *entry, int n) {
     return from_u32(entry + 0x10 + 4 * n);
 }
-
-
 
 // copied from stackoverflow
 int getdelim(char **linep, int *n, int delim, FILE *fp){
@@ -762,3 +469,4 @@ int getdelim(char **linep, int *n, int delim, FILE *fp){
 int getline(char **linep, int *n, FILE *fp){
     return getdelim(linep, n, '\n', fp);
 }
+

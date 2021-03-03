@@ -464,7 +464,7 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, int first_nonp
                             if (index == -1)
                                 continue;
 
-                            list_add(&list, index);
+                            list_insert(&list, index);
                         }
 
                     if (load_list.array[l].type == 'B')
