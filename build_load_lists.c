@@ -236,11 +236,6 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
         // get a list of entities drawn within set distance of current camera point
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
 
-        /*char temp[100] = "";
-        printf("%s point %2d:\n", eid_conv(elist[zone_index].eid, temp), i);
-        for (j = 0; j < entity_list.count; j++)
-            printf("\t%d\n", entity_list.eids[j]);*/
-
         neighbour_list.count = neighbour_list.count;  // this has to be here otherwise VS optimises it away or some shit, idk im scared
         // get a list of types and subtypes from the entity list
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
@@ -795,7 +790,6 @@ LIST* build_get_complete_draw_list(ENTRY* elist, int zone_index, int cam_index, 
         draw_list[i] = init_list();
 
     LOAD_LIST draw_list2 = build_get_draw_lists(elist[zone_index].data, cam_index);
-    qsort(draw_list2.array, draw_list2.count, sizeof(LOAD), comp2);
 
     int sublist_index = 0;
     for (i = 0; i < cam_length; i++) {

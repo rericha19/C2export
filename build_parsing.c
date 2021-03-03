@@ -758,6 +758,10 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
     unsigned char buffer[CHUNKSIZE];
     for (int i = 0; i < nsf_chunk_count; i++) {
         fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf);
+        unsigned int checksum_calc = nsfChecksum(buffer);
+        unsigned int checksum_used = *(unsigned int*)(buffer + 0xC);
+        if (checksum_calc != checksum_used)
+            printf("Chunk %3d has invalid checksum\n", 2 * i + 1);
         int chunk_entry_count = from_u32(buffer + 0x8);
         if (from_u16(buffer + 0x2) == CHUNK_TYPE_TEXTURE) {
             chunks[lcl_chunk_border_texture] = (unsigned char *) calloc(CHUNKSIZE, sizeof(unsigned char));     // freed by build_main

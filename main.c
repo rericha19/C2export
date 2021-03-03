@@ -128,7 +128,7 @@ int main() {
                 //printf("EID string:\n");
                 scanf(" %[^\n]",fpath);
                 unsigned int eid = eid_to_int(fpath);
-                printf("%X %X %X %X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
+                printf("%02X %02X %02X %02X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
                 break;
             case PROP_REMOVE:
                 prop_remove_script();

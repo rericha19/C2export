@@ -56,6 +56,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (int j = 0; j < cam_count; j++) {
+
                 LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
 
                 LIST ids = init_list();
@@ -192,12 +193,12 @@ void build_ll_analyze() {
     /* gets and prints payload ladder */
     PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, 0);
 
-    printf("\nPick payload print option:\n");
+    int ans = 1;
+    /*printf("\nPick payload print option:\n");
     printf("\tsort by payload, print only payloads over 20 [0]\n");
     printf("\tsort by zones' names, printf all payloads    [1]\n");
-    int ans = 0;
     scanf("%d", &ans);
-    printf("\n");
+    printf("\n");*/
 
     if (ans)
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), pay_cmp2);

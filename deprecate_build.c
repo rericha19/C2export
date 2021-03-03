@@ -41,6 +41,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                         if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
                             if (load_list.array[l].index == load_list.array[l + 1].index)
                                 continue;
+
                     payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
                     payload.cam_path = j;
                     deprecate_build_insert_payload(&payloads, payload);
