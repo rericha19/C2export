@@ -326,6 +326,7 @@ int texture_copy_main()
     fwrite(texture2, 65536, 1, file2);
 
     fclose(file1);
+    rewind(file2);
     fclose(file2);
 
     return 0;

@@ -274,7 +274,7 @@ typedef struct link {
     unsigned char zone_index;
     unsigned char cam_index;
     unsigned char flag;
-}   CAMERA_LINK;
+} CAMERA_LINK;
 
 
 // entity/item property
@@ -385,6 +385,7 @@ void         graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index);
 int          build_get_nth_item_offset(unsigned char *entry, int n);
 int          getline(char **linep, int *n, FILE *fp);
 int          getdelim(char **linep, int *n, int delim, FILE *fp);
+DEPENDENCIES build_init_dep();
 
 
 
@@ -415,6 +416,7 @@ LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_index)
 DRAW_ITEM    build_decode_draw_item(unsigned int value);
 void         build_ll_analyze();
 int          build_align_sound(int input);
+unsigned int build_get_zone_track(unsigned char *entry);
 unsigned int build_get_model(unsigned char *anim);
 int          build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
 void         build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base);

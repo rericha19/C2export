@@ -70,6 +70,15 @@ unsigned int build_get_model(unsigned char *anim) {
     return from_u32(anim + 0x10 + from_u32(anim + 0x10));
 }
 
+unsigned int build_get_zone_track(unsigned char *entry) {
+    int item1off = build_get_nth_item_offset(entry, 0);
+    int item2off = build_get_nth_item_offset(entry, 1);
+    int item1len = item2off - item1off;
+
+    unsigned int music_entry = from_u32(entry + item1off + C2_MUSIC_REF + item1len - 0x318);
+    return music_entry;
+}
+
 
 /** \brief
  *  Used during reading from the folder to prevent duplicate texture chunks.
@@ -380,13 +389,6 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
     printf("NITRO COUNT:  %3d\n", nitro_counter);
 }
 
-DEPENDENCIES build_init_dep() {
-    DEPENDENCIES dep;
-    dep.array = NULL;
-    dep.count = 0;
-
-    return dep;
-}
 
 // used to sort load lists and to avoid stuff getting removed before its been added
 int cmp_func_load(const void *a, const void *b)

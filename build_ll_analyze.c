@@ -2,7 +2,9 @@
 
 
 void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
-    printf("\n");
+    printf("\nLoad list integrity check:\n");
+    int issue_found = 0;
+
     int i, j, l, m;
     for (i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
@@ -35,8 +37,10 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                 }
 
                 char temp[100] = "";
-                if (list.count || list2.count)
+                if (list.count || list2.count) {
+                    issue_found = 1;
                     printf("Zone %5s cam path %d load list incorrect:\n", eid_conv(elist[i].eid, temp), j);
+                }
 
                 for (l = 0; l < list.count; l++)
                     printf("\t%5s (never deloaded)\n", eid_conv(list.eids[l], temp));
@@ -47,10 +51,14 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
             }
         }
     }
+    if (issue_found == 0)
+        printf("No load list issues were found\n\n");
 }
 
 
 void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
+    printf("Draw list integrity check:\n");
+    int issue_found = 0;
 
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
@@ -90,8 +98,10 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                 }
 
                 char temp[100] = "", temp2[100] = "";
-                if (ids.count || ids2.count)
+                if (ids.count || ids2.count) {
+                    issue_found = 1;
                     printf("Zone %s cam path %d draw list incorrect:\n", eid_conv(elist[i].eid, temp), j);
+                }
 
                 for (int l = 0; l < ids.count; l++)
                     printf("\t%5d (never undrawn)\n", ids.eids[l]);
@@ -140,6 +150,9 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
             }
         }
     }
+    if (issue_found == 0)
+        printf("No draw list issues were found\n");
+    printf("\n");
 }
 
 void build_ll_print_avg(ENTRY *elist, int entry_count) {
@@ -182,15 +195,8 @@ int pay_cmp2(const void *a, const void *b) {
         return x.cam_path - y.cam_path;
 }
 
-void build_ll_analyze() {
-    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
-    ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
-
-    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, chunks, NULL, 1))
-        return;
-
-    /* gets and prints payload ladder */
+void build_ll_print_full_payload_info(ENTRY *elist, int entry_count) {
+ /* gets and prints payload ladder */
     PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, 0);
 
     int ans = 1;
@@ -205,6 +211,7 @@ void build_ll_analyze() {
     else
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
+    printf("\nFull payload info (max payload of each camera path):\n");
     for (int k = 0; k < payloads.count; k++) {
 
         if (payloads.arr[k].count >= 21 || ans == 1) {
@@ -220,11 +227,139 @@ void build_ll_analyze() {
             printf("\n");
         }
     }
+    printf("\n");
+}
 
+int cmp_func_dep(const void *a, const void *b) {
+    DEPENDENCY x = *(DEPENDENCY *) a;
+    DEPENDENCY y = *(DEPENDENCY *) b;
+
+    if (x.type != y.type)
+        return x.type - y.type;
+    else
+        return x.subtype - y.subtype;
+}
+
+void build_ll_various_stats(ENTRY *elist, int entry_count) {
+    int total_entity_count = 0;
+    DEPENDENCIES deps = build_init_dep();
+
+    for (int i = 0; i < entry_count; i++)
+    if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+        int camera_count = build_get_cam_item_count(elist[i].data);
+        int entity_count = build_get_entity_count(elist[i].data);
+
+        for (int j = 0; j < entity_count; j++) {
+            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+            int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+            int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+            int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+
+            if (id == -1) continue;
+            total_entity_count++;
+
+            int found_before = 0;
+            for (int k = 0; k < deps.count; k++)
+            if (deps.array[k].type == type && deps.array[k].subtype == subt) {
+                list_insert(&deps.array[k].dependencies, total_entity_count);
+                found_before = 1;
+            }
+            if (!found_before) {
+                deps.array = realloc(deps.array, (deps.count + 1) * sizeof(DEPENDENCY));
+                deps.array[deps.count].type = type;
+                deps.array[deps.count].subtype = subt;
+                deps.array[deps.count].dependencies = init_list();
+                list_insert(&deps.array[deps.count].dependencies, total_entity_count);
+                deps.count++;
+            }
+        }
+    }
+
+    qsort(deps.array, deps.count, sizeof(DEPENDENCY), cmp_func_dep);
+    printf("Entity type/subtype usage:\n");
+    for (int i = 0; i < deps.count; i++)
+        printf("Type %2d, subtype %2d: %3d entities\n", deps.array[i].type, deps.array[i].subtype, deps.array[i].dependencies.count);
+    printf("\n");
+    printf("Miscellaneous stats:\n");
+    printf("Entity count:\t%4d\n", total_entity_count);
+    printf("Entry count:\t%4d\n", entry_count);
+}
+
+
+void build_ll_check_zone_references(ENTRY *elist, int entry_count) {
+
+    int issue_found = 0;
+    char temp1[100] = "";
+    char temp2[100] = "";
+    printf("Zones' references check (only zones with camera paths are checked):\n");
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+            int cam_item_count = build_get_cam_item_count(elist[i].data);
+            if (cam_item_count == 0) continue;
+
+            LIST sceneries = build_get_sceneries(elist[i].data);
+            LIST neighbours = build_get_neighbours(elist[i].data);
+            unsigned int music_entry = build_get_zone_track(elist[i].data);
+
+            int music_entry_index = build_get_index(music_entry, elist, entry_count);
+            if (music_entry_index == -1 && music_entry != EID_NONE) {
+                issue_found = 1;
+                printf("Zone %5s references track %5s, which isnt present in the level\n",
+                           eid_conv(elist[i].eid, temp1), eid_conv(music_entry, temp2));
+            }
+
+            for (int j = 0; j < sceneries.count; j++) {
+                int elist_index = build_get_index(sceneries.eids[j], elist, entry_count);
+                if (elist_index == -1) {
+                    issue_found = 1;
+                    printf("Zone %5s references scenery %5s, which isnt present in the level\n",
+                           eid_conv(elist[i].eid, temp1), eid_conv(sceneries.eids[j], temp2));
+                }
+            }
+
+            for (int j = 0; j < neighbours.count; j++) {
+                int elist_index = build_get_index(neighbours.eids[j], elist, entry_count);
+                if (elist_index == -1) {
+                    issue_found = 1;
+                    printf("Zone %5s references neighbour %5s, which isnt present in the level\n",
+                           eid_conv(elist[i].eid, temp1), eid_conv(neighbours.eids[j], temp2));
+                }
+            }
+
+            for (int j = 0; j < cam_item_count/3; j++) {
+                unsigned char *item = build_get_nth_item_offset(elist[i].data, 2 + 3 * j) + elist[i].data;
+                unsigned int slst = build_get_slst(item);
+                int slst_index = build_get_index(slst, elist, entry_count);
+                if (slst_index == -1) {
+                    issue_found = 1;
+                    printf("Zone %s references SLST %5s, which isnt present in the level\n",
+                           eid_conv(elist[i].eid, temp1), eid_conv(slst, temp2));
+                }
+            }
+
+        }
+    }
+
+    if (issue_found == 0)
+        printf("No zone reference issues were found\n");
+}
+
+
+void build_ll_analyze() {
+    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, chunks, NULL, 1))
+        return;
+
+    build_ll_print_full_payload_info(elist, entry_count);
+    build_ll_various_stats(elist, entry_count);
+    build_ll_print_avg(elist, entry_count);
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
-
-    build_ll_print_avg(elist, entry_count);
+    build_ll_check_zone_references(elist, entry_count);
     printf("Done.\n\n");
 }
 

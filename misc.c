@@ -470,3 +470,12 @@ int getline(char **linep, int *n, FILE *fp){
     return getdelim(linep, n, '\n', fp);
 }
 
+
+
+DEPENDENCIES build_init_dep() {
+    DEPENDENCIES dep;
+    dep.array = NULL;
+    dep.count = 0;
+
+    return dep;
+}

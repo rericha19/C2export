@@ -381,7 +381,8 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
     int item1off = build_get_nth_item_offset(entry, 0);
     int item2off = build_get_nth_item_offset(entry, 1);
     item1len = item2off - item1off;
-    if (!(item1len == 0x358 || item1len == 0x318)) return NULL;
+    if (!(item1len == 0x358 || item1len == 0x318))
+        return NULL;
 
     camcount = build_get_cam_item_count(entry);
     //if (camcount == 0) return NULL;
@@ -393,7 +394,8 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
 
     if (relcount == 0) return NULL;
 
-    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != EID_NONE)
+    unsigned int music_ref = build_get_zone_track(entry);
+    if (music_ref != EID_NONE)
         relcount++;
     relatives = (unsigned int *) malloc(relcount * sizeof(unsigned int));       // freed by build_main
 
@@ -411,8 +413,8 @@ unsigned int* build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns) {
     for (i = 0; i < scencount; i++)
         relatives[entry_count++] = from_u32(entry + item1off + 0x4 + 0x30 * i);
 
-    if (from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]) != EID_NONE)
-        relatives[entry_count++] = from_u32(&entry[item1off + C2_MUSIC_REF + item1len - 0x318]);
+    if (music_ref != EID_NONE)
+        relatives[entry_count++] = music_ref;
 
     for (i = 0; i < entity_count; i++) {
         int *coords_ptr;
