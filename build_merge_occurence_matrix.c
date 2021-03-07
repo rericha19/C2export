@@ -85,7 +85,7 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                             if (load_list.array[sublist_index].index == l) {
                                 if (load_list.array[sublist_index].type == 'A')
                                     for (m = 0; m < load_list.array[sublist_index].list_length; m++)
-                                        list_insert(&list, load_list.array[sublist_index].list[m]);
+                                        list_add(&list, load_list.array[sublist_index].list[m]);
 
                                 if (load_list.array[sublist_index].type == 'B')
                                     for (m = 0; m < load_list.array[sublist_index].list_length; m++)
@@ -106,7 +106,7 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                         for (l = 0; l < load_list.count; l++) {
                             if (load_list.array[l].type == 'A')
                                 for (m = 0; m < load_list.array[l].list_length; m++)
-                                    list_insert(&list, load_list.array[l].list[m]);
+                                    list_add(&list, load_list.array[l].list[m]);
 
                             if (load_list.array[l].type == 'B')
                                 for (m = 0; m < load_list.array[l].list_length; m++)
@@ -144,7 +144,7 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
             default: ;
         }
 
-        list_insert(&entries, elist[i].eid);
+        list_add(&entries, elist[i].eid);
     }
     return entries;
 }

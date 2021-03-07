@@ -17,7 +17,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                 for (l = 0; l < load_list.count; l++) {
                     if (load_list.array[l].type == 'A')
                         for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_insert(&list, load_list.array[l].list[m]);
+                            list_add(&list, load_list.array[l].list[m]);
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
@@ -33,7 +33,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_insert(&list2, load_list.array[l].list[m]);
+                            list_add(&list2, load_list.array[l].list[m]);
                 }
 
                 char temp[100] = "";
@@ -72,7 +72,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                      if (draw_list.array[k].type == 'B')
                         for (int m = 0; m < draw_list.array[k].list_length; m++) {
                             DRAW_ITEM draw_item = build_decode_draw_item(draw_list.array[k].list[m]);
-                            list_insert(&ids, draw_item.ID);
+                            list_add(&ids, draw_item.ID);
                         }
 
                     if (draw_list.array[k].type == 'A')
@@ -93,7 +93,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                     if (draw_list.array[k].type == 'A')
                         for (int m = 0; m < draw_list.array[k].list_length; m++){
                             DRAW_ITEM draw_item = build_decode_draw_item(draw_list.array[k].list[m]);
-                            list_insert(&ids2, draw_item.ID);
+                            list_add(&ids2, draw_item.ID);
                         }
                 }
 
@@ -152,7 +152,6 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
     }
     if (issue_found == 0)
         printf("No draw list issues were found\n");
-    printf("\n");
 }
 
 void build_ll_print_avg(ENTRY *elist, int entry_count) {
@@ -261,7 +260,7 @@ void build_ll_various_stats(ENTRY *elist, int entry_count) {
             int found_before = 0;
             for (int k = 0; k < deps.count; k++)
             if (deps.array[k].type == type && deps.array[k].subtype == subt) {
-                list_insert(&deps.array[k].dependencies, total_entity_count);
+                list_add(&deps.array[k].dependencies, total_entity_count);
                 found_before = 1;
             }
             if (!found_before) {
@@ -269,7 +268,7 @@ void build_ll_various_stats(ENTRY *elist, int entry_count) {
                 deps.array[deps.count].type = type;
                 deps.array[deps.count].subtype = subt;
                 deps.array[deps.count].dependencies = init_list();
-                list_insert(&deps.array[deps.count].dependencies, total_entity_count);
+                list_add(&deps.array[deps.count].dependencies, total_entity_count);
                 deps.count++;
             }
         }
@@ -291,7 +290,8 @@ void build_ll_check_zone_references(ENTRY *elist, int entry_count) {
     int issue_found = 0;
     char temp1[100] = "";
     char temp2[100] = "";
-    printf("Zones' references check (only zones with camera paths are checked):\n");
+    printf("\nZones' references check (only zones with camera paths are checked):\n");
+    LIST valid_referenced_eids = init_list();
 
     for (int i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
@@ -308,23 +308,28 @@ void build_ll_check_zone_references(ENTRY *elist, int entry_count) {
                 printf("Zone %5s references track %5s, which isnt present in the level\n",
                            eid_conv(elist[i].eid, temp1), eid_conv(music_entry, temp2));
             }
+            else list_add(&valid_referenced_eids, music_entry);
 
             for (int j = 0; j < sceneries.count; j++) {
-                int elist_index = build_get_index(sceneries.eids[j], elist, entry_count);
+                unsigned int scenery_ref = sceneries.eids[j];
+                int elist_index = build_get_index(scenery_ref, elist, entry_count);
                 if (elist_index == -1) {
                     issue_found = 1;
                     printf("Zone %5s references scenery %5s, which isnt present in the level\n",
-                           eid_conv(elist[i].eid, temp1), eid_conv(sceneries.eids[j], temp2));
+                           eid_conv(elist[i].eid, temp1), eid_conv(scenery_ref, temp2));
                 }
+                else list_add(&valid_referenced_eids, scenery_ref);
             }
 
             for (int j = 0; j < neighbours.count; j++) {
-                int elist_index = build_get_index(neighbours.eids[j], elist, entry_count);
+                unsigned int neighbour_ref = neighbours.eids[j];
+                int elist_index = build_get_index(neighbour_ref, elist, entry_count);
                 if (elist_index == -1) {
                     issue_found = 1;
                     printf("Zone %5s references neighbour %5s, which isnt present in the level\n",
-                           eid_conv(elist[i].eid, temp1), eid_conv(neighbours.eids[j], temp2));
+                           eid_conv(elist[i].eid, temp1), eid_conv(neighbour_ref, temp2));
                 }
+                else list_add(&valid_referenced_eids, neighbour_ref);
             }
 
             for (int j = 0; j < cam_item_count/3; j++) {
@@ -333,33 +338,139 @@ void build_ll_check_zone_references(ENTRY *elist, int entry_count) {
                 int slst_index = build_get_index(slst, elist, entry_count);
                 if (slst_index == -1) {
                     issue_found = 1;
-                    printf("Zone %s references SLST %5s, which isnt present in the level\n",
-                           eid_conv(elist[i].eid, temp1), eid_conv(slst, temp2));
+                    printf("Zone %s cam path %d references SLST %5s, which isnt present in the level\n",
+                           eid_conv(elist[i].eid, temp1), j, eid_conv(slst, temp2));
                 }
+                else list_add(&valid_referenced_eids, slst);
             }
-
         }
     }
 
     if (issue_found == 0)
         printf("No zone reference issues were found\n");
+
+
+
+    printf("\nUnused entries (not referenced by any zone w/ a camera path):\n");
+    int unused_entries_found = 0;
+
+    for (int i = 0; i < entry_count; i++) {
+        int entry_type = build_entry_type(elist[i]);
+        if (entry_type == ENTRY_TYPE_SCENERY ||
+            entry_type == ENTRY_TYPE_ZONE ||
+            entry_type == ENTRY_TYPE_MIDI ||
+            entry_type == ENTRY_TYPE_SLST)
+                if (list_find(valid_referenced_eids, elist[i].eid) == -1) {
+                    printf("Entry %5s not referenced\n", eid_conv(elist[i].eid, temp1));
+                    unused_entries_found = 1;
+                }
+    }
+
+    if (unused_entries_found == 0)
+        printf("No unused entries were found\n");
 }
 
 
+void build_ll_check_gool_references(ENTRY *elist, int entry_count, unsigned int* gool_table) {
+    LIST used_types = init_list();
+
+    for (int i = 0; i < entry_count; i++)
+    if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+        int camera_count = build_get_cam_item_count(elist[i].data);
+        int entity_count = build_get_entity_count(elist[i].data);
+
+        for (int j = 0; j < entity_count; j++) {
+            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+            int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+            int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+
+            if (type >= 0 && id != -1)
+                list_add(&used_types, type);
+        }
+    }
+
+    char temp[100] = "";
+    int unused_gool_entries = 0;
+    printf("\nUnused GOOL entries:\n");
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++) {
+        if (gool_table[i] == EID_NONE) continue;
+
+        if (list_find(used_types, i) == -1) {
+            unused_gool_entries = 1;
+            printf("GOOL entry %5s type %2d not directly used by any entity (could still be used by other means)\n",
+                   eid_conv(gool_table[i], temp), i);
+        }
+    }
+
+    if (unused_gool_entries == 0)
+        printf("No unused gool entries were found\n");
+
+    LIST gool_i6_references = init_list();
+    for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL && build_item_count(elist[i].data) == 6) {
+            unsigned int i6_off = build_get_nth_item_offset(elist[i].data, 5);
+            unsigned int i6_end = build_get_nth_item_offset(elist[i].data, 6);
+            unsigned int i6_len = i6_end - i6_off;
+
+            for (int j = 0; j < i6_len/4; j++) {
+                unsigned int potential_eid = from_u32(elist[i].data + i6_off + 4 * j);
+                if (build_get_index(potential_eid, elist, entry_count) == -1)
+                    continue;
+
+                list_add(&gool_i6_references, potential_eid);
+            }
+        }
+
+    int unreferenced_animations = 0;
+    printf("\nAnimations not referenced by item6 of any GOOL entry:\n");
+    LIST model_references = init_list();
+    for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ANIM) {
+            if (list_find(gool_i6_references, elist[i].eid) == -1) {
+                unreferenced_animations = 1;
+                printf("Animation %5s not referenced by any GOOL's i6\n", eid_conv(elist[i].eid, temp));
+            }
+
+            LIST animations_models = build_get_models(elist[i].data);
+            list_copy_in(&model_references, animations_models);
+        }
+
+    if (unreferenced_animations == 0)
+        printf("No unreferenced animations found\n");
+
+    int unreferenced_models = 0;
+    printf("\nModels not referenced by any animation:\n");
+    for (int i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_MODEL) {
+            if (list_find(model_references, elist[i].eid) == -1) {
+                unreferenced_models = 1;
+                printf("Model %5s not referenced by any animation\n", eid_conv(elist[i].eid, temp));
+            }
+        }
+
+    if (unreferenced_models == 0)
+        printf("No unreferenced models found\n");
+}
+
 void build_ll_analyze() {
-    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+        gool_table[i] = EID_NONE;
 
-    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, chunks, NULL, 1))
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1))
         return;
 
     build_ll_print_full_payload_info(elist, entry_count);
     build_ll_various_stats(elist, entry_count);
     build_ll_print_avg(elist, entry_count);
+    build_ll_check_zone_references(elist, entry_count);
+    build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
-    build_ll_check_zone_references(elist, entry_count);
+
+    build_cleanup_elist(elist, entry_count);
     printf("Done.\n\n");
 }
 

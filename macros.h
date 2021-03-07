@@ -372,7 +372,6 @@ SPAWNS       init_spawns();
 int          list_find(LIST list, unsigned int searched);
 void         list_add(LIST *list, unsigned int eid);
 void         list_remove(LIST *list, unsigned int eid);
-void         list_insert(LIST *list, unsigned int eid);
 void         list_copy_in(LIST *destination, LIST source);
 LOAD_LIST    init_load_list();
 int          point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
@@ -410,6 +409,8 @@ void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, i
 
 
 // build files in no particular order
+int          build_item_count(unsigned char *entry);
+int          build_prop_count(unsigned char *item);
 LOAD_LIST    build_get_draw_lists(unsigned char *entry, int cam_index);
 LOAD_LIST    build_get_load_lists(unsigned char *entry, int cam_index);
 LOAD_LIST    build_get_lists(int prop_code, unsigned char *entry, int cam_index);
@@ -417,7 +418,8 @@ DRAW_ITEM    build_decode_draw_item(unsigned int value);
 void         build_ll_analyze();
 int          build_align_sound(int input);
 unsigned int build_get_zone_track(unsigned char *entry);
-unsigned int build_get_model(unsigned char *anim);
+LIST         build_get_models(unsigned char* animation);
+unsigned int build_get_model(unsigned char *anim, int item);
 int          build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
 void         build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base);
 int          build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end);
@@ -492,6 +494,7 @@ void         build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int
 void         build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded,
                                               double merge_ratio);
+void         build_cleanup_elist(ENTRY *elist, int entry_count);
 void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);

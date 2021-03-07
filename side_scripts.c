@@ -358,12 +358,12 @@ void prop_main(char* path)
     fread(arr, fsize, sizeof(unsigned char), file);
 
     printf("\n");
-    for (i = 0; i < from_u32(arr + 0xC); i++)
+    for (i = 0; i < build_prop_count(arr); i++)
     {
         code = from_u16(arr + 0x10 + 8*i);
         offset = from_u16(arr + 0x12 + 8*i) + OFFSET;
         offset_next = from_u16(arr + 0x1A + 8 * i) + OFFSET;
-        if (i == from_u32(arr + 0xC) - 1) offset_next = from_u16(arr);
+        if (i == (build_prop_count(arr) - 1)) offset_next = from_u16(arr);
         printf("0x%03X\t", code);
         switch(code)
         {
@@ -493,7 +493,7 @@ PROPERTY* get_prop(unsigned char *item, int prop_code) {
 
     PROPERTY* prop = malloc(sizeof(PROPERTY));
     prop->length = 0;
-    int property_count = from_u32(item + 0xC);
+    int property_count = build_prop_count(item);
     unsigned char property_header[8];
 
     for (int i = 0; i < property_count; i++) {
@@ -504,8 +504,8 @@ PROPERTY* get_prop(unsigned char *item, int prop_code) {
             if (i == property_count - 1)
                 next_offset = *(unsigned short int*) (item);
             else
-                next_offset = *(unsigned short int*) (item + 0x12 + (i * 8) + 8) + 0xC;
-            int curr_offset = *(unsigned short int*) (item + 0x12 + 8 * i) + 0xC;
+                next_offset = *(unsigned short int*) (item + 0x12 + (i * 8) + 8) + OFFSET;
+            int curr_offset = *(unsigned short int*) (item + 0x12 + 8 * i) + OFFSET;
             prop->length = next_offset - curr_offset;
             prop->data = malloc(prop->length);
             memcpy(prop->data, item + curr_offset, prop->length);
@@ -751,7 +751,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
 {
     int i, itemcount;
     unsigned int coord;
-    itemcount = from_u32(buffer + 0xC);
+    itemcount = build_item_count(buffer);
     int *itemoffs = (int*) malloc(itemcount * sizeof(int));     // freed here
 
     for (i = 0; i < itemcount; i++)
@@ -794,10 +794,10 @@ void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE
     int off0x4B = 0;
     short int coord;
 
-    for (i = 0; i < from_u32(item + 0xC); i++)
+    for (i = 0; i < build_item_count(item); i++)
     {
         if (item[0x10 + i*8] == 0x4B && item[0x11 +i*8] == 0)
-            off0x4B = BYTE * item[0x13 + i*8] + item[0x12+i*8]+0xC;
+            off0x4B = BYTE * item[0x13 + i*8] + item[0x12+i*8]+OFFSET;
     }
 
     if (off0x4B)

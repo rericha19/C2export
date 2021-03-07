@@ -294,6 +294,9 @@ int list_find(LIST list, unsigned int searched)
  */
 void list_add(LIST *list, unsigned int eid)
 {
+    if (list_find(*list, eid) != -1)
+        return;
+
     if (list->count)
         list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int));     // realloc is slow
     else
@@ -321,18 +324,6 @@ void list_remove(LIST *list, unsigned int eid)
     qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
 }
 
-/** \brief
- *  Adds an item to the list if it's not there yet.
- *
- * \param list LIST*                    list to be inserted into
- * \param eid unsigned int              item to be inserted
- * \return void
- */
-void list_insert(LIST *list, unsigned int eid){
-    if (list_find(*list, eid) == -1)
-        list_add(list, eid);
-}
-
 
 /** \brief
  *  Copies contents of the 'source' list into 'destination' list.
@@ -344,7 +335,7 @@ void list_insert(LIST *list, unsigned int eid){
 void list_copy_in(LIST *destination, LIST source)
 {
     for (int i = 0; i < source.count; i++)
-        list_insert(destination, source.eids[i]);
+        list_add(destination, source.eids[i]);
 }
 
 /** \brief

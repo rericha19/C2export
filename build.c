@@ -66,8 +66,21 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
  * \param anim unsigned char*           pointer to the data of the searched animation
  * \return unsigned int                 eid of the animation's model reference (as unsigned int)
  */
-unsigned int build_get_model(unsigned char *anim) {
-    return from_u32(anim + 0x10 + from_u32(anim + 0x10));
+
+
+LIST build_get_models(unsigned char* animation) {
+    LIST models = init_list();
+
+    int item_count = build_item_count(animation);
+    for (int i = 0; i < item_count; i++)
+        list_add(&models, build_get_model(animation, i));
+
+    return models;
+}
+
+unsigned int build_get_model(unsigned char *anim, int item) {
+    int item_off = build_get_nth_item_offset(anim, item);
+    return from_u32(anim + item_off + 0x10);
 }
 
 unsigned int build_get_zone_track(unsigned char *entry) {
@@ -137,7 +150,7 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
  */
 unsigned int build_get_slst(unsigned char *item) {
     int i, offset = 0;
-    for (i = 0; i < item[0xC]; i++)
+    for (i = 0; i < build_prop_count(item); i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_CAM_SLST)
             offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
@@ -153,9 +166,9 @@ unsigned int build_get_slst(unsigned char *item) {
  */
 unsigned int build_get_path_length(unsigned char *item) {
     int i, offset = 0;
-    for (i = 0; i < item[0xC]; i++)
+    for (i = 0; i < build_prop_count(item); i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
-            offset = 0xC + from_u16(item + 0x10 + 8 * i + 2);
+            offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
     if (offset) return from_u32(item + offset);
         else return 0;
@@ -185,7 +198,7 @@ LIST build_get_neighbours(unsigned char *entry) {
     LIST neighbours = init_list();
     for (int k = 0; k < count; k++) {
         int neighbour_eid = from_u32(entry + item1off + C2_NEIGHBOURS_START + 4 + 4 * k);
-        list_insert(&neighbours, neighbour_eid);
+        list_add(&neighbours, neighbour_eid);
     }
 
     return neighbours;
@@ -213,6 +226,13 @@ int build_get_entity_count(unsigned char *entry) {
     return entry[item1off + 0x18C];
 }
 
+int build_item_count(unsigned char *entry) {
+    return from_u32(entry + 0xC);
+}
+
+int build_prop_count(unsigned char *item) {
+    return from_u32(item + 0xC);
+}
 
 /** \brief
  *  Returns type of an entry.
@@ -227,7 +247,7 @@ int build_entry_type(ENTRY entry) {
 
 
 void build_check_item_count(unsigned char *zone, int eid) {
-    int item_count = from_u32(zone + 0xC);
+    int item_count = build_item_count(zone);
     int cam_count = build_get_cam_item_count(zone);
     int entity_count = build_get_entity_count(zone);
 
@@ -256,7 +276,7 @@ DRAW_ITEM build_decode_draw_item(unsigned int value) {
  */
 int build_get_entity_prop(unsigned char *entity, int prop_code) {
     unsigned int i;
-    for (i = 0; i < from_u32(entity + 0xC); i++) {
+    for (i = 0; i < build_prop_count(entity); i++) {
         int code = from_u16(entity + 0x10 + 8 * i);
         int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
 
@@ -305,20 +325,7 @@ int build_is_normal_chunk_entry(ENTRY entry) {
     return 0;
 }
 
-
-/** \brief
- *  Gets rid of some dynamically allocated stuff and closes files.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunks unsigned char**        built chunks
- * \param chunk_count int               chunk count
- * \return void
- */
-void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2) {
-    for (int i = 0; i < chunk_count; i++)
-        free(chunks[i]);
-
+void build_cleanup_elist(ENTRY *elist, int entry_count) {
     for (int i = 0; i < entry_count; i++) {
         if (elist[i].data != NULL)
             free(elist[i].data);
@@ -332,6 +339,24 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
         if (elist[i].distances != NULL)
             free(elist[i].distances);
     }
+}
+
+
+/** \brief
+ *  Gets rid of some dynamically allocated stuff and closes files.
+ *
+ * \param elist ENTRY*                  entry list
+ * \param entry_count int               entry count
+ * \param chunks unsigned char**        built chunks
+ * \param chunk_count int               chunk count
+ * \return void
+ */
+void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2) {
+
+    build_cleanup_elist(elist, entry_count);
+
+    for (int i = 0; i < chunk_count; i++)
+        free(chunks[i]);
 
     if (nsfnew != NULL)
         fclose(nsfnew);
@@ -624,7 +649,7 @@ void build_main(int build_rebuild_flag) {
     }
 
     /*for (int i = 0; i < entry_count; i++)
-        list_insert(&permaloaded, elist[i].eid);*/
+        list_add(&permaloaded, elist[i].eid);*/
 
     if (load_list_flag == 1) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified

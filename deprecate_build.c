@@ -30,7 +30,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
                 {
                     if (load_list.array[l].type == 'A')
                         for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_insert(&list, load_list.array[l].list[m]);
+                            list_add(&list, load_list.array[l].list[m]);
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
@@ -450,9 +450,9 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
 
     if (elist[index].related != NULL)
         for (i = 0; (unsigned) i < elist[index].related[0]; i++)
-            list_insert(list, elist[index].related[i + 1]);
+            list_add(list, elist[index].related[i + 1]);
 
-    list_insert(list, elist[index].eid);
+    list_add(list, elist[index].eid);
 
     if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE) {
         int item1off = from_u32(elist[index].data + 0x10);
@@ -468,29 +468,27 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
             for (j = 0; j < entity_count; j++) {
                 int entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
                 int entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
-                list_insert(list, gool_table[entity_type]);
+                list_add(list, gool_table[entity_type]);
                 int entity_subt = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
                 int match_found = 0;
 
                 for (k = 0; k < dependencies.count; k++)
                     if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt) {
                         for (l = 0; l < dependencies.array[k].dependencies.count; l++) {
-                            list_insert(list, dependencies.array[k].dependencies.eids[l]);
+                            list_add(list, dependencies.array[k].dependencies.eids[l]);
                             int index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
                             if (index2 == -1) continue;
                             if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM) {
-                                unsigned int model = build_get_model(elist[index2].data);
-                                list_insert(list, model);
+                                LIST models = build_get_models(elist[index2].data);
+                                for (int m = 0; m < models.count; m++) {
+                                    unsigned int model = models.eids[m];
 
-                                int model_index = build_get_index(model, elist, entry_count);
-                                if (model_index == -1) continue;
+                                    int model_index = build_get_index(model, elist, entry_count);
+                                    if (model_index == -1) continue;
 
-                                build_add_model_textures_to_list(elist[model_index].data, list);
-                                /*char temp[100] = "";
-                                char temp2[100] = "";
-                                for (int i = 0; i < list->count; i++)
-                                    printf("%s, %d %d %s\n", eid_conv(elist[index].eid, temp2), entity_type, entity_subt, eid_conv(list->eids[i], temp));
-                                printf("\n");*/
+                                    list_add(list, model);
+                                    build_add_model_textures_to_list(elist[model_index].data, list);
+                                }
                             }
                         }
                         match_found++;

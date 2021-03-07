@@ -9,7 +9,7 @@ void build_premerge_anim_model(ENTRY *elist, int entry_count, int chunk_border_s
         int entry_type = build_entry_type(elist[build_get_index(temp_entries.eids[i], elist, entry_count)]);
         if (entry_type == ENTRY_TYPE_ANIM || entry_type == ENTRY_TYPE_MODEL)
             if (list_find(permaloaded, temp_entries.eids[i] == -1))
-                list_insert(&anims_models, temp_entries.eids[i]);
+                list_add(&anims_models, temp_entries.eids[i]);
     }
 
     int** entry_matrix = build_get_occurence_matrix(elist, entry_count, anims_models, config);
@@ -24,7 +24,7 @@ void build_premerge_anim_model(ENTRY *elist, int entry_count, int chunk_border_s
             if (list_find(permaloaded, elist[i].eid) != -1)
                     continue;
 
-            // for each model get a list of animations it uses slsts (already ignore invalid ones or ones that dont fit in a chunk with the zone)
+            // for each model get a list of animations it uses (already ignore invalid ones or ones that dont fit in a chunk with the zone)
             LIST anims = init_list();
             for (int j = 0; j < entry_count; j++)
                 if (build_entry_type(elist[j]) == ENTRY_TYPE_ANIM)
@@ -33,7 +33,7 @@ void build_premerge_anim_model(ENTRY *elist, int entry_count, int chunk_border_s
                     if (potential_combined_size > CHUNKSIZE)
                         continue;
 
-                    unsigned int model_ref = build_get_model(elist[j].data);
+                    unsigned int model_ref = build_get_model(elist[j].data, 0);
                     if (model_ref != elist[i].eid)
                         continue;
 
@@ -41,7 +41,7 @@ void build_premerge_anim_model(ENTRY *elist, int entry_count, int chunk_border_s
                     if (list_find(permaloaded, anim_eid) != -1)
                         continue;
 
-                    list_insert(&anims, anim_eid);
+                    list_add(&anims, anim_eid);
                 }
 
             // find one that gets loaded together with the model the most (most occurences)
@@ -90,7 +90,7 @@ void build_premerge_slst_zone(ENTRY *elist, int entry_count, int chunk_border_so
         int entry_type = build_entry_type(elist[index]);
         if (entry_type == ENTRY_TYPE_ZONE || entry_type == ENTRY_TYPE_SLST)
             if (list_find(permaloaded, temp_entries.eids[i] == -1))
-                list_insert(&zones_slsts, temp_entries.eids[i]);
+                list_add(&zones_slsts, temp_entries.eids[i]);
     }
 
     int** entry_matrix = build_get_occurence_matrix(elist, entry_count, zones_slsts, config);
@@ -122,7 +122,7 @@ void build_premerge_slst_zone(ENTRY *elist, int entry_count, int chunk_border_so
                 if (list_find(permaloaded, slst) != -1)
                     continue;
 
-                list_insert(&slsts, slst);
+                list_add(&slsts, slst);
             }
 
             // find one that gets loaded together with the zone the most (most occurences)
@@ -464,7 +464,7 @@ LIST* build_state_search_eval_util(ENTRY *elist, int entry_count, int first_nonp
                             if (index == -1)
                                 continue;
 
-                            list_insert(&list, index);
+                            list_add(&list, index);
                         }
 
                     if (load_list.array[l].type == 'B')
