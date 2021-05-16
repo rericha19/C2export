@@ -478,12 +478,16 @@ void build_get_id_usage(ENTRY *elist, int entry_count) {
         }
     }
 
+    char temp[6] = "";
     for (int i = 0; i < 1024; i++) {
         printf("id %4d: %2d\t", i, lists[i].count);
-        for (int j = 0; j < lists[i].count; j++) {
-            char temp[6] = "";
+
+        if (i < 10)
+            printf("reserved ");
+
+        for (int j = 0; j < lists[i].count; j++)
             printf("%5s ", eid_conv(lists[i].eids[j], temp));
-        }
+
         printf("\n");
     }
     printf("\n");
@@ -507,7 +511,6 @@ void build_ll_analyze() {
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
     build_get_box_count(elist, entry_count);
-
     build_get_id_usage(elist, entry_count);
 
     build_cleanup_elist(elist, entry_count);
