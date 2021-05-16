@@ -140,6 +140,9 @@ int main() {
             case LL_ANALYZE:
                 build_ll_analyze();
                 break;
+            case GEN_SPAWN:
+                generate_spawn();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

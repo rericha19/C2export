@@ -80,6 +80,9 @@ void print_help()
     printf("LL_ANALYZE\n");
     printf("\t prints some stats about the level\n");
 
+    printf("GEN_SPAWN\n");
+    printf("\t lets you generate a spawn for input level from zone eid and entity ID\n");
+
     printf("\nError messages:\n");
     printf("[ERROR] error message\n");
     printf("\tan error that could not be handled, the program skipped some action or gave up\n");

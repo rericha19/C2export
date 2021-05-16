@@ -759,7 +759,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
         *nsd = fopen(lcltemp, "wb");
     }
     else {
-        printf("Input the path to the level (.nsf) you want to analyze:\n");
+        printf("Input the path to the level (.nsf):\n");
         scanf(" %[^\n]", nsfpath);
         path_fix(nsfpath);
 

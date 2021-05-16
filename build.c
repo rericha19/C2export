@@ -375,7 +375,6 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
 // dumb thing for snow no or whatever convoluted level its configured for rn
 // actually unused at the time
 void build_get_box_count(ENTRY *elist, int entry_count) {
-    char temp[100] = "";
     int box_counter = 0;
     int nitro_counter = 0;
     int entity_counter = 0;
@@ -399,17 +398,16 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
                      subt == 10 || subt == 11 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
                 {
                     box_counter++;
-                    printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].eid, temp), type, subt, id);
+                    //printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].eid, temp), type, subt, id);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18) {
                     nitro_counter++;
-                    printf("NITRO %3d\n", id);
+                    //printf("NITRO %3d\n", id);
                 }
             }
         }
     }
-    printf("ENTITY COUNT: %3d\n", entity_counter);
     printf("BOX COUNT:    %3d\n", box_counter);
     printf("NITRO COUNT:  %3d\n", nitro_counter);
 }

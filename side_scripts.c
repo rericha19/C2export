@@ -69,6 +69,11 @@ int texture_recolor_stupid() {
     return 0;
 }
 
+int rand_func(int value) {
+    srand(value);
+    return rand() % 0x50;
+}
+
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
 int scenery_recolor_main()
 {
@@ -76,6 +81,7 @@ int scenery_recolor_main()
     printf("Path to color item:\n");
     scanf(" %[^\n]",fpath);
     path_fix(fpath);
+    float mult;
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
@@ -83,9 +89,14 @@ int scenery_recolor_main()
         return 0;
     }
 
-    int r_wanted, g_wanted, b_wanted;
-    printf("R G B? [hex]\n");
-    scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
+    int r_wanted = 1;
+    int g_wanted = 1;
+    int b_wanted = 1;
+    //printf("R G B? [hex]\n");
+    //scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
+
+    /*printf("brigtness mutliplicator? (float)\n");
+    scanf("%f", &mult);*/
 
     fseek(file1, 0, SEEK_END);
     int color_count = ftell(file1) / 4;
@@ -96,6 +107,7 @@ int scenery_recolor_main()
     // pseudograyscale of the wanted color
     int sum_wanted = r_wanted + g_wanted + b_wanted;
 
+    // int clr[3];
 
     for (int i = 0; i < color_count; i++)
     {
@@ -108,18 +120,21 @@ int scenery_recolor_main()
         int sum = r + g + b;
 
         // get new color
-        int r_new = (sum * r_wanted) / sum_wanted;
+        /*int r_new = (sum * r_wanted) / sum_wanted;
         int g_new = (sum * g_wanted) / sum_wanted;
         int b_new = (sum * b_wanted) / sum_wanted;
 
-        // clip it at 0xFF
-        r_new = min(r_new, 0xFF);
-        g_new = min(g_new, 0xFF);
-        b_new = min(b_new, 0xFF);
+        clr[0] = r;
+        clr[1] = g;
+        clr[2] = b;
 
-        /*r_new = max(0, r - 0x10);
-        g_new = max(0, g - 0x10);
-        b_new = max(0, b - 0x10);*/
+        qsort(clr, 3, sizeof(int), cmp_func_uint);
+        r_new = min(clr[2] + 0x10, 0xFF);
+        g_new = max(clr[0] - 0x10, 0);
+        b_new = min(clr[2] + 0x10, 0XFF);*/
+        int r_new = r;
+        int g_new = g;
+        int b_new = min(0xFF, b + 0x18);
 
         // print stuff
         printf("old: %2X %2X %2X\n", r, g, b);
@@ -547,7 +562,7 @@ void prop_replace_script() {
     scanf(" %[^\n]",fpath2);
     path_fix(fpath2);
 
-    FILE* file2 = fopen(fpath2, "rb");
+    FILE* file2 = fopen(fpath2, "rb+");
     if (file2 == NULL) {
         printf("File could not be opened\n");
         free(item);
@@ -560,7 +575,6 @@ void prop_replace_script() {
 
     unsigned char* item2 = malloc(fsize2 * sizeof(unsigned char));
     fread(item2, 1, fsize2, file2);
-    fclose(file2);
 
 
     int prop_code;
@@ -574,23 +588,22 @@ void prop_replace_script() {
         free(item2);
         return;
     }
+    //PROPERTY* prop2 = get_prop(item, 0x1B5);
+    //PROPERTY* prop3 = get_prop(item, 0x1B6);
 
     int fsize2_before = fsize2;
     item2 = build_rem_property(prop_code, item2, &fsize2, NULL);
+    //item2 = build_rem_property(0x1B5, item2, &fsize2, NULL);
+    //item2 = build_rem_property(0x186, item2, &fsize2, NULL);
     int fsize2_after = fsize2;
     item2 = build_add_property(prop_code, item2, &fsize2, prop);
+    //item2 = build_add_property(0x1B5, item2, &fsize2, prop2);
+    //item2 = build_add_property(0x1B6, item2, &fsize2, prop3);
 
-    char fpath3[1004];
-    sprintf(fpath3, "%s-alt", fpath2);
-    FILE* file3 = fopen(fpath3, "wb");
-    if (file3 == NULL) {
-        printf("File could not be opened\n");
-        free(item);
-        return;
-    }
 
-    fwrite(item2, 1, fsize2, file3);
-    fclose(file3);
+    rewind(file2);
+    fwrite(item2, 1, fsize2, file2);
+    fclose(file2);
     free(item);
     free(item2);
     if (fsize2_before == fsize2_after)
@@ -952,3 +965,93 @@ void nsd_gool_table_print(char *fpath)
     fclose(file);
     free(buffer);
 }
+
+void generate_spawn() {
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1))
+        return;
+
+    char zone[100] = "";
+    printf("\nWhat zone do you wanna spawn in?\n");
+    scanf("%s", zone);
+
+    int pathlen;
+    int entity_id;
+    int path_to_spawn_on = 0;
+    int entity_index = -1;
+    unsigned int zone_eid = eid_to_int(zone);
+    int elist_index = build_get_index(zone_eid, elist, entry_count);
+
+    if (elist_index == -1) {
+        printf("Zone %5s not found\n\n", zone);
+        build_cleanup_elist(elist, entry_count);
+        return;
+    }
+
+    int cam_count = build_get_cam_item_count(elist[elist_index].data) / 3;
+    if (cam_count == 0) {
+        printf("Zone %5s does not have a camera path\n\n", zone);
+        build_cleanup_elist(elist, entry_count);
+        return;
+    }
+    else if (cam_count > 1) {
+        printf("Which cam path do you want to spawn on (0 - %d)\n", cam_count - 1);
+        scanf("%d", &path_to_spawn_on);
+    }
+
+    printf("\nWhat entity's coordinates do you wanna spawn on? (entity has to be in the zone)\n");
+    scanf("%d", &entity_id);
+
+    for (int i = 0; i < build_get_entity_count(elist[elist_index].data); i++) {
+        unsigned char *entity = elist[elist_index].data + build_get_nth_item_offset(elist[elist_index].data, 2 + 3 * cam_count + i);
+        int ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
+
+        if (ID == entity_id)
+            entity_index = i;
+    }
+
+    if (entity_index == -1) {
+        printf("\nEntity with ID %4d not found in %5s\n\n", entity_id, zone);
+        build_cleanup_elist(elist, entry_count);
+        return;
+    }
+
+    short int* path = build_get_path(elist, elist_index, 2 + 3 * cam_count + entity_index, &pathlen);
+    if (pathlen == 0) {
+        free(path);
+        printf("\n Entity doesnt have a position\n");
+        build_cleanup_elist(elist, entry_count);
+        return;
+    }
+
+    unsigned char* coll_item = elist[elist_index].data + build_get_nth_item_offset(elist[elist_index].data, 1);
+    unsigned int zone_x = from_u32(coll_item);
+    unsigned int zone_y = from_u32(coll_item + 4);
+    unsigned int zone_z = from_u32(coll_item + 8);
+
+    unsigned int x = (zone_x + 4 * path[0]) << 8;
+    unsigned int y = (zone_y + 4 * path[1]) << 8;
+    unsigned int z = (zone_z + 4 * path[2]) << 8;
+
+    unsigned char arr[0x18] = {0};
+    *(unsigned int *)  arr = zone_eid;
+    *(unsigned int *) (arr + 0x4) = path_to_spawn_on;
+    *(unsigned int *) (arr + 0x8) = 0;
+    *(unsigned int *) (arr + 0xC) = x;
+    *(unsigned int *) (arr + 0x10) = y;
+    *(unsigned int *) (arr + 0x14) = z;
+
+    printf("\n");
+    for (int j = 0; j < 0x18; j++) {
+        printf("%02X", arr[j]);
+        if (j % 4 == 3) printf(" ");
+        if ((j % 16 == 15) && (j + 1 != 0x18)) printf("\n");
+    }
+
+    free(path);
+    build_cleanup_elist(elist, entry_count);
+    printf("\nDone.\n\n");
+}
+

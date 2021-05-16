@@ -90,6 +90,7 @@
 #define PROP_REPLACE                    4259575393u
 #define EID                             193454615u
 #define LL_ANALYZE                      4033854192u
+#define GEN_SPAWN                       1178716487u
 
 #define STATUS                          3482341513u
 
@@ -409,6 +410,7 @@ void         import_chunksave(unsigned char *chunk, int *index, int *curr_off, i
 
 
 // build files in no particular order
+void         build_get_box_count(ENTRY *elist, int entry_count);
 int          build_item_count(unsigned char *entry);
 int          build_prop_count(unsigned char *item);
 LOAD_LIST    build_get_draw_lists(unsigned char *entry, int cam_index);
@@ -568,3 +570,5 @@ void         crate_rotation_angle();
 void         nsd_gool_table_print(char *fpath);
 void         prop_remove_script();
 void         prop_replace_script();
+void         generate_spawn();
+

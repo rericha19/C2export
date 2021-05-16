@@ -36,7 +36,7 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int* config) {
     // if building load lists
     if (remaking_load_lists_flag) {
         printf("\nInput path to file with type/subtype dependencies:\n");
-        scanf(" %[^\n]",fpaths[1]);
+        scanf(" %[^\n]", fpaths[1]);
         path_fix(fpaths[1]);
 
         printf("\nInput path to file with collision dependencies [assumes file is not necessary if path is invalid]:\n");

@@ -21,7 +21,7 @@ void export_countwipe(DEPRECATE_INFO_STRUCT *status)
 void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
 //creates a string thats a save path for the currently processed file
 {
-    char eidstr[6];
+    char eidstr[6] = "";
     eid_conv(eid,eidstr);
     int port;
 

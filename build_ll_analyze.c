@@ -53,6 +53,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
     }
     if (issue_found == 0)
         printf("No load list issues were found\n\n");
+    else printf("\n");
 }
 
 
@@ -152,6 +153,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
     }
     if (issue_found == 0)
         printf("No draw list issues were found\n");
+    printf("\n");
 }
 
 void build_ll_print_avg(ENTRY *elist, int entry_count) {
@@ -452,6 +454,41 @@ void build_ll_check_gool_references(ENTRY *elist, int entry_count, unsigned int*
         printf("No unreferenced models found\n");
 }
 
+void build_get_id_usage(ENTRY *elist, int entry_count) {
+
+    printf("\nID usage:\n");
+
+    LIST lists[1024];
+    for (int i = 0; i < 1024; i++)
+        lists[i] = init_list();
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+            int entity_count = build_get_entity_count(elist[i].data);
+            int camera_count = build_get_cam_item_count(elist[i].data);
+            for (int j = 0; j < entity_count; j++) {
+                unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+                int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+
+                if (id == -1 || id >= 1024)
+                    continue;
+
+                list_add(&lists[id], elist[i].eid);
+            }
+        }
+    }
+
+    for (int i = 0; i < 1024; i++) {
+        printf("id %4d: %2d\t", i, lists[i].count);
+        for (int j = 0; j < lists[i].count; j++) {
+            char temp[6] = "";
+            printf("%5s ", eid_conv(lists[i].eids[j], temp));
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
 void build_ll_analyze() {
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
@@ -469,6 +506,9 @@ void build_ll_analyze() {
     build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
+    build_get_box_count(elist, entry_count);
+
+    build_get_id_usage(elist, entry_count);
 
     build_cleanup_elist(elist, entry_count);
     printf("Done.\n\n");
