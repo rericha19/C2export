@@ -132,9 +132,9 @@ int scenery_recolor_main()
         r_new = min(clr[2] + 0x10, 0xFF);
         g_new = max(clr[0] - 0x10, 0);
         b_new = min(clr[2] + 0x10, 0XFF);*/
-        int r_new = r;
+        int r_new = 0;
         int g_new = g;
-        int b_new = min(0xFF, b + 0x18);
+        int b_new = min(0xFF, b + 0x8);
 
         // print stuff
         printf("old: %2X %2X %2X\n", r, g, b);

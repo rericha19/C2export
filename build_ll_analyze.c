@@ -503,6 +503,7 @@ void build_ll_analyze() {
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1))
         return;
 
+    build_get_id_usage(elist, entry_count);
     build_ll_print_full_payload_info(elist, entry_count);
     build_ll_various_stats(elist, entry_count);
     build_ll_print_avg(elist, entry_count);
@@ -511,7 +512,6 @@ void build_ll_analyze() {
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
     build_get_box_count(elist, entry_count);
-    build_get_id_usage(elist, entry_count);
 
     build_cleanup_elist(elist, entry_count);
     printf("Done.\n\n");

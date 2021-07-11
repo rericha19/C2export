@@ -43,6 +43,10 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int* config) {
         scanf(" %[^\n]", fpaths[2]);
         path_fix(fpaths[2]);
         //strcpy(fpaths[2], "collision list.txt");
+
+        printf("\nInput path to file with music entry dependencies [assumes file is not necessary if path is invalid]:\n");
+        scanf(" %[^\n]", fpaths[3]);
+        path_fix(fpaths[3]);
     }
 }
 

@@ -19,7 +19,7 @@
  * \param subtype_info DEPENDENCIES     list of {type, subtype, count, dependencies[count]}
  * \return void
  */
-void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, int* config) {
+void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_table, LIST permaloaded, DEPENDENCIES subtype_info, DEPENDENCIES collision, DEPENDENCIES mus_deps, int* config) {
 
     int load_list_sound_entry_inc_flag = config[CNFG_IDX_LL_SND_INCLUSION_FLAG];
     int i, j, k, l;
@@ -58,6 +58,8 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
             // as a special zone-specific dependency/load list
             LIST special_entries = build_get_special_entries(elist[i], elist, entry_count);
 
+            unsigned int music_ref = build_get_zone_track(elist[i].data);
+
             for (j = 0; j < cam_count; j++) {
                 printf("\t cam path %d\n", j);
                 int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
@@ -72,9 +74,18 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], permaloaded);
 
+                for (l = 0; l < mus_deps.count; l++) {
+                    if (mus_deps.array[l].type == music_ref) {
+                        for (k = 0; k < cam_length; k++)
+                            list_copy_in(&full_load[k], mus_deps.array[l].dependencies);
+                    }
+                }
+
                 // add current zone's special entries
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], special_entries);
+
+                // todo load stuff tied to the current music ref
 
                 // add relatives (directly related entries like slst, direct neighbours, scenery)
                 // might not be necessary, relative collection was implemented for previous methods and it was easier to keep it

@@ -133,7 +133,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
  * \param entry_count int               entry count
  * \return int                          1 if all went good, 0 if something is wrong
  */
-int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
+int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
 
     int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
     int j, valid = 1;
@@ -149,9 +149,14 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     DEPENDENCIES coll;
     coll.count = 0;
     coll.array = NULL;
+
     DEPENDENCIES subinfo;
     subinfo.count = 0;
     subinfo.array = NULL;
+
+    DEPENDENCIES mus_d;
+    mus_d.count = 0;
+    mus_d.array = NULL;
 
 
     FILE *file = fopen(fpaths[0], "r");
@@ -292,20 +297,79 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             }
             coll.count = coll_count;
             fclose(file);
+
+        }
+
+        file = fopen(fpaths[3], "r");
+        if (file == NULL) {
+            printf("File with music entry dependencies could not be opened\n");
+            printf("Assuming file is not necessary\n");
+        }
+        else {
+            int mus_d_count = 0;
+            int counter;
+            char temp[6] = "";
+            while (1) {
+                if (2 > fscanf(file, "%5s, %2d", temp, &counter))
+                    break;
+                i = mus_d_count;
+                mus_d_count++;
+                if (mus_d_count == 1)
+                    mus_d.array = (DEPENDENCY *) malloc(mus_d_count * sizeof(DEPENDENCY));            // freed by caller
+                else
+                    mus_d.array = (DEPENDENCY *) realloc(mus_d.array, mus_d_count * sizeof(DEPENDENCY));
+
+                mus_d.array[i].type = eid_to_int(temp);
+                mus_d.array[i].subtype = -1;
+                mus_d.array[i].dependencies = init_list();
+                for (j = 0; j < counter; j++) {
+                    fscanf(file, ", %5s", temp);
+                    int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                    if (index == -1) {
+                        printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %s\n", temp);
+                        continue;
+                    }
+
+                    list_add(&(mus_d.array[i].dependencies), eid_to_int(temp));
+
+                    if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM) {
+                        LIST models = build_get_models(elist[index].data);
+
+                        for (int l = 0; l < models.count; l++) {
+                            unsigned int model = models.eids[l];
+                            int model_index = build_get_index(model, elist, entry_count);
+                            if (model_index == -1) {
+                                printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %5s\n",
+                                       eid_conv(model, temp));
+                                continue;
+                            }
+
+                            list_add(&mus_d.array[i].dependencies, model);
+                            build_add_model_textures_to_list(elist[model_index].data, &mus_d.array[i].dependencies);
+                        }
+                    }
+                }
+            }
+
+            mus_d.count = mus_d_count;
+            fclose(file);
         }
     }
 
-    /*for (int i = 0; i < subinfo.count; i++) {
-        printf("\nType %2d subtype %2d\n", subinfo.array[i].type, subinfo.array[i].subtype);
-        for (int j = 0; j < subinfo.array[i].dependencies.count; j++) {
+    printf("mus_d_count: %d\n", mus_d.count);
+    for (int i = 0; i < mus_d.count; i++) {
+        char temp[100] = "";
+        printf("\nType %s subtype %2d\n", eid_conv(mus_d.array[i].type, temp), mus_d.array[i].subtype);
+        for (int j = 0; j < mus_d.array[i].dependencies.count; j++) {
             char temp[100] = "";
-            printf("\t%s\n", eid_conv(subinfo.array[i].dependencies.eids[j], temp));
+            printf("\t%s\n", eid_conv(mus_d.array[i].dependencies.eids[j], temp));
         }
-    }*/
+    }
 
     *permaloaded = perma;
     *subtype_info = subinfo;
     *collisions = coll;
+    *music_deps = mus_d;
     if (!valid) {
         printf("Cannot proceed with invalid items, fix that\n");
         return 0;

@@ -36,7 +36,7 @@
 #define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
 
 #define C2_GOOL_TABLE_SIZE              0x40
-#define FPATH_COUNT                     3
+#define FPATH_COUNT                     4
 #define OFFSET                          0xC
 #define CHUNKSIZE                       65536
 #define BYTE                            0x100
@@ -480,8 +480,8 @@ void         build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB,
 LIST         build_read_special_entries(unsigned char *zone);
 LIST         build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count);
 void         build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
-                                   DEPENDENCIES subtype_info, DEPENDENCIES collision, int *config);
-int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions,
+                                   DEPENDENCIES subtype_info, DEPENDENCIES collision, DEPENDENCIES mus_deps, int *config);
+int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps,
                                      ENTRY *elist, int entry_count, unsigned int *gool_table, int *config);
 int          build_get_chunk_count_base(FILE *nsf);
 int          build_ask_ID();

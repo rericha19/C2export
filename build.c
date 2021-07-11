@@ -559,6 +559,7 @@ void build_main(int build_rebuild_flag) {
     LIST permaloaded;                               // list containing eids of permaloaded entries provided by the user
     DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types
+    DEPENDENCIES mus_dep = build_init_dep();
     int level_ID = 0;                               // level ID, used for naming output files and needed in output nsd
 
     // used to keep track of counts and to separate groups of chunks
@@ -640,7 +641,7 @@ void build_main(int build_rebuild_flag) {
 
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
-    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, elist, entry_count, gool_table, config)) {
+    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, &mus_dep, elist, entry_count, gool_table, config)) {
         printf("[ERROR] File could not be opened or a different error occured\n\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
         return;
@@ -659,7 +660,7 @@ void build_main(int build_rebuild_flag) {
 
         // build load lists based on user input and metadata, and already or not yet collected metadata
         printf("Permaloaded len: %d\n", permaloaded.count);
-        build_remake_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, config);
+        build_remake_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, mus_dep, config);
     }
 
     clock_t time_start = clock();
