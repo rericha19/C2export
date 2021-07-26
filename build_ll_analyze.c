@@ -16,8 +16,19 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                 LIST list = init_list();
                 for (l = 0; l < load_list.count; l++) {
                     if (load_list.array[l].type == 'A')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
+                        for (m = 0; m < load_list.array[l].list_length; m++) {
+                            int len, len2;
+                            char temp[6] = "";
+                            char temp2[6] = "";
+                            len = list.count;
                             list_add(&list, load_list.array[l].list[m]);
+                            len2 = list.count;
+                            if (len == len2) {
+                                issue_found = 1;
+                                printf("Duplicate entry %s in zone %s load list A point %d\n",
+                                       eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), load_list.array[l].index);
+                            }
+                        }
 
                     if (load_list.array[l].type == 'B')
                         for (m = 0; m < load_list.array[l].list_length; m++)
@@ -32,8 +43,19 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                             list_remove(&list2, load_list.array[l].list[m]);
 
                     if (load_list.array[l].type == 'B')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
+                        for (m = 0; m < load_list.array[l].list_length; m++) {
+                            int len, len2;
+                            char temp[6] = "";
+                            char temp2[6] = "";
+                            len = list2.count;
                             list_add(&list2, load_list.array[l].list[m]);
+                            len2 = list2.count;
+                            if (len == len2) {
+                                issue_found = 1;
+                                printf("Duplicate entry %s in zone %s load list B point %d\n",
+                                       eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), load_list.array[l].index);
+                            }
+                        }
                 }
 
                 char temp[100] = "";
@@ -118,6 +140,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
 
                         int neighbour_index = build_get_index(neighbour_eid, elist, entry_count);
                         if (neighbour_index == -1) {
+                            issue_found = 1;
                             printf("Zone %s cam path %d drawing ent %4d (list%c pt %2d), tied to invalid neighbour %s (neigh.index %d)\n",
                                    eid_conv(elist[i].eid, temp), j, draw_item.ID, draw_list.array[k].type, draw_list.array[k].index,
                                    eid_conv(neighbour_eid, temp2), draw_item.neighbour_zone_index);
@@ -128,6 +151,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                         int neighbour_entity_count = build_get_entity_count(elist[neighbour_index].data);
 
                         if (draw_item.neighbour_item_index >= neighbour_entity_count) {
+                            issue_found = 1;
                             printf("Zone %s cam path %d drawing ent %4d (list%c pt %2d), tied to %s's %2d. entity, which doesnt exist\n",
                                    eid_conv(elist[i].eid, temp), j, draw_item.ID, draw_list.array[k].type, draw_list.array[k].index,
                                    eid_conv(neighbour_eid, temp2), draw_item.neighbour_item_index);
@@ -139,6 +163,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                         int neighbour_entity_ID = build_get_entity_prop(elist[neighbour_index].data + neighbour_entity_offset, ENTITY_PROP_ID);
 
                         if (draw_item.ID != neighbour_entity_ID) {
+                            issue_found = 1;
                             printf("Zone %s cam path %d drawing ent %4d (list%c pt %2d), tied to %s's %2d. entity, which has ID %4d\n",
                                    eid_conv(elist[i].eid, temp), j, draw_item.ID, draw_list.array[k].type, draw_list.array[k].index,
                                    eid_conv(neighbour_eid, temp2), draw_item.neighbour_item_index, neighbour_entity_ID);

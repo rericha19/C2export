@@ -132,13 +132,20 @@ int scenery_recolor_main()
         r_new = min(clr[2] + 0x10, 0xFF);
         g_new = max(clr[0] - 0x10, 0);
         b_new = min(clr[2] + 0x10, 0XFF);*/
-        int r_new = 0;
-        int g_new = g;
-        int b_new = min(0xFF, b + 0x8);
+
+        int r_new = min(sum / 3 * 2, 0xFF);
+        int g_new = sum / 6;
+        int b_new = sum / 6;
+
+        /*
+        int r_new = sum/3;
+        int g_new = sum/3;
+        int b_new = sum/3;
+        */
 
         // print stuff
-        printf("old: %2X %2X %2X\n", r, g, b);
-        printf("new: %2X %2X %2X\n", r_new, g_new, b_new);
+        // printf("old: %2X %2X %2X\n", r, g, b);
+        // printf("new: %2X %2X %2X\n", r_new, g_new, b_new);
 
         // write back
         buffer[4 * i + 0] = r_new;
@@ -150,6 +157,8 @@ int scenery_recolor_main()
     fwrite(buffer, color_count, 4, file1);
     fclose(file1);
     free(buffer);
+
+    printf("\nDone\n\n");
     return 0;
 }
 
@@ -576,30 +585,26 @@ void prop_replace_script() {
     unsigned char* item2 = malloc(fsize2 * sizeof(unsigned char));
     fread(item2, 1, fsize2, file2);
 
-
+    int fsize2_before;
+    int fsize2_after;
     int prop_code;
     printf("\nWhat prop do you wanna replace/insert? (hex)\n");
     scanf("%x", &prop_code);
 
+
     PROPERTY* prop = get_prop(item, prop_code);
     if (prop == NULL) {
-        printf("Property wasnt found in the source file");
+        printf("Property wasnt found in the source file\n\n");
         free(item);
         free(item2);
         return;
     }
-    //PROPERTY* prop2 = get_prop(item, 0x1B5);
-    //PROPERTY* prop3 = get_prop(item, 0x1B6);
 
-    int fsize2_before = fsize2;
+    fsize2_before = fsize2;
     item2 = build_rem_property(prop_code, item2, &fsize2, NULL);
-    //item2 = build_rem_property(0x1B5, item2, &fsize2, NULL);
-    //item2 = build_rem_property(0x186, item2, &fsize2, NULL);
-    int fsize2_after = fsize2;
-    item2 = build_add_property(prop_code, item2, &fsize2, prop);
-    //item2 = build_add_property(0x1B5, item2, &fsize2, prop2);
-    //item2 = build_add_property(0x1B6, item2, &fsize2, prop3);
 
+    fsize2_after = fsize2;
+    item2 = build_add_property(prop_code, item2, &fsize2, prop);
 
     rewind(file2);
     fwrite(item2, 1, fsize2, file2);
@@ -1055,3 +1060,67 @@ void generate_spawn() {
     printf("\nDone.\n\n");
 }
 
+// for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
+int scenery_recolor_main2()
+{
+    char fpath[1000];
+    printf("Path to color item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("Couldn't open file.\n\n");
+        return 0;
+    }
+
+    int r_wanted, g_wanted, b_wanted;
+    printf("R G B? [hex]\n");
+    scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
+
+    fseek(file1, 0, SEEK_END);
+    int color_count = ftell(file1) / 4;
+    unsigned char* buffer = (unsigned char*)malloc((color_count * 4) * sizeof(unsigned char*));
+    rewind(file1);
+    fread(buffer, color_count, 4, file1);
+
+    // pseudograyscale of the wanted color
+    int sum_wanted = r_wanted + g_wanted + b_wanted;
+
+    for (int i = 0; i < color_count; i++)
+    {
+        // read current color
+        unsigned char r = buffer[4 * i + 0];
+        unsigned char g = buffer[4 * i + 1];
+        unsigned char b = buffer[4 * i + 2];
+
+        // get pseudograyscale of the current color
+        int sum = r + g + b;
+
+        // get new color
+        int r_new = (sum * r_wanted) / sum_wanted;
+        int g_new = (sum * g_wanted) / sum_wanted;
+        int b_new = (sum * b_wanted) / sum_wanted;
+
+        // clip it at 0xFF
+        r_new = min(r_new, 0xFF);
+        g_new = min(g_new, 0xFF);
+        b_new = min(b_new, 0xFF);
+
+        // print stuff
+        printf("old: %2X %2X %2X\n", r, g, b);
+        printf("new: %2X %2X %2X\n", r_new, g_new, b_new);
+
+        // write back
+        buffer[4 * i + 0] = r_new;
+        buffer[4 * i + 1] = g_new;
+        buffer[4 * i + 2] = b_new;
+    }
+
+    rewind(file1);
+    fwrite(buffer, color_count, 4, file1);
+    fclose(file1);
+    free(buffer);
+
+    return 0;
+}

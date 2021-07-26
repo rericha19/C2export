@@ -113,6 +113,9 @@ int main() {
                 texture_recolor_stupid();
                 break;
             case SCEN_RECOLOR:
+                scenery_recolor_main2();
+                break;
+            case SCEN_RECOLOR2:
                 scenery_recolor_main();
                 break;
             case A:

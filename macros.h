@@ -83,6 +83,7 @@
 #define HASH                            2089134665u
 #define A                               177638u
 #define SCEN_RECOLOR                    2919463267u
+#define SCEN_RECOLOR2                   1853007349u
 #define NSD                             193464746u
 #define REBUILD                         1370829996u
 #define TEXTURE_RECOLOR                 1888631019u
@@ -553,6 +554,7 @@ void         deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, i
 // side_scripts.cpp
 int          texture_recolor_stupid();
 int          scenery_recolor_main();
+int          scenery_recolor_main2();
 int          texture_copy_main();
 void         prop_main(char* path);
 void         resize_main(char *time, DEPRECATE_INFO_STRUCT status);
