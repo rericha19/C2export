@@ -479,9 +479,10 @@ void build_ll_check_gool_references(ENTRY *elist, int entry_count, unsigned int*
         printf("No unreferenced models found\n");
 }
 
-void build_get_id_usage(ENTRY *elist, int entry_count) {
+void build_ll_id_usage(ENTRY *elist, int entry_count) {
 
     printf("\nID usage:\n");
+    int max_id = 10;
 
     LIST lists[1024];
     for (int i = 0; i < 1024; i++)
@@ -498,13 +499,14 @@ void build_get_id_usage(ENTRY *elist, int entry_count) {
                 if (id == -1 || id >= 1024)
                     continue;
 
+                max_id = max(max_id, id);
                 list_add(&lists[id], elist[i].eid);
             }
         }
     }
 
     char temp[6] = "";
-    for (int i = 0; i < 1024; i++) {
+    for (int i = 0; i < max_id; i++) {
         printf("id %4d: %2d\t", i, lists[i].count);
 
         if (i < 10)
@@ -528,7 +530,7 @@ void build_ll_analyze() {
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1))
         return;
 
-    build_get_id_usage(elist, entry_count);
+    build_ll_id_usage(elist, entry_count);
     build_ll_print_full_payload_info(elist, entry_count);
     build_ll_various_stats(elist, entry_count);
     build_ll_print_avg(elist, entry_count);
