@@ -25,7 +25,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                             len2 = list.count;
                             if (len == len2) {
                                 issue_found = 1;
-                                printf("Duplicate entry %s in zone %s load list A point %d\n",
+                                printf("Duplicate/already loaded entry %s in zone %s load list A point %d\n",
                                        eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), load_list.array[l].index);
                             }
                         }
@@ -52,7 +52,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
                             len2 = list2.count;
                             if (len == len2) {
                                 issue_found = 1;
-                                printf("Duplicate entry %s in zone %s load list B point %d\n",
+                                printf("Duplicate/already loaded entry %s in zone %s load list B point %d\n",
                                        eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), load_list.array[l].index);
                             }
                         }
@@ -95,7 +95,16 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                      if (draw_list.array[k].type == 'B')
                         for (int m = 0; m < draw_list.array[k].list_length; m++) {
                             DRAW_ITEM draw_item = build_decode_draw_item(draw_list.array[k].list[m]);
+                            int len, len2;
+                            char temp2[6] = "";
+                            len = ids.count;
                             list_add(&ids, draw_item.ID);
+                            len2 = ids.count;
+                            if (len == len2) {
+                                issue_found = 1;
+                                 printf("Duplicate/already drawn ID %4d in zone %s load list B point %d\n",
+                                       draw_item.ID, eid_conv(elist[i].eid, temp2), draw_list.array[k].index);
+                            }
                         }
 
                     if (draw_list.array[k].type == 'A')
@@ -116,7 +125,16 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int entry_count) {
                     if (draw_list.array[k].type == 'A')
                         for (int m = 0; m < draw_list.array[k].list_length; m++){
                             DRAW_ITEM draw_item = build_decode_draw_item(draw_list.array[k].list[m]);
+                            int len, len2;
+                            char temp2[6] = "";
+                            len = ids2.count;
                             list_add(&ids2, draw_item.ID);
+                            len2 = ids2.count;
+                            if (len == len2) {
+                                issue_found = 1;
+                                 printf("Duplicate/already drawn ID %4d in zone %s load list B point %d\n",
+                                       draw_item.ID, eid_conv(elist[i].eid, temp2), draw_list.array[k].index);
+                            }
                         }
                 }
 
@@ -506,7 +524,7 @@ void build_ll_id_usage(ENTRY *elist, int entry_count) {
     }
 
     char temp[6] = "";
-    for (int i = 0; i < max_id; i++) {
+    for (int i = 0; i <= max_id; i++) {
         printf("id %4d: %2d\t", i, lists[i].count);
 
         if (i < 10)
