@@ -85,7 +85,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         printf("\n\"Heaviest\" zones:\n");
-        for (int k = 0; k < 10; k++) {
+        for (int k = 0; k < min(10, payloads.count); k++) {
             printf("%d\t", k + 1);
             deprecate_build_print_payload(payloads.arr[k], 0);
         }
