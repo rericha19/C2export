@@ -146,6 +146,9 @@ int main() {
             case GEN_SPAWN:
                 generate_spawn();
                 break;
+            case TIME:
+                time_convert();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

@@ -597,8 +597,8 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_
     for (long long int iter = 0; (!heap_is_empty(*heap)); iter++) {
 
         if ((iter_limit != 0) && (iter > iter_limit))
-                break;
-        // qsort(heap->heap_array, heap->length, sizeof(STATE_SEARCH_STR*), cmp_state_search_a);
+            break;
+
         top = heap_pop(heap);
         int new_best = 0;
         temp_eval =

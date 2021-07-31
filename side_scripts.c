@@ -1124,3 +1124,13 @@ int scenery_recolor_main2()
 
     return 0;
 }
+
+void time_convert() {
+    int m, s, ms;
+    printf("time: (eg 00:51:40)\n");
+    scanf("%d:%02d:%02d", &m, &s, &ms);
+    if (ms % 4)
+        printf("hundredths should be a multiple of 4\n");
+    int relictime = 1500*m + 25*s + ms/4;
+    printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
+}

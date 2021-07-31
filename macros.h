@@ -92,6 +92,7 @@
 #define EID                             193454615u
 #define LL_ANALYZE                      4033854192u
 #define GEN_SPAWN                       1178716487u
+#define TIME                            2089574420u
 
 #define STATUS                          3482341513u
 
@@ -575,4 +576,4 @@ void         nsd_gool_table_print(char *fpath);
 void         prop_remove_script();
 void         prop_replace_script();
 void         generate_spawn();
-
+void         time_convert();
