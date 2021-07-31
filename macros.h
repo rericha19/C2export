@@ -211,6 +211,8 @@ typedef struct item {
 typedef struct payload {
     int *chunks;
     int count;
+    int *tchunks;
+    int tcount;
     unsigned int zone;
     int cam_path;
 } PAYLOAD;

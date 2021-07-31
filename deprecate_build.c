@@ -176,7 +176,7 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
  */
 void deprecate_build_print_payload(PAYLOAD payload, int stopper) {
     char temp[100] = "";
-    printf("Zone: %s; cam path %d; payload: %3d", eid_conv(payload.zone, temp), payload.cam_path, payload.count);
+    printf("Zone: %s; cam path %d; payload: %3d, textures %d", eid_conv(payload.zone, temp), payload.cam_path, payload.count, payload.tcount);
     if (stopper) printf("; stopper: %2d", stopper);
     printf("\n");
 }
@@ -332,10 +332,28 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
         for (int j = 0; j < count; j++)
             if (chunks[j] == curr_chunk) is_there = 1;
 
-        char temp[100] = "";
+        char temp[6] = "";
         if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min) {
             chunks[count] = curr_chunk;
             count++;
+        }
+    }
+
+    int tchunks[1024];
+    int tcount = 0;
+
+    for (int i = 0; i < list.count; i++) {
+        int elist_index = build_get_index(list.eids[i], elist, entry_count);
+        curr_chunk = elist[elist_index].eid;
+
+        is_there = 0;
+        for (int j = 0; j < tcount; j++)
+            if (tchunks[j] == curr_chunk) is_there = 1;
+
+        char temp[6] = "";
+        if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] == 'T' && curr_chunk != -1) {
+            tchunks[tcount] = curr_chunk;
+            tcount++;
         }
     }
 
@@ -344,6 +362,9 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     temp.count = count;
     temp.chunks = (int *) malloc(count * sizeof(int));      // freed by payload ladder function, caller 3 layers up iirc
     memcpy(temp.chunks, chunks, sizeof(int) * count);
+    temp.tcount = tcount;
+    temp.tchunks = (int *) malloc(count * sizeof(int));
+    memcpy(temp.tchunks, tchunks, sizeof(int) * tcount);
     return temp;
 }
 
