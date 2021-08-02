@@ -93,6 +93,7 @@
 #define LL_ANALYZE                      4033854192u
 #define GEN_SPAWN                       1178716487u
 #define TIME                            2089574420u
+#define SYRACUSE                        2618285140u
 
 #define STATUS                          3482341513u
 

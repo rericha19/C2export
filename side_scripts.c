@@ -308,6 +308,16 @@ int texture_copy_main()
     unsigned char texture2[65536];
     fread(texture2, 65536, 1, file2);
 
+    if (file1 == NULL) {
+        printf("Source texture could not be opened.\n\n");
+        return;
+    }
+
+    if (file2 == NULL) {
+        printf("Destination texture could not be opened.\n\n");
+        return;
+    }
+
     while (1)
     {
         int i;
@@ -1133,4 +1143,31 @@ void time_convert() {
         printf("hundredths should be a multiple of 4\n");
     int relictime = 1500*m + 25*s + ms/4;
     printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
+}
+
+
+unsigned long long syracuse_func(unsigned long long x) {
+    unsigned long long max = x;
+
+    while (x > 1) {
+        max = (x > max) ? x : max;
+        x = (x % 2) ? (3 * x + 1) : (x / 2);
+    }
+
+    return max;
+}
+
+
+void syracuse_xd() {
+    unsigned long long curr_max_val = 0;
+    unsigned long long curr_max_num = 0;
+
+    for (unsigned long long i = 1; ; i += 2) {
+        unsigned long long temp = syracuse_func(i);
+        if (temp > curr_max_val) {
+            curr_max_val = temp;
+            curr_max_num = i;
+            printf("max: %20llu\t %20llu ||| %I64X\n", curr_max_num, curr_max_val, curr_max_val);
+        }
+    }
 }
