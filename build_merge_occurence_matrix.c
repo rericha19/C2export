@@ -18,7 +18,7 @@ void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sou
 
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                     // merge permaloaded entries' chunks as well as possible
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
-    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0);             // current best algorithm
+    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0, 1.0);             // current best algorithm
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);  // for payload printout, doesnt do much anymore
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                                         // jic something didnt get merged it gets merged
 }
@@ -161,7 +161,7 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
  * \param chunk_count int*              chunk count
  * \return void
  */
-void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio) {
+void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio, double mult) {
 
     int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
 
@@ -178,6 +178,13 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
     for (int i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
+
+    if (mult != 1.0) {
+        int dec_mult = (int) (1000 * mult);
+        for (int i = 0; i < array_representation.count; i++)
+            array_representation.relations[i].value *= ((double) ((rand() % dec_mult)) / 1000);
+        qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
+    }
 
     // do the merges according to the relation array, get rid of holes afterwards
     build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);

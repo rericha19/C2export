@@ -149,9 +149,6 @@ int main() {
             case TIME:
                 time_convert();
                 break;
-            case SYRACUSE:
-                syracuse_xd();
-                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

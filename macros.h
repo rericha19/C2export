@@ -93,7 +93,6 @@
 #define LL_ANALYZE                      4033854192u
 #define GEN_SPAWN                       1178716487u
 #define TIME                            2089574420u
-#define SYRACUSE                        2618285140u
 
 #define STATUS                          3482341513u
 
@@ -455,7 +454,7 @@ void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
-void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio);
+void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio, double mult);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
 void         build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
@@ -520,7 +519,7 @@ int          build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* config);
 void         build_ask_premerge(int *premerge_type, double *merge_ratio);
-
+void         build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 
 
 // state thing
@@ -552,10 +551,9 @@ void         deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int
 void         deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
 void         deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
 void         deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
-void         deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk_border_sounds,
-                                                int* chunk_count, int* config, LIST permaloaded);
+void         deprecate_build_payload_merge_main(ENTRY* elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded);
 
-// side_scripts.cpp
+// side_scripts.c
 int          texture_recolor_stupid();
 int          scenery_recolor_main();
 int          scenery_recolor_main2();
@@ -578,3 +576,4 @@ void         prop_remove_script();
 void         prop_replace_script();
 void         generate_spawn();
 void         time_convert();
+

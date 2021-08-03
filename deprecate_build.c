@@ -162,7 +162,10 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
             else return;
         }
 
-    payloads->arr = (PAYLOAD *) realloc(payloads->arr, (payloads->count + 1) * sizeof(PAYLOAD));
+    if (payloads->arr == NULL)
+        payloads->arr = (PAYLOAD *) malloc(1 * sizeof(PAYLOAD));
+    else
+        payloads->arr = (PAYLOAD *) realloc(payloads->arr, (payloads->count + 1) * sizeof(PAYLOAD));
     payloads->arr[payloads->count] = insertee;
     (payloads->count)++;
 }

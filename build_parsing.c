@@ -356,7 +356,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         }
     }
 
-    printf("mus_d_count: %d\n", mus_d.count);
+    /*printf("mus_d_count: %d\n", mus_d.count);
     for (int i = 0; i < mus_d.count; i++) {
         char temp[100] = "";
         printf("\nType %s subtype %2d\n", eid_conv(mus_d.array[i].type, temp), mus_d.array[i].subtype);
@@ -364,7 +364,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             char temp[100] = "";
             printf("\t%s\n", eid_conv(mus_d.array[i].dependencies.eids[j], temp));
         }
-    }
+    }*/
 
     *permaloaded = perma;
     *subtype_info = subinfo;

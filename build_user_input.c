@@ -153,6 +153,7 @@ void build_ask_build_flags(int* config) {
     printf("[1] - occurence count matrix merge (relative) [usually worse than option 0]\n");
     printf("[2] - relatives & payload merge [deprecate, bad]\n");
     printf("[3] - state set graph search based merge (A*/DFS) [slow, no guaranteed result]\n");
+    printf("[4] - occurence count matrix merge (absolute) with randomness\n");
     scanf("%d", &ans);
     config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
     printf("\n");

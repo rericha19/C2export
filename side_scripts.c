@@ -81,7 +81,6 @@ int scenery_recolor_main()
     printf("Path to color item:\n");
     scanf(" %[^\n]",fpath);
     path_fix(fpath);
-    float mult;
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
@@ -89,25 +88,11 @@ int scenery_recolor_main()
         return 0;
     }
 
-    int r_wanted = 1;
-    int g_wanted = 1;
-    int b_wanted = 1;
-    //printf("R G B? [hex]\n");
-    //scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
-
-    /*printf("brigtness mutliplicator? (float)\n");
-    scanf("%f", &mult);*/
-
     fseek(file1, 0, SEEK_END);
     int color_count = ftell(file1) / 4;
     unsigned char* buffer = (unsigned char*) malloc( (color_count * 4) * sizeof(unsigned char*));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
-
-    // pseudograyscale of the wanted color
-    int sum_wanted = r_wanted + g_wanted + b_wanted;
-
-    // int clr[3];
 
     for (int i = 0; i < color_count; i++)
     {
@@ -119,29 +104,9 @@ int scenery_recolor_main()
         // get pseudograyscale of the current color
         int sum = r + g + b;
 
-        // get new color
-        /*int r_new = (sum * r_wanted) / sum_wanted;
-        int g_new = (sum * g_wanted) / sum_wanted;
-        int b_new = (sum * b_wanted) / sum_wanted;
-
-        clr[0] = r;
-        clr[1] = g;
-        clr[2] = b;
-
-        qsort(clr, 3, sizeof(int), cmp_func_uint);
-        r_new = min(clr[2] + 0x10, 0xFF);
-        g_new = max(clr[0] - 0x10, 0);
-        b_new = min(clr[2] + 0x10, 0XFF);*/
-
         int r_new = min(sum / 3 * 2, 0xFF);
         int g_new = sum / 6;
         int b_new = sum / 6;
-
-        /*
-        int r_new = sum/3;
-        int g_new = sum/3;
-        int b_new = sum/3;
-        */
 
         // print stuff
         // printf("old: %2X %2X %2X\n", r, g, b);
@@ -310,12 +275,12 @@ int texture_copy_main()
 
     if (file1 == NULL) {
         printf("Source texture could not be opened.\n\n");
-        return;
+        return 0;
     }
 
     if (file2 == NULL) {
         printf("Destination texture could not be opened.\n\n");
-        return;
+        return 0;
     }
 
     while (1)
@@ -1145,29 +1110,3 @@ void time_convert() {
     printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
 }
 
-
-unsigned long long syracuse_func(unsigned long long x) {
-    unsigned long long max = x;
-
-    while (x > 1) {
-        max = (x > max) ? x : max;
-        x = (x % 2) ? (3 * x + 1) : (x / 2);
-    }
-
-    return max;
-}
-
-
-void syracuse_xd() {
-    unsigned long long curr_max_val = 0;
-    unsigned long long curr_max_num = 0;
-
-    for (unsigned long long i = 1; ; i += 2) {
-        unsigned long long temp = syracuse_func(i);
-        if (temp > curr_max_val) {
-            curr_max_val = temp;
-            curr_max_num = i;
-            printf("max: %20llu\t %20llu ||| %I64X\n", curr_max_num, curr_max_val, curr_max_val);
-        }
-    }
-}

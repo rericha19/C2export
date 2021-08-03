@@ -170,7 +170,7 @@ void build_state_search_premerge(ENTRY *elist, int entry_count, int chunk_border
         case 0:
             break;
         case 1:
-            build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, merge_ratio);
+            build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, merge_ratio, 1.0);
             break;
         case 2:
             build_matrix_merge_relative(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, merge_ratio);
