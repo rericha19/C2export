@@ -4,6 +4,8 @@
 void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
 
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                     // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
+
     double mult;
     int iter_count;
     int seed = 0;
@@ -50,7 +52,6 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
         for (int j = 0; j < entry_count; j++)
             clone_elist[j] = elist[j];
 
-        build_assign_primary_chunks_all(clone_elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
         build_matrix_merge(clone_elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0, mult);       // current best algorithm + some random
         build_dumb_merge(clone_elist, chunk_border_sounds, chunk_count, entry_count);                                         // jic something didnt get merged it gets merged
 
@@ -73,7 +74,6 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
 
     for (int i = 0; i < entry_count; i++)
         elist[i] = best_elist[i];
-
 }
 
 
