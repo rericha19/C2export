@@ -136,7 +136,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
 int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config) {
 
     int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
-    int j, valid = 1;
+    int valid = 1;
 
     char *line = NULL;
     int line_len, read;
@@ -203,9 +203,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
         int i = 0;
         int subcount = 0;
-        int type, subtype, counter;
+        int type, subtype;
         while(1) {
-            if (3 > fscanf(file, "%d, %d, %d", &type, &subtype, &counter))
+            if (2 > fscanf(file, "%d, %d", &type, &subtype))
                 break;
             i = subcount;
             subcount++;
@@ -218,8 +218,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             subinfo.array[i].subtype = subtype;
             subinfo.array[i].dependencies = init_list();
             list_add(&subinfo.array[i].dependencies, gool_table[type]);
-            for (j = 0; j < counter; j++) {
-                fscanf(file, ", %5s", temp);
+            while (1) {
+                if (fscanf(file, ", %5[^\n]", temp) < 1)
+                    break;
                 int index = build_get_index(eid_to_int(temp), elist, entry_count);
                 if (index == -1) {
                     printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
@@ -256,7 +257,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
 
             while (1) {
-                if (2 > fscanf(file, "%x, %d", &code, &counter))
+                if (1 > fscanf(file, "%x", &code))
                     break;
                 i = coll_count;
                 coll_count++;
@@ -267,8 +268,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 coll.array[i].type = code;
                 coll.array[i].subtype = -1;
                 coll.array[i].dependencies = init_list();
-                for (j = 0; j < counter; j++) {
-                    fscanf(file, ", %5s", temp);
+                 while (1) {
+                    if (fscanf(file, ", %5[^\n]", temp) < 1)
+                        break;
                     int index = build_get_index(eid_to_int(temp), elist, entry_count);
                     if (index == -1) {
                         printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
@@ -307,10 +309,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         }
         else {
             int mus_d_count = 0;
-            int counter;
             char temp[6] = "";
             while (1) {
-                if (2 > fscanf(file, "%5s, %2d", temp, &counter))
+                if (1 > fscanf(file, "%5s", temp))
                     break;
                 i = mus_d_count;
                 mus_d_count++;
@@ -322,8 +323,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 mus_d.array[i].type = eid_to_int(temp);
                 mus_d.array[i].subtype = -1;
                 mus_d.array[i].dependencies = init_list();
-                for (j = 0; j < counter; j++) {
-                    fscanf(file, ", %5s", temp);
+                while (1) {
+                    if (fscanf(file, ", %5[^\n]", temp) < 1)
+                        break;
                     int index = build_get_index(eid_to_int(temp), elist, entry_count);
                     if (index == -1) {
                         printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %s\n", temp);
