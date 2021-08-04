@@ -234,7 +234,7 @@ void build_load_list_to_delta(LIST* full_load, LIST* listA, LIST* listB, int cam
  */
 void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int cam_length, ENTRY* elist, int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int* config) {
     int i, j, k;
-    // char temp[100] = "";
+    // char temp[6] = "";
 
     // neighbours, slsts, scenery
     LIST links = build_get_links(elist[zone_index].data, camera_index);
@@ -256,7 +256,7 @@ void build_load_list_util(int zone_index, int camera_index, LIST* full_list, int
             int type = types_subtypes.eids[j] >> 0x10;
             int subtype = types_subtypes.eids[j] & 0xFF;
 
-            /*char temp[100] = "";
+            /*char temp[6] = "";
             printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].eid, temp), i, type, subtype);*/
             for (k = 0; k < sub_info.count; k++)
                 if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type) {
@@ -603,6 +603,16 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
     for (i = 0; i < cam_length; i++)
         list_copy_in(&entity_list, draw_list_zone[i]);
 
+    /*
+    char temp[6] = "";
+    printf("\nZone %5s complete draw list:\n", eid_conv(elist[zone_index].eid, temp));
+    for (j = 0; j < cam_length; j++) {
+        printf("\n%d:\t", j);
+        for (k = 0; k < draw_list_zone[j].count; k++)
+            printf("%d\t", draw_list_zone[j].eids[k]);
+    }
+    printf("\n\n");*/
+
     short int* coords = build_get_path(elist, zone_index, camera_index, &coord_count);
     LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++) {
@@ -803,7 +813,9 @@ LIST* build_get_complete_draw_list(ENTRY* elist, int zone_index, int cam_index, 
     LOAD_LIST draw_list2 = build_get_draw_lists(elist[zone_index].data, cam_index);
 
     int sublist_index = 0;
-    for (i = 0; i < cam_length; i++) {
+    for (i = 0; i < cam_length && sublist_index < draw_list2.count; i++) {
+
+        int new_read = 0;
         if (draw_list2.array[sublist_index].index == i) {
             if (draw_list2.array[sublist_index].type == 'B')
                 for (m = 0; m < draw_list2.array[sublist_index].list_length; m++) {
@@ -818,8 +830,13 @@ LIST* build_get_complete_draw_list(ENTRY* elist, int zone_index, int cam_index, 
                 }
 
             sublist_index++;
+            new_read = 1;
         }
         list_copy_in(&draw_list[i], list);
+
+        // fixes cases when both draw list A and B contained sublist w/ the same indexes, subsequent sublists didnt get
+        if (new_read)
+            i--;
     }
 
     delete_load_list(draw_list2);

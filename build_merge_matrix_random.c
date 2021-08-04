@@ -39,6 +39,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     ENTRY clone_elist[ELIST_DEFAULT_SIZE];
     ENTRY best_elist[ELIST_DEFAULT_SIZE];
     int best_max = entry_count;
+    int tmp_chunk_count;
     unsigned int best_zone = 0;
     char temp[6] = "";
     char temp2[6] = "";
@@ -50,10 +51,11 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     for (int i = 0; i < iter_count || iter_count == 0; i++) {
         for (int j = 0; j < entry_count; j++)
             clone_elist[j] = elist[j];
+        tmp_chunk_count = *chunk_count;
 
-        build_assign_primary_chunks_all(clone_elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
-        build_matrix_merge(clone_elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0, mult);       // current best algorithm + some random
-        build_dumb_merge(clone_elist, chunk_border_sounds, chunk_count, entry_count);                                         // jic something didnt get merged it gets merged
+        build_assign_primary_chunks_all(clone_elist, entry_count, &tmp_chunk_count);                                               // chunks start off having one entry per chunk
+        build_matrix_merge(clone_elist, entry_count, chunk_border_sounds, &tmp_chunk_count, config, permaloaded, 1.0, mult);       // current best algorithm + some random
+        build_dumb_merge(clone_elist, chunk_border_sounds, &tmp_chunk_count, entry_count);                                         // jic something didnt get merged it gets merged
 
         PAYLOADS payloads = deprecate_build_get_payload_ladder(clone_elist, entry_count, chunk_border_sounds);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
@@ -72,8 +74,11 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
             break;
     }
 
-    for (int i = 0; i < entry_count; i++)
+    for (int i = 0; i < entry_count; i++) {
         elist[i] = best_elist[i];
+        if (elist[i].chunk >= *chunk_count)
+            *chunk_count = elist[i].chunk + 1;
+    }
 }
 
 
