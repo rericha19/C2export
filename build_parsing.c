@@ -709,6 +709,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns) {
                 char temp2[100] = "";
                 printf("[warning] %s links to %s's cam path %d which doesnt exist\n",
                         eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2), link.cam_index);
+                continue;
             }
 
             if (elist[neighbour_index].visited[link.cam_index] == 0)
