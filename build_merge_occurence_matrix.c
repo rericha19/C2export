@@ -159,6 +159,10 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
  * \param entry_count int               entry count
  * \param chunk_border_sounds int       unused
  * \param chunk_count int*              chunk count
+ * \param config int*                   config values
+ * \param permaloaded LIST              list of permaloaded entries
+ * \param merge_ratio double            portion of entries to merge (used by premerges of method 3)
+ * \param mult double                   max multiplier
  * \return void
  */
 void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio, double mult) {
@@ -285,6 +289,7 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
  * \param elist ENTRY*                  entry list
  * \param entry_count int               entry count
  * \param entries LIST                  valid entries list
+ * \param merge_ratio double            what portion of entries is to be merged
  * \return void
  */
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio) {
