@@ -104,10 +104,11 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
             is_new_best = 1;
         }
 
-        printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
-        if (is_new_best)
-            printf(" -- NEW BEST");
-        printf("\n");
+        if (!is_new_best)
+            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
+        else
+            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
+
 
         // if the worst payload zone has the same or lower payload than user specified max, it stops since its good enough
         if (payloads.arr[0].count <= max_payload_limit)
