@@ -87,21 +87,27 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
         // how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
         int src_depth = min(payloads.count, 8);
 
-        // gets current 'score', its multiplied by 100 instead of being bit shhhifted each iter so its legible in the console
+        // gets current 'score', its multiplied by 100 instead of being bit shifted each iter so its legible in the console
         long long int curr = 0;
         for (int i = 0; i < src_depth; i++) {
             curr = curr * (long long int) 100;
             curr += (long long int) payloads.arr[i].count;
         }
-        printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
 
+        int is_new_best = 0;
         // if its better than the previous best it gets stored in best_elist and score and zone are remembered
         if (curr < best_max) {
             for (int j = 0; j < entry_count; j++)
                 best_elist[j] = clone_elist[j];
             best_max = curr;
             best_zone = payloads.arr[0].zone;
+            is_new_best = 1;
         }
+
+        printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
+        if (is_new_best)
+            printf(" -- NEW BEST");
+        printf("\n");
 
         // if the worst payload zone has the same or lower payload than user specified max, it stops since its good enough
         if (payloads.arr[0].count <= max_payload_limit)

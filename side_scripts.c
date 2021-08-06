@@ -1042,6 +1042,7 @@ int scenery_recolor_main2()
     printf("Path to color item:\n");
     scanf(" %[^\n]",fpath);
     path_fix(fpath);
+    float mult;
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
@@ -1053,9 +1054,12 @@ int scenery_recolor_main2()
     printf("R G B? [hex]\n");
     scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
 
+    printf("brigtness mutliplicator? (float)\n");
+    scanf("%f", &mult);
+
     fseek(file1, 0, SEEK_END);
     int color_count = ftell(file1) / 4;
-    unsigned char* buffer = (unsigned char*)malloc((color_count * 4) * sizeof(unsigned char*));
+    unsigned char* buffer = (unsigned char*) malloc ((color_count * 4) * sizeof(unsigned char*));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
@@ -1076,6 +1080,10 @@ int scenery_recolor_main2()
         int r_new = (sum * r_wanted) / sum_wanted;
         int g_new = (sum * g_wanted) / sum_wanted;
         int b_new = (sum * b_wanted) / sum_wanted;
+
+        r_new *= mult;
+        g_new *= mult;
+        b_new *= mult;
 
         // clip it at 0xFF
         r_new = min(r_new, 0xFF);

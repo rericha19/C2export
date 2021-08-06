@@ -184,7 +184,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             for (int l = 0; l < models.count; l++) {
                 unsigned int model = models.eids[l];
                 int model_index = build_get_index(model, elist, entry_count);
-                if (model_index == -1) continue;
+                if (model_index == -1) {
+                    printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, temp));
+                    continue;
+                }
 
                 build_add_model_textures_to_list(elist[model_index].data, &perma);
             }
@@ -234,7 +237,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                     for (int l = 0; l < models.count; l++) {
                         unsigned int model = models.eids[l];
                         int model_index = build_get_index(model, elist, entry_count);
-                        if (model_index == -1) continue;
+                        if (model_index == -1) {
+                            printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, temp));
+                            continue;
+                        }
 
                         list_add(&subinfo.array[i].dependencies, model);
                         build_add_model_textures_to_list(elist[model_index].data, &subinfo.array[i].dependencies);
