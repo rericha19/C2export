@@ -345,10 +345,9 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
     if (neighbour_index == -1)
         return;
 
-    // if not preloading for transitions
+    // if preloading nothing
     if (preloading_flag == 0 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
         return;
-
 
     int scenery_count = build_get_scen_count(elist[neighbour_index].data);
     for (i = 0; i < scenery_count; i++) {
@@ -367,6 +366,10 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
                 build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
         }
     }
+
+    // if preloading only textures
+    if (preloading_flag < 2 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+        return;
 
     if (elist[neighbour_index].related != NULL)
         for (i = 0; (unsigned)i < elist[neighbour_index].related[0]; i++)
@@ -406,7 +409,8 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         if (neighbour_index2 == -1)
             continue;
 
-        if (preloading_flag == 0 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
+        // not preloading everything
+        if (preloading_flag < 2 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
             continue;
 
         int offset2 = build_get_nth_item_offset(elist[neighbour_index2].data, 2 + 3 * link2.cam_index);
@@ -631,8 +635,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
         if (neighbour_index == -1)
             continue;
 
-        // preloading check
-        if (preloading_flag == 0 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+        // preloading everything check
+        if (preloading_flag < 2 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
             continue;
 
         list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index].data));
@@ -674,7 +678,8 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             if (neighbour_index2 == -1)
                 continue;
 
-            if (preloading_flag == 0 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
+            // preloading everything check
+            if (preloading_flag < 2 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
                 continue;
 
             list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index2].data));

@@ -98,15 +98,23 @@ void build_ask_distances(int *config) {
     scanf("%d", &temp);
     config[CNFG_IDX_LL_DRAW_DIST_VALUE] = temp;
 
-    printf("\nPre-load stuff for transitions? (not pre-loading is safer) [0/1]\n");
+    printf("\nTransition pre-loading? [0 - none / 1 - textures / 2 - all]\n");
     scanf("%d", &ans);
-    if (ans) {
-        config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 1;
-        printf("Pre-loading\n\n");
-    }
-    else {
+    if (ans >= 0 && ans <= 2)
+        config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = ans;
+    else
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
-        printf("Not pre-loading\n\n");
+    switch(config[CNFG_IDX_LL_TRNS_PRLD_FLAG]) {
+        default:
+        case 0:
+            printf("Not pre-loading.\n\n");
+            break;
+        case 1:
+            printf("Pre-loading only textures.\n\n");
+            break;
+        case 2:
+            printf("Pre-loading all.\n\n");
+            break;
     }
 
     printf("Backwards loading penalty? [0 - 0.5]\n");
