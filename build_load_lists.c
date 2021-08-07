@@ -869,10 +869,10 @@ void build_add_collision_dependencies(LIST* full_list, int start_index, int end_
 
         int item2off = from_u32(elist[index].data + 0x14);
         unsigned char* item = elist[index].data + item2off;
-        int count = *(int*)item + 0x18;
+        int count = from_u32(item + 0x18);
 
         for (i = 0; i < count + 2; i++) {
-            short int type = *(short int*)item + 0x24 + 2 * i;
+            short int type = from_u16(item + 0x24 + 2 * i);
             if (type % 2 == 0) continue;
 
             for (j = 0; j < collisions.count; j++)

@@ -14,14 +14,18 @@
 04, 17
 06, 00, Di1bV, Di2bV, Di3bV, Di4bV, Di5bV
 06, 02, Di1bV, Di2bV, Di3bV, Di4bV, Di5bV
+07, 00, Fa1fV
+07, 01, Fa1fV
 08, 00, Sw1bV, Sw2bV, Ss1bV, Ss2bV
-09, 06, El1bV, El1eV, El1pV, El30V
-09, 31, El2bV, El2eV, El2aV, El2cV
+09, 06, El1bV, El1eV, El1pV, El30V, El3eV, El3pV
+09, 31, El2bV, El2eV, El2aV, El2cV, El2fV, El2pV
 09, 32, El1bV, El2bV, El1eV, El2eV
 09, 33, HG1bV, El1bV, El2bV, HG2bV, Mo1bV, El1eV, El2eV, HG2cV, El2cV
 09, 35, El2aV
-09, 38 
+09, 38, Cwa0V, WWP1V, WWP3V
 09, 39, El2bV, El2eV
+10, 00, Mo1fV, Mo2fV, Mo4fV, Mo5fV, Mo3fV
+11, 00, Go1fV, Go2fV, Go3fV, Gb1fV
 12, 00, Do1aV
 12, 01, Fa1aV, Fa2aV, Fa3aV, Fa5aV
 12, 02, Fa1aV, Fa2aV, Fa3aV, Fa5aV
@@ -32,7 +36,10 @@
 13, 06, Sc1aV, Sc2aV, Sc3aV
 13, 08, Sc1aV, Sc2aV, Sc3aV
 13, 10, Sc1aV, Sc2aV, Sc3aV
-14, 01, Pl1aV
+14, 01, Pl1aV, Pl1eV
+14, 02, Pl1pV
+14, 03, Pl1fV, Pl2fV
+14, 04, Pl1fV, Pl2fV
 14, 06, Pl2eV
 14, 07, Pl4cV, Pl6pV
 14, 08, Pl50V, Pl60V
@@ -52,12 +59,16 @@
 25, 00, Pe1eV, Pe2eV, Pe3eV, Pe4eV
 25, 01, Pe1eV, Pe2eV, Pe3eV, Pe4eV
 25, 02, Pe3hV, Pe4hV
+26, 00, Pr1fV, Pr2fV
+26, 02, Pr3fV, Pr4fV
+26, 03, Pr3fV, Pr4fV
+26, 04, PlafV, Pb1mV, Pb2mV, Pb3mV, Pb4mV, Pb5mV, RatOC
 27, 00, Po2eV, Po4eV, Po3eV, Po1eV
 27, 01, Po2eV, Po4eV, Po3eV, Po1eV
 28, 00, Ra1aV, Ra2aV, Ra3aV
 28, 01, Ra1aV, Ra2aV, Ra3aV
-28, 02, Pb1cV, Pb2cV, Pb3cV, Pb4cV, Pb5cV
-28, 03, Lp1cV, Lp2cV, Lp3cV
+28, 02, Pb1cV, Pb2cV, Pb3cV, Pb4cV, Pb5cV, Pb1mV, Pb2mV, Pb3mV, Pb4mV, Pb5mV
+28, 03, Lp1cV, Lp2cV, Lp3cV, Lp1mV, Lp2mV, Lp3mV
 28, 04, Ra1aV, Ra2aV, Ra3aV
 28, 06, Ra1aV, Ra2aV, Ra3aV
 30, 00, Ob1bV, Ob2bV, Ol1bV, Ol2bV
@@ -81,6 +92,16 @@
 34, 18, Bn10V
 34, 23, Bs10V
 34, 24, Ba10V, Ba20V, BI10V
+38, 04, Ju3pV, JuppV, JuPpV
 46, 00, Dr1cV
+47, 01, Hp1pV
+47, 02, Bo1pV, Bo2pV
+47, 03, Bo3pV
+47, 04, Mf1pV, Mf2pV
+47, 05, Pa1pV
+47, 06, Ra1kV
+47, 07, Mf1pV, Mf2pV
+47, 08
+47, 10
 57, 01
 57, 07

@@ -179,6 +179,7 @@ typedef struct spawns{
 // list struct, used to store various values and eids
 typedef struct list {
     int count;
+    int real_count;
     unsigned int *eids;
 } LIST;
 

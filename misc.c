@@ -327,6 +327,11 @@ void list_remove(LIST *list, unsigned int eid)
     qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
 }
 
+/*
+void list_free(LIST list) {
+    free(list.eids);
+}*/
+
 
 /** \brief
  *  Copies contents of the 'source' list into 'destination' list.
