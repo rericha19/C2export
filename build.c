@@ -319,7 +319,8 @@ int build_is_normal_chunk_entry(ENTRY entry) {
         type == ENTRY_TYPE_DEMO ||
         type == ENTRY_TYPE_VCOL ||
         type == ENTRY_TYPE_MIDI ||
-        type == ENTRY_TYPE_GOOL )
+        type == ENTRY_TYPE_GOOL ||
+        type == ENTRY_TYPE_T21)
     return 1;
 
     return 0;

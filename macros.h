@@ -111,6 +111,7 @@
 #define ENTRY_TYPE_INST                 0xE
 #define ENTRY_TYPE_VCOL                 0xF
 #define ENTRY_TYPE_DEMO                 0x13
+#define ENTRY_TYPE_T21                  21
 
 #define ENTITY_PROP_NAME                0x2C
 #define ENTITY_PROP_DEPTH_MODIFIER      0x32
