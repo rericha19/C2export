@@ -396,7 +396,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
 
                 if ((type >= 34 && type <= 43) &&
                     (subt == 0 || subt == 2 || subt == 3 || subt == 4 || subt == 6 || subt == 8 || subt == 9 ||
-                     subt == 10 || subt == 11 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
+                     subt == 10 || subt == 11 || subt == 17 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
                 {
                     box_counter++;
                     //printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].eid, temp), type, subt, id);

@@ -291,7 +291,10 @@ PROPERTY build_make_load_list_prop(LIST* list_array, int cam_length, int code) {
 
     // header info
     *(short int*)(prop.header) = code;
-    *(short int*)(prop.header + 4) = 0x0464; // idr why
+    if (delta_counter > 1)
+        *(short int*)(prop.header + 4) = 0x0464;
+    else
+        *(short int*)(prop.header + 4) = 0x0424;
     *(short int*)(prop.header + 6) = delta_counter;
 
     prop.length = total_length;
