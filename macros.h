@@ -93,6 +93,7 @@
 #define LL_ANALYZE                      4033854192u
 #define GEN_SPAWN                       1178716487u
 #define TIME                            2089574420u
+#define ENT_RESIZE                      2772317469u
 
 #define STATUS                          3482341513u
 
@@ -578,4 +579,4 @@ void         prop_remove_script();
 void         prop_replace_script();
 void         generate_spawn();
 void         time_convert();
-
+void         c3_ent_resize();

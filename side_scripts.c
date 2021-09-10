@@ -1118,3 +1118,74 @@ void time_convert() {
     printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
 }
 
+
+void c3_ent_resize() {
+    char fpath[1000];
+    printf("Path to entity item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("Couldn't open file.\n\n");
+        return;
+    }
+
+    fseek(file1, 0, SEEK_END);
+    int fsize = ftell(file1);
+    double scale = 1;
+    rewind(file1);
+
+    unsigned char* buffer = (unsigned char *) malloc(fsize);
+    fread(buffer, fsize, 1, file1);
+
+    unsigned int offset = 0;
+
+    for (int i = 0; i < build_prop_count(buffer); i++) {
+
+        if ((from_u16(buffer + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
+            offset = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
+
+        if ((from_u16(buffer + 0x10 + 8 * i)) == 0x30E) {
+            int off_scale = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
+
+            switch (from_u32(buffer + off_scale + 4)) {
+                case 0:
+                    scale = 0.25;
+                    break;
+                case 1:
+                    scale = 0.5;
+                    break;
+                case 3:
+                    scale = 2;
+                    break;
+                case 4:
+                    scale = 4; //?
+                    break;
+                default:
+                    scale = 0.25;
+                    break;
+            }
+
+            printf("scale:    %lf\n", scale);
+        }
+    }
+
+
+    if (offset) {
+        int path_len = from_u32(buffer + offset);
+        printf("path len: %d\n", path_len);
+        for (int i = 0; i < path_len * 3; i++) {
+            int off_curr = offset + 4 + i * 2;
+            *(short int *)(buffer + off_curr) = (*(short int *)(buffer + off_curr)) * scale;
+        }
+    } else {
+        printf("[error] no path property found\n");
+    }
+
+    rewind(file1);
+    fwrite(buffer, 1, fsize, file1);
+    free(buffer);
+    fclose(file1);
+    printf("Done.\n\n");
+}
