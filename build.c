@@ -53,6 +53,7 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
             }
         }
         if (!merge_happened) break;
+
     }
 
     *chunk_index_end = build_remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
@@ -394,12 +395,13 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
 
                 entity_counter++;
 
-                if ((type >= 34 && type <= 43) &&
+                if ((type == 34) &&
                     (subt == 0 || subt == 2 || subt == 3 || subt == 4 || subt == 6 || subt == 8 || subt == 9 ||
-                     subt == 10 || subt == 11 || subt == 17 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
+                     subt == 10 || subt == 11 || subt == 12 || subt == 17 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
                 {
                     box_counter++;
-                    //printf("Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", eid_conv(elist[i].eid, temp), type, subt, id);
+                    // char temp[6] = "";
+                    // printf("%3d, Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", box_counter, eid_conv(elist[i].eid, temp), type, subt, id);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18) {

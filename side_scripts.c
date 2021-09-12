@@ -102,7 +102,7 @@ int scenery_recolor_main()
         unsigned char b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
-        int sum = r + g + b;
+        // int sum = r + g + b;
 
         int r_new = max(0, r - 0x20);
         int g_new = max(0, g - 0x20);
