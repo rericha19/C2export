@@ -45,20 +45,15 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     printf("\n");
     srand(seed);
 
-    // clone elists that store the current iteration and the best iretation
-    ENTRY clone_elist[ELIST_DEFAULT_SIZE];
-    ENTRY best_elist[ELIST_DEFAULT_SIZE];
-
+    char temp[6] = "";
+    char temp2[6] = "";
     // for keeping track of the best found
     long long int best_max = 9223372036854775807; // max signed 64b int
     unsigned int best_zone = 0;
 
-    char temp[6] = "";
-    char temp2[6] = "";
-
-    // this probably has no impact but w/e
-    for (int i = 0; i < entry_count; i++)
-        best_elist[i] = elist[i];
+    // clone elists that store the current iteration and the best iretation
+    ENTRY clone_elist[ELIST_DEFAULT_SIZE];
+    ENTRY best_elist[ELIST_DEFAULT_SIZE];
 
     // first half of matrix merge method, unchanged
     // this can be done once instead of every iteration since its the same every time
@@ -84,7 +79,6 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
 
     // runs until iter count is reached or until break inside goes off (iter count 0 can make it never stop)
     for (int i = 0; i < iter_count || iter_count == 0; i++) {
-
         // copy elist into clone elist
         for (int j = 0; j < entry_count; j++)
             clone_elist[j] = elist[j];
@@ -94,11 +88,11 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
 
         // second half of the matrix merge slightly randomised and ran on clone elist
         int dec_mult = (int) (1000 * mult);
-        for (int i = 0; i < array_representation.count; i++)
-            array_representation.relations[i].value = ((array_repr_untouched.relations[i].value * (double) ((rand() % dec_mult))) / 1000);
+        for (int j = 0; j < array_representation.count; j++)
+            array_representation.relations[j].value = ((array_repr_untouched.relations[j].value * (double) ((rand() % dec_mult))) / 1000);
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
-        // do the merges according to the relation array, get rid of holes afterwards
+        // do the merges according to the slightly randomised relation array
         build_matrix_merge_util(array_representation, clone_elist, entry_count, entries, 1.0);
 
         // get payload ladder for current iteration
@@ -110,9 +104,9 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
 
         // gets current 'score', its multiplied by 100 instead of being bit shifted each iter so its legible in the console
         long long int curr = 0;
-        for (int i = 0; i < src_depth; i++) {
+        for (int j = 0; j < src_depth; j++) {
             curr = curr * (long long int) 100;
-            curr += (long long int) payloads.arr[i].count;
+            curr += (long long int) payloads.arr[j].count;
         }
 
         int is_new_best = 0;
