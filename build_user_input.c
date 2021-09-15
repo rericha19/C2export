@@ -98,21 +98,24 @@ void build_ask_distances(int *config) {
     scanf("%d", &temp);
     config[CNFG_IDX_LL_DRAW_DIST_VALUE] = temp;
 
-    printf("\nTransition pre-loading? [0 - none / 1 - textures / 2 - all]\n");
+    printf("\nTransition pre-loading? [0 - none / 1 - textures / 2 - normal chunk entries only / 3 - all]\n");
     scanf("%d", &ans);
-    if (ans >= 0 && ans <= 2)
+    if (ans >= 0 && ans <= 3)
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = ans;
     else
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
     switch(config[CNFG_IDX_LL_TRNS_PRLD_FLAG]) {
         default:
-        case 0:
+        case PRELOADING_NOTHING:
             printf("Not pre-loading.\n\n");
             break;
-        case 1:
+        case PRELOADING_TEXTURES_ONLY:
             printf("Pre-loading only textures.\n\n");
             break;
-        case 2:
+        case PRELOADING_REG_ENTRIES_ONLY:
+            printf("Pre-loading normal chunk entries, not textures. (entity deps omitted too)\n\n");
+            break;
+        case PRELOADING_ALL:
             printf("Pre-loading all.\n\n");
             break;
     }

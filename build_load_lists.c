@@ -349,29 +349,32 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
         return;
 
     // if preloading nothing
-    if (preloading_flag == 0 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+    if (preloading_flag == PRELOADING_NOTHING && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
         return;
 
-    int scenery_count = build_get_scen_count(elist[neighbour_index].data);
-    for (i = 0; i < scenery_count; i++) {
-        int item1off_neigh = from_u32(elist[neighbour_index].data + 0x10);
-        int scenery_index = build_get_index(from_u32(elist[neighbour_index].data + item1off_neigh + 0x4 + 0x30 * i), elist, entry_count);
-        // kinda sucks but i cbf to make it better rn
-        if (link.type == 1) {
-            int end_index = (cam_length - 1) / 2 - 1;
-            for (j = 0; j < end_index; j++)
-                build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
-        }
+    if (preloading_flag == PRELOADING_TEXTURES_ONLY || preloading_flag == PRELOADING_ALL) {
+        int scenery_count = build_get_scen_count(elist[neighbour_index].data);
 
-        if (link.type == 2) {
-            int start_index = (cam_length - 1) / 2 + 1;
-            for (j = start_index; j < cam_length; j++)
-                build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
+        for (i = 0; i < scenery_count; i++) {
+            int item1off_neigh = from_u32(elist[neighbour_index].data + 0x10);
+            int scenery_index = build_get_index(from_u32(elist[neighbour_index].data + item1off_neigh + 0x4 + 0x30 * i), elist, entry_count);
+            // kinda sucks but i cbf to make it better rn
+            if (link.type == 1) {
+                int end_index = (cam_length - 1) / 2 - 1;
+                for (j = 0; j < end_index; j++)
+                    build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
+            }
+
+            if (link.type == 2) {
+                int start_index = (cam_length - 1) / 2 + 1;
+                for (j = start_index; j < cam_length; j++)
+                    build_add_scen_textures_to_list(elist[scenery_index].data, &full_list[j]);
+            }
         }
     }
 
     // if preloading only textures
-    if (preloading_flag < 2 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+    if (preloading_flag == PRELOADING_TEXTURES_ONLY && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
         return;
 
     if (elist[neighbour_index].related != NULL)
@@ -413,7 +416,7 @@ void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST
             continue;
 
         // not preloading everything
-        if (preloading_flag < 2 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
+        if ((preloading_flag == PRELOADING_NOTHING || preloading_flag == PRELOADING_TEXTURES_ONLY) && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
             continue;
 
         int offset2 = build_get_nth_item_offset(elist[neighbour_index2].data, 2 + 3 * link2.cam_index);
@@ -639,7 +642,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
             continue;
 
         // preloading everything check
-        if (preloading_flag < 2 && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+        if (preloading_flag != PRELOADING_ALL && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
             continue;
 
         list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index].data));
@@ -682,7 +685,7 @@ LIST build_get_entity_list(int point_index, int zone_index, int camera_index, in
                 continue;
 
             // preloading everything check
-            if (preloading_flag < 2 && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
+            if (preloading_flag != PRELOADING_ALL && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
                 continue;
 
             list_copy_in(neighbours, build_get_neighbours(elist[neighbour_index2].data));

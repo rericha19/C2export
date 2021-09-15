@@ -35,6 +35,11 @@
 #define CNFG_IDX_MTRX_PERMA_INC_FLAG    12
 #define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
 
+#define PRELOADING_NOTHING              0
+#define PRELOADING_TEXTURES_ONLY        1
+#define PRELOADING_REG_ENTRIES_ONLY     2
+#define PRELOADING_ALL                  3
+
 #define C2_GOOL_TABLE_SIZE              0x40
 #define FPATH_COUNT                     4
 #define OFFSET                          0xC
