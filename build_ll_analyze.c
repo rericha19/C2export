@@ -549,6 +549,65 @@ void build_ll_id_usage(ENTRY *elist, int entry_count) {
     printf("\n");
 }
 
+void build_ll_check_tpag_references(ENTRY *elist, int entry_count) {
+
+    printf("\nTexture reference check:\n");
+    int unreferenced_textures = 0;
+    char temp[6] = "";
+
+    LIST text_refs = init_list();
+    for (int i = 0; i < entry_count; i++) {
+        int entry_type = build_entry_type(elist[i]);
+        switch (entry_type) {
+            case ENTRY_TYPE_MODEL:
+                build_add_model_textures_to_list(elist[i].data, &text_refs);
+                break;
+            case ENTRY_TYPE_SCENERY:
+                build_add_scen_textures_to_list(elist[i].data, &text_refs);
+                break;
+            case ENTRY_TYPE_GOOL: {
+                int ic = build_item_count(elist[i].data);
+                if (ic == 6) {
+                    unsigned int i6_off = build_get_nth_item_offset(elist[i].data, 5);
+                    unsigned int i6_end = build_get_nth_item_offset(elist[i].data, 6);
+                    unsigned int i6_len = i6_end - i6_off;
+
+                    for (int j = 0; j < i6_len / 4; j++) {
+                        unsigned int potential_eid = from_u32(elist[i].data + i6_off + 4 * j);
+                        if (build_get_index(potential_eid, elist, entry_count) == -1)
+                            continue;
+
+                        list_add(&text_refs, potential_eid);
+                    }
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    for (int i = 0; i < entry_count; i++) {
+        if (elist[i].data == NULL && eid_conv(elist[i].eid, temp)[4] == 'T') {
+            int reffound = 0;
+            for (int j = 0; j < text_refs.count; j++) {
+                if (elist[i].eid == text_refs.eids[j]) {
+                    reffound = 1;
+                    break;
+                }
+            }
+            if (reffound == 0) {
+                unreferenced_textures = 1;
+                printf("Texture %5s not referenced by any GOOL, scenery or model\n",
+                       eid_conv(elist[i].eid, temp));
+            }
+        }
+    }
+
+    if (!unreferenced_textures)
+        printf("No unreferenced textures found.\n");
+}
+
 void build_ll_analyze() {
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
@@ -563,6 +622,7 @@ void build_ll_analyze() {
     build_ll_print_full_payload_info(elist, entry_count);
     build_ll_various_stats(elist, entry_count);
     build_ll_print_avg(elist, entry_count);
+    build_ll_check_tpag_references(elist, entry_count);
     build_ll_check_zone_references(elist, entry_count);
     build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_load_list_integrity(elist, entry_count);
