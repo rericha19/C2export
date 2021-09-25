@@ -608,6 +608,36 @@ void build_ll_check_tpag_references(ENTRY *elist, int entry_count) {
         printf("No unreferenced textures found.\n");
 }
 
+void build_ll_check_gool_types(ENTRY *elist, int entry_count) {
+    printf("\nGOOL types list:\n");
+    char temp[6] = "";
+
+    LIST lists[64];
+    for (int i = 0; i < 64; i++)
+        lists[i] = init_list();
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL) {
+            int item1_offset = build_get_nth_item_offset(elist[i].data, 0);
+            int gool_type = from_u32(elist[i].data + item1_offset);
+            if (gool_type < 0 || gool_type > 63) {
+                printf("Invalid GOOL type: %s type %d\n", eid_conv(elist[i].eid, temp), gool_type);
+            } else {
+                list_add(&lists[gool_type], elist[i].eid);
+            }
+        }
+    }
+
+    for (int i = 0; i < 64; i++) {
+        printf("%2d:\t", i);
+        for (int j = 0; j < lists[i].count; j++) {
+            printf("%s\t", eid_conv(lists[i].eids[j], temp));
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
 void build_ll_analyze() {
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
@@ -619,15 +649,17 @@ void build_ll_analyze() {
         return;
 
     build_ll_id_usage(elist, entry_count);
-    build_ll_print_full_payload_info(elist, entry_count);
     build_ll_various_stats(elist, entry_count);
+    build_get_box_count(elist, entry_count);
     build_ll_print_avg(elist, entry_count);
+    build_ll_print_full_payload_info(elist, entry_count);
+    build_ll_check_gool_types(elist, entry_count);
+    build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_tpag_references(elist, entry_count);
     build_ll_check_zone_references(elist, entry_count);
-    build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
-    build_get_box_count(elist, entry_count);
+
 
     build_cleanup_elist(elist, entry_count);
     printf("Done.\n\n");

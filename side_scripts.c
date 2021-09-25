@@ -263,15 +263,13 @@ int texture_copy_main()
     scanf(" %[^\n]",fpath);
     path_fix(fpath);
     FILE* file1 = fopen(fpath, "rb");
-    unsigned char texture1[65536];
-    fread(texture1, 65536, 1, file1);
+    unsigned char *texture1 = (unsigned char *) malloc(65536);
 
     printf("Path to destination texture:\n");
     scanf(" %[^\n]",fpath);
     path_fix(fpath);
-    FILE* file2 = fopen(fpath, "rwb+");
-    unsigned char texture2[65536];
-    fread(texture2, 65536, 1, file2);
+    FILE* file2 = fopen(fpath, "rb+");
+    unsigned char *texture2 = (unsigned char *) malloc(65536);
 
     if (file1 == NULL) {
         printf("Source texture could not be opened.\n\n");
@@ -283,12 +281,18 @@ int texture_copy_main()
         return 0;
     }
 
+    fread(texture1, 65536, 1, file1);
+    fread(texture2, 65536, 1, file2);
+
     while (1)
     {
         int i;
         int bpp, src_x, src_y, width, height, dest_x, dest_y;
         printf("bpp src_x src_y width height dest-x dest-y? [set bpp to 0 to end]\n");
-        scanf("%d %x %x %x %x %x %x", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
+        scanf("%d", &bpp);
+        if (bpp == 0)
+            break;
+        scanf(" %x %x %x %x %x %x", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
         int end = 0;
 
         switch(bpp)
@@ -317,17 +321,21 @@ int texture_copy_main()
                 break;
         }
 
-        if (end)
+        if (end) {
+            printf("ended\n");
             break;
+        }
     }
 
     rewind(file2);
     fwrite(texture2, 65536, 1, file2);
 
     fclose(file1);
-    rewind(file2);
     fclose(file2);
 
+    free(texture1);
+    free(texture2);
+    printf("Done\n\n");
     return 0;
 }
 

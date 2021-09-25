@@ -411,8 +411,8 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
             }
         }
     }
-    printf("BOX COUNT:    %3d\n", box_counter);
-    printf("NITRO COUNT:  %3d\n", nitro_counter);
+    printf("Box count:      %4d\n", box_counter);
+    printf("Nitro count:    %4d\n", nitro_counter);
 }
 
 
