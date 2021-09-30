@@ -1,6 +1,5 @@
 #include "macros.h"
 
-
 void build_ll_check_load_list_integrity(ENTRY *elist, int entry_count) {
     printf("\nLoad list integrity check:\n");
     int issue_found = 0;
@@ -608,6 +607,54 @@ void build_ll_check_tpag_references(ENTRY *elist, int entry_count) {
         printf("No unreferenced textures found.\n");
 }
 
+void build_ll_check_sound_references(ENTRY *elist, int entry_count) {
+
+    printf("\nSound reference check:\n");
+    LIST potential_sounds = init_list();
+    char temp[6] = "";
+    int unreferenced_sounds = 0;
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_GOOL) {
+            int ic = build_item_count(elist[i].data);
+            if (ic == 6) {
+                unsigned int i3off = build_get_nth_item_offset(elist[i].data, 2);
+                unsigned int i4off = build_get_nth_item_offset(elist[i].data, 3);
+                unsigned int i3len = i4off - i3off;
+
+                for (int j = 0; j < i3len / 4; j++) {
+                    unsigned int potential_eid = from_u32(elist[i].data + i3off + 4 * j);
+                    if (build_get_index(potential_eid, elist, entry_count) == -1)
+                        continue;
+
+                    list_add(&potential_sounds, potential_eid);
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND) {
+            int reffound = 0;
+            for (int j = 0; j < potential_sounds.count; j++) {
+                if (potential_sounds.eids[j] == elist[i].eid) {
+                    reffound = 1;
+                    break;
+                }
+            }
+
+            if (reffound == 0) {
+                unreferenced_sounds = 1;
+                printf("Sound %5s not referenced by any GOOL\n",
+                       eid_conv(elist[i].eid, temp));
+            }
+        }
+    }
+
+    if (!unreferenced_sounds)
+        printf("No unreferenced sounds found\n");
+}
+
 void build_ll_check_gool_types(ENTRY *elist, int entry_count) {
     printf("\nGOOL types list:\n");
     char temp[6] = "";
@@ -656,10 +703,10 @@ void build_ll_analyze() {
     build_ll_check_gool_types(elist, entry_count);
     build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_tpag_references(elist, entry_count);
+    build_ll_check_sound_references(elist, entry_count);
     build_ll_check_zone_references(elist, entry_count);
     build_ll_check_load_list_integrity(elist, entry_count);
     build_ll_check_draw_list_integrity(elist, entry_count);
-
 
     build_cleanup_elist(elist, entry_count);
     printf("Done.\n\n");
