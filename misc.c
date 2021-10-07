@@ -7,10 +7,8 @@ void intro_text()
     for (int i = 0; i < 100; i++) printf("*");
     printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
     printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
-    // printf("If printing to file is on, its printing into 'log.txt' located in folder of the current export.\n");
-    printf("Type \"HELP\" for list of commands and their format. ");
-    printf("Commands >ARE NOT< case sensitive.\n");
-    printf("I don't really check much whether the files are valid, so make sure they actually are.\n");
+    printf("Type \"HELP\" for list of commands and their format. Commands >ARE NOT< case sensitive.\n");
+    printf("It is recommended to provide valid data as there may be edge cases that are unaccounted for.\n");
     printf("You can drag & drop the files and folders to this window instead of copying in the paths\n");
     printf("Most stuff works only for Crash 2 !!!!\n");
     for (int i = 0; i < 100; i++) printf("*");
@@ -20,11 +18,10 @@ void intro_text()
 void print_help()
 //self-explanatory
 {
-    printf("\n");
-    for (int i = 0; i < 75; i++) printf("-");
+    for (int i = 0; i < 100; i++) printf("-");
     printf("\nCommand list:\n");
-    /*printf("HELP\n");
-    printf("\t prints a list of commands\n");*/
+    //printf("HELP\n");
+    //printf("\t prints a list of commands\n");
 
     printf("WIPE\n");
     printf("\t wipes current screen\n");
@@ -32,35 +29,30 @@ void print_help()
     printf("KILL\n");
     printf("\t ends the program\n");
 
-    printf("CHANGEPRINT\n");
-    printf("\t triggers the print selection\n");
+    //printf("CHANGEPRINT & IMPORT (obsolete)\n");
+    //printf("\t  print selection, entry->NSF import (useless)\n");
 
-    printf("IMPORT\n");
-    printf("\t prompts an import screen thing for import of entries into a C2 level\n");
+    printf("BUILD & REBUILD\n");
+    printf("\t builds a level from chosen inputs\n");
 
     printf("EXPORT & EXPORTALL\n");
     printf("\t exports level's contents with given settings (EXPORTALL exports all levels in a folder)\n");
 
-    printf("RESIZE\n");
-    printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
-    printf("\t parameters are according to games' orientation, Y is vertical and Z depth\n");
-    printf("\t changes dimensions of the zones and scenery according to given parameters, messes up warps\n");
+    printf("ENT_RESIZE\n");
+    printf("\t converts c3 entity to c2 entity (path adjustment)\n");
 
-    printf("ROTATE\n");
-    printf("\t rotates scenery or objects in a zone you specified\n");
+    printf("RESIZE <game> <xmult> <ymult> <zmult>\n");
+    printf("\t changes dimensions of the zones and scenery according to given parameters (can mess up warps)\n");
+    printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
+
+    //printf("ROTATE\n");
+    //printf("\t rotates scenery or objects in a zone you specified\n");
 
     printf("TEXTURE\n");
     printf("\t copies from one texture chunk to another (doesnt include CLUTs)\n");
 
-    printf("BUILD & REBUILD\n");
-    printf("\t builds a level from stuff that it asks from you.\n");
-    printf("\t somehow rebuild may give slightly different results than build, not inevitably worse though.\n");
-
     printf("SCEN_RECOLOR & TEXTURE_RECOLOR\n");
     printf("\t recolors scenery to the color user specifies (kinda sucks but w/e)\n");
-
-    printf("A <value>\n");
-    printf("\t for crate rotation shenanigans\n");
 
     printf("NSD\n");
     printf("\t prints gool table from the nsd\n");
@@ -69,31 +61,37 @@ void print_help()
     printf("\t prints the EID in hex form\n");
 
     printf("PROP\n");
-    printf("\t prints a list of properties and values the specified item has\n");
+    printf("\t prints a list of properties in an entity\n");
 
     printf("PROP_REMOVE\n");
-    printf("\t removes requested property from an item\n");
+    printf("\t removes a property from an entity\n");
 
     printf("PROP_REPLACE\n");
-    printf("\t replaces (or inserts) a property in target item with prop from source file\n");
+    printf("\t replaces (or inserts) a property into dest entity with prop from source entity\n");
 
     printf("LL_ANALYZE\n");
-    printf("\t prints some stats about the level\n");
+    printf("\t stats about the level, integrity checks\n");
 
     printf("GEN_SPAWN\n");
-    printf("\t lets you generate a spawn for input level from zone eid and entity ID\n");
+    printf("\t NSD spawn generation for input level, zone and entity ID\n");
+
+    printf("A <angle> & TIME\n");
+    printf("\t modpack crate rotation, TT value\n");
+
+    printf("ENT_MOVE\n");
+    printf("\t moves an entity by chosen amount\n");
 
     printf("\nError messages:\n");
-    printf("[ERROR] error message\n");
+    printf("[ERROR]   error message\n");
     printf("\tan error that could not be handled, the program skipped some action or gave up\n");
 
-    printf("[error] error message\n");
+    printf("[error]   error message\n");
     printf("\tan error that was handled\n");
 
     printf("[warning] warning text\n");
     printf("\tjust a warning, something may or may not be wrong\n");
-    for (int i = 0; i < 75; i++) printf("-");
-    printf("\n\n");
+    for (int i = 0; i < 100; i++) printf("-");
+    printf("\n");
 }
 
 void clrscr()

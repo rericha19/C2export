@@ -8,7 +8,7 @@ int texture_recolor_stupid() {
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
-        printf("Couldn't open file.\n\n");
+        printf("[ERROR] Couldn't open file.\n\n");
         return 0;
     }
 
@@ -84,7 +84,7 @@ int scenery_recolor_main()
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
-        printf("Couldn't open file.\n\n");
+        printf("[ERROR] Couldn't open file.\n\n");
         return 0;
     }
 
@@ -154,7 +154,7 @@ void rotate_main(char *time)
 
     if ((file = fopen(path, "rb")) == NULL)
     {
-        printf("File specified could not be opened\n");
+        printf("[ERROR] File specified could not be opened\n");
         return;
     }
     fseek(file,0,SEEK_END);
@@ -272,12 +272,12 @@ int texture_copy_main()
     unsigned char *texture2 = (unsigned char *) malloc(65536);
 
     if (file1 == NULL) {
-        printf("Source texture could not be opened.\n\n");
+        printf("[ERROR] Source texture could not be opened.\n\n");
         return 0;
     }
 
     if (file2 == NULL) {
-        printf("Destination texture could not be opened.\n\n");
+        printf("[ERROR] Destination texture could not be opened.\n\n");
         return 0;
     }
 
@@ -292,8 +292,7 @@ int texture_copy_main()
         scanf("%d", &bpp);
         if (bpp == 0)
             break;
-        scanf(" %x %x %x %x %x %x", &bpp, &src_x, &src_y, &width, &height, &dest_x, &dest_y);
-        int end = 0;
+        scanf(" %x %x %x %x %x %x", &src_x, &src_y, &width, &height, &dest_x, &dest_y);
 
         switch(bpp)
         {
@@ -315,15 +314,8 @@ int texture_copy_main()
                     memcpy(texture2 + offset2, texture1 + offset1, width);
                 }
                 break;
-            case 0:
             default:
-                end = 1;
                 break;
-        }
-
-        if (end) {
-            printf("ended\n");
-            break;
         }
     }
 
@@ -353,7 +345,7 @@ void prop_main(char* path)
 
     if ((file = fopen(path, "rb")) == NULL)
     {
-        printf("File could not be opened\n\n");
+        printf("[ERROR] File could not be opened\n\n");
         return;
     }
 
@@ -463,7 +455,7 @@ void prop_remove_script() {
 
     FILE* file1 = fopen(fpath, "rb");
     if (file1 == NULL) {
-        printf("File could not be opened\n");
+        printf("[ERROR] File could not be opened\n\n");
         return;
     }
 
@@ -535,7 +527,7 @@ void prop_replace_script() {
 
     FILE* file1 = fopen(fpath, "rb");
     if (file1 == NULL) {
-        printf("File could not be opened\n");
+        printf("[ERROR] File could not be opened\n\n");
         return;
     }
 
@@ -556,7 +548,7 @@ void prop_replace_script() {
 
     FILE* file2 = fopen(fpath2, "rb+");
     if (file2 == NULL) {
-        printf("File could not be opened\n");
+        printf("[ERROR] File could not be opened\n\n");
         free(item);
         return;
     }
@@ -930,7 +922,7 @@ void nsd_gool_table_print(char *fpath)
     FILE *file = NULL;
     if ((file = fopen(fpath, "rb")) == NULL)
     {
-        printf("File could not be opened\n\n");
+        printf("[ERROR] File could not be opened\n\n");
         return;
     }
 
@@ -952,6 +944,7 @@ void nsd_gool_table_print(char *fpath)
     }
     fclose(file);
     free(buffer);
+    printf("Done.\n\n");
 }
 
 void generate_spawn() {
@@ -1054,7 +1047,7 @@ int scenery_recolor_main2()
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
-        printf("Couldn't open file.\n\n");
+        printf("[ERROR] Couldn't open file.\n\n");
         return 0;
     }
 
@@ -1135,7 +1128,7 @@ void c3_ent_resize() {
 
     FILE* file1;
     if ((file1 = fopen(fpath, "rb+")) == NULL) {
-        printf("Couldn't open file.\n\n");
+        printf("[ERROR] Couldn't open file.\n\n");
         return;
     }
 
@@ -1186,6 +1179,63 @@ void c3_ent_resize() {
         for (int i = 0; i < path_len * 3; i++) {
             int off_curr = offset + 4 + i * 2;
             *(short int *)(buffer + off_curr) = (*(short int *)(buffer + off_curr)) * scale;
+        }
+    } else {
+        printf("[error] no path property found\n");
+    }
+
+    rewind(file1);
+    fwrite(buffer, 1, fsize, file1);
+    free(buffer);
+    fclose(file1);
+    printf("Done.\n\n");
+}
+
+void entity_move_scr() {
+    char fpath[1000];
+    printf("Path to entity item:\n");
+    scanf(" %[^\n]",fpath);
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("[ERROR] Couldn't open file.\n\n");
+        return;
+    }
+
+    printf("xyz move? (%%d %%d %%d)\n");
+    int xm, ym, zm;
+    scanf("%d %d %d", &xm, &ym, &zm);
+
+    fseek(file1, 0, SEEK_END);
+    int fsize = ftell(file1);
+    rewind(file1);
+
+    unsigned char* buffer = (unsigned char *) malloc(fsize);
+    fread(buffer, fsize, 1, file1);
+
+    unsigned int offset = 0;
+
+    for (int i = 0; i < build_prop_count(buffer); i++) {
+
+        if ((from_u16(buffer + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
+            offset = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
+    }
+
+
+    if (offset) {
+        int path_len = from_u32(buffer + offset);
+        printf("path len: %d\n", path_len);
+        for (int i = 0; i < path_len * 3; i++) {
+            int off_curr = offset + 4 + i * 2;
+            int add;
+            if (i % 3 == 0)
+                add = xm;
+            else if (i % 3 == 1)
+                add = ym;
+            else
+                add = zm;
+            *(short int *)(buffer + off_curr) = (*(short int *)(buffer + off_curr)) + add;
         }
     } else {
         printf("[error] no path property found\n");

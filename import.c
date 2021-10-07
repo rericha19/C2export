@@ -20,7 +20,7 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
     strncpy(nsfcheck,strchr(nsfpath,'\0')-3,3);
     if ((base = fopen(nsfpath,"rb")) == NULL || strcmp("NSF",nsfcheck))
     {
-        printf("Could not open or invalid file type\n");
+        printf("[ERROR] Could not open or invalid file type\n");
         return 0;
     }
 
@@ -85,7 +85,7 @@ int import_file_lister(char *path, FILE *fnew)
 
     if (dr == NULL)  // opendir returns NULL if couldn't open directory
     {
-        printf("Could not open selected directory\n");
+        printf("[ERROR] Could not open selected directory\n");
         return 0;
     }
 

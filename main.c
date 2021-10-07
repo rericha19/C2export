@@ -126,7 +126,6 @@ int main() {
                 scanf(" %[^\n]",fpath);
                 path_fix(fpath);
                 nsd_gool_table_print(fpath);
-                printf("Done.\n\n");
                 break;
             case EID:
                 //printf("EID string:\n");
@@ -151,6 +150,9 @@ int main() {
                 break;
             case ENT_RESIZE:
                 c3_ent_resize();
+                break;
+            case ENT_MOVE:
+                entity_move_scr();
                 break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);

@@ -161,7 +161,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
     FILE *file = fopen(fpaths[0], "r");
     if (file == NULL) {
-        printf("File with permaloaded entries could not be opened\n");
+        printf("[ERROR] File with permaloaded entries could not be opened\n");
         return 0;
     }
 
@@ -200,7 +200,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     if (remaking_load_lists_flag == 1) {
         file = fopen(fpaths[1], "r");
         if (file == NULL) {
-            printf("File with type/subtype dependencies could not be opened\n");
+            printf("[ERROR] File with type/subtype dependencies could not be opened\n");
             return 0;
         }
 
