@@ -2,6 +2,25 @@
 // contains deprecate but not entirely unused implementation of the chunk merging/building algorithm
 // mainly payload based decisions and some other older stuff
 
+int build_get_max_draw(LOAD_LIST draw_list) {
+    LIST list = init_list();
+    int ecount = 0;
+
+    for (int i = 0; i < draw_list.count; i++) {
+        if (draw_list.array[i].type == 'B') {
+            for (int m = 0; m < draw_list.array[i].list_length; m++)
+                list_add(&list, draw_list.array[i].list[m]);
+        }
+        if (draw_list.array[i].type == 'A') {
+            for (int m = 0; m < draw_list.array[i].list_length; m++)
+                list_remove(&list, draw_list.array[i].list[m]);
+        }
+
+        ecount = max(ecount, list.count);
+    }
+    return ecount;
+}
+
 /** \brief
  *  Used by payload method, deprecate.
  *  Creates a payloads object that contains each zone and chunks that zone loads.
@@ -23,6 +42,8 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
             for (j = 0; j < cam_count; j++)
             {
                 LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+                LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
+                int max_draw = build_get_max_draw(draw_list);
 
                 LIST list = init_list();
                 PAYLOAD payload;
@@ -44,9 +65,11 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
 
                     payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
                     payload.cam_path = j;
+                    payload.entcount = max_draw;
                     deprecate_build_insert_payload(&payloads, payload);
                 }
                 delete_load_list(load_list);
+                delete_load_list(draw_list);
             }
         }
 
@@ -153,13 +176,23 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
 void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
     for (int i = 0; i < payloads->count; i++)
         if (payloads->arr[i].zone == insertee.zone && payloads->arr[i].cam_path == insertee.cam_path) {
+
             if (payloads->arr[i].count < insertee.count) {
                     payloads->arr[i].count = insertee.count;
                     free(payloads->arr[i].chunks);
                     payloads->arr[i].chunks = insertee.chunks;
-                    return;
             }
-            else return;
+
+            if (payloads->arr[i].tcount < insertee.tcount) {
+                payloads->arr[i].tcount = insertee.tcount;
+                free(payloads->arr[i].tchunks);
+                payloads->arr[i].tchunks = insertee.tchunks;
+            }
+
+            if (payloads->arr[i].entcount < insertee.entcount)
+                payloads->arr[i].entcount = insertee.entcount;
+
+            return;
         }
 
     if (payloads->arr == NULL)
@@ -179,7 +212,8 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)  {
  */
 void deprecate_build_print_payload(PAYLOAD payload, int stopper) {
     char temp[100] = "";
-    printf("Zone: %s; cam path %d; payload: %3d, textures %d", eid_conv(payload.zone, temp), payload.cam_path, payload.count, payload.tcount);
+    printf("Zone: %s cam path %d: payload: %3d, textures %2d, entities %2d",
+           eid_conv(payload.zone, temp), payload.cam_path, payload.count, payload.tcount, payload.entcount);
     if (stopper) printf("; stopper: %2d", stopper);
     printf("\n");
 }

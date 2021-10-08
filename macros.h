@@ -223,6 +223,7 @@ typedef struct payload {
     int count;
     int *tchunks;
     int tcount;
+    int entcount;
     unsigned int zone;
     int cam_path;
 } PAYLOAD;
