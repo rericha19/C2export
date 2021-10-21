@@ -44,7 +44,7 @@ void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_b
 int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count) {
     int counter = 0;
     for (int i = 0; i < entry_count; i++)
-        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1) {
+        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1 && elist[i].norm_chunk_ent_is_loaded) {
             elist[i].chunk = (*chunk_count)++;
             counter++;
         }

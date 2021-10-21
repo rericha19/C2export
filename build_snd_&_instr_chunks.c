@@ -90,7 +90,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     // not sure why this is here anymore, but i remember things not working properly without this
     qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_func_eid);
 
-    // write the actual chunks, almost identical to the build_normal_chunks function
+    // build the actual chunks, almost identical to the build_normal_chunks function
     for (i = 0; i < snd_chunk_count; i++) {
         int local_entry_count = 0;
         int chunk_no = 2 * (temp_chunk_count + i) + 1;

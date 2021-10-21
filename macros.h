@@ -201,6 +201,7 @@ typedef struct entry{
     unsigned int *related;
     unsigned int *distances;
     unsigned int *visited;
+    unsigned char norm_chunk_ent_is_loaded;
 } ENTRY;
 
 typedef struct draw_item {

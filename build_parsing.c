@@ -254,7 +254,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
         file = fopen(fpaths[2], "r");
         if (file == NULL) {
-            printf("File with collision dependencies could not be opened\n");
+            printf("\nFile with collision dependencies could not be opened\n");
             printf("Assuming file is not necessary\n");
         }
         else {
@@ -310,7 +310,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 
         file = fopen(fpaths[3], "r");
         if (file == NULL) {
-            printf("File with music entry dependencies could not be opened\n");
+            printf("\nFile with music entry dependencies could not be opened\n");
             printf("Assuming file is not necessary\n");
         }
         else {

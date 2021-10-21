@@ -548,6 +548,55 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
 }
 
 
+void build_normal_check_loaded(ENTRY *elist, int entry_count) {
+    printf("\nChecking for normal chunk entries that are never loaded\n");
+    LIST ever_loaded = init_list();
+    int entries_skipped = 0;
+    char temp[6] = "";
+
+    // reads all load lists and bluntly adds all items into the list of all loaded entries
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            for (int j = 0; j < cam_count; j++) {
+                int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
+                for (int k = 0; (unsigned) k < build_prop_count(elist[i].data + cam_offset); k++) {
+                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
+                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
+                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B) {
+                        int sub_list_offset = offset + 4 * list_count;
+                        for (int l = 0; l < list_count; l++) {
+                            int item_count = from_u16(elist[i].data + offset + l * 2);
+                            for (int m = 0; m < item_count; m++)
+                                list_add(&ever_loaded, from_u32(elist[i].data + sub_list_offset + 4 * m));
+                            sub_list_offset += item_count * 4;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < entry_count; i++) {
+        elist[i].norm_chunk_ent_is_loaded = 1;
+
+        if (build_is_normal_chunk_entry(elist[i])) {
+            if (list_find(ever_loaded, elist[i].eid) == -1) {
+                elist[i].norm_chunk_ent_is_loaded = 0;
+                entries_skipped++;
+                printf("  %3d. entry %s never loaded, will not be included\n",
+                       entries_skipped, eid_conv(elist[i].eid, temp));
+            }
+        }
+    }
+
+    printf("Number of normal entries not included: %3d\n", entries_skipped);
+    if (ever_loaded.eids != NULL)
+        free(ever_loaded.eids);
+}
+
+
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
  *
@@ -555,6 +604,9 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
  * \return void
  */
 void build_main(int build_rebuild_flag) {
+
+    clock_t time_build_start = clock();
+
     FILE *nsfnew = NULL, *nsd = NULL;               // file pointers for input nsf, output nsf (nsfnew) and output nsd
     SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
     ENTRY elist[ELIST_DEFAULT_SIZE];                // array of structs used to store entries, fixed length cuz lazy & struct is small
@@ -666,6 +718,8 @@ void build_main(int build_rebuild_flag) {
         build_remake_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, mus_dep, config);
     }
 
+    build_normal_check_loaded(elist, entry_count);
+
     clock_t time_start = clock();
     // call merge function
     switch(merge_tech_flag) {
@@ -695,5 +749,6 @@ void build_main(int build_rebuild_flag) {
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
     build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
+    printf("Build/rebuild took %.3fs\n", ((double) clock() - time_build_start) / CLOCKS_PER_SEC);
     printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }
