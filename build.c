@@ -549,7 +549,19 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
 
 
 void build_normal_check_loaded(ENTRY *elist, int entry_count) {
-    printf("\nChecking for normal chunk entries that are never loaded\n");
+
+    int omit = 0;
+    printf("\nOmit normal chunk entries that are never loaded? [0 - include, 1 - omit]\n");
+    scanf("%d", &omit);
+
+    for (int i = 0; i < entry_count; i++)
+        elist[i].norm_chunk_ent_is_loaded = 1;
+
+    if (!omit) {
+        return;
+    }
+
+    printf("Checking for normal chunk entries that are never loaded\n");
     LIST ever_loaded = init_list();
     int entries_skipped = 0;
     char temp[6] = "";
@@ -560,19 +572,14 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (int j = 0; j < cam_count; j++) {
                 LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
-                for (int k = 0; k < ll.count; k++) {
-                    for (int l = 0; l < ll.array[k].list_length; l++) {
+                for (int k = 0; k < ll.count; k++)
+                    for (int l = 0; l < ll.array[k].list_length; l++)
                         list_add(&ever_loaded, ll.array[k].list[l]);
-                    }
-                }
-
             }
         }
     }
 
     for (int i = 0; i < entry_count; i++) {
-        elist[i].norm_chunk_ent_is_loaded = 1;
-
         if (build_is_normal_chunk_entry(elist[i])) {
             if (list_find(ever_loaded, elist[i].eid) == -1) {
                 elist[i].norm_chunk_ent_is_loaded = 0;
@@ -706,7 +713,7 @@ void build_main(int build_rebuild_flag) {
         build_ask_distances(config);
 
         // build load lists based on user input and metadata, and already or not yet collected metadata
-        printf("Permaloaded len: %d\n", permaloaded.count);
+        printf("\nNumber of permaloaded entries: %d\n\n", permaloaded.count);
         build_remake_load_lists(elist, entry_count, gool_table, permaloaded, subtype_info, collisions, mus_dep, config);
     }
 
