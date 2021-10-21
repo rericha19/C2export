@@ -559,21 +559,13 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (int j = 0; j < cam_count; j++) {
-                int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
-                for (int k = 0; (unsigned) k < build_prop_count(elist[i].data + cam_offset); k++) {
-                    int code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
-                    int offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-                    int list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B) {
-                        int sub_list_offset = offset + 4 * list_count;
-                        for (int l = 0; l < list_count; l++) {
-                            int item_count = from_u16(elist[i].data + offset + l * 2);
-                            for (int m = 0; m < item_count; m++)
-                                list_add(&ever_loaded, from_u32(elist[i].data + sub_list_offset + 4 * m));
-                            sub_list_offset += item_count * 4;
-                        }
+                LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
+                for (int k = 0; k < ll.count; k++) {
+                    for (int l = 0; l < ll.array[k].list_length; l++) {
+                        list_add(&ever_loaded, ll.array[k].list[l]);
                     }
                 }
+
             }
         }
     }
