@@ -195,3 +195,36 @@ void build_ask_premerge(int *premerge_type, double *merge_ratio) {
     *premerge_type = ans;
     printf("\n");
 }
+
+
+void build_try_second_output(FILE **nsfnew2, FILE** nsd2, int levelID) {
+    char temp[80] = "";
+    char path[100] = "";
+    char path2[100] = "";
+
+    printf("\nInput path to secondary save folder (use exactly \"-\" (minus sign) to not use sec. save)\n");
+    scanf(" %[^\n]", temp);
+    path_fix(temp);
+
+    if (!strcmp(temp, "-")) {
+        printf("Not using secondary output\n");
+    }
+    else {
+        sprintf(path, "%s\\S00000%02X.NSF", temp, levelID);
+        sprintf(path2, "%s\\S00000%02X.NSD", temp, levelID);
+
+        printf("Secondary file paths:\n%s\n%s\n", path, path2);
+
+        *nsfnew2 = fopen(path, "wb");
+        *nsd2 = fopen(path2, "wb");
+
+        if (*nsfnew2 == NULL || *nsd2 == NULL) {
+            printf("Could not open secondary NSF or NSD\n");
+            *nsfnew2 = NULL;
+            *nsd2 = NULL;
+        } else {
+            printf("Successfully using secondary output\n");
+        }
+    }
+    printf("\n");
+}

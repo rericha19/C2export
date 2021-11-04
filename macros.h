@@ -5,8 +5,8 @@
 #include <math.h>
 #include <stdio.h>
 
-//#include <ctype.h>
 //#include <stdlib.h>
+//#include <ctype.h>
 //#include <string.h>
 //#include <io.h>
 //#include <limits.h>
@@ -461,7 +461,7 @@ void         build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, E
                                int *entry_count, SPAWNS *spawns, unsigned int* gool_table);
 void         deprecate_build_print_relatives(ENTRY *elist, int entry_count);
 void         build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
-void         build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
+void         build_write_nsd(FILE *nsd, FILE* nsd2, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
 RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
@@ -515,7 +515,7 @@ void         build_cleanup_elist(ENTRY *elist, int entry_count);
 void         build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
 void         build_ask_spawn(SPAWNS spawns);
 void         build_main(int build_rebuild_flag);
-void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks);
+void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks, FILE *nsfnew2);
 LIST         build_get_sceneries(unsigned char *entry);
 void         build_check_item_count(unsigned char *zone, int eid);
 void         build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns);
@@ -531,7 +531,7 @@ void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* config);
 void         build_ask_premerge(int *premerge_type, double *merge_ratio);
 void         build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
-
+void         build_try_second_output(FILE **nsfnew2, FILE** nsd2, int levelID);
 
 // state thing
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);

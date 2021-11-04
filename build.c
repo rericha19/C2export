@@ -395,7 +395,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
 
                 entity_counter++;
 
-                if ((type == 34) &&
+                if ((type >= 34 && type <= 43) &&
                     (subt == 0 || subt == 2 || subt == 3 || subt == 4 || subt == 6 || subt == 8 || subt == 9 ||
                      subt == 10 || subt == 11 || subt == 12 || subt == 17 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
                 {
@@ -607,6 +607,7 @@ void build_main(int build_rebuild_flag) {
     clock_t time_build_start = clock();
 
     FILE *nsfnew = NULL, *nsd = NULL;               // file pointers for input nsf, output nsf (nsfnew) and output nsd
+    FILE *nsfnew2 = NULL, *nsd2 = NULL;
     SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
     ENTRY elist[ELIST_DEFAULT_SIZE];                // array of structs used to store entries, fixed length cuz lazy & struct is small
     unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE]; // array of pointers to potentially built chunks, fixed length cuz lazy
@@ -665,6 +666,8 @@ void build_main(int build_rebuild_flag) {
 
     //build_get_box_count(elist, entry_count);
 
+    build_try_second_output(&nsfnew2, &nsd2, level_ID);
+
     // user picks whether to remake load lists or not, also merge method
     build_ask_build_flags(config);
     int load_list_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
@@ -678,6 +681,10 @@ void build_main(int build_rebuild_flag) {
     else {
         printf("[ERROR] No spawns found, add one using the usual 'willy' entity or a checkpoint\n\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
+        if (nsfnew2 != NULL) {
+            fclose(nsfnew2);
+            fclose(nsd2);
+        }
         return;
     }
     build_get_distance_graph(elist, entry_count, spawns);
@@ -698,6 +705,10 @@ void build_main(int build_rebuild_flag) {
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, &mus_dep, elist, entry_count, gool_table, config)) {
         printf("[ERROR] File could not be opened or a different error occured\n\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
+        if (nsfnew2 != NULL) {
+            fclose(nsfnew2);
+            fclose(nsd2);
+        }
         return;
     }
 
@@ -742,12 +753,16 @@ void build_main(int build_rebuild_flag) {
     printf("Merge took %.3fs\n", ((double) clock() - time_start) / CLOCKS_PER_SEC);
 
     // build and write nsf and nsd file
-    build_write_nsd(nsd, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
+    build_write_nsd(nsd, nsd2, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_sort_load_lists(elist, entry_count);
-    build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks);
+    build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks, nsfnew2);
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
     build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
+    if (nsfnew2 != NULL) {
+        fclose(nsfnew2);
+        fclose(nsd2);
+    }
     printf("Build/rebuild took %.3fs\n", ((double) clock() - time_build_start) / CLOCKS_PER_SEC);
     printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }

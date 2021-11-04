@@ -14,10 +14,14 @@
  * \param chunks unsigned char**        array with built chunks
  * \return void
  */
-void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks) {
+void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char** chunks, FILE* nsfnew2) {
     build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
     for (int i = 0; i < chunk_count; i++)
         fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
+    if (nsfnew2 != NULL)
+        for (int i = 0; i < chunk_count; i++)
+            fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew2);
+
 }
 
 /** \brief
@@ -108,7 +112,7 @@ unsigned int build_get_ldat_eid(int level_ID) {
  * \param level_ID int                  level ID the user wanted
  * \return void
  */
-void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID) {
+void build_write_nsd(FILE *nsd, FILE* nsd2, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID) {
     int real_entry_count = 0;
 
     // arbitrarily doing 64kB because convenience
@@ -149,6 +153,8 @@ void build_write_nsd(FILE *nsd, ENTRY *elist, int entry_count, int chunk_count, 
 
     // write and close nsd
     fwrite(nsddata, 1, real_nsd_size, nsd);
+    if (nsd2 != NULL)
+        fwrite(nsddata, 1, real_nsd_size, nsd2);
     free(nsddata);
 }
 
