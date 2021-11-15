@@ -117,6 +117,9 @@ void* build_matrix_merge_random_util(void *args) {
             break;
     }
 
+    free(array_representation.relations);
+    free(array_repr_untouched.relations);
+
     pthread_mutex_lock(inp_args.mutex_running_thr_cnt);
     (*inp_args.running_threads)--;
     pthread_mutex_unlock(inp_args.mutex_running_thr_cnt);
@@ -228,6 +231,8 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     for (int i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
+    free(threads);
+    free(thread_args);
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);   // gets rid of empty chunks at the end
     printf("\07");
 }
