@@ -733,6 +733,9 @@ void build_main(int build_rebuild_flag) {
     clock_t time_start = clock();
     // call merge function
     switch(merge_tech_flag) {
+        case 5:
+            build_matrix_merge_random_thr_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            break;
         case 4:
             build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
             break;

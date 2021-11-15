@@ -1,9 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define HAVE_STRUCT_TIMESPEC
 
 #include "dirent.h"
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
+#include <pthread.h>
 
 //#include <stdlib.h>
 //#include <ctype.h>
@@ -350,6 +352,27 @@ typedef struct chunk_str {
     unsigned short int entry_count;
 } CHUNK_STR;
 
+typedef struct matrix_merge_thread_input_struct {
+    ENTRY *elist;
+    int entry_count;
+    unsigned int *best_zone_ptr;
+    long long int *best_max_ptr;
+    ENTRY *best_elist;
+    LIST entrs;
+    int **entry_mtrx;
+    int *conf;
+    int max_pay;
+    int iter_cnt;
+    int *curr_iter_ptr;
+    int mlt;
+    int rnd_seed;
+    int thread_idx;
+    int *running_threads;
+    pthread_mutex_t *mutex_running_thr_cnt;
+    pthread_mutex_t *mutex_best;
+    pthread_mutex_t *mutex_iter;
+    int chunk_border_sounds;
+} MTRX_THRD_IN_STR;
 
 // misc.c
 void         export_printstatus(int zonetype, int gamemode, int portmode);
@@ -531,6 +554,7 @@ void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* config);
 void         build_ask_premerge(int *premerge_type, double *merge_ratio);
 void         build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
+void         build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_try_second_output(FILE **nsfnew2, FILE** nsd2, int levelID);
 
 // state thing
