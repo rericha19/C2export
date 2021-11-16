@@ -102,16 +102,22 @@ void* build_matrix_merge_random_util(void *args) {
         if (cr_max <= inp_args.max_pay)
             best_reached = 1;
 
-        if (is_new_best)
-            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
-        else if (!best_reached)
-            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+        if (best_reached) {
+            if (is_new_best)
+                printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- DONE\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+            else
+                printf("Iter %3d, best found by another thread, thread terminating\n", curr_i);
+        }
+        else {
+            if (is_new_best)
+                printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+            else
+                printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+        }
+        *inp_args.curr_iter_ptr += 1;
+
         pthread_mutex_unlock(inp_args.mutex_iter);
         pthread_mutex_unlock(inp_args.mutex_best);
-
-        pthread_mutex_lock(inp_args.mutex_iter);
-        *inp_args.curr_iter_ptr += 1;
-        pthread_mutex_unlock(inp_args.mutex_iter);
 
         if (best_reached)
             break;
