@@ -165,7 +165,9 @@ void build_ask_build_flags(int* config) {
     printf("[2] - relatives & payload merge [deprecate, bad]\n");
     printf("[3] - state set graph search based merge (A*/DFS) [slow, no guaranteed result]\n");
     printf("[4] - occurence count matrix merge (absolute) with randomness\n");
-    printf("[5] - occurence count matrix merge (absolute) with randomness MULTITHREADED (EXPERIMENTAL)\n");
+    #if COMPILE_WITH_THREADS
+    printf("[5] - occurence count matrix merge (absolute) with randomness multithreaded\n");
+    #endif // COMPILE_WITH_THREADS
     scanf("%d", &ans);
     config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
     printf("\n");

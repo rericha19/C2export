@@ -1,5 +1,31 @@
 #include "macros.h"
 
+#if COMPILE_WITH_THREADS
+#include <pthread.h>
+
+typedef struct matrix_merge_thread_input_struct {
+    ENTRY *elist;
+    int entry_count;
+    unsigned int *best_zone_ptr;
+    long long int *best_max_ptr;
+    ENTRY *best_elist;
+    LIST entrs;
+    int **entry_mtrx;
+    int *conf;
+    int max_pay;
+    int iter_cnt;
+    int *curr_iter_ptr;
+    int mlt;
+    int rnd_seed;
+    int thread_idx;
+    int *running_threads;
+    pthread_mutex_t *mutex_running_thr_cnt;
+    pthread_mutex_t *mutex_best;
+    pthread_mutex_t *mutex_iter;
+    int chunk_border_sounds;
+} MTRX_THRD_IN_STR;
+#endif // COMPILE_WITH_THREADS
+
 // asking user parameters for the method
 void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payload_limit) {
 
@@ -29,6 +55,7 @@ void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payloa
     printf("\n");
 }
 
+#if COMPILE_WITH_THREADS
 void* build_matrix_merge_random_util(void *args) {
     char temp[6] = "";
     char temp2[6] = "";
@@ -106,7 +133,7 @@ void* build_matrix_merge_random_util(void *args) {
             if (is_new_best)
                 printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- DONE\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
             else
-                printf("Iter %3d, best found by another thread, thread terminating\n", curr_i);
+                printf("Iter %3d, solution found by another thread, thread terminating\n", curr_i);
         }
         else {
             if (is_new_best)
@@ -242,7 +269,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);   // gets rid of empty chunks at the end
     printf("\07");
 }
-
+#endif // COMPILE_WITH_THREADS
 
 
 /** \brief

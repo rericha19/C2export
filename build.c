@@ -734,7 +734,12 @@ void build_main(int build_rebuild_flag) {
     // call merge function
     switch(merge_tech_flag) {
         case 5:
-            build_matrix_merge_random_thr_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            #if COMPILE_WITH_THREADS
+                build_matrix_merge_random_thr_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            #else
+                printf("This build does not support this method, using method 4 instead\n");
+                build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+            #endif // COMPILE_WITH_THREADS
             break;
         case 4:
             build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);

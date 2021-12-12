@@ -5,7 +5,6 @@
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
-#include <pthread.h>
 
 //#include <stdlib.h>
 //#include <ctype.h>
@@ -13,6 +12,8 @@
 //#include <io.h>
 //#include <limits.h>
 //#include "windows.h"
+
+#define COMPILE_WITH_THREADS 1
 
 // various constants
 #define HASH_TABLE_SIZE                 100000000
@@ -351,28 +352,6 @@ typedef struct chunk_str {
     unsigned short int chunk_size;
     unsigned short int entry_count;
 } CHUNK_STR;
-
-typedef struct matrix_merge_thread_input_struct {
-    ENTRY *elist;
-    int entry_count;
-    unsigned int *best_zone_ptr;
-    long long int *best_max_ptr;
-    ENTRY *best_elist;
-    LIST entrs;
-    int **entry_mtrx;
-    int *conf;
-    int max_pay;
-    int iter_cnt;
-    int *curr_iter_ptr;
-    int mlt;
-    int rnd_seed;
-    int thread_idx;
-    int *running_threads;
-    pthread_mutex_t *mutex_running_thr_cnt;
-    pthread_mutex_t *mutex_best;
-    pthread_mutex_t *mutex_iter;
-    int chunk_border_sounds;
-} MTRX_THRD_IN_STR;
 
 // misc.c
 void         export_printstatus(int zonetype, int gamemode, int portmode);
