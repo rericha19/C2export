@@ -13,7 +13,7 @@ void build_premerge_anim_model(ENTRY *elist, int entry_count, int chunk_border_s
     }
 
     int** entry_matrix = build_get_occurence_matrix(elist, entry_count, anims_models, config);
-    RELATIONS relation_array = build_transform_matrix(anims_models, entry_matrix, config);
+    RELATIONS relation_array = build_transform_matrix(anims_models, entry_matrix, config, elist, entry_count);
     for (int i = 0; i < anims_models.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
@@ -94,7 +94,7 @@ void build_premerge_slst_zone(ENTRY *elist, int entry_count, int chunk_border_so
     }
 
     int** entry_matrix = build_get_occurence_matrix(elist, entry_count, zones_slsts, config);
-    RELATIONS relation_array = build_transform_matrix(zones_slsts, entry_matrix, config);
+    RELATIONS relation_array = build_transform_matrix(zones_slsts, entry_matrix, config, elist, entry_count);
     for (int i = 0; i < zones_slsts.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);

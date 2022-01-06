@@ -178,7 +178,7 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
     // frees the contents of the matrix
-    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
+    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config, elist, entry_count);
     for (int i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
@@ -232,7 +232,7 @@ void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border
         }
     }
 
-    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config);
+    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config, elist, entry_count);
     for (int i = 0; i < entries.count; i++) {
         free(entry_matrix[i]);
         free(entry_matrix_relative[i]);
@@ -302,14 +302,12 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
     for (int x = 0; x < iter_count; x++) {
         // awkward index shenanishans because entries in the matrix and later relation array werent indexed the same way
         // elist is, so theres the need to get index of the elist entry and then that one's chunk
+
         int index1 = relations.relations[x].index1;
         int index2 = relations.relations[x].index2;
 
-        int elist_index1 = build_get_index(entries.eids[index1], elist, entry_count);
-        int elist_index2 = build_get_index(entries.eids[index2], elist, entry_count);
-
-        int chunk_index1 = elist[elist_index1].chunk;
-        int chunk_index2 = elist[elist_index2].chunk;
+        int chunk_index1 = elist[index1].chunk;
+        int chunk_index2 = elist[index2].chunk;
 
         int merged_chunk_size = 0x14;
         for (int i = 0; i < entry_count; i++)
@@ -332,7 +330,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
  * \param entry_matrix int**            matrix that contains common load list occurences
  * \return RELATIONS
  */
-RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) {
+RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config, ENTRY *elist, int entry_count) {
 
     int relation_array_sort_flag = config[CNFG_IDX_MTRI_REL_SORT_FLAG];
     int zeroval_inc_flag = config[CNFG_IDX_MTRI_ZEROVAL_INC_FLAG];
@@ -360,8 +358,8 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config) 
             if (zeroval_inc_flag == 0 && entry_matrix[i][j] == 0)
                 continue;
             relations.relations[indexer].value = entry_matrix[i][j];
-            relations.relations[indexer].index1 = i;
-            relations.relations[indexer].index2 = j;
+            relations.relations[indexer].index1 = build_get_index(entries.eids[i], elist, entry_count);
+            relations.relations[indexer].index2 = build_get_index(entries.eids[j], elist, entry_count);
 
             // experimental
             int temp = 0;

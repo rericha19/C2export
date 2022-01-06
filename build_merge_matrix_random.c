@@ -64,10 +64,10 @@ void* build_matrix_merge_random_util(void *args) {
 
     MTRX_THRD_IN_STR inp_args = *(MTRX_THRD_IN_STR *) args;
     ENTRY clone_elist[ELIST_DEFAULT_SIZE];
-    RELATIONS array_repr_untouched = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf);
-    RELATIONS array_representation = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf);
-    srand(inp_args.rnd_seed);
     int entry_count = inp_args.entry_count;
+    RELATIONS array_repr_untouched = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
+    RELATIONS array_representation = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count) ;
+    srand(inp_args.rnd_seed);
     int iter_count = inp_args.iter_cnt;
     int curr_i;
 
@@ -389,8 +389,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
 
     // put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
-    RELATIONS array_repr_untouched = build_transform_matrix(entries, entry_matrix, config);
-    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config);
+    RELATIONS array_repr_untouched = build_transform_matrix(entries, entry_matrix, config, elist, entry_count);
+    RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config, elist, entry_count);
     // matrix no longer used
     for (int i = 0; i < entries.count; i++)
         free(entry_matrix[i]);

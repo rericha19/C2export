@@ -478,7 +478,7 @@ void         build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
 void         build_write_nsd(FILE *nsd, FILE* nsd2, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int* gool_table, int level_ID);
 void         build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
 void         build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
-RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config);
+RELATIONS    build_transform_matrix(LIST entries, int **entry_matrix, int* config, ENTRY *elist, int entry_count);
 void         build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio, double mult);
 void         build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
 int          build_get_entity_prop(unsigned char *entity, int prop_code);
