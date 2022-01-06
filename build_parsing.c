@@ -400,11 +400,11 @@ LIST build_read_special_entries(unsigned char *zone) {
 
     for (int i = 1; i <= special_entry_count; i++) {
         unsigned int entry = from_u32(metadata_ptr + i * 4);
-        *(unsigned int *)(metadata_ptr + i * 4) = 0;
+        // *(unsigned int *)(metadata_ptr + i * 4) = 0;
         list_add(&special_entries, entry);
     }
 
-    *(unsigned int *)metadata_ptr = 0;
+    //*(unsigned int *)metadata_ptr = 0;
     return special_entries;
 }
 

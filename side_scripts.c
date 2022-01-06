@@ -104,9 +104,14 @@ int scenery_recolor_main()
         // get pseudograyscale of the current color
         // int sum = r + g + b;
 
-        int r_new = max(0, r - 0x20);
-        int g_new = max(0, g - 0x20);
-        int b_new = max(0, b - 0x18);
+        int r_new = max(0, r - 0x28);
+        int g_new = max(0, g - 0x28);
+        int b_new = max(0, b - 0x28);
+
+        int avg = r_new + g_new + b_new;
+        avg = avg / 3;
+
+        r_new = g_new = b_new = avg;
 
         // print stuff
         // printf("old: %2X %2X %2X\n", r, g, b);

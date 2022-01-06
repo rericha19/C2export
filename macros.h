@@ -233,6 +233,18 @@ typedef struct payload {
 } PAYLOAD;
 
 
+// load list data stored for matrix merge, so payload doesnt need to read them every iter
+typedef struct load_matrix {
+    unsigned int zone;
+    int cam_path;
+    LIST full_load;
+} MATRIX_STORED_LL;
+
+typedef struct loads_matrix {
+    int count;
+    MATRIX_STORED_LL* stored_lls;
+} MATRIX_STORED_LLS;
+
 // used to store payload ladder
 typedef struct payloads {
     int count;
@@ -536,6 +548,7 @@ void         build_matrix_merge_random_main(ENTRY *elist, int entry_count, int c
 void         build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 void         build_try_second_output(FILE **nsfnew2, FILE** nsd2, int levelID);
 
+
 // state thing
 void         build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded);
 STATE_SEARCH_STR*  build_state_search_str_init(int length);
@@ -548,6 +561,9 @@ STATE_SEARCH_STR*  build_state_search_init_state_convert(ENTRY* elist, int entry
 int          build_state_search_is_empty_chunk(STATE_SEARCH_STR* state, unsigned int chunk_index, int key_length);
 unsigned int*build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int *key_length);
 void         build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count);
+MATRIX_STORED_LLS
+             build_matrix_store_lls(ENTRY *elist, int entry_count);
+PAYLOADS     build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int entry_count, int chunk_min);
 
 
 // deprecate_build.c

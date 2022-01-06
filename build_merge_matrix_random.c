@@ -23,6 +23,7 @@ typedef struct matrix_merge_thread_input_struct {
     pthread_mutex_t *mutex_best;
     pthread_mutex_t *mutex_iter;
     int chunk_border_sounds;
+    MATRIX_STORED_LLS stored_lls;
 } MTRX_THRD_IN_STR;
 #endif // COMPILE_WITH_THREADS
 
@@ -96,7 +97,7 @@ void* build_matrix_merge_random_util(void *args) {
         build_matrix_merge_util(array_representation, clone_elist, entry_count, inp_args.entrs, 1.0);
 
         // get payload ladder for current iteration
-        PAYLOADS payloads = deprecate_build_get_payload_ladder(clone_elist, entry_count, inp_args.chunk_border_sounds);
+        PAYLOADS payloads = build_matrix_get_payload_ladder(inp_args.stored_lls, clone_elist, entry_count, inp_args.chunk_border_sounds);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         // how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
@@ -214,6 +215,8 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     long long int best_max = 9223372036854775807; // max signed 64b int
     unsigned int best_zone = 0;
 
+    MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
+
     // declare, initialise and create threads, pass them necessary args thru structs
     pthread_t *threads = (pthread_t *) malloc(t_count * sizeof(pthread_t));
     MTRX_THRD_IN_STR *thread_args = (MTRX_THRD_IN_STR *) malloc(t_count * sizeof(MTRX_THRD_IN_STR));
@@ -238,6 +241,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
         thread_args[i].mutex_iter = &iter_mutex;
         thread_args[i].chunk_border_sounds = chunk_border_sounds;
         thread_args[i].max_pay = max_payload_limit;
+        thread_args[i].stored_lls = stored_lls;
 
         pthread_mutex_lock(&running_mutex);
         running_threads++;
@@ -261,6 +265,9 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     }
 
     // cleanup
+    for (int i = 0; i < stored_lls.count; i++)
+        free(stored_lls.stored_lls[i].full_load.eids);
+    free(stored_lls.stored_lls);
     for (int i = 0; i < entries.count; i++)
         free(entry_matrix[i]);
     free(entry_matrix);
@@ -270,6 +277,73 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     printf("\07");
 }
 #endif // COMPILE_WITH_THREADS
+
+
+MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int entry_count) {
+    MATRIX_STORED_LLS stored_stuff;
+    stored_stuff.count = 0;
+    stored_stuff.stored_lls = NULL;
+
+    int i, j, l, m;
+    for (i = 0; i < entry_count; i++)
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        {
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            for (j = 0; j < cam_count; j++)
+            {
+                LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+
+                LIST list = init_list();
+                for (l = 0; l < load_list.count; l++)
+                {
+                    if (load_list.array[l].type == 'A')
+                        for (m = 0; m < load_list.array[l].list_length; m++)
+                            list_add(&list, load_list.array[l].list[m]);
+
+                    if (load_list.array[l].type == 'B')
+                        for (m = 0; m < load_list.array[l].list_length; m++)
+                            list_remove(&list, load_list.array[l].list[m]);
+
+                    // for simultaneous loads and deloads
+                    if (l + 1 != load_list.count)
+                        if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
+                            if (load_list.array[l].index == load_list.array[l + 1].index)
+                                continue;
+
+                    if (list.count > 0) {
+                        int stored_c = stored_stuff.count;
+                        if (stored_c > 0)
+                            stored_stuff.stored_lls = (MATRIX_STORED_LL *) realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
+                        else
+                            stored_stuff.stored_lls = (MATRIX_STORED_LL *) malloc(sizeof(MATRIX_STORED_LL));
+
+                        LIST new_l = init_list();
+                        list_copy_in(&new_l, list);
+                        stored_stuff.stored_lls[stored_c].full_load = new_l;
+                        stored_stuff.stored_lls[stored_c].zone = elist[i].eid;
+                        stored_stuff.stored_lls[stored_c].cam_path = j;
+                        stored_stuff.count++;
+                    }
+                }
+                delete_load_list(load_list);
+            }
+        }
+
+    return stored_stuff;
+}
+
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int entry_count, int chunk_min) {
+    PAYLOADS payloads;
+    payloads.arr = NULL;
+    payloads.count = 0;
+    for (int i = 0; i < stored_lls.count; i++) {
+        MATRIX_STORED_LL curr_ll = stored_lls.stored_lls[i];
+        PAYLOAD payload = deprecate_build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min);
+        payload.cam_path = curr_ll.cam_path;
+        deprecate_build_insert_payload(&payloads, payload);
+    }
+    return payloads;
+}
 
 
 /** \brief
@@ -322,6 +396,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
         free(entry_matrix[i]);
     free(entry_matrix);
 
+    MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
+
     // runs until iter count is reached or until break inside goes off (iter count 0 can make it never stop)
     for (int i = 0; i < iter_count || iter_count == 0; i++) {
         // copy elist into clone elist
@@ -341,7 +417,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
         build_matrix_merge_util(array_representation, clone_elist, entry_count, entries, 1.0);
 
         // get payload ladder for current iteration
-        PAYLOADS payloads = deprecate_build_get_payload_ladder(clone_elist, entry_count, chunk_border_sounds);
+        PAYLOADS payloads = build_matrix_get_payload_ladder(stored_lls, clone_elist, entry_count, chunk_border_sounds);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         // how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
@@ -381,6 +457,10 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
             *chunk_count = elist[i].chunk + 1;
     }
 
+    for (int i = 0; i < stored_lls.count; i++)
+        free(stored_lls.stored_lls[i].full_load.eids);
+
+    free(stored_lls.stored_lls);
     free(array_representation.relations);
     free(array_repr_untouched.relations);
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);   // gets rid of empty chunks at the end
