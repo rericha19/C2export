@@ -70,6 +70,7 @@ void* build_matrix_merge_random_util(void *args) {
     srand(inp_args.rnd_seed);
     int iter_count = inp_args.iter_cnt;
     int curr_i;
+    int t_id = inp_args.thread_idx;
 
     while (1) {
 
@@ -132,15 +133,17 @@ void* build_matrix_merge_random_util(void *args) {
 
         if (best_reached) {
             if (is_new_best)
-                printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- DONE\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- DONE\n", curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
             else
-                printf("Iter %3d, solution found by another thread, thread terminating\n", curr_i);
+                printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_i, t_id);
         }
         else {
             if (is_new_best)
-                printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, t_id, curr,
+                       eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
             else
-                printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, t_id, curr,
+                       eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
         }
         *inp_args.curr_iter_ptr += 1;
 
