@@ -15,7 +15,7 @@ typedef struct matrix_merge_thread_input_struct {
     int max_pay;
     int iter_cnt;
     int *curr_iter_ptr;
-    int mlt;
+    double mlt;
     int rnd_seed;
     int thread_idx;
     int *running_threads;
@@ -42,6 +42,10 @@ void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payloa
 
     printf("Randomness multiplier? (> 1, use 1.5 if not sure)\n");
     scanf("%lf", mult);
+    if (*mult < 1.0) {
+        *mult = 1.5;
+        printf("Invalid multiplier, defaulting to 1.5\n");
+    }
     printf("\n");
 
     printf("Seed? (0 for random)\n");
@@ -54,6 +58,13 @@ void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payloa
         printf("Seed used: %d\n", *seed);
     }
     printf("\n");
+}
+
+double randfrom(double min, double max)
+{
+    double range = (max - min);
+    double div = RAND_MAX / range;
+    return min + (rand() / div);
 }
 
 #if COMPILE_WITH_THREADS
@@ -71,6 +82,7 @@ void* build_matrix_merge_random_util(void *args) {
     int iter_count = inp_args.iter_cnt;
     int curr_i;
     int t_id = inp_args.thread_idx;
+    double mult = inp_args.mlt;
 
     while (1) {
 
@@ -89,9 +101,8 @@ void* build_matrix_merge_random_util(void *args) {
         memcpy(array_representation.relations, array_repr_untouched.relations, array_representation.count * sizeof(RELATION));
 
         // second half of the matrix merge slightly randomised and ran on clone elist
-        int dec_mult = (int) (1000 * inp_args.mlt);
         for (int j = 0; j < array_representation.count; j++)
-            array_representation.relations[j].value = ((array_repr_untouched.relations[j].value * (double) ((rand() % dec_mult))) / 1000);
+            array_representation.relations[j].value = array_repr_untouched.relations[j].value * randfrom(1.0, mult);
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
          // do the merges according to the slightly randomised relation array
@@ -411,9 +422,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
         memcpy(array_representation.relations, array_repr_untouched.relations, array_representation.count * sizeof(RELATION));
 
         // second half of the matrix merge slightly randomised and ran on clone elist
-        int dec_mult = (int) (1000 * mult);
         for (int j = 0; j < array_representation.count; j++)
-            array_representation.relations[j].value = ((array_repr_untouched.relations[j].value * (double) ((rand() % dec_mult))) / 1000);
+            array_representation.relations[j].value = array_repr_untouched.relations[j].value * randfrom(1.0, mult);
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
         // do the merges according to the slightly randomised relation array
