@@ -24,6 +24,8 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
     int load_list_sound_entry_inc_flag = config[CNFG_IDX_LL_SND_INCLUSION_FLAG];
     int i, j, k, l;
 
+    int dbg_print = 0;
+
     // gets a list of sound eids (one per chunk) to make load lists smaller
     int chunks[8];
     int sound_chunk_count = 0;
@@ -81,11 +83,13 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                     }
                 }
 
+                if (dbg_print) printf("Copied in permaloaded and music refs\n");
+
                 // add current zone's special entries
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], special_entries);
 
-                // todo load stuff tied to the current music ref
+                if (dbg_print) printf("Copied in special\n");
 
                 // add relatives (directly related entries like slst, direct neighbours, scenery)
                 // might not be necessary, relative collection was implemented for previous methods and it was easier to keep it
@@ -93,6 +97,8 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                     for (k = 0; (unsigned)k < elist[i].related[0]; k++)
                         for (l = 0; l < cam_length; l++)
                             list_add(&full_load[l], elist[i].related[k + 1]);
+
+                if (dbg_print) printf("Copied in deprecate relatives\n");
 
                 // all sounds
                 if (load_list_sound_entry_inc_flag == 0) {
@@ -108,10 +114,14 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                             list_add(&full_load[k], sounds_to_load[l]);
                 }
 
+                if (dbg_print) printf("Copied in sounds\n");
+
                 // add direct neighbours
                 LIST neighbours = build_get_neighbours(elist[i].data);
                 for (k = 0; k < cam_length; k++)
                     list_copy_in(&full_load[k], neighbours);
+
+                if (dbg_print) printf("Copied in neighbours\n");
 
                 // for each scenery in current zone's scen reference list, add its textures to the load list
                 int scenery_count = build_get_scen_count(elist[i].data);
@@ -122,11 +132,17 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
                 }
 
+                if (dbg_print) printf("Copied in some scenery stuff\n");
+
                 // path link, draw list and other bs dependent additional load list improvements
                 build_load_list_util(i, 2 + 3 * j, full_load, cam_length, elist, entry_count, subtype_info, collision, config);
 
+                if (dbg_print) printf("Load list util ran\n");
+
                 // checks whether the load list doesnt try to load more than 8 textures, prints if yes
                 build_texture_count_check(elist, entry_count, full_load, cam_length, i, j);
+
+                if (dbg_print) printf("Texture chunk was checked\n");
 
                 // creates and initialises delta representation of the load list
                 LIST* listA = (LIST*) malloc(cam_length * sizeof(LIST));        // freed here
@@ -141,15 +157,21 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
 
+                if (dbg_print) printf("Converted full list to delta and delta to props\n");
+
                 // removes existing load list properties, inserts newly made ones
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x208, NULL);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x209, NULL);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x208, &prop_0x208);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x209, &prop_0x209);
 
+                if (dbg_print) printf("Replaced load list props\n");
+
                 free(full_load);
                 free(listA);
                 free(listB);
+
+                if (dbg_print) printf("Freed some stuff, end\n");
                 //free(prop_0x208.data);
                 //free(prop_0x209.data);
             }
@@ -916,9 +938,14 @@ void build_texture_count_check(ENTRY* elist, int entry_count, LIST* full_load, i
     for (k = 0; k < cam_length; k++) {
         int texture_count = 0;
         unsigned int textures[20];
-        for (l = 0; l < full_load[k].count; l++)
-            if (build_entry_type(elist[build_get_index(full_load[k].eids[l], elist, entry_count)]) == -1 && eid_conv(full_load[k].eids[l], temp)[4] == 'T')
+        for (l = 0; l < full_load[k].count; l++) {
+            int idx = build_get_index(full_load[k].eids[l], elist, entry_count);
+            if (idx == -1) {
+                printf("Trying to load invalid entry %s\n", eid_conv(full_load[k].eids[l], temp));
+            } else
+            if (build_entry_type(elist[idx]) == -1 && eid_conv(full_load[k].eids[l], temp)[4] == 'T')
                 textures[texture_count++] = full_load[k].eids[l];
+        }
 
         if (texture_count > over_count) {
             over_count = texture_count;
@@ -1221,8 +1248,9 @@ unsigned char* build_rem_property(unsigned int code, unsigned char* item, int* i
  */
 void build_add_model_textures_to_list(unsigned char* model, LIST* list) {
     int item1off = from_u32(model + 0x10);
+    int tex_count = from_u32(model + item1off + 0x40);
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < tex_count; i++) {
         unsigned int scen_reference = from_u32(model + item1off + 0xC + 0x4 * i);
         if (scen_reference)
             list_add(list, scen_reference);
