@@ -595,6 +595,9 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
         free(ever_loaded.eids);
 }
 
+int cmp_spawns(const void *a, const void *b) {
+    return ((*(SPAWN*) a).zone - (*(SPAWN *) b).zone);
+}
 
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
@@ -665,7 +668,6 @@ void build_main(int build_rebuild_flag) {
     }
 
     //build_get_box_count(elist, entry_count);
-
     build_try_second_output(&nsfnew2, &nsd2, level_ID);
 
     // user picks whether to remake load lists or not, also merge method
@@ -673,6 +675,7 @@ void build_main(int build_rebuild_flag) {
     int load_list_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
     int merge_tech_flag = config[CNFG_IDX_MERGE_METHOD_VALUE];
 
+    qsort(spawns.spawns, spawns.spawn_count, sizeof(SPAWN), cmp_spawns);
     // let the user pick the spawn, according to the spawn determine for each cam path its distance from spawn in terms of path links,
     // which is later used to find out which of 2 paths is in the backwards direction and, where backwards loading penalty should be applied
     // during the load list generation procedure
@@ -699,7 +702,6 @@ void build_main(int build_rebuild_flag) {
     chunk_border_sounds = chunk_count;
 
     qsort(elist, entry_count, sizeof(ENTRY), cmp_func_eid);
-
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
     if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, &mus_dep, elist, entry_count, gool_table, config)) {
