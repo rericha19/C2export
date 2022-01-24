@@ -154,6 +154,12 @@ int main() {
             case ENT_MOVE:
                 entity_move_scr();
                 break;
+            case MODEL_REFS:
+                print_model_tex_refs();
+                break;
+            case MODEL_REFS_NSF:
+                print_model_tex_refs_nsf();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

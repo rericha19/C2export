@@ -1252,3 +1252,118 @@ void entity_move_scr() {
     fclose(file1);
     printf("Done.\n\n");
 }
+
+void print_model_refs_util(unsigned char *model) {
+    char *strs[200];
+    int str_cnt = 0;
+    for (int i = 0; i < 200; i++)
+        strs[i] = (char *) malloc(50);
+    char curr_str[50] = "";
+
+    int item1off = build_get_nth_item_offset(model, 0);
+    int item4off = build_get_nth_item_offset(model, 3);
+    int item5off = build_get_nth_item_offset(model, 4);
+    int tex_ref_item_size = item5off - item4off;
+
+    printf("\nTexture references: \n");
+    printf("TEXTURE CLUT B S-X  Y  W  H\n");
+    for (int i = 0; i < tex_ref_item_size; i += 12) {
+        unsigned char* curr_off = model + item4off + i;
+        int seg = from_u8(curr_off + 6) & 0xF;
+        int bit = from_u8(curr_off + 6) & 0x80;
+
+        if (bit)
+            bit = 8;
+        else
+            bit = 4;
+
+        int clut = from_u16(curr_off + 2);
+        int tex = from_u8(curr_off + 7);
+
+        int startx = min(min(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
+        int starty = min(min(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
+
+        int endx = max(max(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
+        int endy = max(max(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
+
+        int width = endx - startx + 1;
+        int height = endy - starty + 1;
+
+        char temp[6] = "";
+        sprintf(curr_str, " %5s: %04X %d %d-%02X %02X %02X %02X",
+                eid_conv(from_u32(model + item1off + 0xC + tex), temp), clut, bit, seg, startx, starty, width, height);
+        int str_listed = 0;
+        for (int j = 0; j < str_cnt; j++) {
+            if (strcmp(curr_str, strs[j]) == 0) {
+                str_listed = 1;
+                break;
+            }
+        }
+
+        if (!str_listed) {
+            strcpy(strs[str_cnt], curr_str);
+            str_cnt++;
+        }
+    }
+
+    for (int i = 0; i < str_cnt; i++) {
+        printf("%s\n", strs[i]);
+        free(strs[i]);
+    }
+}
+
+void print_model_tex_refs_nsf() {
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+        gool_table[i] = EID_NONE;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1))
+        return;
+
+    int printed_something = 0;
+    char temp[6] = "";
+    printf("Model name? (type \"all\" to print all models' tex refs)\n");
+    char ename[6] = "";
+    scanf("%5s", ename);
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_MODEL) {
+            if (strcmp(eid_conv(elist[i].eid, temp), ename) == 0 || strcmp(ename, "all") == 0) {
+                printf("\nModel %s:", eid_conv(elist[i].eid, temp));
+                print_model_refs_util(elist[i].data);
+                printed_something = 1;
+            }
+        }
+    }
+
+    build_cleanup_elist(elist, entry_count);
+    if (!printed_something)
+        printf("No such model was found\n");
+    printf("Done.\n\n");
+}
+
+void print_model_tex_refs() {
+    char fpath[1000];
+    printf("Path to model entry:\n");
+    scanf(" %[^\n]", fpath);
+    path_fix(fpath);
+
+    FILE* file1;
+    if ((file1 = fopen(fpath, "rb+")) == NULL) {
+        printf("[ERROR] Couldn't open file.\n\n");
+        return;
+    }
+
+    fseek(file1, 0, SEEK_END);
+    int fsize = ftell(file1);
+    rewind(file1);
+    unsigned char* model = (unsigned char *) malloc(fsize);
+    fread(model, fsize, 1, file1);
+    fclose(file1);
+
+    print_model_refs_util(model);
+    free(model);
+    printf("Done\n\n");
+}

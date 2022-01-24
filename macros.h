@@ -103,6 +103,8 @@
 #define TIME                            2089574420u
 #define ENT_RESIZE                      2772317469u
 #define ENT_MOVE                        1753493186u
+#define MODEL_REFS                      2556337893u
+#define MODEL_REFS_NSF                  3538090027u
 
 #define STATUS                          3482341513u
 
@@ -374,6 +376,7 @@ void         export_condprint(DEPRECATE_INFO_STRUCT status);
 void         clrscr();
 unsigned int from_u32(unsigned char *data);
 unsigned int from_u16(unsigned char *data);
+unsigned int from_u8(unsigned char *data);
 void         export_countwipe(DEPRECATE_INFO_STRUCT *status);
 void         export_askprint(DEPRECATE_INFO_STRUCT *status);
 unsigned long comm_str_hash(const char *str);
@@ -608,3 +611,5 @@ void         generate_spawn();
 void         time_convert();
 void         c3_ent_resize();
 void         entity_move_scr();
+void         print_model_tex_refs();
+void         print_model_tex_refs_nsf();

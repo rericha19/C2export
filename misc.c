@@ -81,6 +81,9 @@ void print_help()
     printf("ENT_MOVE\n");
     printf("\t moves an entity by chosen amount\n");
 
+    printf("MODEL_REFS & MODEL_REFS_NSF\n");
+    printf("\t lists model entry texture references\n");
+
     printf("\nError messages:\n");
     printf("[ERROR]   error message\n");
     printf("\tan error that could not be handled, the program skipped some action or gave up\n");
@@ -117,6 +120,12 @@ unsigned int from_u16(unsigned char *data)
     const unsigned char *p = data;
     unsigned int result = p[0];
     result |= p[1] << 8;
+    return result;
+}
+
+unsigned int from_u8(unsigned char *data) {
+    const unsigned char *p = data;
+    unsigned int result = p[0];
     return result;
 }
 
