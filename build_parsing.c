@@ -288,6 +288,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 if (line[0] == '#')
                     continue;
 
+                if (1 > sscanf(line, "%x", &code))
+                    break;
+
                 i = coll_count;
                 coll_count++;
                 if (coll_count == 1)
