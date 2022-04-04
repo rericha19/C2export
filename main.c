@@ -160,6 +160,12 @@ int main() {
             case MODEL_REFS_NSF:
                 print_model_tex_refs_nsf();
                 break;
+            case ALL_PERMA:
+                print_all_entries_perma();
+                break;
+            case FOLDER_USAGE:
+                entity_usage_folder();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

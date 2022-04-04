@@ -657,7 +657,7 @@ void build_main(int build_rebuild_flag) {
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
     if (build_rebuild_flag == FUNCTION_REBUILD)
-        input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0);
+        input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
 
     chunk_count = chunk_border_texture;
 

@@ -105,6 +105,8 @@
 #define ENT_MOVE                        1753493186u
 #define MODEL_REFS                      2556337893u
 #define MODEL_REFS_NSF                  3538090027u
+#define ALL_PERMA                       1727230258u
+#define FOLDER_USAGE                    1085015189u
 
 #define STATUS                          3482341513u
 
@@ -543,7 +545,7 @@ void         build_texture_count_check(ENTRY *elist, int entry_count, LIST *full
 int          build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
                                         ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns);
 int          build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
-                                        ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns, int stats_only);
+                                        ENTRY *elist, int* entry_count, unsigned char **chunks, SPAWNS *spawns, int stats_only, char *fpath);
 void         build_sort_load_lists(ENTRY *elist, int entry_count);
 void         build_ask_build_flags(int* config);
 void         build_ask_premerge(int *premerge_type, double *merge_ratio);
@@ -613,3 +615,5 @@ void         c3_ent_resize();
 void         entity_move_scr();
 void         print_model_tex_refs();
 void         print_model_tex_refs_nsf();
+void         print_all_entries_perma();
+void         entity_usage_folder();

@@ -692,7 +692,7 @@ void build_ll_analyze() {
     for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
-    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1))
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
     build_ll_id_usage(elist, entry_count);

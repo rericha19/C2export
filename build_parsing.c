@@ -859,36 +859,45 @@ int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
 }
 
 int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* chunk_border_texture, unsigned int* gool_table,
-                                  ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS* spawns, int stats_only) {
+                                  ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS* spawns, int stats_only, char *fpath)
+{
     FILE *nsf = NULL;
     char nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
 
-    if (!stats_only) {
-        printf("Input the path to the level (.nsf) you want to rebuild:\n");
-        scanf(" %[^\n]", nsfpath);
-        path_fix(nsfpath);
-
-        if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
+    if (fpath) {
+        if ((nsf = fopen(fpath, "rb")) == NULL)  {
             printf("[ERROR] Could not open selected NSF\n\n");
             return 1;
         }
+    } else {
 
-        *level_ID = build_ask_ID();
+        if (!stats_only) {
+            printf("Input the path to the level (.nsf) you want to rebuild:\n");
+            scanf(" %[^\n]", nsfpath);
+            path_fix(nsfpath);
 
-        *(strrchr(nsfpath,'\\') + 1) = '\0';
-        sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, *level_ID);
-        *nsfnew = fopen(lcltemp, "wb");
-        *(strchr(lcltemp, '\0') - 1) = 'D';
-        *nsd = fopen(lcltemp, "wb");
-    }
-    else {
-        printf("Input the path to the level (.nsf):\n");
-        scanf(" %[^\n]", nsfpath);
-        path_fix(nsfpath);
+            if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
+                printf("[ERROR] Could not open selected NSF\n\n");
+                return 1;
+            }
 
-        if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
-            printf("[ERROR] Could not open selected NSF\n\n");
-            return 1;
+            *level_ID = build_ask_ID();
+
+            *(strrchr(nsfpath,'\\') + 1) = '\0';
+            sprintf(lcltemp,"%s\\S00000%02X.NSF", nsfpath, *level_ID);
+            *nsfnew = fopen(lcltemp, "wb");
+            *(strchr(lcltemp, '\0') - 1) = 'D';
+            *nsd = fopen(lcltemp, "wb");
+        }
+        else {
+            printf("Input the path to the level (.nsf):\n");
+            scanf(" %[^\n]", nsfpath);
+            path_fix(nsfpath);
+
+            if ((nsf = fopen(nsfpath, "rb")) == NULL)  {
+                printf("[ERROR] Could not open selected NSF\n\n");
+                return 1;
+            }
         }
     }
 

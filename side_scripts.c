@@ -956,7 +956,7 @@ void generate_spawn() {
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
 
-    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1))
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
     char zone[100] = "";
@@ -1319,7 +1319,7 @@ void print_model_tex_refs_nsf() {
     for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
-    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1))
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
     int printed_something = 0;
@@ -1366,4 +1366,122 @@ void print_model_tex_refs() {
     print_model_refs_util(model);
     free(model);
     printf("Done\n\n");
+}
+
+
+
+void print_all_entries_perma() {
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+        gool_table[i] = EID_NONE;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
+        return;
+    char temp[6] = "";
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_INST)
+            printf("%5s\n", eid_conv(elist[i].eid, temp));
+    }
+
+    build_cleanup_elist(elist, entry_count);
+    printf("Done.\n\n");
+}
+
+
+void entity_usage_single_nsf(char *fpath, DEPENDENCIES* deps, unsigned int *gool_table) {
+    printf("%s\n", fpath);
+
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, fpath))
+        return;
+
+    int total_entity_count;
+
+    for (int i = 0; i < entry_count; i++)
+    if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+        int camera_count = build_get_cam_item_count(elist[i].data);
+        int entity_count = build_get_entity_count(elist[i].data);
+
+        for (int j = 0; j < entity_count; j++) {
+            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+            int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+            int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+            int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+
+            if (id == -1) continue;
+                total_entity_count++;
+
+            int found_before = 0;
+            for (int k = 0; k < deps->count; k++)
+            if (deps->array[k].type == type && deps->array[k].subtype == subt) {
+                list_add(&deps->array[k].dependencies, total_entity_count);
+                found_before = 1;
+            }
+            if (!found_before) {
+                deps->array = realloc(deps->array, (deps->count + 1) * sizeof(DEPENDENCY));
+                deps->array[deps->count].type = type;
+                deps->array[deps->count].subtype = subt;
+                deps->array[deps->count].dependencies = init_list();
+                list_add(&deps->array[deps->count].dependencies, total_entity_count);
+                deps->count++;
+            }
+        }
+    }
+
+    build_cleanup_elist(elist, entry_count);
+}
+
+
+int cmp_func_dep2(const void *a, const void *b) {
+    DEPENDENCY x = *(DEPENDENCY *) a;
+    DEPENDENCY y = *(DEPENDENCY *) b;
+
+    return y.dependencies.count - x.dependencies.count;
+}
+
+
+void entity_usage_folder() {
+    printf("\nInput the path to the folder\n");
+    char dpath[MAX] = "", fpath[MAX + 300] = "", moretemp[MAX] = "";
+    struct dirent *de;
+    char nsfcheck[4] = "";
+    char temp[6] = "";
+    DEPENDENCIES deps = build_init_dep();
+
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+        gool_table[i] = EID_NONE;
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+
+    DIR *df = opendir(dpath);
+    if (df == NULL) {
+        printf("[ERROR] Could not open selected directory\n");
+        return;
+    }
+
+    while ((de = readdir(df)) != NULL) {
+        strncpy(nsfcheck, strchr(de->d_name,'\0') - 3, 3);
+        strcpy(moretemp, de->d_name);
+        if (de->d_name[0]!='.' && !strcmp(nsfcheck,"NSF")) {
+            sprintf(fpath, "%s\\%s", dpath,de->d_name);
+            entity_usage_single_nsf(fpath, &deps, gool_table);
+        }
+    }
+
+
+    qsort(deps.array, deps.count, sizeof(DEPENDENCY), cmp_func_dep2);
+
+    printf("\nEntity type/subtype usage:\n");
+    for (int i = 0; i < deps.count; i++)
+        printf("%5s-%2d: %4d entities\n", eid_conv(gool_table[deps.array[i].type], temp), deps.array[i].subtype, deps.array[i].dependencies.count);
+
+    printf("\nDone.\n\n");
+    closedir(df);
 }
