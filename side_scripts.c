@@ -336,6 +336,29 @@ int texture_copy_main()
     return 0;
 }
 
+
+void print_prop_header(unsigned char *arr, int off) {
+    printf("\nheader\t");
+    for (int j = 0; j < 8; j++) {
+        printf("%02X", arr[off + j]);
+        if (j % 4 == 3) printf(" ");
+    }
+}
+
+void print_prop_body(unsigned char* arr, int offset, int offset_next) {
+    printf("\ndata\t");
+
+    for (int j = 0; j < offset_next - offset; j++)
+    {
+        printf("%02X", arr[offset + j]);
+        if (j % 4 == 3) printf(" ");
+        if ((j % 16 == 15) && (j + 1 != offset_next - offset)) printf("\n\t");
+    }
+
+    printf("\n\n");
+}
+
+
 /** \brief
  *  Prints out properties present in the file.
  *
@@ -345,7 +368,7 @@ int texture_copy_main()
 void prop_main(char* path)
 {
     FILE *file = NULL;
-    unsigned int fsize, i, j, code, offset, offset_next;
+    unsigned int fsize, i, code, offset, offset_next;
     unsigned char *arr;
 
     if ((file = fopen(path, "rb")) == NULL)
@@ -430,27 +453,16 @@ void prop_main(char* path)
                 break;
             default: break;
         }
-        printf("\nheader\t");
-        for (j = 0; j < 8; j++) {
-            printf("%02X", arr[0x10 + 8*i + j]);
-            if (j % 4 == 3) printf(" ");
-        }
-        printf("\ndata\t");
 
-        for (j = 0; j < offset_next - offset; j++)
-        {
-            printf("%02X", arr[offset + j]);
-            if (j % 4 == 3) printf(" ");
-            if ((j % 16 == 15) && (j + 1 != offset_next - offset)) printf("\n\t");
-        }
-
-        printf("\n\n");
+        print_prop_header(arr, 0x10 + 8 * i);
+        print_prop_body(arr, offset, offset_next);
     }
 
     free(arr);
     fclose(file);
-    printf("\n");
+    printf("Done \n\n");
 }
+
 
 void prop_remove_script() {
     char fpath[1000];
@@ -1484,4 +1496,57 @@ void entity_usage_folder() {
 
     printf("\nDone.\n\n");
     closedir(df);
+}
+
+
+void nsf_props_scr() {
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+        gool_table[i] = EID_NONE;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
+        return;
+
+    char temp[6] = "";
+    int printed_something = 0;
+    int prop_code;
+
+    printf("\nProp code? (hex)\n");
+    scanf("%x", &prop_code);
+
+    printf("\n");
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            for (int j = 0; j < cam_count; j++) {
+                for (int k = 0; k < 3; k++) {
+                    unsigned char *item = elist[i].data + build_get_nth_item_offset(elist[i].data, 2 + 3 * j + k);
+                    int prop_count = build_prop_count(item);
+
+                    for (int l = 0; l < build_prop_count(item); l++)
+                    {
+                        int code = from_u16(item + 0x10 + 8*l);
+                        int offset = from_u16(item + 0x12 + 8*l) + OFFSET;
+                        int offset_next = from_u16(item + 0x1A + 8 * l) + OFFSET;
+                        if (l == (prop_count - 1))
+                            offset_next = from_u16(item);
+
+                        if (code == prop_code) {
+                            printed_something = 1;
+                            printf("Zone %5s path %d item %d", eid_conv(elist[i].eid, temp), j, k);
+                            print_prop_header(item, 0x10 + 8 * l);
+                            print_prop_body(item, offset, offset_next);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    build_cleanup_elist(elist, entry_count);
+    if (!printed_something)
+        printf("No such prop was found in any camera item\n");
+    printf("Done.\n\n");
 }

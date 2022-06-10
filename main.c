@@ -166,6 +166,9 @@ int main() {
             case FOLDER_USAGE:
                 entity_usage_folder();
                 break;
+            case NSF_PROP:
+                nsf_props_scr();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

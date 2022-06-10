@@ -13,7 +13,7 @@
 //#include <limits.h>
 //#include "windows.h"
 
-#define COMPILE_WITH_THREADS 1
+#define COMPILE_WITH_THREADS 0
 
 // various constants
 #define HASH_TABLE_SIZE                 100000000
@@ -107,6 +107,7 @@
 #define MODEL_REFS_NSF                  3538090027u
 #define ALL_PERMA                       1727230258u
 #define FOLDER_USAGE                    1085015189u
+#define NSF_PROP                        387011244u
 
 #define STATUS                          3482341513u
 
@@ -617,3 +618,4 @@ void         print_model_tex_refs();
 void         print_model_tex_refs_nsf();
 void         print_all_entries_perma();
 void         entity_usage_folder();
+void         nsf_props_scr();
