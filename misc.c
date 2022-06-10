@@ -60,8 +60,8 @@ void print_help()
     printf("EID <EID>\n");
     printf("\t prints the EID in hex form\n");
 
-    printf("PROP\n");
-    printf("\t prints a list of properties in an entity\n");
+    printf("PROP & NSF_PROP\n");
+    printf("\t print a list of properties in an entity or all occurences of entity in a NSF\n");
 
     printf("PROP_REMOVE\n");
     printf("\t removes a property from an entity\n");
