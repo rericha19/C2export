@@ -13,7 +13,7 @@
 //#include <limits.h>
 //#include "windows.h"
 
-#define COMPILE_WITH_THREADS 1
+#define COMPILE_WITH_THREADS 0
 
 // various constants
 #define HASH_TABLE_SIZE                 100000000

@@ -557,7 +557,6 @@ void prop_replace_script() {
     fclose(file1);
 
 
-
     char fpath2[1000];
     printf("Path to destination item:\n");
     scanf(" %[^\n]",fpath2);

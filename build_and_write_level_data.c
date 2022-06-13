@@ -93,8 +93,8 @@ unsigned int build_get_ldat_eid(int level_ID) {
     eid[3] = charset[level_ID];
 
     return eid_to_int(eid);
-
 }
+
 
 /** \brief
  *  Builds nsd, sorts load lists according to the nsd entry table order.
@@ -133,7 +133,7 @@ void build_write_nsd(FILE *nsd, FILE* nsd2, ENTRY *elist, int entry_count, int c
 
     // write spawn count, level ID
     int real_nsd_size = C2_NSD_ENTRY_TABLE_OFFSET + real_entry_count * 8;
-    *(int *)(nsddata + real_nsd_size) = spawns.spawn_count;
+    *(int *)(nsddata + real_nsd_size) = spawns.spawn_count + 1;
     *(int *)(nsddata + real_nsd_size + 8) = level_ID;
     real_nsd_size += 0x10;
 
@@ -143,6 +143,12 @@ void build_write_nsd(FILE *nsd, FILE* nsd2, ENTRY *elist, int entry_count, int c
     real_nsd_size += 0x1CC;
 
     // write spawns, assumes camera 'spawns' on the zone's first cam path's first point (first == 0th)
+    *(int *)(nsddata + real_nsd_size) = spawns.spawns[0].zone;
+    *(int *)(nsddata + real_nsd_size + 0x0C) = spawns.spawns[0].x << 8;
+    *(int *)(nsddata + real_nsd_size + 0x10) = spawns.spawns[0].y << 8;
+    *(int *)(nsddata + real_nsd_size + 0x14) = spawns.spawns[0].z << 8;
+    real_nsd_size += 0x18;
+
     for (int i = 0; i < spawns.spawn_count; i++) {
         *(int *)(nsddata + real_nsd_size) = spawns.spawns[i].zone;
         *(int *)(nsddata + real_nsd_size + 0x0C) = spawns.spawns[i].x << 8;
