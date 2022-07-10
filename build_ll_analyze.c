@@ -238,7 +238,7 @@ int pay_cmp2(const void *a, const void *b) {
         return x.cam_path - y.cam_path;
 }
 
-void build_ll_print_full_payload_info(ENTRY *elist, int entry_count) {
+void build_ll_print_full_payload_info(ENTRY *elist, int entry_count, int print_full) {
  /* gets and prints payload ladder */
     PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, 0);
 
@@ -262,7 +262,7 @@ void build_ll_print_full_payload_info(ENTRY *elist, int entry_count) {
             deprecate_build_print_payload(payloads.arr[k], 0);
         }
 
-        if (payloads.arr[k].count >= 21) {
+        if (payloads.arr[k].count >= 21 || print_full) {
             qsort(payloads.arr[k].chunks, payloads.arr[k].count, sizeof(int), cmp_func_int);
             printf("    chunks:");
             for (int l = 0; l < payloads.arr[k].count; l++)
@@ -270,8 +270,11 @@ void build_ll_print_full_payload_info(ENTRY *elist, int entry_count) {
             printf("\n");
         }
 
-        if (payloads.arr[k].tcount >= 9) {
-            printf("    !!!tpages:");
+        if (payloads.arr[k].tcount >= 9 || print_full) {
+            if (payloads.arr[k].tcount >= 9)
+                printf("    !!!tpages:");
+            else
+                printf("    tpages:");
             char temp[6] = "";
             for (int l = 0; l < payloads.arr[k].tcount; l++)
                 printf(" %5s", eid_conv(payloads.arr[k].tchunks[l], temp));
@@ -280,8 +283,11 @@ void build_ll_print_full_payload_info(ENTRY *elist, int entry_count) {
 
         free(payloads.arr[k].chunks);
         free(payloads.arr[k].tchunks);
+        if (print_full)
+            printf("\n");
     }
-    printf("\n");
+    if (!print_full)
+        printf("\n");
 }
 
 int cmp_func_dep(const void *a, const void *b) {
@@ -685,6 +691,21 @@ void build_ll_check_gool_types(ENTRY *elist, int entry_count) {
     printf("\n");
 }
 
+void ll_payload_info_main() {
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
+    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+        gool_table[i] = EID_NONE;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
+        return;
+
+    build_ll_print_full_payload_info(elist, entry_count, 1);
+    build_cleanup_elist(elist, entry_count);
+    printf("Done.\n\n");
+}
+
 void build_ll_analyze() {
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
@@ -699,7 +720,7 @@ void build_ll_analyze() {
     build_ll_various_stats(elist, entry_count);
     build_get_box_count(elist, entry_count);
     build_ll_print_avg(elist, entry_count);
-    build_ll_print_full_payload_info(elist, entry_count);
+    build_ll_print_full_payload_info(elist, entry_count, 0);
     build_ll_check_gool_types(elist, entry_count);
     build_ll_check_gool_references(elist, entry_count, gool_table);
     build_ll_check_tpag_references(elist, entry_count);
