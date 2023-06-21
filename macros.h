@@ -109,6 +109,7 @@
 #define FOLDER_USAGE                    1085015189u
 #define NSF_PROP                        387011244u
 #define GEN_SLST                        2118123300u
+#define PAYLOAD_INFO                    2536593146u
 
 #define STATUS                          3482341513u
 
@@ -621,3 +622,4 @@ void         print_all_entries_perma();
 void         entity_usage_folder();
 void         nsf_props_scr();
 void         generate_slst();
+void         ll_payload_info_main();

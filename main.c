@@ -172,6 +172,9 @@ int main() {
             case GEN_SLST:
                 generate_slst();
                 break;
+            case PAYLOAD_INFO:
+                ll_payload_info_main();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;
