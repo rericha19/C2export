@@ -195,8 +195,8 @@ int build_get_neighbour_count(unsigned char *entry) {
 LIST build_get_neighbours(unsigned char *entry) {
     int item1off = build_get_nth_item_offset(entry, 0);
     int count = entry[item1off + C2_NEIGHBOURS_START];
-
     LIST neighbours = init_list();
+
     for (int k = 0; k < count; k++) {
         int neighbour_eid = from_u32(entry + item1off + C2_NEIGHBOURS_START + 4 + 4 * k);
         list_add(&neighbours, neighbour_eid);

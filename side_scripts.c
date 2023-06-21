@@ -670,6 +670,88 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
     fclose(filenew);
 }
 
+void resize_model(int fsize, unsigned char *buffer, double scale[3])
+{
+    int eid = from_u32(buffer + 4);
+    int pb10g = eid_to_int("Pb10G");
+    int bd10g = eid_to_int("Bd10G");
+    int cry1g = eid_to_int("Cry1G");
+    int cry2g = eid_to_int("Cry2G");
+    int rel1g = eid_to_int("Rel1G");
+    int ge10g = eid_to_int("Ge10G");
+    int ge30g = eid_to_int("Ge30G");
+    int ge40g = eid_to_int("Ge40G");
+
+    if (eid == pb10g || eid == bd10g || eid == cry1g || eid == cry2g || eid == rel1g || eid == ge10g || eid == ge30g || eid == ge40g) {
+        printf("model Pb10G/Bd10G/Cry1G/Cry2G/Rel1G/Ge10G/Ge30G/Ge40G, skipping\n");
+        return;
+    }
+
+    int o = build_get_nth_item_offset(buffer, 0);
+
+    int sx = *(int*)(buffer + o);
+    int sy = *(int*)(buffer + o + 4);
+    int sz = *(int*)(buffer + o + 8);
+
+    sx = (int)(sx * scale[0]);
+    sy = (int)(sy * scale[1]);
+    sz = (int)(sz * scale[2]);
+
+    *(int*)(buffer + o) = sx;
+    *(int*)(buffer + o + 4) = sy;
+    *(int*)(buffer + o + 8) = sz;
+}
+
+void resize_animation(int fsize, unsigned char *buffer, double scale[3])
+{
+    int itemc = build_item_count(buffer);
+
+    for (int i = 0; i < itemc; i++) {
+        int o = build_get_nth_item_offset(buffer, i);
+
+        if (*(int*)(buffer + o + 0xC)) {
+            int xyz_iter = 0;
+            int end = *(int*)(buffer + o + 0x14);
+            for (int j = 0x1C; j < end; j += 4) {
+                int val = *(int*)(buffer + o + j);
+                val = (int)(val * scale[xyz_iter]);
+                *(int*)(buffer + o + j) = val;
+                xyz_iter = (xyz_iter + 1) % 3;
+            }
+        }
+    }
+}
+
+void resize_zone_camera_distance(int fsize, unsigned char *buffer, double scale[3])
+{
+    int cam_c = build_get_cam_item_count(buffer);
+
+    for (int i = 0; i < cam_c; i += 3) {
+        int o = build_get_nth_item_offset(buffer, 2 + i + 1);
+
+        unsigned char *entity = buffer + o;
+        for (int j = 0; j < build_prop_count(entity); j++) {
+            int code = from_u16(entity + 0x10 + 8 * j);
+            int offset = from_u16(entity + 0x12 + 8 * j) + OFFSET;
+            int val_c = from_u16(entity + 0x16 + 8 * j);
+
+            if (code == ENTITY_PROP_CAM_DISTANCE) {
+                int prop_meta_len = 4;
+                if (val_c == 2 || val_c == 3)
+                    prop_meta_len = 8;
+
+                for (int k = 0; k < val_c*4; k++) {
+                    int real_off = o + offset + prop_meta_len + (k*2);
+
+                    int val = *(short int*)(buffer + real_off);
+                    val = (short int)(val * scale[0]);
+                    *(short int*)(buffer + real_off) = val;
+                }
+            }
+        }
+    }
+}
+
 void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
 {
     int offset_start,offset_end, i;
@@ -683,8 +765,22 @@ void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, do
         offset_end = BYTE * chunk[0x15 + i * 4] + chunk[0x14 + i * 4];
         if (!offset_end) offset_end = CHUNKSIZE;
         entry = chunk + offset_start;
-        if (entry[8] == 7) resize_zone(offset_end - offset_start, entry, scale, status);
-        if (entry[8] == 3) resize_scenery(offset_end - offset_start, entry, scale, status);
+
+        ENTRY curr_entry;
+        curr_entry.data = entry;
+        int etype = build_entry_type(curr_entry);
+
+        if (etype == ENTRY_TYPE_ZONE)
+            resize_zone(offset_end - offset_start, entry, scale, status);
+        else if (etype == ENTRY_TYPE_SCENERY)
+            resize_scenery(offset_end - offset_start, entry, scale, status);
+        else if (etype == ENTRY_TYPE_MODEL)
+            resize_model(offset_end - offset_start, entry, scale);
+        else if (etype == ENTRY_TYPE_ANIM)
+            resize_animation(offset_end - offset_start, entry, scale);
+
+        if (etype == ENTRY_TYPE_ZONE)
+            resize_zone_camera_distance(offset_end - offset_start, entry, scale);
     }
 
     checksum = nsfChecksum(chunk);
@@ -799,37 +895,22 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
 
 void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    unsigned int i;
-    int off0x4B = 0;
-    short int coord;
+    int i;
 
     for (i = 0; i < build_item_count(item); i++)
     {
-        if (item[0x10 + i*8] == 0x4B && item[0x11 +i*8] == 0)
-            off0x4B = BYTE * item[0x13 + i*8] + item[0x12+i*8]+OFFSET;
-    }
+        int code = from_u16(item + 0x10 + 8 * i);
+        int offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
 
-    if (off0x4B)
-    {
-        for (i = 0; (unsigned) i < item[off0x4B]*6; i += 2)
-            {
-                if (item[off0x4B + 0x5 + i] < 0x80)
-                {
-                    coord = BYTE * (signed) item[off0x4B + 0x5 + i] + (signed) item[off0x4B + 0x4 + i];
-                    coord = (short int) coord * scale[i/2 % 3];
-                    item[off0x4B + 0x5 + i] = coord / 256;
-                    item[off0x4B + 0x4 + i] = coord % 256;
-                }
-                else
-                {
-                    coord = 65536 - BYTE * (signed) item[off0x4B + 0x5 + i] - (signed) item[off0x4B + 0x4 + i];
-                    coord = (short int) coord * scale[i/2 % 3];
-                    item[off0x4B + 0x5 + i] = 255 - coord / 256;
-                    item[off0x4B + 0x4 + i] = 256 - coord % 256;
-                    if (item[off0x4B + 0x4 + i] == 0) item[off0x4B + 0x5 + i]++;
-                }
+        if (code == 0x4B) {
+            int pathlen = from_u32(item + offset);
+            for (int j = 0; j < pathlen * 3; j++) {
+                double sc = scale[j % 3];
+                int val = *(short int*)(item + offset + 4 + j*2);
+                val = (short int)(val * sc);
+                *(short int*)(item + offset + 4 + j*2) = val;
             }
-
+        }
     }
 }
 
@@ -1548,4 +1629,59 @@ void nsf_props_scr() {
     if (!printed_something)
         printf("No such prop was found in any camera item\n");
     printf("Done.\n\n");
+}
+
+void generate_slst() {
+    int cam_len = 0;
+    char name[100] = "ABCDE";
+    static unsigned char empty_source[] = {0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+    static unsigned char empty_delta[]  = {0x2, 0x0, 0x1, 0x0, 0x2, 0x0, 0x2, 0x0};
+    unsigned int real_len = 0x10;
+    unsigned char buffer[0x20000];
+    char fpath[500] = "";
+
+    printf("Camera path length?\n");
+    scanf("%d", &cam_len);
+    if (cam_len <= 1) {
+        printf("[ERROR] Invalid slst length %d\n\n", cam_len);
+        return;
+    }
+
+    printf("\nSLST name?\n");
+    scanf("%s", name);
+    sprintf(fpath, "empty_slst_%5s_len_%d.nsentry", name, cam_len);
+
+    FILE *file = NULL;
+    if ((file = fopen(fpath, "wb")) == NULL) {
+        printf("[ERROR] File %s could not be opened\n\n", fpath);
+        return;
+    }
+
+    *(unsigned int*)(buffer)       = MAGIC_ENTRY;
+    *(unsigned int*)(buffer + 0x4) = eid_to_int(name);
+    *(unsigned int*)(buffer + 0x8) = ENTRY_TYPE_SLST;
+    *(unsigned int*)(buffer + 0xC) = cam_len + 1;
+
+    for (int i = 0; i < cam_len + 2; i++) {
+        *(unsigned int*)(buffer + 0x10 + 4*i) = (4*(cam_len + 2)) + 0x10 + (8*i);
+        real_len += 4;
+    }
+
+    for (int i = 0; i < 8; i++)
+        *(unsigned char*)(buffer + real_len + i) = empty_source[i];
+    real_len += 8;
+
+    for (int j = 0; j < (cam_len - 1); j++) {
+        for (int i = 0; i < 8; i++)
+            *(unsigned char*)(buffer + real_len + i) = empty_delta[i];
+        real_len += 8;
+    }
+
+    for (int i = 0; i < 8; i++)
+        *(unsigned char*)(buffer + real_len + i) = empty_source[i];
+    real_len += 8;
+
+    fwrite(buffer, real_len, 1, file);
+    fclose(file);
+    printf("Done. Saved as %s\n\n", fpath);
 }

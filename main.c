@@ -169,6 +169,9 @@ int main() {
             case NSF_PROP:
                 nsf_props_scr();
                 break;
+            case GEN_SLST:
+                generate_slst();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

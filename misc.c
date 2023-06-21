@@ -23,11 +23,8 @@ void print_help()
     //printf("HELP\n");
     //printf("\t prints a list of commands\n");
 
-    printf("WIPE\n");
-    printf("\t wipes current screen\n");
-
-    printf("KILL\n");
-    printf("\t ends the program\n");
+    printf("WIPE & KILL\n");
+    printf("\t wipes current screen / ends the program\n");
 
     //printf("CHANGEPRINT & IMPORT (obsolete)\n");
     //printf("\t  print selection, entry->NSF import (useless)\n");
@@ -36,7 +33,7 @@ void print_help()
     printf("\t builds a level from chosen inputs\n");
 
     printf("EXPORT & EXPORTALL\n");
-    printf("\t exports level's contents with given settings (EXPORTALL exports all levels in a folder)\n");
+    printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
 
     printf("ENT_RESIZE\n");
     printf("\t converts c3 entity to c2 entity (path adjustment)\n");
@@ -83,6 +80,9 @@ void print_help()
 
     printf("MODEL_REFS & MODEL_REFS_NSF\n");
     printf("\t lists model entry texture references\n");
+
+    printf("GEN_SLST\n");
+    printf("\t creates an 'empty' SLST entry\n");
 
     printf("\nError messages:\n");
     printf("[ERROR]   error message\n");
