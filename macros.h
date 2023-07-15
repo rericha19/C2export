@@ -110,6 +110,7 @@
 #define NSF_PROP                        387011244u
 #define GEN_SLST                        2118123300u
 #define PAYLOAD_INFO                    2536593146u
+#define WARP_SPAWNS                     3243144250u
 
 #define STATUS                          3482341513u
 
@@ -623,3 +624,4 @@ void         entity_usage_folder();
 void         nsf_props_scr();
 void         generate_slst();
 void         ll_payload_info_main();
+void         warp_spawns_generate();

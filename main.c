@@ -175,6 +175,9 @@ int main() {
             case PAYLOAD_INFO:
                 ll_payload_info_main();
                 break;
+            case WARP_SPAWNS:
+                warp_spawns_generate();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

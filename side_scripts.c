@@ -1685,3 +1685,66 @@ void generate_slst() {
     fclose(file);
     printf("Done. Saved as %s\n\n", fpath);
 }
+
+
+void warp_spawns_generate() {
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
+        return;
+
+    int df = 26;
+    int pathlen;
+    int spawn_ids[] = {
+        27, 34, 40, 27, df, df, 36,
+        36, 39, 32, 41, 35,
+        df, 31, 37, 33, 37,
+        39, 30, 29, 28, 37,
+        27, 41, 38, 32, 131,
+        35, 29, 32, 30, 36, df};
+
+    for (int i = 0; i < 33; i++) {
+        for (int j = 0; j < entry_count; j++) {
+            if (build_entry_type(elist[j]) == ENTRY_TYPE_ZONE) {
+                unsigned char * curr_zone = elist[j].data;
+                int camc = build_get_cam_item_count(curr_zone);
+
+                for (int k = 0; k < build_get_entity_count(curr_zone); k++) {
+                    int offset = build_get_nth_item_offset(curr_zone, 2 + camc + k);
+                    int ent_id = build_get_entity_prop(curr_zone + offset, ENTITY_PROP_ID);
+                    if (ent_id == spawn_ids[i]) {
+                        short int* path = build_get_path(elist, j, 2 + camc + k, &pathlen);
+
+                        unsigned char* coll_item = elist[j].data + build_get_nth_item_offset(elist[j].data, 1);
+                        unsigned int zone_x = from_u32(coll_item);
+                        unsigned int zone_y = from_u32(coll_item + 4);
+                        unsigned int zone_z = from_u32(coll_item + 8);
+
+                        unsigned int x = (zone_x + 4 * path[0]) << 8;
+                        unsigned int y = (zone_y + 4 * path[1]) << 8;
+                        unsigned int z = (zone_z + 4 * path[2]) << 8;
+
+                        unsigned char arr[0x18] = {0};
+                        *(unsigned int *)  arr = elist[j].eid;
+                        *(unsigned int *) (arr + 0x4) = 0;
+                        *(unsigned int *) (arr + 0x8) = 0;
+                        *(unsigned int *) (arr + 0xC) = x;
+                        *(unsigned int *) (arr + 0x10) = y;
+                        *(unsigned int *) (arr + 0x14) = z;
+
+                        printf("\n");
+                        for (int j = 0; j < 0x18; j++) {
+                            printf("%02X", arr[j]);
+                            if (j % 4 == 3) printf(" ");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    build_cleanup_elist(elist, entry_count);
+    printf("\nDone.\n\n");
+}
