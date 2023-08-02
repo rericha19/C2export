@@ -961,7 +961,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
                     printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
                     continue;
                 }
-                if (gool_table != NULL)
+                if (gool_table != NULL && gool_table[gool_type] == EID_NONE)
                     gool_table[gool_type] = elist[*entry_count].eid;
             }
 

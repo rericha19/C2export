@@ -13,7 +13,7 @@
 //#include <limits.h>
 //#include "windows.h"
 
-#define COMPILE_WITH_THREADS 0
+#define COMPILE_WITH_THREADS            1
 
 // various constants
 #define HASH_TABLE_SIZE                 100000000
@@ -74,45 +74,49 @@
 #define EID_NONE                        0x6396347Fu
 
 // commands
-#define KILL                            2089250961u
+#define HASH                            2089134665u
 #define HELP                            2089138798u
+#define HELP2                           222103648u
+
+#define WIPE                            2089682330u
+#define BUILD                           215559733u
+#define REBUILD                         1370829996u
 #define EXPORT                          2939723207u
 #define EXPORTALL                       1522383616u
-#define CHANGEPRINT                     2239644728u
-#define CHANGEMODE                      588358864u
-#define WIPE                            2089682330u
-#define IMPORT                          3083219648u
-#define INTRO                           223621809u
-#define RESIZE                          3426052343u
-#define ROTATE                          3437938580u
-#define BUILD                           215559733u
 #define PROP                            2089440550u
-#define TEXTURE                         3979833526u
-#define HASH                            2089134665u
-#define A                               177638u
-#define SCEN_RECOLOR                    2919463267u
-#define SCEN_RECOLOR2                   1853007349u
-#define NSD                             193464746u
-#define REBUILD                         1370829996u
-#define TEXTURE_RECOLOR                 1888631019u
+#define NSF_PROP                        387011244u
 #define PROP_REMOVE                     4293790963u
 #define PROP_REPLACE                    4259575393u
+#define TEXTURE                         3979833526u
+#define SCEN_RECOLOR                    2919463267u
+#define TEXTURE_RECOLOR                 1888631019u
+#define NSD                             193464746u
 #define EID                             193454615u
 #define LL_ANALYZE                      4033854192u
 #define GEN_SPAWN                       1178716487u
-#define TIME                            2089574420u
-#define ENT_RESIZE                      2772317469u
-#define ENT_MOVE                        1753493186u
 #define MODEL_REFS                      2556337893u
 #define MODEL_REFS_NSF                  3538090027u
-#define ALL_PERMA                       1727230258u
-#define FOLDER_USAGE                    1085015189u
-#define NSF_PROP                        387011244u
-#define GEN_SLST                        2118123300u
+#define ENTITY_USAGE                    3822178934u
 #define PAYLOAD_INFO                    2536593146u
-#define WARP_SPAWNS                     3243144250u
 
-#define STATUS                          3482341513u
+#define KILL                            2089250961u
+#define WARP_SPAWNS                     3243144250u
+#define LIST_SPECIAL_LL                 2035609912u
+#define A                               177638u
+#define TIME                            2089574420u
+#define GEN_SLST                        2118123300u
+#define ALL_PERMA                       1727230258u
+#define SCEN_RECOLOR2                   1853007349u
+#define RESIZE                          3426052343u
+#define ROTATE                          3437938580u
+#define ENT_RESIZE                      2772317469u
+#define ENT_MOVE                        1753493186u
+#define CHANGEPRINT                     2239644728u
+#define IMPORT                          3083219648u
+
+//#define INTRO                           223621809u
+//#define STATUS                          3482341513u
+//#define CHANGEMODE                      588358864u
 
 #define FUNCTION_BUILD                  1
 #define FUNCTION_REBUILD                2
@@ -377,6 +381,7 @@ typedef struct chunk_str {
 void         export_printstatus(int zonetype, int gamemode, int portmode);
 void         intro_text();
 void         print_help();
+void         print_help2();
 void         export_countprint(DEPRECATE_INFO_STRUCT status);
 void         export_condprint(DEPRECATE_INFO_STRUCT status);
 void         clrscr();
@@ -625,3 +630,4 @@ void         nsf_props_scr();
 void         generate_slst();
 void         ll_payload_info_main();
 void         warp_spawns_generate();
+void         special_load_lists_list();

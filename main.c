@@ -39,6 +39,9 @@ int main() {
             case HELP:
                 print_help();
                 break;
+            case HELP2:
+                print_help2();
+                break;
             case IMPORT:
                 import_main(lcltemp,status);
                 printf("\n");
@@ -163,7 +166,7 @@ int main() {
             case ALL_PERMA:
                 print_all_entries_perma();
                 break;
-            case FOLDER_USAGE:
+            case ENTITY_USAGE:
                 entity_usage_folder();
                 break;
             case NSF_PROP:
@@ -177,6 +180,9 @@ int main() {
                 break;
             case WARP_SPAWNS:
                 warp_spawns_generate();
+                break;
+            case LIST_SPECIAL_LL:
+                special_load_lists_list();
                 break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);

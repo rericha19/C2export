@@ -2,7 +2,6 @@
 
 
 void intro_text()
- //self-explanatory
 {
     for (int i = 0; i < 100; i++) printf("*");
     printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
@@ -15,47 +14,69 @@ void intro_text()
     printf("\n\n");
 }
 
+void print_help2()
+// help for miscellaneous, modpack-specific and obsolete commands
+{
+    for (int i = 0; i < 100; i++) printf("-");
+    printf("\nMisc/obsolete/modpack command list:\n");
+
+    printf("KILL\n");
+    printf("\t ends the program\n");
+
+    printf("WARP_SPAWNS\n");
+    printf("\t modpack, used to generate warp room spawns from the nsf\n");
+
+    printf("LIST_SPECIAL_LL\n");
+    printf("\t todo\n");
+
+    printf("A <angle> & TIME\n");
+    printf("\t modpack crate rotation, TT value\n");
+
+    printf("GEN_SLST\n");
+    printf("\t creates an 'empty' SLST entry for path with chosen length\n");
+
+    printf("ALL_PERMA\n");
+    printf("\t list all non-instrument entries and tpages\n");
+
+    printf("SCEN_RECOLOR2\n");
+    printf("\t modpack, hardcoded values, dont use\n");
+
+    printf("RESIZE <game> <xmult> <ymult> <zmult>\n");
+    printf("\t changes dimensions of the zones and scenery according to given parameters (can mess up warps)\n");
+    printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
+
+    printf("ROTATE\n");
+    printf("\t rotates scenery or objects in a zone you specified\n");
+
+    printf("ENT_RESIZE\n");
+    printf("\t converts c3 entity to c2 entity (path adjustment)\n");
+
+    printf("ENT_MOVE\n");
+    printf("\t moves an entity by chosen amount\n");
+
+    printf("CHANGEPRINT & IMPORT (obsolete)\n");
+    printf("\t print selection, entry->NSF import (pretty much useless)\n");
+
+    for (int i = 0; i < 100; i++) printf("-");
+    printf("\n");
+}
+
 void print_help()
-//self-explanatory
+// main help
 {
     for (int i = 0; i < 100; i++) printf("-");
     printf("\nCommand list:\n");
-    //printf("HELP\n");
-    //printf("\t prints a list of commands\n");
+    printf("HELP & HELP2\n");
+    printf("\t print a list of commands\n");
 
-    printf("WIPE & KILL\n");
-    printf("\t wipes current screen / ends the program\n");
-
-    //printf("CHANGEPRINT & IMPORT (obsolete)\n");
-    //printf("\t  print selection, entry->NSF import (useless)\n");
+    printf("WIPE\n");
+    printf("\t wipes current screen\n");
 
     printf("BUILD & REBUILD\n");
     printf("\t builds a level from chosen inputs\n");
 
     printf("EXPORT & EXPORTALL\n");
     printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
-
-    printf("ENT_RESIZE\n");
-    printf("\t converts c3 entity to c2 entity (path adjustment)\n");
-
-    printf("RESIZE <game> <xmult> <ymult> <zmult>\n");
-    printf("\t changes dimensions of the zones and scenery according to given parameters (can mess up warps)\n");
-    printf("\t e.g. 'resize3' 1.25 1 1' - files are from C3 and it gets stretched only on X\n");
-
-    //printf("ROTATE\n");
-    //printf("\t rotates scenery or objects in a zone you specified\n");
-
-    printf("TEXTURE\n");
-    printf("\t copies from one texture chunk to another (doesnt include CLUTs)\n");
-
-    printf("SCEN_RECOLOR & TEXTURE_RECOLOR\n");
-    printf("\t recolors scenery to the color user specifies (kinda sucks but w/e)\n");
-
-    printf("NSD\n");
-    printf("\t prints gool table from the nsd\n");
-
-    printf("EID <EID>\n");
-    printf("\t prints the EID in hex form\n");
 
     printf("PROP & NSF_PROP\n");
     printf("\t print a list of properties in an entity or all occurences of entity in a NSF\n");
@@ -66,23 +87,35 @@ void print_help()
     printf("PROP_REPLACE\n");
     printf("\t replaces (or inserts) a property into dest entity with prop from source entity\n");
 
+    printf("TEXTURE\n");
+    printf("\t copies tiles from one texture chunk to another (doesnt include CLUTs)\n");
+
+    printf("SCEN_RECOLOR\n");
+    printf("\t recolor vertex colors to selected hue / brightness\n");
+
+    printf("TEXTURE_RECOLOR\n");
+    printf("\t recolor texture clut colors to selected hue / brightness\n");
+
+    printf("NSD\n");
+    printf("\t prints gool table from the nsd\n");
+
+    printf("EID <EID>\n");
+    printf("\t prints the EID in hex form\n");
+
     printf("LL_ANALYZE\n");
     printf("\t stats about the level, integrity checks\n");
 
     printf("GEN_SPAWN\n");
     printf("\t NSD spawn generation for input level, zone and entity ID\n");
 
-    printf("A <angle> & TIME\n");
-    printf("\t modpack crate rotation, TT value\n");
-
-    printf("ENT_MOVE\n");
-    printf("\t moves an entity by chosen amount\n");
-
     printf("MODEL_REFS & MODEL_REFS_NSF\n");
     printf("\t lists model entry texture references\n");
 
-    printf("GEN_SLST\n");
-    printf("\t creates an 'empty' SLST entry\n");
+    printf("ENTITY_USAGE\n");
+    printf("\t prints info about type/subtype usage count across nsfs in the folder\n");
+
+    printf("PAYLOAD_INFO\n");
+    printf("\t prints info about normal chunk / tpage / entity loading in nsf's cam paths\n");
 
     printf("\nError messages:\n");
     printf("[ERROR]   error message\n");

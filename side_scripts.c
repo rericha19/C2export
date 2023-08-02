@@ -94,6 +94,12 @@ int scenery_recolor_main()
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
+    int r_wanted = 0x85;
+    int g_wanted = 0x28;
+    int b_wanted = 0x6A;
+
+    int sum_wanted = r_wanted + g_wanted + b_wanted;
+
     for (int i = 0; i < color_count; i++)
     {
         // read current color
@@ -102,20 +108,34 @@ int scenery_recolor_main()
         unsigned char b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
-        // int sum = r + g + b;
+        int sum = r + g + b;
+        int avg = sum / 3;
 
-        int r_new = max(0, r - 0x28);
-        int g_new = max(0, g - 0x28);
-        int b_new = max(0, b - 0x28);
+        // get new color
+        int r_new = (sum * r_wanted) / sum_wanted;
+        int g_new = (sum * g_wanted) / sum_wanted;
+        int b_new = (sum * b_wanted) / sum_wanted;
 
-        int avg = r_new + g_new + b_new;
-        avg = avg / 3;
+        r_new = (r_new + 2*avg) / 3;
+        g_new = (g_new + 2*avg) / 3;
+        b_new = (b_new + 2*avg) / 3;
 
-        r_new = g_new = b_new = avg;
+        float mult = 0.7f;
+        r_new *= mult;
+        g_new *= mult;
+        b_new *= mult;
 
         // print stuff
         // printf("old: %2X %2X %2X\n", r, g, b);
         // printf("new: %2X %2X %2X\n", r_new, g_new, b_new);
+
+        // clamp
+        r_new = min(r_new, 255);
+        g_new = min(g_new, 255);
+        b_new = min(b_new, 255);
+        r_new = max(0, r_new);
+        g_new = max(0, g_new);
+        b_new = max(0, b_new);
 
         // write back
         buffer[4 * i + 0] = r_new;
@@ -1484,7 +1504,7 @@ void print_all_entries_perma() {
 
 
 void entity_usage_single_nsf(char *fpath, DEPENDENCIES* deps, unsigned int *gool_table) {
-    printf("%s\n", fpath);
+    printf("Checking %s\n", fpath);
 
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
@@ -1536,12 +1556,38 @@ int cmp_func_dep2(const void *a, const void *b) {
     return y.dependencies.count - x.dependencies.count;
 }
 
+void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, unsigned int* gool_table) {
+    char fpath[MAX + 300] = "", moretemp[MAX] = "";
+    DIR *df = opendir(dpath);
+    if (df == NULL) {
+        printf("[ERROR] Could not open selected directory\n");
+        return;
+    }
+
+    char nsfcheck[4] = "";
+    struct dirent *de;
+    while ((de = readdir(df)) != NULL) {
+        if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) {
+            continue;
+        }
+        strncpy(nsfcheck, strchr(de->d_name,'\0') - 3, 3);
+        strcpy(moretemp, de->d_name);
+        if (de->d_name[0]!='.' && !strcmp(nsfcheck,"NSF")) {
+            sprintf(fpath, "%s\\%s", dpath,de->d_name);
+            entity_usage_single_nsf(fpath, deps, gool_table);
+        }
+        char filePath[256];
+        snprintf(filePath, sizeof(filePath), "%s\\%s", dpath, de->d_name);
+        if (de->d_type == DT_DIR) {
+            entity_usage_folder_util(filePath, deps, gool_table);
+        }
+    }
+    closedir(df);
+}
 
 void entity_usage_folder() {
-    printf("\nInput the path to the folder\n");
-    char dpath[MAX] = "", fpath[MAX + 300] = "", moretemp[MAX] = "";
-    struct dirent *de;
-    char nsfcheck[4] = "";
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
     char temp[6] = "";
     DEPENDENCIES deps = build_init_dep();
 
@@ -1552,30 +1598,21 @@ void entity_usage_folder() {
     scanf(" %[^\n]", dpath);
     path_fix(dpath);
 
-    DIR *df = opendir(dpath);
-    if (df == NULL) {
-        printf("[ERROR] Could not open selected directory\n");
-        return;
-    }
-
-    while ((de = readdir(df)) != NULL) {
-        strncpy(nsfcheck, strchr(de->d_name,'\0') - 3, 3);
-        strcpy(moretemp, de->d_name);
-        if (de->d_name[0]!='.' && !strcmp(nsfcheck,"NSF")) {
-            sprintf(fpath, "%s\\%s", dpath,de->d_name);
-            entity_usage_single_nsf(fpath, &deps, gool_table);
-        }
-    }
-
-
+    entity_usage_folder_util(dpath, &deps, gool_table);
     qsort(deps.array, deps.count, sizeof(DEPENDENCY), cmp_func_dep2);
+
+    int entity_sum = 0;
+    for (int i = 0; i < deps.count; i++)
+        entity_sum += deps.array[i].dependencies.count;
+
+    printf("\nTotal entity count:\n");
+    printf(" %5d entities\n", entity_sum);
 
     printf("\nEntity type/subtype usage:\n");
     for (int i = 0; i < deps.count; i++)
-        printf("%5s-%2d: %4d entities\n", eid_conv(gool_table[deps.array[i].type], temp), deps.array[i].subtype, deps.array[i].dependencies.count);
+        printf(" %2d(%5s)-%2d: %4d entities\n", deps.array[i].type, eid_conv(gool_table[deps.array[i].type], temp), deps.array[i].subtype, deps.array[i].dependencies.count);
 
     printf("\nDone.\n\n");
-    closedir(df);
 }
 
 
@@ -1744,7 +1781,80 @@ void warp_spawns_generate() {
         }
     }
 
+    build_cleanup_elist(elist, entry_count);
+    printf("\nDone.\n\n");
+}
+
+void special_load_lists_nsf(char *fpath) {
+    printf("Checking %s\n", fpath);
+    char temp[6] = "";
+    int printed_something = 0;
+
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+        return;
+
+    for (int i = 0; i < entry_count; i++) {
+        ENTRY curr = elist[i];
+        if (build_entry_type(curr) != ENTRY_TYPE_ZONE)
+            continue;
+
+        LIST special_entries = build_read_special_entries(curr.data);
+        if (special_entries.count) {
+            printed_something = 1;
+            printf("Zone %5s:\t", eid_conv(curr.eid, temp));
+            for (int j = 0; j < special_entries.count; j++) {
+                printf("%5s ", eid_conv(special_entries.eids[j], temp));
+                if (j && j % 8 == 7 && (j + 1) != special_entries.count)
+                    printf("\n           \t");
+            }
+
+            printf("\n");
+        }
+    }
 
     build_cleanup_elist(elist, entry_count);
+    if (printed_something)
+        printf("\n");
+}
+
+void special_load_lists_util(const char *dpath) {
+    char fpath[MAX + 300] = "", moretemp[MAX] = "";
+    DIR *df = opendir(dpath);
+    if (df == NULL) {
+        printf("[ERROR] Could not open selected directory\n");
+        return;
+    }
+
+    char nsfcheck[4] = "";
+    struct dirent *de;
+    while ((de = readdir(df)) != NULL) {
+        if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) {
+            continue;
+        }
+        strncpy(nsfcheck, strchr(de->d_name,'\0') - 3, 3);
+        strcpy(moretemp, de->d_name);
+        if (de->d_name[0]!='.' && !strcmp(nsfcheck,"NSF")) {
+            sprintf(fpath, "%s\\%s", dpath,de->d_name);
+            special_load_lists_nsf(fpath);
+        }
+        char filePath[256];
+        snprintf(filePath, sizeof(filePath), "%s\\%s", dpath, de->d_name);
+        if (de->d_type == DT_DIR) {
+            special_load_lists_util(filePath);
+        }
+    }
+    closedir(df);
+}
+
+void special_load_lists_list() {
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+    special_load_lists_util(dpath);
     printf("\nDone.\n\n");
 }
