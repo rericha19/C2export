@@ -101,6 +101,7 @@
 
 #define KILL                            2089250961u
 #define WARP_SPAWNS                     3243144250u
+#define CHECK_UTIL                      2424829088u
 #define LIST_SPECIAL_LL                 2035609912u
 #define A                               177638u
 #define TIME                            2089574420u
@@ -142,7 +143,9 @@
 #define ENTITY_PROP_ARGUMENTS           0xA4
 #define ENTITY_PROP_TYPE                0xA9
 #define ENTITY_PROP_SUBTYPE             0xAA
+#define ENTITY_PROP_DDA_DEATHS          0x277
 #define ENTITY_PROP_VICTIMS             0x287
+#define ENTITY_PROp_DDA_SECTION         0x288
 #define ENTITY_PROP_BOX_COUNT           0x28B
 
 #define ENTITY_PROP_CAMERA_MODE         0x29
@@ -631,3 +634,4 @@ void         generate_slst();
 void         ll_payload_info_main();
 void         warp_spawns_generate();
 void         special_load_lists_list();
+void         checkpoint_stats();

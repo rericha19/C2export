@@ -31,6 +31,7 @@ int build_get_max_draw(LOAD_LIST draw_list) {
  * \return PAYLOADS                     payloads struct
  */
 PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min) {
+    // todo find out where it crashes
     PAYLOADS payloads;
     payloads.count = 0;
     payloads.arr = NULL;

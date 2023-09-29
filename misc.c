@@ -26,8 +26,11 @@ void print_help2()
     printf("WARP_SPAWNS\n");
     printf("\t modpack, used to generate warp room spawns from the nsf\n");
 
+    printf("CHECK_UTIL\n");
+    printf("\t modpack, lists regular and dda checks/masks (some levels have special hardcoded exceptions)\n");
+
     printf("LIST_SPECIAL_LL\n");
-    printf("\t todo\n");
+    printf("\t lists special zone-specific load list entries (rebuild thing) located within first item\n");
 
     printf("A <angle> & TIME\n");
     printf("\t modpack crate rotation, TT value\n");

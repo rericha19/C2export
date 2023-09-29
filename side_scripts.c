@@ -1735,10 +1735,10 @@ void warp_spawns_generate() {
     int pathlen;
     int spawn_ids[] = {
         27, 34, 40, 27, df, df, 36,
-        36, 39, 32, 41, 35,
+        35, 41, 32, 39, 35,
         df, 31, 37, 33, 37,
         39, 30, 29, 28, 37,
-        27, 41, 38, 32, 131,
+        27, 39, 38, 32, 131,
         35, 29, 32, 30, 36, df};
 
     for (int i = 0; i < 33; i++) {
@@ -1785,7 +1785,7 @@ void warp_spawns_generate() {
     printf("\nDone.\n\n");
 }
 
-void special_load_lists_nsf(char *fpath) {
+void special_load_lists_util(char *fpath) {
     printf("Checking %s\n", fpath);
     char temp[6] = "";
     int printed_something = 0;
@@ -1820,7 +1820,116 @@ void special_load_lists_nsf(char *fpath) {
         printf("\n");
 }
 
-void special_load_lists_util(const char *dpath) {
+int check_level_name(char *fpath, char *name) {
+    if (strstr(fpath, name))
+        return 1;
+
+    return 0;
+}
+
+void checkpoint_stats_util(char *fpath) {
+    // printf("Checking %s\n", fpath);
+    // char temp[6] = "";
+
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+        return;
+
+    int cam_count = 0;
+    int checks_non_dda = 0;
+    int checks_with_dda = 0;
+    int masks_non_dda = 0;
+    int masks_with_dda = 0;
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+            continue;
+
+        int c_count = build_get_cam_item_count(elist[i].data);
+        int e_count = build_get_entity_count(elist[i].data);
+        cam_count += (c_count/3);
+
+        for (int j = 0; j < e_count; j++) {
+            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, 2 + c_count + j);
+            int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+            int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+            //int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+            int dda_deaths = build_get_entity_prop(entity, ENTITY_PROP_DDA_DEATHS) / 256;
+
+            if (type == 34 && subt == 4) {
+                if (dda_deaths)
+                    checks_with_dda++;
+                 else
+                    checks_non_dda++;
+            }
+
+            if (type == 34 && subt == 27)
+                checks_non_dda++;
+
+            if (type == 34 && subt == 9) {
+                if (dda_deaths)
+                    masks_with_dda++;
+                else
+                    masks_non_dda++;
+            }
+
+            if (type == 3 && subt == 6)
+                masks_non_dda++;
+
+            // snow no alt iron checks
+            if (check_level_name(fpath, "S0000015.NSF")) {
+                if (type == 40 && subt == 27)
+                    checks_non_dda++;
+            }
+
+            // lava checks
+            if (check_level_name(fpath, "S000000E.NSF")) {
+                if (type == 33 && (subt == 0 || subt == 2))
+                    checks_non_dda++;
+            }
+
+            // jet rex alt masks
+            if (check_level_name(fpath, "S0000019.NSF")) {
+                if (type == 45 && subt == 7)
+                    masks_non_dda++;
+                if (type == 36 && subt == 0)
+                    if (dda_deaths)
+                        masks_with_dda++;
+                    else
+                        masks_non_dda++;
+            }
+
+            // dream zone alt iron checks
+            if (check_level_name(fpath, "S000001B.NSF")) {
+                if (type == 60 && subt == 0)
+                    checks_with_dda++;
+            }
+        }
+    }
+
+    // arab/lava alt masks (done thru args so its just added artificially)
+    if (check_level_name(fpath, "S0000013.NSF") || check_level_name(fpath, "S000000E.NSF"))
+        masks_non_dda++;
+
+
+    if (checks_non_dda || checks_with_dda) {
+        printf("\"%s\",", fpath);
+
+        printf("%3d,", cam_count);
+        printf("%3d,", checks_non_dda);
+        printf("%3d,", checks_with_dda);
+
+        printf("%3d,", masks_non_dda);
+        printf("%3d ", masks_with_dda);
+
+        printf("\n");
+    }
+    build_cleanup_elist(elist, entry_count);
+}
+
+void recursive_folder_iter(const char *dpath, void (callback)(char *)) {
     char fpath[MAX + 300] = "", moretemp[MAX] = "";
     DIR *df = opendir(dpath);
     if (df == NULL) {
@@ -1838,12 +1947,12 @@ void special_load_lists_util(const char *dpath) {
         strcpy(moretemp, de->d_name);
         if (de->d_name[0]!='.' && !strcmp(nsfcheck,"NSF")) {
             sprintf(fpath, "%s\\%s", dpath,de->d_name);
-            special_load_lists_nsf(fpath);
+            callback(fpath);
         }
         char filePath[256];
         snprintf(filePath, sizeof(filePath), "%s\\%s", dpath, de->d_name);
         if (de->d_type == DT_DIR) {
-            special_load_lists_util(filePath);
+            recursive_folder_iter(filePath, callback);
         }
     }
     closedir(df);
@@ -1855,6 +1964,19 @@ void special_load_lists_list() {
 
     scanf(" %[^\n]", dpath);
     path_fix(dpath);
-    special_load_lists_util(dpath);
+    recursive_folder_iter(dpath, special_load_lists_util);
+    printf("\nDone.\n\n");
+}
+
+
+void checkpoint_stats() {
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+
+    printf("fpath,cam_count,checks_non_dda,checks_with_dda,masks_non_dda,masks_with_dda\n");
+    recursive_folder_iter(dpath, checkpoint_stats_util);
     printf("\nDone.\n\n");
 }

@@ -184,6 +184,9 @@ int main() {
             case LIST_SPECIAL_LL:
                 special_load_lists_list();
                 break;
+            case CHECK_UTIL:
+                checkpoint_stats();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;
