@@ -1,7 +1,111 @@
 #include "macros.h"
-// responsible for generating load lists using already input or here collected data and info
-// theres some fucking memory related bug that prevents me from freeing tons of shit
-// leaks like 30MB when building Snow Go lmao
+// responsible for generating load lists
+// has memory leaks, cba to fix
+
+int abs(int val) {
+    return (val >= 0) ? val : -val;
+}
+
+void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *config, int curr_idx, int neighbour_idx, int cam_idx, int neighbour_ref_idx) {
+    int m, n, path_len, path_len2;
+    ENTRY curr = elist[curr_idx];
+    ENTRY neighbour = elist[neighbour_idx];
+
+    short int *path = build_get_path(elist, curr_idx, 2 + cam_idx*3, &path_len);
+    for (m = 0; m < path_len; m++) {
+        int cam_x = path[3*m] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1));
+        int ent_count = build_get_entity_count(neighbour.data);
+        for (n = 0; n < ent_count; n++) {
+            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + build_get_cam_item_count(neighbour.data) + n, &path_len2);
+            int ent_id = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_ID);
+            int ent_dist_mult = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), 0x337);
+            if (ent_dist_mult == -1)
+                ent_dist_mult = 100;
+            else
+                ent_dist_mult = ent_dist_mult / 0x100;
+
+            int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
+            if (ent_id != -1 && abs(cam_x - ent_x) < ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST]) / 100)) {
+                list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+            }
+        }
+    }
+}
+
+void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {
+    int i, j, k, l;
+    int dbg_print = 0;
+
+    for (i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            if (cam_count == 0)
+                continue;
+
+            char temp[100] = "";
+            printf("\nMaking draw lists for %s\n", eid_conv(elist[i].eid, temp));
+
+            for (j = 0; j < cam_count; j++) {
+                printf("\t cam path %d\n", j);
+                int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
+                int cam_length = build_get_path_length(elist[i].data + cam_offset);
+
+                // initialize full non-delta draw list used to represent the draw list during its building
+                LIST* full_draw = (LIST*) malloc(cam_length * sizeof(LIST));    // freed here
+                for (k = 0; k < cam_length; k++)
+                    full_draw[k] = init_list();
+
+                int neighbour_count = build_get_neighbour_count(elist[i].data);
+                for (l = 0; l < neighbour_count; l++) {
+                    ENTRY curr = elist[i];
+                    unsigned int neighbour_eid = from_u32(curr.data + build_get_nth_item_offset(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
+                    int idx = build_get_index(neighbour_eid, elist, entry_count);
+                    if (idx == -1) {
+                        printf("[warning] Invalid neighbour %s\n", eid_conv(neighbour_eid, temp));
+                        continue;
+                    }
+                    build_draw_list_util(elist, entry_count, full_draw, config, i, idx, j, l);
+                }
+
+                for (k = 0; k < cam_length; k++) {
+                    printf("\tpoint %2d, drawing %2d ents\n", k, full_draw[k].count);
+                }
+
+                // creates and initialises delta representation of the draw list
+                LIST* listA = (LIST*) malloc(cam_length * sizeof(LIST));        // freed here
+                LIST* listB = (LIST*) malloc(cam_length * sizeof(LIST));        // freed here
+                for (k = 0; k < cam_length; k++) {
+                    listA[k] = init_list();
+                    listB[k] = init_list();
+                }
+
+                // converts full draw list to delta based, then creates game-format draw list properties based on the delta lists
+                // listA and listB args are switched around because draw lists are like that
+                build_load_list_to_delta(full_draw, listB, listA, cam_length, elist, entry_count, 1);
+                PROPERTY prop_0x13B = build_make_load_list_prop(listA, cam_length, 0x13B);
+                PROPERTY prop_0x13C = build_make_load_list_prop(listB, cam_length, 0x13C);
+
+                if (dbg_print) printf("Converted full list to delta and delta to props\n");
+
+                // removes existing draw list properties, inserts newly made ones
+                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13B, NULL);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13C, NULL);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13B, &prop_0x13B);
+                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
+
+                if (dbg_print) printf("Replaced draw list props\n");
+
+                free(full_draw);
+                free(listA);
+                free(listB);
+
+                if (dbg_print) printf("Freed some stuff, end\n");
+                //free(prop_0x208.data);
+                //free(prop_0x209.data);
+            }
+        }
+    }
+}
 
 /** \brief
  *  A function that for each zone's each camera path creates new load lists using
@@ -47,7 +151,7 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
         }
 
     // for each zone entry do load list (also for each zone's each camera)
-    for (i = 0; i < entry_count; i++)
+    for (i = 0; i < entry_count; i++) {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             if (cam_count == 0)
@@ -153,7 +257,7 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 }
 
                 // converts full load list to delta based, then creates game-format load list properties based on the delta lists
-                build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count);
+                build_load_list_to_delta(full_load, listA, listB, cam_length, elist, entry_count, 0);
                 PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
                 PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
 
@@ -176,6 +280,7 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 //free(prop_0x209.data);
             }
         }
+    }
 }
 
 
@@ -188,18 +293,18 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
  * \param cam_length int                length of the current camera
  * \return void
  */
-void build_load_list_to_delta(LIST* full_load, LIST* listA, LIST* listB, int cam_length, ENTRY* elist, int entry_count) {
+void build_load_list_to_delta(LIST* full_load, LIST* listA, LIST* listB, int cam_length, ENTRY* elist, int entry_count, int is_draw) {
     int i, j;
 
     // full item, listA point 0
     for (i = 0; i < full_load[0].count; i++)
-        if (build_get_index(full_load[0].eids[i], elist, entry_count) != -1)
+        if (is_draw || build_get_index(full_load[0].eids[i], elist, entry_count) != -1)
             list_add(&listA[0], full_load[0].eids[i]);
 
     // full item, listB point n-1
     int n = cam_length - 1;
     for (i = 0; i < full_load[n].count; i++)
-        if (build_get_index(full_load[n].eids[i], elist, entry_count) != -1)
+        if (is_draw || build_get_index(full_load[n].eids[i], elist, entry_count) != -1)
             list_add(&listB[n], full_load[n].eids[i]);
 
     // creates delta items
@@ -208,7 +313,7 @@ void build_load_list_to_delta(LIST* full_load, LIST* listA, LIST* listB, int cam
 
         for (j = 0; j < full_load[i].count; j++) {
             unsigned int curr_eid = full_load[i].eids[j];
-            if (build_get_index(curr_eid, elist, entry_count) == -1) continue;
+            if (!is_draw && build_get_index(curr_eid, elist, entry_count) == -1) continue;
 
             // is loaded on i-th point but not on i-1th point -> just became loaded, add to listA[i]
             if (list_find(full_load[i - 1], curr_eid) == -1)
@@ -217,7 +322,7 @@ void build_load_list_to_delta(LIST* full_load, LIST* listA, LIST* listB, int cam
 
         for (j = 0; j < full_load[i - 1].count; j++) {
             unsigned int curr_eid = full_load[i - 1].eids[j];
-            if (build_get_index(curr_eid, elist, entry_count) == -1) continue;
+            if (!is_draw && build_get_index(curr_eid, elist, entry_count) == -1) continue;
 
             // is loaded on i-1th point but not on i-th point -> no longer loaded, add to listB[i - 1]
             if (list_find(full_load[i], curr_eid) == -1)
@@ -313,10 +418,18 @@ PROPERTY build_make_load_list_prop(LIST* list_array, int cam_length, int code) {
 
     // header info
     *(short int*)(prop.header) = code;
-    if (delta_counter > 1)
-        *(short int*)(prop.header + 4) = 0x0464;
-    else
-        *(short int*)(prop.header + 4) = 0x0424;
+    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B) {
+        if (delta_counter > 1)
+            *(short int*)(prop.header + 4) = 0x0464;
+        else
+            *(short int*)(prop.header + 4) = 0x0424;
+    }
+    if (code == ENTITY_PROP_CAM_DRAW_LIST_A || code == ENTITY_PROP_CAM_DRAW_LIST_B) {
+        if (delta_counter > 1)
+            *(short int*)(prop.header + 4) = 0x0473;
+        else
+            *(short int*)(prop.header + 4) = 0x0433;
+    }
     *(short int*)(prop.header + 6) = delta_counter;
 
     prop.length = total_length;

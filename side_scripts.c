@@ -1894,11 +1894,12 @@ void checkpoint_stats_util(char *fpath) {
             if (check_level_name(fpath, "S0000019.NSF")) {
                 if (type == 45 && subt == 7)
                     masks_non_dda++;
-                if (type == 36 && subt == 0)
+                if (type == 36 && subt == 0) {
                     if (dda_deaths)
                         masks_with_dda++;
                     else
                         masks_non_dda++;
+                }
             }
 
             // dream zone alt iron checks

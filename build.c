@@ -647,7 +647,8 @@ void build_main(int build_rebuild_flag) {
         0,  //10 - load list remake flag        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
         0,  //11 - merge technique value                                                                    set by user in build_ask_build_flags
         1,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
-        1   //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
+        1,  //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
+        0   //14 - draw list gen dist (0x18 only); -1 - dont gen| >=0 - do gen                              set by user in build_ask_draw_distance
     };
 
     int input_parse_rtrn_value = 1;
@@ -716,6 +717,11 @@ void build_main(int build_rebuild_flag) {
 
     /*for (int i = 0; i < entry_count; i++)
         list_add(&permaloaded, elist[i].eid);*/
+    if (level_ID == 0x18) {
+        build_ask_draw_distance(config);
+        if (config[CNFG_IDX_DRAW_LIST_GEN_DIST] != -1)
+            build_remake_draw_lists(elist, entry_count, config);
+    }
 
     if (load_list_flag == 1) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified

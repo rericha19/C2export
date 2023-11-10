@@ -37,6 +37,7 @@
 #define CNFG_IDX_MERGE_METHOD_VALUE     11
 #define CNFG_IDX_MTRX_PERMA_INC_FLAG    12
 #define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
+#define CNFG_IDX_DRAW_LIST_GEN_DIST     14
 
 #define PRELOADING_NOTHING              0
 #define PRELOADING_TEXTURES_ONLY        1
@@ -171,7 +172,7 @@
 
 //#define min(a,b) (((a)<(b))?(a):(b)) // .c doesnt need these two
 //#define max(a,b) (((a)>(b))?(a):(b))
-#define abs(a)   (((a)< 0) ?(a):(-a))
+//#define abs(a)   (((a)> 0) ?(a):(-a))
 
 // in export script used to keep track of status stuff
 typedef struct info{
@@ -522,9 +523,10 @@ void         build_load_list_util(int zone_index, int camera_index, LIST* full_l
                                   int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config);
 PROPERTY     build_make_load_list_prop(LIST *list_array, int cam_length, int code);
 void         build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info);
-void         build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count);
+void         build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count, int is_draw);
 LIST         build_read_special_entries(unsigned char *zone);
 LIST         build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count);
+void         build_remake_draw_lists(ENTRY *elist, int entry_count, int* config);
 void         build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
                                    DEPENDENCIES subtype_info, DEPENDENCIES collision, DEPENDENCIES mus_deps, int *config);
 int          build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps,
@@ -550,6 +552,7 @@ void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int ch
 LIST         build_get_sceneries(unsigned char *entry);
 void         build_check_item_count(unsigned char *zone, int eid);
 void         build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns);
+void         build_ask_draw_distance(int *config);
 void         build_ask_distances(int *config);
 int          build_is_before(ENTRY *elist, int zone_index, int camera_index, int neighbour_index, int neighbour_cam_index);
 int          build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded);

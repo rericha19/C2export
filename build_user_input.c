@@ -77,6 +77,15 @@ void build_ask_spawn(SPAWNS spawns) {
 }
 
 
+void build_ask_draw_distance(int *config) {
+    int temp;
+
+    printf("\nDraw distance? (level 0x18 only, set -1 if don't want to remake draw lists)\n");
+    scanf("%d", &temp);
+    config[CNFG_IDX_DRAW_LIST_GEN_DIST] = temp;
+}
+
+
 /** \brief
  *  Asks the user what distances to use for load list building.
  *
