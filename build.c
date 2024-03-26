@@ -599,6 +599,28 @@ int cmp_spawns(const void *a, const void *b) {
     return ((*(SPAWN*) a).zone - (*(SPAWN *) b).zone);
 }
 
+void build_print_transitions(ENTRY* elist, int entry_count) {
+    printf("\nTransitions in the level: \n");
+    char temp[6] = "";
+    char temp2[6] = "";
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+            continue;
+
+        LIST neighbours = build_get_neighbours(elist[i].data);
+        int item1off = build_get_nth_item_offset(elist[i].data, 0);
+        for (int j = 0; j < neighbours.count; j++) {
+            unsigned int neighbour_eid = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
+            unsigned int neighbour_flg = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j + 0x20);
+
+            if (neighbour_flg == 0xF || neighbour_flg == 0x1F) {
+                printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", eid_conv(elist[i].eid, temp), neighbour_flg, eid_conv(neighbour_eid, temp2), j);
+            }
+        }
+    }
+}
+
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
  *
@@ -691,6 +713,7 @@ void build_main(int build_rebuild_flag) {
         }
         return;
     }
+
     build_get_distance_graph(elist, entry_count, spawns);
 
     // gets model references from gools, was useful in a deprecate chunk merging/building algorithm, but might be useful later and barely takes any time so idc
@@ -726,6 +749,9 @@ void build_main(int build_rebuild_flag) {
     if (load_list_flag == 1) {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified
         build_find_unspecified_entities(elist, entry_count, subtype_info);
+
+        // transition info (0xF/0x1F)
+        build_print_transitions(elist, entry_count);
 
         // ask user desired distances for various things, eg how much in advance in terms of camera rail distance things get loaded
         // there are some restrictions in terms of path link depth so its not entirely accurate, but it still matters
