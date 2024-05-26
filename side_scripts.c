@@ -1827,6 +1827,37 @@ int check_level_name(char *fpath, char *name) {
     return 0;
 }
 
+void nsd_util_util(char *fpath) {
+
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    char temp[6] = "";
+
+    char *filename = strrchr(fpath, '\\');
+    if (filename != NULL) {
+        filename++;
+    } else {
+        filename = fpath;
+    }
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+        return;
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_GOOL)
+            continue;
+
+        int off1 = build_get_nth_item_offset(elist[i].data, 0);
+
+        int tpe = from_u32(elist[i].data + off1);
+        int cat = from_u32(elist[i].data + off1 + 4) >> 8;
+
+        printf("%s %5s, type %d category %d\n", filename, eid_conv(elist[i].eid, temp), tpe, cat);
+    }
+
+    build_cleanup_elist(elist, entry_count);
+}
+
 void checkpoint_stats_util(char *fpath) {
     // printf("Checking %s\n", fpath);
     // char temp[6] = "";
@@ -1979,5 +2010,17 @@ void checkpoint_stats() {
 
     printf("fpath,cam_count,checks_non_dda,checks_with_dda,masks_non_dda,masks_with_dda\n");
     recursive_folder_iter(dpath, checkpoint_stats_util);
+    printf("\nDone.\n\n");
+}
+
+
+void nsd_util() {
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+
+    recursive_folder_iter(dpath, nsd_util_util);
     printf("\nDone.\n\n");
 }

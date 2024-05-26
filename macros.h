@@ -116,6 +116,8 @@
 #define CHANGEPRINT                     2239644728u
 #define IMPORT                          3083219648u
 
+#define NSD_UTIL                        308922119u
+
 //#define INTRO                           223621809u
 //#define STATUS                          3482341513u
 //#define CHANGEMODE                      588358864u
@@ -638,3 +640,4 @@ void         ll_payload_info_main();
 void         warp_spawns_generate();
 void         special_load_lists_list();
 void         checkpoint_stats();
+void         nsd_util();

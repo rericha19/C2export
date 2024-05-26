@@ -108,7 +108,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
         if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && *(elist[*entry_count].data + 8) > 3) {
             int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
             int gool_type = *(int*)(elist[*entry_count].data + item1_offset);
-            if (gool_type >= C2_GOOL_TABLE_SIZE || gool_type < 0) {
+            if (/*gool_type >= C2_GOOL_TABLE_SIZE || */gool_type < 0) {
                 printf("[warning] GOOL entry %s has invalid type specified in the first item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
                 continue;
             }
@@ -956,7 +956,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int* ch
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && build_item_count(elist[*entry_count].data) == 6) {
                 int item1_offset =  *(int*)(elist[*entry_count].data + 0x10);
                 int gool_type =     *(int*)(elist[*entry_count].data + item1_offset);
-                if (gool_type >= C2_GOOL_TABLE_SIZE || gool_type < 0) {
+                if (/*gool_type >= C2_GOOL_TABLE_SIZE || */gool_type < 0) {
                     char temp[100] = "";
                     printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
                     continue;
