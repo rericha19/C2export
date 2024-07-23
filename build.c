@@ -744,6 +744,26 @@ void build_main(int build_rebuild_flag) {
         build_ask_draw_distance(config);
         if (config[CNFG_IDX_DRAW_LIST_GEN_DIST] != -1)
             build_remake_draw_lists(elist, entry_count, config);
+
+        const int tape_off_x = - 0x2C00;
+        const int tape_off_y = + 0x1E00;
+        const int tape_off_z = - 0x53800;
+
+        for (int i = 0; i < entry_count; i++) {
+            if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+                int offset = build_get_nth_item_offset(elist[i].data, 1);
+                *((int*)(elist[i].data + offset + 0)) = from_u32(elist[i].data + offset + 0) + tape_off_x;
+                *((int*)(elist[i].data + offset + 4)) = from_u32(elist[i].data + offset + 4) + tape_off_y;
+                *((int*)(elist[i].data + offset + 8)) = from_u32(elist[i].data + offset + 8) + tape_off_z;
+            }
+        }
+
+        for (int i = 0; i < spawns.spawn_count; i++) {
+            spawns.spawns[i].x += tape_off_x;
+            spawns.spawns[i].y += tape_off_y;
+            spawns.spawns[i].z += tape_off_z;
+
+        }
     }
 
     if (load_list_flag == 1) {

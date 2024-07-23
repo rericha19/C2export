@@ -115,7 +115,6 @@
 #define ENT_MOVE                        1753493186u
 #define CHANGEPRINT                     2239644728u
 #define IMPORT                          3083219648u
-
 #define NSD_UTIL                        308922119u
 
 //#define INTRO                           223621809u

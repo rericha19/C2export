@@ -10,20 +10,41 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
     int m, n, path_len, path_len2;
     ENTRY curr = elist[curr_idx];
     ENTRY neighbour = elist[neighbour_idx];
+    LIST remember = init_list();
 
     short int *path = build_get_path(elist, curr_idx, 2 + cam_idx*3, &path_len);
     for (m = 0; m < path_len; m++) {
         int cam_x = path[3*m] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1));
         int ent_count = build_get_entity_count(neighbour.data);
         for (n = 0; n < ent_count; n++) {
-            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + build_get_cam_item_count(neighbour.data) + n, &path_len2);
             int ent_id = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_ID);
             int ent_dist_mult = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), 0x337);
+            int pos_override_id = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_BOX_COUNT);
+            int type = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_TYPE);
+            int subt = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_SUBTYPE);
+
+            int ref_ent_idx = n;
+            if (pos_override_id != -1 && !(type == 4 && subt == 17)) {
+                pos_override_id = pos_override_id / 0x100;
+                for (int o = 0; o < ent_count; o++) {
+                    int ent_id2 = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, o + 2), ENTITY_PROP_ID);
+                    if (ent_id2 == pos_override_id) {
+                        ref_ent_idx = o;
+                        if (list_find(remember, ent_id) == -1) {
+                            printf("%d using position from another entity %d\n", ent_id, ent_id2);
+                            list_add(&remember, ent_id);
+                        }
+                        break;
+                    }
+                }
+            }
+
             if (ent_dist_mult == -1)
                 ent_dist_mult = 100;
             else
                 ent_dist_mult = ent_dist_mult / 0x100;
 
+            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + build_get_cam_item_count(neighbour.data) + ref_ent_idx, &path_len2);
             int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
             if (ent_id != -1 && abs(cam_x - ent_x) < ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST]) / 100)) {
                 list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
@@ -46,7 +67,7 @@ void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {
             printf("\nMaking draw lists for %s\n", eid_conv(elist[i].eid, temp));
 
             for (j = 0; j < cam_count; j++) {
-                printf("\t cam path %d\n", j);
+                printf("\tcam path %d\n", j);
                 int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
@@ -67,9 +88,17 @@ void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {
                     build_draw_list_util(elist, entry_count, full_draw, config, i, idx, j, l);
                 }
 
+                int max_c = 0;
+                int max_p = 0;
+                printf("\t");
                 for (k = 0; k < cam_length; k++) {
-                    printf("\tpoint %2d, drawing %2d ents\n", k, full_draw[k].count);
+                    printf("%d,", full_draw[k].count);
+                    if (full_draw[k].count > max_c) {
+                        max_c = full_draw[k].count;
+                        max_p = k;
+                    }
                 }
+                printf("\n\tMax count: %d (point %d)\n", max_c, max_p);
 
                 // creates and initialises delta representation of the draw list
                 LIST* listA = (LIST*) malloc(cam_length * sizeof(LIST));        // freed here
