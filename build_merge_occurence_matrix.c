@@ -310,11 +310,14 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
         int chunk_index2 = elist[index2].chunk;
 
         int merged_chunk_size = 0x14;
+        int new_entry_count = 0;
         for (int i = 0; i < entry_count; i++)
-            if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
+            if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2) {
                 merged_chunk_size += elist[i].esize + 4;
+                new_entry_count++;
+            }
 
-        if (merged_chunk_size <= CHUNKSIZE)
+        if (merged_chunk_size <= CHUNKSIZE && new_entry_count <= 125)
             for (int i = 0; i < entry_count; i++)
                 if (elist[i].chunk == chunk_index2)
                     elist[i].chunk = chunk_index1;
