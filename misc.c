@@ -63,6 +63,9 @@ void print_help2()
     printf("NSD_UTIL\n");
     printf("\t misc gool listing util\n");
 
+    printf("FOV_UTIL\n");
+    printf("\t misc fov listing util\n");
+
     for (int i = 0; i < 100; i++) printf("-");
     printf("\n");
 }

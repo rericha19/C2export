@@ -1735,11 +1735,12 @@ void warp_spawns_generate() {
     int pathlen;
     int spawn_ids[] = {
         27, 34, 40, 27, df, 40, 36,
-        35, 41, 32, 39, 35,
-        30, 31, 37, 33, 37,
-        39, 30, 29, 28, 37,
-        27, 39, 38, 32, 131,
-        35, 29, 32, 30, 36, df};
+        32, 41, 32, 32, 35,
+        40, 31, 37, 33, 39,
+        37, 30, 29, 28, 29,
+        27, 37, 38, 32, 131,
+        30, df, df, 37, df,
+        df};
 
     for (int i = 0; i < 33; i++) {
         for (int j = 0; j < entry_count; j++) {
@@ -1856,6 +1857,31 @@ void nsd_util_util(char *fpath) {
     }
 
     build_cleanup_elist(elist, entry_count);
+}
+
+void fov_stats_util(char *fpath) {
+    printf("Level: %s\n", fpath);
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+    char temp[6] = "";
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+        return;
+
+    for (int i = 0; i < entry_count; i++) {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+            continue;
+
+        int c_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int j = 0; j < c_count; j++) {
+            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
+            int fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
+            printf("Zone %5s : fov %d\n", eid_conv(elist[i].eid, temp), fov);
+        }
+    }
+
+    build_cleanup_elist(elist, entry_count);
+    printf("\n");
 }
 
 void checkpoint_stats_util(char *fpath) {
@@ -2013,6 +2039,17 @@ void checkpoint_stats() {
     printf("\nDone.\n\n");
 }
 
+
+void fov_stats() {
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+
+    recursive_folder_iter(dpath, fov_stats_util);
+    printf("\nDone.\n\n");
+}
 
 void nsd_util() {
     printf("Input the path to the folder\n");

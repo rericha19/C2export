@@ -190,6 +190,9 @@ int main() {
             case NSD_UTIL:
                 nsd_util();
                 break;
+            case FOV_UTIL:
+                fov_stats();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

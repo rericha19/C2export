@@ -116,6 +116,7 @@
 #define CHANGEPRINT                     2239644728u
 #define IMPORT                          3083219648u
 #define NSD_UTIL                        308922119u
+#define FOV_UTIL                        2792294477u
 
 //#define INTRO                           223621809u
 //#define STATUS                          3482341513u
@@ -640,3 +641,4 @@ void         warp_spawns_generate();
 void         special_load_lists_list();
 void         checkpoint_stats();
 void         nsd_util();
+void         fov_stats();
