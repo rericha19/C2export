@@ -670,7 +670,8 @@ void build_main(int build_rebuild_flag) {
         0,  //11 - merge technique value                                                                    set by user in build_ask_build_flags
         1,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
         1,  //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
-        0   //14 - draw list gen dist (0x18 only); -1 - dont gen| >=0 - do gen                              set by user in build_ask_draw_distance
+        -1, //14 - draw list gen dist 2D       -1 - dont gen    | >=0 - do gen                              set by user in build_ask_draw_distance
+        -1, //15 - draw list gen dist 3D       -1 - dont gen    | >=0 - do gen
     };
 
     int input_parse_rtrn_value = 1;
@@ -679,7 +680,7 @@ void build_main(int build_rebuild_flag) {
         input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
-    if (build_rebuild_flag == FUNCTION_REBUILD)
+    if (build_rebuild_flag == FUNCTION_REBUILD || build_rebuild_flag == FUNCTION_REBUILD_DL)
         input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
 
     chunk_count = chunk_border_texture;
@@ -740,9 +741,9 @@ void build_main(int build_rebuild_flag) {
 
     /*for (int i = 0; i < entry_count; i++)
         list_add(&permaloaded, elist[i].eid);*/
-    if (level_ID == 0x18) {
+    if (build_rebuild_flag == FUNCTION_REBUILD_DL) {
         build_ask_draw_distance(config);
-        if (config[CNFG_IDX_DRAW_LIST_GEN_DIST] != -1)
+        if (config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D] != -1 && config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D] != -1)
             build_remake_draw_lists(elist, entry_count, config);
     }
 

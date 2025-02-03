@@ -37,7 +37,8 @@
 #define CNFG_IDX_MERGE_METHOD_VALUE     11
 #define CNFG_IDX_MTRX_PERMA_INC_FLAG    12
 #define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
-#define CNFG_IDX_DRAW_LIST_GEN_DIST     14
+#define CNFG_IDX_DRAW_LIST_GEN_DIST_2D  14
+#define CNFG_IDX_DRAW_LIST_GEN_DIST_3D  15
 
 #define PRELOADING_NOTHING              0
 #define PRELOADING_TEXTURES_ONLY        1
@@ -99,6 +100,7 @@
 #define MODEL_REFS_NSF                  3538090027u
 #define ENTITY_USAGE                    3822178934u
 #define PAYLOAD_INFO                    2536593146u
+#define REBUILD_DL                      242786907u
 
 #define KILL                            2089250961u
 #define WARP_SPAWNS                     3243144250u
@@ -124,6 +126,7 @@
 
 #define FUNCTION_BUILD                  1
 #define FUNCTION_REBUILD                2
+#define FUNCTION_REBUILD_DL             3
 
 #define ENTRY_TYPE_ANIM                 0x1
 #define ENTRY_TYPE_MODEL                0x2

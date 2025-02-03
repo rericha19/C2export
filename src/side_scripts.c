@@ -1512,7 +1512,7 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES* deps, unsigned int *gool
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
-    int total_entity_count;
+    int total_entity_count = 0;
 
     for (int i = 0; i < entry_count; i++)
     if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {

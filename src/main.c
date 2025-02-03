@@ -103,6 +103,9 @@ int main() {
             case REBUILD:
                 build_main(FUNCTION_REBUILD);
                 break;
+            case REBUILD_DL:
+                build_main(FUNCTION_REBUILD_DL);
+                break;
             case PROP:
                 printf("Input the path to the file:\n");
                 scanf(" %[^\n]",fpath);

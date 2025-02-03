@@ -46,7 +46,7 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
 
             short int* ent_path = build_get_path(elist, neighbour_idx, 2 + build_get_cam_item_count(neighbour.data) + ref_ent_idx, &path_len2);
             int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
-            if (ent_id != -1 && abs(cam_x - ent_x) < ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST]) / 100)) {
+            if (ent_id != -1 && abs(cam_x - ent_x) < ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D]) / 100)) {
                 list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
             }
         }
@@ -1242,8 +1242,7 @@ unsigned char* build_add_property(unsigned int code, unsigned char* item, int* i
                 property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
             if (i == insertion_index - 1)
                 property_sizes[i] = from_u16(property_headers[i + 2] + 2) - from_u16(property_headers[i] + 2);
-            if (i == insertion_index)
-                ;
+            //if (i == insertion_index) {} 
             if (i > insertion_index) {
                 if (i == property_count)
                     property_sizes[i] = from_u16(item) - from_u16(property_headers[i] + 2);
