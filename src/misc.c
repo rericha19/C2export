@@ -81,7 +81,7 @@ void print_help()
     printf("WIPE\n");
     printf("\t wipes current screen\n");
 
-    printf("BUILD & REBUILD\n");
+    printf("BUILD & REBUILD & REBUILD_DL\n");
     printf("\t builds a level from chosen inputs\n");
 
     printf("EXPORT & EXPORTALL\n");
@@ -201,7 +201,7 @@ const char* eid_conv(unsigned int m_value, char *eid)
     temp[4] = charset[(m_value >> 1) & 0x3F];
     temp[5] = '\0';
 
-    strncpy(eid, temp, 5);
+    memcpy(eid, temp, 6);
     return eid;
 }
 

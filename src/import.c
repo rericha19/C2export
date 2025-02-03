@@ -95,8 +95,9 @@ int import_file_lister(char *path, FILE *fnew)
     {
         sprintf(temp1,"%s\\%s",path,de->d_name);
         if ((file = fopen(temp1,"rb")) != NULL)
-        {
+        {            
             strncpy(temp2,de->d_name,5);
+            temp2[5] = '\0';
            // printf("%s\t",de->d_name);
             if (!strcmp(temp2,"textu"))
             // when its a texture file

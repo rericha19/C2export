@@ -142,6 +142,11 @@
 #define ENTRY_TYPE_DEMO                 0x13
 #define ENTRY_TYPE_T21                  21
 
+#define C2_CAM_MODE_3D                  0
+#define C2_CAM_MODE_CUTSCENE            2
+#define C2_CAM_MODE_2D                  3
+#define C2_CAM_MODE_VERTICAL            8
+
 #define ENTITY_PROP_NAME                0x2C
 #define ENTITY_PROP_DEPTH_MODIFIER      0x32
 #define ENTITY_PROP_PATH                0x4B

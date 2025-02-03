@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -O3
+CFLAGS = -Wall -Wextra -O3 -Wno-unused-parameter
 LDFLAGS = -lpthread
 
 # Source files

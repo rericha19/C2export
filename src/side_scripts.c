@@ -830,6 +830,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
             char fpath[MAX] = "";
             sprintf(fpath,"%s\\%s",path,de->d_name);
             strncpy(lcltemp,de->d_name,5);
+            lcltemp[5] = '\0';
             if (buffer != NULL) free(buffer);
 
             if (!strcmp("scene",lcltemp))

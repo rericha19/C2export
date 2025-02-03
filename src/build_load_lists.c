@@ -8,13 +8,17 @@ int abs(int val) {
 
 void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *config, int curr_idx, int neighbour_idx, int cam_idx, int neighbour_ref_idx) {
     int m, n, path_len, path_len2;
+    char temp[6] = "";
     ENTRY curr = elist[curr_idx];
     ENTRY neighbour = elist[neighbour_idx];
     LIST remember = init_list();
 
+    int cam_mode = build_get_entity_prop(curr.data + build_get_nth_item_offset(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
     short int *path = build_get_path(elist, curr_idx, 2 + cam_idx*3, &path_len);
     for (m = 0; m < path_len; m++) {
-        int cam_x = path[3*m] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1));
+        int cam_x = path[3*m + 0] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1) + 0);
+        int cam_z = path[3*m + 2] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1) + 8);
+
         int ent_count = build_get_entity_count(neighbour.data);
         for (n = 0; n < ent_count; n++) {
             int ent_id = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_ID);
@@ -45,9 +49,31 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                 ent_dist_mult = ent_dist_mult / 0x100;
 
             short int* ent_path = build_get_path(elist, neighbour_idx, 2 + build_get_cam_item_count(neighbour.data) + ref_ent_idx, &path_len2);
-            int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
-            if (ent_id != -1 && abs(cam_x - ent_x) < ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D]) / 100)) {
-                list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+
+            if (ent_id == -1)
+                continue;        
+
+            if (cam_mode == C2_CAM_MODE_2D || cam_mode == C2_CAM_MODE_VERTICAL) {
+                int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
+                int dist_x = abs(cam_x - ent_x);
+                int allowed_dist_x = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D]) / 100);
+
+                if (dist_x < allowed_dist_x) {
+                    list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                }
+            }
+            else if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE) {                
+                int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
+                int ent_z = (4*ent_path[2]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1) + 4);
+
+                int dist_xz = sqrt(pow(ent_x - cam_x, 2) + pow(ent_z - cam_z, 2));
+                int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
+                
+                if (dist_xz < allowed_dist_xz) {
+                    list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                }
+            } else {
+                printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv(curr.eid, temp), cam_idx);
             }
         }
     }
