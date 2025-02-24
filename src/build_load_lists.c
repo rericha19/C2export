@@ -92,7 +92,7 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                     int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
                     
                     // todo frustum culling (angle and stuff)
-                    // poke
+                    // poke poke
                     if (dist_xz < allowed_dist_xz || !allowed_dist_xz) {
                         list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));                        
                         break;
@@ -119,9 +119,10 @@ void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {
             printf("\nMaking draw lists for %s\n", eid_conv(elist[i].eid, temp));
 
             for (j = 0; j < cam_count; j++) {
-                printf("\tcam path %d\n", j);
                 int cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
+
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
+                printf("\tcam path %d (%d points)\n", j, cam_length);
 
                 // initialize full non-delta draw list used to represent the draw list during its building
                 LIST* full_draw = (LIST*) malloc(cam_length * sizeof(LIST));    // freed here
