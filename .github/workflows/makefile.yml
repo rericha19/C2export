@@ -28,5 +28,5 @@ jobs:
     - name: Upload Executable
       uses: actions/upload-artifact@v4
       with:
-        name: c2export
-        path: ./c2export.exe  # Ensures the correct file is uploaded
+        name: c2export_dl
+        path: ./c2export_dl.exe  # Ensures the correct file is uploaded
