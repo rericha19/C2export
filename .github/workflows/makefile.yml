@@ -18,11 +18,10 @@ jobs:
         choco install mingw -y
         echo "C:\ProgramData\chocolatey\bin" >> $GITHUB_PATH
 
-    - name: Ensure bin directory exists
-      run: mkdir -p bin
-      
     - name: Build Executable using Makefile
-      run: make -B
+      run: |
+        mkdir -p bin
+        make -B
 
     - name: Upload Executable
       uses: actions/upload-artifact@v4
