@@ -1,0 +1,32 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install MinGW
+      run: |
+        choco install mingw -y
+        echo "C:\ProgramData\chocolatey\bin" >> $GITHUB_PATH
+
+    - name: Build Executable using Makefile
+      run: make
+
+    - name: Run Tests
+      run: make check
+
+    - name: Upload Executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: c2export
+        path: ./c2export.exe  # Ensures the correct file is uploaded
