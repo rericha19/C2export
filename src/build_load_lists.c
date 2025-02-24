@@ -92,6 +92,7 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                     int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
                     
                     // todo frustum culling (angle and stuff)
+                    // poke
                     if (dist_xz < allowed_dist_xz || !allowed_dist_xz) {
                         list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));                        
                         break;
