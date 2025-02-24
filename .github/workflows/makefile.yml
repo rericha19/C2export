@@ -28,4 +28,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: c2export_dl
-        path: ./c2export_dl.exe  # Ensures the correct file is uploaded
+        path: bin/c2export_dl.exe  # Correct path
+
