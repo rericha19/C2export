@@ -1104,7 +1104,7 @@ void generate_spawn() {
     scanf("%d", &entity_id);
 
     for (int i = 0; i < build_get_entity_count(elist[elist_index].data); i++) {
-        unsigned char *entity = elist[elist_index].data + build_get_nth_item_offset(elist[elist_index].data, 2 + 3 * cam_count + i);
+        unsigned char *entity = build_get_nth_item(elist[elist_index].data, 2 + 3 * cam_count + i);
         int ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
         if (ID == entity_id)
@@ -1125,7 +1125,7 @@ void generate_spawn() {
         return;
     }
 
-    unsigned char* coll_item = elist[elist_index].data + build_get_nth_item_offset(elist[elist_index].data, 1);
+    unsigned char* coll_item = build_get_nth_item(elist[elist_index].data, 1);
     unsigned int zone_x = from_u32(coll_item);
     unsigned int zone_y = from_u32(coll_item + 4);
     unsigned int zone_z = from_u32(coll_item + 8);
@@ -1521,7 +1521,7 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES* deps, unsigned int *gool
         int entity_count = build_get_entity_count(elist[i].data);
 
         for (int j = 0; j < entity_count; j++) {
-            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+            unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
             int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
             int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
             int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -1640,7 +1640,7 @@ void nsf_props_scr() {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (int j = 0; j < cam_count; j++) {
                 for (int k = 0; k < 3; k++) {
-                    unsigned char *item = elist[i].data + build_get_nth_item_offset(elist[i].data, 2 + 3 * j + k);
+                    unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j + k);
                     int prop_count = build_prop_count(item);
 
                     for (int l = 0; l < build_prop_count(item); l++)
@@ -1755,7 +1755,7 @@ void warp_spawns_generate() {
                     if (ent_id == spawn_ids[i]) {
                         short int* path = build_get_path(elist, j, 2 + camc + k, &pathlen);
 
-                        unsigned char* coll_item = elist[j].data + build_get_nth_item_offset(elist[j].data, 1);
+                        unsigned char* coll_item = build_get_nth_item(elist[j].data, 1);
                         unsigned int zone_x = from_u32(coll_item);
                         unsigned int zone_y = from_u32(coll_item + 4);
                         unsigned int zone_z = from_u32(coll_item + 8);
@@ -1875,7 +1875,7 @@ void fov_stats_util(char *fpath) {
 
         int c_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int j = 0; j < c_count; j++) {
-            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
+            unsigned char *entity = build_get_nth_item(elist[i].data, 2 + 3 * j);
             int fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
             printf("Zone %5s : fov %d\n", eid_conv(elist[i].eid, temp), fov);
         }
@@ -1910,7 +1910,7 @@ void checkpoint_stats_util(char *fpath) {
         cam_count += (c_count/3);
 
         for (int j = 0; j < e_count; j++) {
-            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, 2 + c_count + j);
+            unsigned char *entity = build_get_nth_item(elist[i].data, 2 + c_count + j);
             int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
             int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
             //int id = build_get_entity_prop(entity, ENTITY_PROP_ID);

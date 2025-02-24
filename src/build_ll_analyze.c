@@ -310,7 +310,7 @@ void build_ll_various_stats(ENTRY *elist, int entry_count) {
         int entity_count = build_get_entity_count(elist[i].data);
 
         for (int j = 0; j < entity_count; j++) {
-            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+            unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
             int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
             int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
             int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -441,7 +441,7 @@ void build_ll_check_gool_references(ENTRY *elist, int entry_count, unsigned int*
         int entity_count = build_get_entity_count(elist[i].data);
 
         for (int j = 0; j < entity_count; j++) {
-            unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+            unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
             int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
             int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
@@ -527,7 +527,7 @@ void build_ll_id_usage(ENTRY *elist, int entry_count) {
             int entity_count = build_get_entity_count(elist[i].data);
             int camera_count = build_get_cam_item_count(elist[i].data);
             for (int j = 0; j < entity_count; j++) {
-                unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
                 if (id == -1 || id >= 1024)

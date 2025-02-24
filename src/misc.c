@@ -145,6 +145,16 @@ void clrscr()
     system("@cls||clear");
 }
 
+int from_s32(unsigned char *data) 
+{
+    const unsigned char *p = data;
+    int result = p[0];
+    result |= p[1] << 8;
+    result |= p[2] << 16;
+    result |= p[3] << 24;
+    return result;
+}
+
 unsigned int from_u32(unsigned char *data)
 // reads a word and returns an integer
 {
@@ -478,6 +488,10 @@ void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
 
 int build_get_nth_item_offset(unsigned char *entry, int n) {
     return from_u32(entry + 0x10 + 4 * n);
+}
+
+unsigned char* build_get_nth_item(unsigned char *entry, int n) {
+    return entry + build_get_nth_item_offset(entry, n);
 }
 
 // copied from stackoverflow

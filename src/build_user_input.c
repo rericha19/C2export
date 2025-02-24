@@ -77,14 +77,18 @@ void build_ask_spawn(SPAWNS spawns) {
 }
 
 
-void build_ask_draw_distance(int *config) {
+void build_ask_draw_distances(int *config) {
     int temp;
 
-    printf("\nDraw distance 2D sections (x-dist) (set -1 to skip remaking draw lists)\n");
+    printf("\nDraw distance 2D horizontal (x-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D] = temp;
 
-    printf("\nDraw distance 3D sections (xz-dist) (set -1 to skip remaking draw lists)\n");
+    printf("\nDraw distance 2D vertical (y-dist) (set 0 to make infinite)\n");
+    scanf("%d", &temp);
+    config[CNFG_IDX_DRAW_LIST_GEN_DIST_2DV] = temp;
+
+    printf("\nDraw distance 3D sections (xz-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D] = temp;
 }

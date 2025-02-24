@@ -7,6 +7,7 @@ obj
 MAIN BKUP1.cpp
 doxygen
 c2export
+.vscode
 
 *.exe
 *.o

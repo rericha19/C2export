@@ -39,6 +39,7 @@
 #define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG  13
 #define CNFG_IDX_DRAW_LIST_GEN_DIST_2D  14
 #define CNFG_IDX_DRAW_LIST_GEN_DIST_3D  15
+#define CNFG_IDX_DRAW_LIST_GEN_DIST_2DV 16
 
 #define PRELOADING_NOTHING              0
 #define PRELOADING_TEXTURES_ONLY        1
@@ -216,7 +217,7 @@ typedef struct spawns{
 // list struct, used to store various values and eids
 typedef struct list {
     int count;
-    int real_count;
+    // int real_count;
     unsigned int *eids;
 } LIST;
 
@@ -399,6 +400,7 @@ void         print_help2();
 void         export_countprint(DEPRECATE_INFO_STRUCT status);
 void         export_condprint(DEPRECATE_INFO_STRUCT status);
 void         clrscr();
+int          from_s32(unsigned char *data);
 unsigned int from_u32(unsigned char *data);
 unsigned int from_u16(unsigned char *data);
 unsigned int from_u8(unsigned char *data);
@@ -440,6 +442,7 @@ DIST_GRAPH_Q graph_init();
 void         graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index);
 void         graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index);
 int          build_get_nth_item_offset(unsigned char *entry, int n);
+unsigned char* build_get_nth_item(unsigned char* entry, int n);
 int          getline(char **linep, int *n, FILE *fp);
 int          getdelim(char **linep, int *n, int delim, FILE *fp);
 DEPENDENCIES build_init_dep();
@@ -562,7 +565,7 @@ void         build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int ch
 LIST         build_get_sceneries(unsigned char *entry);
 void         build_check_item_count(unsigned char *zone, int eid);
 void         build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns);
-void         build_ask_draw_distance(int *config);
+void         build_ask_draw_distances(int *config);
 void         build_ask_distances(int *config);
 int          build_is_before(ENTRY *elist, int zone_index, int camera_index, int neighbour_index, int neighbour_cam_index);
 int          build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded);

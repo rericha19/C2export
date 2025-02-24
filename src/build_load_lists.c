@@ -13,25 +13,36 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
     ENTRY neighbour = elist[neighbour_idx];
     LIST remember = init_list();
 
-    int cam_mode = build_get_entity_prop(curr.data + build_get_nth_item_offset(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
+    int cam_mode = build_get_entity_prop(build_get_nth_item(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
     short int *path = build_get_path(elist, curr_idx, 2 + cam_idx*3, &path_len);
+
+    int neigh_ents = build_get_entity_count(neighbour.data);
+    int neigh_cams = build_get_cam_item_count(neighbour.data);
+
+    // for each point of the camera path
     for (m = 0; m < path_len; m++) {
-        int cam_x = path[3*m + 0] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1) + 0);
-        int cam_z = path[3*m + 2] + from_u32(curr.data + build_get_nth_item_offset(curr.data, 1) + 8);
+        int cam_x = path[3*m + 0] + from_u32(build_get_nth_item(curr.data, 1) + 0);
+        int cam_y = path[3*m + 1] + from_u32(build_get_nth_item(curr.data, 1) + 4);
+        int cam_z = path[3*m + 2] + from_u32(build_get_nth_item(curr.data, 1) + 8);
 
-        int ent_count = build_get_entity_count(neighbour.data);
-        for (n = 0; n < ent_count; n++) {
-            int ent_id = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_ID);
-            int ent_dist_mult = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), 0x337);
-            int pos_override_id = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_BOX_COUNT);
-            int type = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_TYPE);
-            int subt = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, n + 2), ENTITY_PROP_SUBTYPE);
+        // check all neighbour entities
+        for (n = 0; n < neigh_ents; n++) {            
+            unsigned char* entity = build_get_nth_item(neighbour.data, 2 + neigh_cams + n);
+            int ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+            int ent_dist_mult = build_get_entity_prop(entity, 0x337);
+            int pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_BOX_COUNT);
 
+            int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+            int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+
+            if (ent_id == -1)
+                continue;
+            
             int ref_ent_idx = n;
             if (pos_override_id != -1 && !(type == 4 && subt == 17)) {
                 pos_override_id = pos_override_id / 0x100;
-                for (int o = 0; o < ent_count; o++) {
-                    int ent_id2 = build_get_entity_prop(neighbour.data + build_get_nth_item_offset(neighbour.data, o + 2), ENTITY_PROP_ID);
+                for (int o = 0; o < neigh_ents; o++) {
+                    int ent_id2 = build_get_entity_prop(build_get_nth_item(neighbour.data, 2 + neigh_cams + o), ENTITY_PROP_ID);
                     if (ent_id2 == pos_override_id) {
                         ref_ent_idx = o;
                         if (list_find(remember, ent_id) == -1) {
@@ -48,32 +59,46 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
             else
                 ent_dist_mult = ent_dist_mult / 0x100;
 
-            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + build_get_cam_item_count(neighbour.data) + ref_ent_idx, &path_len2);
+            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &path_len2); 
+            
+            // check all entity points to see whether its visible
+            for (int o = 0; o < path_len2; o++) 
+            {
+                int ent_x = (4*ent_path[3*o + 0]) + from_s32(build_get_nth_item(neighbour.data, 1) + 0);
+                int ent_y = (4*ent_path[3*o + 1]) + from_s32(build_get_nth_item(neighbour.data, 1) + 4);
+                int ent_z = (4*ent_path[3*o + 2]) + from_s32(build_get_nth_item(neighbour.data, 1) + 8);
 
-            if (ent_id == -1)
-                continue;        
-
-            if (cam_mode == C2_CAM_MODE_2D || cam_mode == C2_CAM_MODE_VERTICAL) {
-                int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
                 int dist_x = abs(cam_x - ent_x);
-                int allowed_dist_x = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D]) / 100);
+                int dist_y = abs(cam_y - ent_y);
+                int dist_z = abs(cam_z - ent_z);
 
-                if (dist_x < allowed_dist_x) {
-                    list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
-                }
-            }
-            else if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE) {                
-                int ent_x = (4*ent_path[0]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1));
-                int ent_z = (4*ent_path[2]) + from_u32(neighbour.data + build_get_nth_item_offset(neighbour.data, 1) + 4);
+                if (cam_mode == C2_CAM_MODE_2D || cam_mode == C2_CAM_MODE_VERTICAL)
+                {
+                    int allowed_dist_x = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D]) / 100);
+                    int allowed_dist_y = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2DV]) / 100);
 
-                int dist_xz = sqrt(pow(ent_x - cam_x, 2) + pow(ent_z - cam_z, 2));
-                int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
-                
-                if (dist_xz < allowed_dist_xz) {
-                    list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                    if (dist_x < allowed_dist_x || !allowed_dist_x) 
+                    {
+                        if (dist_y < allowed_dist_y || !allowed_dist_y) 
+                        {
+                            list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                            break;
+                        }
+                    }
                 }
-            } else {
-                printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv(curr.eid, temp), cam_idx);
+                else if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE) 
+                {
+                    int dist_xz = sqrt(pow(dist_x, 2) + pow(dist_z, 2));
+                    int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
+                    
+                    // todo frustum culling (angle and stuff)
+                    if (dist_xz < allowed_dist_xz || !allowed_dist_xz) {
+                        list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));                        
+                        break;
+                    }
+                } else {
+                    printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv(curr.eid, temp), cam_idx);
+                }
             }
         }
     }
@@ -103,9 +128,9 @@ void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {
                     full_draw[k] = init_list();
 
                 int neighbour_count = build_get_neighbour_count(elist[i].data);
-                for (l = 0; l < neighbour_count; l++) {
+                for (l = 0; l < neighbour_count; l++) {                    
                     ENTRY curr = elist[i];
-                    unsigned int neighbour_eid = from_u32(curr.data + build_get_nth_item_offset(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
+                    unsigned int neighbour_eid = from_u32(build_get_nth_item(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
                     int idx = build_get_index(neighbour_eid, elist, entry_count);
                     if (idx == -1) {
                         printf("[warning] Invalid neighbour %s\n", eid_conv(neighbour_eid, temp));
@@ -140,7 +165,7 @@ void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {
                 PROPERTY prop_0x13B = build_make_load_list_prop(listA, cam_length, 0x13B);
                 PROPERTY prop_0x13C = build_make_load_list_prop(listB, cam_length, 0x13C);
 
-                if (dbg_print) printf("Converted full list to delta and delta to props\n");
+                if (dbg_print) printf("Converted full list to delta christianity and delta to props islam\n");
 
                 // removes existing draw list properties, inserts newly made ones
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13B, NULL);
@@ -285,7 +310,7 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
                 // for each scenery in current zone's scen reference list, add its textures to the load list
                 int scenery_count = build_get_scen_count(elist[i].data);
                 for (k = 0; k < scenery_count; k++) {
-                    int scenery_index = build_get_index(from_u32(elist[i].data + build_get_nth_item_offset(elist[i].data, 0) + 0x4 + 0x30 * k),
+                    int scenery_index = build_get_index(from_u32(build_get_nth_item(elist[i].data, 0) + 0x4 + 0x30 * k),
                         elist, entry_count);
                     for (l = 0; l < cam_length; l++)
                         build_add_scen_textures_to_list(elist[scenery_index].data, &full_load[l]);
@@ -336,6 +361,17 @@ void build_remake_load_lists(ENTRY* elist, int entry_count, unsigned int* gool_t
             }
         }
     }
+}
+
+int cmp_func_draw(const void* a, const void* b)
+{    
+    unsigned int int_a = *(unsigned int*) a;
+    unsigned int int_b = *(unsigned int*) b;
+
+    DRAW_ITEM item_a = build_decode_draw_item(int_a);
+    DRAW_ITEM item_b = build_decode_draw_item(int_b);
+
+    return item_a.ID - item_b.ID;
 }
 
 
@@ -396,6 +432,14 @@ void build_load_list_to_delta(LIST* full_load, LIST* listA, LIST* listB, int cam
                 list_remove(&listA[i], iter_copy.eids[j]);
                 list_remove(&listB[i], iter_copy.eids[j]);
             }
+    }
+
+    if (is_draw) {
+        // sort by entity id
+        for (int i = 0; i < cam_length; i++) {
+            qsort(listA[i].eids, listA[i].count, sizeof(unsigned int), cmp_func_draw);
+            qsort(listB[i].eids, listB[i].count, sizeof(unsigned int), cmp_func_draw);
+        }
     }
 }
 
@@ -1452,7 +1496,7 @@ void build_add_scen_textures_to_list(unsigned char* scenery, LIST* list) {
  * \return short int*                   path
  */
 short int* build_get_path(ENTRY* elist, int zone_index, int item_index, int* path_len) {
-    unsigned char* item = elist[zone_index].data + build_get_nth_item_offset(elist[zone_index].data, item_index);
+    unsigned char* item = build_get_nth_item(elist[zone_index].data, item_index);
     unsigned int i, offset = 0;
     for (i = 0; i < build_prop_count(item); i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)

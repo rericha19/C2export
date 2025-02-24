@@ -385,7 +385,7 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
             int entity_count = build_get_entity_count(elist[i].data);
             int camera_count = build_get_cam_item_count(elist[i].data);
             for (int j = 0; j < entity_count; j++) {
-                unsigned char *entity = elist[i].data + build_get_nth_item_offset(elist[i].data, (2 + camera_count + j));
+                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -670,8 +670,9 @@ void build_main(int build_rebuild_flag) {
         0,  //11 - merge technique value                                                                    set by user in build_ask_build_flags
         1,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
         1,  //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
-        -1, //14 - draw list gen dist 2D       -1 - dont gen    | >=0 - do gen                              set by user in build_ask_draw_distance
-        -1, //15 - draw list gen dist 3D       -1 - dont gen    | >=0 - do gen
+        -1, //14 - draw list gen dist 2D       -1 - dont gen    | >=0 - do gen, x distance 2D               set by user in build_ask_draw_distances
+        -1, //15 - draw list gen dist 3D       -1 - dont gen    | >=0 - do gen, xz distance 3D              set by user in build_ask_draw_distances
+        -1, //16 - draw list gen dist 2D vert  -1 - dont gen    | >=0 - do gen, y distance 2D               set by user in build_ask_draw_distances
     };
 
     int input_parse_rtrn_value = 1;
@@ -739,12 +740,13 @@ void build_main(int build_rebuild_flag) {
         return;
     }
 
+    // debug
     /*for (int i = 0; i < entry_count; i++)
         list_add(&permaloaded, elist[i].eid);*/
+
     if (build_rebuild_flag == FUNCTION_REBUILD_DL) {
-        build_ask_draw_distance(config);
-        if (config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D] != -1 && config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D] != -1)
-            build_remake_draw_lists(elist, entry_count, config);
+        build_ask_draw_distances(config);
+        build_remake_draw_lists(elist, entry_count, config);
     }
 
     if (load_list_flag == 1) {
