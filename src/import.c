@@ -14,67 +14,66 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
 
     printf("Input the path to the .NSF you want the files to be imported into\n");
     printf("(it won't be overwritten, a new file will be created in the same folder)\n");
-    scanf(" %[^\n]",nsfpath);
+    scanf(" %[^\n]", nsfpath);
     path_fix(nsfpath);
 
-    strncpy(nsfcheck,strchr(nsfpath,'\0')-3,3);
-    if ((base = fopen(nsfpath,"rb")) == NULL || strcmp("NSF",nsfcheck))
+    strncpy(nsfcheck, strchr(nsfpath, '\0') - 3, 3);
+    if ((base = fopen(nsfpath, "rb")) == NULL || strcmp("NSF", nsfcheck))
     {
         printf("[ERROR] Could not open or invalid file type\n");
         return 0;
     }
 
-    fseek(base,0,SEEK_END);
+    fseek(base, 0, SEEK_END);
     baselength = ftell(base);
     rewind(base);
 
-    basebase = (unsigned char *) malloc(baselength);    // freed here
-    fread(basebase,sizeof(unsigned char),baselength,base);
+    basebase = (unsigned char *)malloc(baselength); // freed here
+    fread(basebase, sizeof(unsigned char), baselength, base);
 
-    help = strrchr(nsfpath,'\\');
+    help = strrchr(nsfpath, '\\');
     *help = '\0';
     help2 = help + 1;
 
-    sprintf(lcltemp,"%s\\%s_%s",nsfpath,time,help2);
+    sprintf(lcltemp, "%s\\%s_%s", nsfpath, time, help2);
     printf("\nInput the path to the folder with the files you want to import:\n");
-    scanf(" %[^\n]",path);
+    scanf(" %[^\n]", path);
     path_fix(path);
 
-    importee = fopen(lcltemp,"wb");
-    fwrite(basebase,sizeof(unsigned char),baselength,importee);
+    importee = fopen(lcltemp, "wb");
+    fwrite(basebase, sizeof(unsigned char), baselength, importee);
 
     import_file_lister(path, importee);
     fclose(base);
     fclose(importee);
     free(basebase);
-    sprintf(status.temp,"Done!\n");
+    sprintf(status.temp, "Done!\n");
     printf(status.temp);
     return 1;
 }
-
 
 int import_file_lister(char *path, FILE *fnew)
 // opens all files in a directory one by one and appends them onto a nsf crudely
 {
     // i have the arrays bigger than usual so i can do some dumb stuff with memcpy to make it easier for myself
-    unsigned char nrmal[CHUNKSIZE+1024];
- //   unsigned char sound[CHUNKSIZE+1024];
- //   unsigned char spech[CHUNKSIZE+1024];
-//    unsigned char instr[CHUNKSIZE+1024];
-    unsigned char textu[CHUNKSIZE+1024];
+    unsigned char nrmal[CHUNKSIZE + 1024];
+    //   unsigned char sound[CHUNKSIZE+1024];
+    //   unsigned char spech[CHUNKSIZE+1024];
+    //    unsigned char instr[CHUNKSIZE+1024];
+    unsigned char textu[CHUNKSIZE + 1024];
     FILE *file;
     char temp1[MAX] = "", temp2[6] = "", eid[6] = "";
     int entrysize, i, curr_chunk, curr_off = 0, eidint, index = 0, offsets[256];
-//    unsigned int checksum;
+    //    unsigned int checksum;
 
-    curr_chunk = 2 * (int) ftell(fnew) / CHUNKSIZE + 1;
+    curr_chunk = 2 * (int)ftell(fnew) / CHUNKSIZE + 1;
 
     for (i = 0; i < CHUNKSIZE + 1024; i++)
     {
         nrmal[i] = 0;
-    //    sound[i] = 0;
-    //    spech[i] = 0;
-   //     instr[i] = 0;
+        //    sound[i] = 0;
+        //    spech[i] = 0;
+        //     instr[i] = 0;
         textu[i] = 0;
     }
 
@@ -83,7 +82,7 @@ int import_file_lister(char *path, FILE *fnew)
     // opendir() returns a pointer of DIR type.
     DIR *dr = opendir(path);
 
-    if (dr == NULL)  // opendir returns NULL if couldn't open directory
+    if (dr == NULL) // opendir returns NULL if couldn't open directory
     {
         printf("[ERROR] Could not open selected directory\n");
         return 0;
@@ -91,61 +90,61 @@ int import_file_lister(char *path, FILE *fnew)
 
     // checks for whether its a file, opening, doing stuff
     while ((de = readdir(dr)) != NULL)
-    if ((de->d_name)[0]!='.')
-    {
-        sprintf(temp1,"%s\\%s",path,de->d_name);
-        if ((file = fopen(temp1,"rb")) != NULL)
-        {            
-            strncpy(temp2,de->d_name,5);
-            temp2[5] = '\0';
-           // printf("%s\t",de->d_name);
-            if (!strcmp(temp2,"textu"))
-            // when its a texture file
+        if ((de->d_name)[0] != '.')
+        {
+            sprintf(temp1, "%s\\%s", path, de->d_name);
+            if ((file = fopen(temp1, "rb")) != NULL)
             {
-                fread(textu,sizeof(unsigned char), CHUNKSIZE, file);
-                eidint = 0;
-                for (i = 0; i < 4; i++)
+                strncpy(temp2, de->d_name, 5);
+                temp2[5] = '\0';
+                // printf("%s\t",de->d_name);
+                if (!strcmp(temp2, "textu"))
+                // when its a texture file
                 {
-                    eidint = BYTE * eidint + textu[7 - i];
+                    fread(textu, sizeof(unsigned char), CHUNKSIZE, file);
+                    eidint = 0;
+                    for (i = 0; i < 4; i++)
+                    {
+                        eidint = BYTE * eidint + textu[7 - i];
+                    }
+                    eid_conv(eidint, eid);
+                    // to avoid eid collisions with C2 Cr10T/Cr20T/Cr30T or vice versa
+                    if (!strcmp(eid, "Cr10T") || !strcmp(eid, "Cr20T") || !strcmp(eid, "Cr30T"))
+                    {
+                        textu[4] = 0xEF;
+                        textu[5] += 0x1D;
+                    }
+                    fwrite(textu, sizeof(unsigned char), CHUNKSIZE, fnew);
+                    curr_chunk += 2;
                 }
-                eid_conv(eidint,eid);
-                //to avoid eid collisions with C2 Cr10T/Cr20T/Cr30T or vice versa
-                if (!strcmp(eid,"Cr10T") || !strcmp(eid, "Cr20T") || !strcmp(eid,"Cr30T"))
+                else if (!strcmp(temp2, "sound"))
                 {
-                    textu[4] = 0xEF;
-                    textu[5] += 0x1D;
+                    ;
                 }
-                fwrite(textu,sizeof(unsigned char),CHUNKSIZE, fnew);
-                curr_chunk += 2;
+                else if (!strcmp(temp2, "speec"))
+                {
+                    ;
+                }
+                else if (!strcmp(temp2, "instr"))
+                {
+                    ;
+                }
+                else if (!strcmp(temp2, "music") || !strcmp(temp2, "zone ") || !strcmp(temp2, "SLST ") ||
+                         !strcmp(temp2, "scene") || !strcmp(temp2, "model") || !strcmp(temp2, "anima") || !strcmp(temp2, "GOOL "))
+                {
+                    fseek(file, 0, SEEK_END);
+                    entrysize = ftell(file);
+                    rewind(file);
+                    if (entrysize + curr_off + 0x16 + (index + 2) * 4 >= 65536)
+                        import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
+                    offsets[index + 1] = offsets[index] + entrysize;
+                    fread(nrmal + curr_off, sizeof(unsigned char), entrysize, file);
+                    curr_off = curr_off + entrysize;
+                    index++;
+                }
+                fclose(file);
             }
-            else if (!strcmp(temp2,"sound"))
-            {
-                ;
-            }
-            else if (!strcmp(temp2,"speec"))
-            {
-                ;
-            }
-            else if (!strcmp(temp2,"instr"))
-            {
-                ;
-            }
-            else if (!strcmp(temp2,"music") || !strcmp(temp2,"zone ") || !strcmp(temp2, "SLST ") || \
-                     !strcmp(temp2,"scene") || !strcmp(temp2,"model") || !strcmp(temp2, "anima") || !strcmp(temp2,"GOOL "))
-            {
-                fseek(file,0,SEEK_END);
-                entrysize = ftell(file);
-                rewind(file);
-                if (entrysize + curr_off + 0x16 + (index + 2) * 4 >= 65536)
-                    import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
-                offsets[index + 1] = offsets[index] + entrysize;
-                fread(nrmal + curr_off, sizeof(unsigned char), entrysize, file);
-                curr_off = curr_off + entrysize;
-                index++;
-            }
-            fclose(file);
         }
-    }
     import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
     closedir(dr);
     return 0;
@@ -158,7 +157,8 @@ void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr
     int i;
     unsigned int checksum;
 
-    for (i = 0; i < 1024; i++) help[i] = 0;
+    for (i = 0; i < 1024; i++)
+        help[i] = 0;
 
     *index = *index - 1;
     help[0] = 0x34;
@@ -169,12 +169,12 @@ void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr
     help[8] = (*index + 1) % 256;
     help[9] = (*index + 1) / 256;
     for (i = 0; i < *index + 2; i++)
-        {
-            help[0x11 + i*4] = (0x10 + offsets[i] + (*index + 2)*4) / 256;
-            help[0x10 + i*4] = (0x10 + offsets[i] + (*index + 2)*4) % 256;
-        }
-    memmove(chunk + 0x10 + (*index + 2)*4, chunk, CHUNKSIZE);
-    memcpy(chunk,help,0x10 + (*index + 2)*4);
+    {
+        help[0x11 + i * 4] = (0x10 + offsets[i] + (*index + 2) * 4) / 256;
+        help[0x10 + i * 4] = (0x10 + offsets[i] + (*index + 2) * 4) % 256;
+    }
+    memmove(chunk + 0x10 + (*index + 2) * 4, chunk, CHUNKSIZE);
+    memcpy(chunk, help, 0x10 + (*index + 2) * 4);
 
     checksum = nsfChecksum(chunk);
 
@@ -184,7 +184,7 @@ void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr
         checksum /= 256;
     }
 
-    fwrite(chunk,sizeof(unsigned char), CHUNKSIZE, fnew);
+    fwrite(chunk, sizeof(unsigned char), CHUNKSIZE, fnew);
     for (i = 0; i < CHUNKSIZE; i++)
         chunk[i] = 0;
     *index = 0;

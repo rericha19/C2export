@@ -2,7 +2,6 @@
 // contains main build function that governs the process, as well as semi-misc functions
 // necessary or used across various build files
 
-
 /** \brief
  *  Merges chunks prioritising highest combined size.
  *  Does not consider anything else.
@@ -13,16 +12,20 @@
  * \param entry_count int               entry count
  * \return void
  */
-void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count) {
+void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
+{
     int i, j, k;
-    while(1) {
+    while (1)
+    {
         int merge_happened = 0;
-        for (i = chunk_index_start; i < *chunk_index_end; i++) {
+        for (i = chunk_index_start; i < *chunk_index_end; i++)
+        {
             int size1 = 0;
             int count1 = 0;
 
             for (j = 0; j < entry_count; j++)
-                if (elist[j].chunk == i) {
+                if (elist[j].chunk == i)
+                {
                     size1 += elist[j].esize;
                     count1++;
                 }
@@ -30,35 +33,39 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
             int maxsize = 0;
             int maxentry_count = 0;
 
-            for (j = i + 1; j < *chunk_index_end; j++) {
+            for (j = i + 1; j < *chunk_index_end; j++)
+            {
                 int size2 = 0;
                 int count2 = 0;
                 for (k = 0; k < entry_count; k++)
-                    if (elist[k].chunk == j) {
+                    if (elist[k].chunk == j)
+                    {
                         size2 += elist[k].esize;
                         count2++;
                     }
 
                 if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-                    if (size2 > maxsize) {
+                    if (size2 > maxsize)
+                    {
                         maxsize = size2;
                         maxentry_count = j;
                     }
             }
 
-            if (maxentry_count) {
+            if (maxentry_count)
+            {
                 for (j = 0; j < entry_count; j++)
-                    if (elist[j].chunk == maxentry_count) elist[j].chunk = i;
+                    if (elist[j].chunk == maxentry_count)
+                        elist[j].chunk = i;
                 merge_happened++;
             }
         }
-        if (!merge_happened) break;
-
+        if (!merge_happened)
+            break;
     }
 
     *chunk_index_end = build_remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
 }
-
 
 /** \brief
  *  Just returns the model reference of an animation.
@@ -68,8 +75,8 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
  * \return unsigned int                 eid of the animation's model reference (as unsigned int)
  */
 
-
-LIST build_get_models(unsigned char* animation) {
+LIST build_get_models(unsigned char *animation)
+{
     LIST models = init_list();
 
     int item_count = build_item_count(animation);
@@ -79,12 +86,14 @@ LIST build_get_models(unsigned char* animation) {
     return models;
 }
 
-unsigned int build_get_model(unsigned char *anim, int item) {
+unsigned int build_get_model(unsigned char *anim, int item)
+{
     int item_off = build_get_nth_item_offset(anim, item);
     return from_u32(anim + item_off + 0x10);
 }
 
-unsigned int build_get_zone_track(unsigned char *entry) {
+unsigned int build_get_zone_track(unsigned char *entry)
+{
     int item1off = build_get_nth_item_offset(entry, 0);
     int item2off = build_get_nth_item_offset(entry, 1);
     int item1len = item2off - item1off;
@@ -92,7 +101,6 @@ unsigned int build_get_zone_track(unsigned char *entry) {
     unsigned int music_entry = from_u32(entry + item1off + C2_MUSIC_REF + item1len - 0x318);
     return music_entry;
 }
-
 
 /** \brief
  *  Used during reading from the folder to prevent duplicate texture chunks.
@@ -104,15 +112,16 @@ unsigned int build_get_zone_track(unsigned char *entry) {
  * \param index_end int                 end index of the chunk array, aka current chunk count
  * \return int                          index of a chunk that matches search, or -1
  */
-int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end) {
+int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end)
+{
     int i, retrn = -1;
 
     for (i = 0; i < index_end; i++)
-        if (from_u32(chunks[i] + 4) == textr) retrn = i;
+        if (from_u32(chunks[i] + 4) == textr)
+            retrn = i;
 
     return retrn;
 }
-
 
 /** \brief
  *  Searches the entry list looking for the specified eid.
@@ -123,12 +132,14 @@ int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int 
  * \param entry_count int               amount of entries
  * \return int                          index of the searched eid or -1
  */
-int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
+int build_get_index(unsigned int eid, ENTRY *elist, int entry_count)
+{
     int first = 0;
     int last = entry_count - 1;
-    int middle = (first + last)/2;
+    int middle = (first + last) / 2;
 
-    while (first <= last) {
+    while (first <= last)
+    {
         if (elist[middle].eid < eid)
             first = middle + 1;
         else if (elist[middle].eid == eid)
@@ -136,7 +147,7 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
         else
             last = middle - 1;
 
-        middle = (first + last)/2;
+        middle = (first + last) / 2;
     }
 
     return -1;
@@ -149,14 +160,17 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count) {
  * \param item unsigned char*           camera entity data
  * \return unsigned int                 slst reference or 0 if theres no slst reference property
  */
-unsigned int build_get_slst(unsigned char *item) {
+unsigned int build_get_slst(unsigned char *item)
+{
     int i, offset = 0;
     for (i = 0; i < build_prop_count(item); i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_CAM_SLST)
             offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
-    if (offset) return from_u32(item + offset + 4);
-        else return 0;
+    if (offset)
+        return from_u32(item + offset + 4);
+    else
+        return 0;
 }
 
 /** \brief
@@ -165,14 +179,17 @@ unsigned int build_get_slst(unsigned char *item) {
  * \param item unsigned char*           item whose length it returns
  * \return unsigned int                 path length
  */
-unsigned int build_get_path_length(unsigned char *item) {
+unsigned int build_get_path_length(unsigned char *item)
+{
     int i, offset = 0;
     for (i = 0; i < build_prop_count(item); i++)
         if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
             offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
-    if (offset) return from_u32(item + offset);
-        else return 0;
+    if (offset)
+        return from_u32(item + offset);
+    else
+        return 0;
 }
 
 /** \brief
@@ -181,7 +198,8 @@ unsigned int build_get_path_length(unsigned char *item) {
  * \param entry unsigned char*          entry data
  * \return int                          neighbour count
  */
-int build_get_neighbour_count(unsigned char *entry) {
+int build_get_neighbour_count(unsigned char *entry)
+{
     int item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + C2_NEIGHBOURS_START];
 }
@@ -192,12 +210,14 @@ int build_get_neighbour_count(unsigned char *entry) {
  * \param entry unsigned char*         entry data
  * \return LIST                        list containing neighbour eids
  */
-LIST build_get_neighbours(unsigned char *entry) {
+LIST build_get_neighbours(unsigned char *entry)
+{
     int item1off = build_get_nth_item_offset(entry, 0);
     int count = entry[item1off + C2_NEIGHBOURS_START];
     LIST neighbours = init_list();
 
-    for (int k = 0; k < count; k++) {
+    for (int k = 0; k < count; k++)
+    {
         int neighbour_eid = from_u32(entry + item1off + C2_NEIGHBOURS_START + 4 + 4 * k);
         list_add(&neighbours, neighbour_eid);
     }
@@ -210,11 +230,11 @@ LIST build_get_neighbours(unsigned char *entry) {
  * \param entry unsigned char*          entry data
  * \return int                          camera entity count (total count, not camera path count)
  */
-int build_get_cam_item_count(unsigned char *entry) {
+int build_get_cam_item_count(unsigned char *entry)
+{
     int item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x188];
 }
-
 
 /** \brief
  *  Gets zone's regular entity count.
@@ -222,16 +242,19 @@ int build_get_cam_item_count(unsigned char *entry) {
  * \param entry unsigned char*          entry data
  * \return int                          entity count (not including camera entities)
  */
-int build_get_entity_count(unsigned char *entry) {
+int build_get_entity_count(unsigned char *entry)
+{
     int item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x18C];
 }
 
-int build_item_count(unsigned char *entry) {
+int build_item_count(unsigned char *entry)
+{
     return from_u32(entry + 0xC);
 }
 
-int build_prop_count(unsigned char *item) {
+int build_prop_count(unsigned char *item)
+{
     return from_u32(item + 0xC);
 }
 
@@ -241,13 +264,15 @@ int build_prop_count(unsigned char *item) {
  * \param entry ENTRY                   entry struct
  * \return int                          -1 if entry does not have data allocated, else real entry type
  */
-int build_entry_type(ENTRY entry) {
-    if (entry.data == NULL) return -1;
+int build_entry_type(ENTRY entry)
+{
+    if (entry.data == NULL)
+        return -1;
     return *(int *)(entry.data + 8);
 }
 
-
-void build_check_item_count(unsigned char *zone, int eid) {
+void build_check_item_count(unsigned char *zone, int eid)
+{
     int item_count = build_item_count(zone);
     int cam_count = build_get_cam_item_count(zone);
     int entity_count = build_get_entity_count(zone);
@@ -258,7 +283,8 @@ void build_check_item_count(unsigned char *zone, int eid) {
                eid_conv(eid, temp), item_count, cam_count, entity_count);
 }
 
-DRAW_ITEM build_decode_draw_item(unsigned int value) {
+DRAW_ITEM build_decode_draw_item(unsigned int value)
+{
     DRAW_ITEM temp;
 
     temp.neighbour_item_index = (value & 0xFF000000) >> 24;
@@ -267,7 +293,6 @@ DRAW_ITEM build_decode_draw_item(unsigned int value) {
     return temp;
 }
 
-
 /** \brief
  *  Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
  *
@@ -275,9 +300,11 @@ DRAW_ITEM build_decode_draw_item(unsigned int value) {
  * \param prop_code int                 property to return
  * \return int                          property value
  */
-int build_get_entity_prop(unsigned char *entity, int prop_code) {
+int build_get_entity_prop(unsigned char *entity, int prop_code)
+{
     unsigned int i;
-    for (i = 0; i < build_prop_count(entity); i++) {
+    for (i = 0; i < build_prop_count(entity); i++)
+    {
         int code = from_u16(entity + 0x10 + 8 * i);
         int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
 
@@ -288,14 +315,14 @@ int build_get_entity_prop(unsigned char *entity, int prop_code) {
     return -1;
 }
 
-
 /** \brief
  *  Just calculates the amount of chunks in the provided nsf file.
  *
  * \param nsf FILE*                     provided nsf
  * \return int                          amount of chunks
  */
-int build_get_chunk_count_base(FILE *nsf) {
+int build_get_chunk_count_base(FILE *nsf)
+{
     fseek(nsf, 0, SEEK_END);
     int result = ftell(nsf) / CHUNKSIZE;
     rewind(nsf);
@@ -309,7 +336,8 @@ int build_get_chunk_count_base(FILE *nsf) {
  * \param entry ENTRY                   entry to be tested
  * \return int                          1 if it belongs to a normal chunk, else 0
  */
-int build_is_normal_chunk_entry(ENTRY entry) {
+int build_is_normal_chunk_entry(ENTRY entry)
+{
     int type = build_entry_type(entry);
     if (type == ENTRY_TYPE_ANIM ||
         type == ENTRY_TYPE_DEMO ||
@@ -322,13 +350,15 @@ int build_is_normal_chunk_entry(ENTRY entry) {
         type == ENTRY_TYPE_MIDI ||
         type == ENTRY_TYPE_GOOL ||
         type == ENTRY_TYPE_T21)
-    return 1;
+        return 1;
 
     return 0;
 }
 
-void build_cleanup_elist(ENTRY *elist, int entry_count) {
-    for (int i = 0; i < entry_count; i++) {
+void build_cleanup_elist(ENTRY *elist, int entry_count)
+{
+    for (int i = 0; i < entry_count; i++)
+    {
         if (elist[i].data != NULL)
             free(elist[i].data);
 
@@ -343,7 +373,6 @@ void build_cleanup_elist(ENTRY *elist, int entry_count) {
     }
 }
 
-
 /** \brief
  *  Gets rid of some dynamically allocated stuff and closes files.
  *
@@ -353,7 +382,8 @@ void build_cleanup_elist(ENTRY *elist, int entry_count) {
  * \param chunk_count int               chunk count
  * \return void
  */
-void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE* nsfnew, FILE* nsd, DEPENDENCIES dep1, DEPENDENCIES dep2) {
+void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2)
+{
 
     build_cleanup_elist(elist, entry_count);
 
@@ -373,18 +403,21 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
         free(dep2.array);
 }
 
-
 // dumb thing for snow no or whatever convoluted level its configured for rn
 // actually unused at the time
-void build_get_box_count(ENTRY *elist, int entry_count) {
+void build_get_box_count(ENTRY *elist, int entry_count)
+{
     int box_counter = 0;
     int nitro_counter = 0;
     int entity_counter = 0;
-    for (int i = 0; i < entry_count; i++) {
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE) {
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
             int entity_count = build_get_entity_count(elist[i].data);
             int camera_count = build_get_cam_item_count(elist[i].data);
-            for (int j = 0; j < entity_count; j++) {
+            for (int j = 0; j < entity_count; j++)
+            {
                 unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
@@ -404,9 +437,10 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
                     // printf("%3d, Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", box_counter, eid_conv(elist[i].eid, temp), type, subt, id);
                 }
 
-                if ((type >= 34 && type <= 43) && subt == 18) {
+                if ((type >= 34 && type <= 43) && subt == 18)
+                {
                     nitro_counter++;
-                    //printf("NITRO %3d\n", id);
+                    // printf("NITRO %3d\n", id);
                 }
             }
         }
@@ -415,12 +449,11 @@ void build_get_box_count(ENTRY *elist, int entry_count) {
     printf("Nitro count:    %4d\n", nitro_counter);
 }
 
-
 // used to sort load lists and to avoid stuff getting removed before its been added
 int cmp_func_load(const void *a, const void *b)
 {
-    LOAD x = *(LOAD *) a;
-    LOAD y = *(LOAD *) b;
+    LOAD x = *(LOAD *)a;
+    LOAD y = *(LOAD *)b;
 
     if (x.index != y.index)
         return (x.index - y.index);
@@ -431,8 +464,8 @@ int cmp_func_load(const void *a, const void *b)
 // used to sort draw list to avoid stuff getting removed before its been added
 int cmp_func_load2(const void *a, const void *b)
 {
-    LOAD x = *(LOAD *) a;
-    LOAD y = *(LOAD *) b;
+    LOAD x = *(LOAD *)a;
+    LOAD y = *(LOAD *)b;
 
     if (x.index != y.index)
         return (x.index - y.index);
@@ -440,20 +473,21 @@ int cmp_func_load2(const void *a, const void *b)
         return (y.type - x.type);
 }
 
-LOAD_LIST build_get_draw_lists(unsigned char *entry, int cam_index) {
+LOAD_LIST build_get_draw_lists(unsigned char *entry, int cam_index)
+{
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
     qsort(temp.array, temp.count, sizeof(LOAD), cmp_func_load2);
     return temp;
 }
 
-LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index) {
+LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index)
+{
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
     qsort(temp.array, temp.count, sizeof(LOAD), cmp_func_load);
     return temp;
 }
-
 
 /** \brief
  *  Deconstructs the load or draw lists and saves into a convenient struct.
@@ -463,24 +497,27 @@ LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index) {
  * \param cam_offset int                offset of the camera item
  * \return LOAD_LIST                    load or draw list struct
  */
-LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
+LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index)
+{
     int k, l;
     LOAD_LIST load_list = init_load_list();
 
     int cam_offset = build_get_nth_item_offset(entry, cam_index);
     int prop_count = from_u32(entry + cam_offset + OFFSET);
 
-    for (k = 0; (unsigned) k < prop_count; k++) {
+    for (k = 0; (unsigned)k < prop_count; k++)
+    {
         int code = from_u16(entry + cam_offset + 0x10 + 8 * k);
         int offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
         int list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
 
         int next_offset = (k + 1 < prop_count)
-            ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
-            : (from_u16(entry + cam_offset) + cam_offset);
+                              ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
+                              : (from_u16(entry + cam_offset) + cam_offset);
         int prop_length = next_offset - offset;
 
-        if (code == prop_code || code == prop_code + 1) {
+        if (code == prop_code || code == prop_code + 1)
+        {
             int sub_list_offset;
             int load_list_item_count;
             int condensed_check1 = 0;
@@ -494,25 +531,26 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
             if (potentially_condensed_length == prop_length && list_count > 1)
                 condensed_check1 = 1;
 
-
             int len = 4 * list_count;
             for (l = 0; l < list_count; l++)
                 len += from_u16(entry + offset + l * 2) * 4;
             if (len != prop_length)
                 condensed_check2 = 1;
 
-            if (condensed_check1 && condensed_check2) {
+            if (condensed_check1 && condensed_check2)
+            {
 
                 load_list_item_count = from_u16(entry + offset);
-                unsigned short int *indices = (unsigned short int *) malloc(list_count * sizeof(unsigned short int));
+                unsigned short int *indices = (unsigned short int *)malloc(list_count * sizeof(unsigned short int));
                 memcpy(indices, entry + offset + 2, list_count * 2);
                 sub_list_offset = offset + 2 + 2 * list_count;
                 if (sub_list_offset % 4)
                     sub_list_offset += 2;
-                for (l = 0; l < list_count; l++) {
+                for (l = 0; l < list_count; l++)
+                {
                     load_list.array[load_list.count].list_length = load_list_item_count;
                     load_list.array[load_list.count].list = (unsigned int *)
-                            malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
+                        malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
                     memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                     if (code == prop_code)
                         load_list.array[load_list.count].type = 'A';
@@ -522,15 +560,19 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
                     load_list.count++;
                     sub_list_offset += load_list_item_count * 4;
                 }
-            } else {
-                sub_list_offset = offset + 4 * list_count;;
-                for (l = 0; l < list_count; l++) {
+            }
+            else
+            {
+                sub_list_offset = offset + 4 * list_count;
+                ;
+                for (l = 0; l < list_count; l++)
+                {
                     load_list_item_count = from_u16(entry + offset + l * 2);
                     int index = from_u16(entry + offset + l * 2 + list_count * 2);
 
                     load_list.array[load_list.count].list_length = load_list_item_count;
                     load_list.array[load_list.count].list = (unsigned int *)
-                            malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
+                        malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
                     memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
                     if (code == prop_code)
                         load_list.array[load_list.count].type = 'A';
@@ -547,8 +589,8 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index) {
     return load_list;
 }
 
-
-void build_normal_check_loaded(ENTRY *elist, int entry_count) {
+void build_normal_check_loaded(ENTRY *elist, int entry_count)
+{
 
     int omit = 0;
     printf("\nOmit normal chunk entries that are never loaded? [0 - include, 1 - omit]\n");
@@ -557,7 +599,8 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
     for (int i = 0; i < entry_count; i++)
         elist[i].norm_chunk_ent_is_loaded = 1;
 
-    if (!omit) {
+    if (!omit)
+    {
         return;
     }
 
@@ -567,10 +610,13 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
     char temp[6] = "";
 
     // reads all load lists and bluntly adds all items into the list of all loaded entries
-    for (int i = 0; i < entry_count; i++) {
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (int j = 0; j < cam_count; j++) {
+            for (int j = 0; j < cam_count; j++)
+            {
                 LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
                 for (int k = 0; k < ll.count; k++)
                     for (int l = 0; l < ll.array[k].list_length; l++)
@@ -579,9 +625,12 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
         }
     }
 
-    for (int i = 0; i < entry_count; i++) {
-        if (build_is_normal_chunk_entry(elist[i])) {
-            if (list_find(ever_loaded, elist[i].eid) == -1) {
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_is_normal_chunk_entry(elist[i]))
+        {
+            if (list_find(ever_loaded, elist[i].eid) == -1)
+            {
                 elist[i].norm_chunk_ent_is_loaded = 0;
                 entries_skipped++;
                 printf("  %3d. entry %s never loaded, will not be included\n",
@@ -595,26 +644,31 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count) {
         free(ever_loaded.eids);
 }
 
-int cmp_spawns(const void *a, const void *b) {
-    return ((*(SPAWN*) a).zone - (*(SPAWN *) b).zone);
+int cmp_spawns(const void *a, const void *b)
+{
+    return ((*(SPAWN *)a).zone - (*(SPAWN *)b).zone);
 }
 
-void build_print_transitions(ENTRY* elist, int entry_count) {
+void build_print_transitions(ENTRY *elist, int entry_count)
+{
     printf("\nTransitions in the level: \n");
     char temp[6] = "";
     char temp2[6] = "";
 
-    for (int i = 0; i < entry_count; i++) {
+    for (int i = 0; i < entry_count; i++)
+    {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
             continue;
 
         LIST neighbours = build_get_neighbours(elist[i].data);
         int item1off = build_get_nth_item_offset(elist[i].data, 0);
-        for (int j = 0; j < neighbours.count; j++) {
+        for (int j = 0; j < neighbours.count; j++)
+        {
             unsigned int neighbour_eid = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
             unsigned int neighbour_flg = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j + 0x20);
 
-            if (neighbour_flg == 0xF || neighbour_flg == 0x1F) {
+            if (neighbour_flg == 0xF || neighbour_flg == 0x1F)
+            {
                 printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", eid_conv(elist[i].eid, temp), neighbour_flg, eid_conv(neighbour_eid, temp2), j);
             }
         }
@@ -627,11 +681,12 @@ void build_print_transitions(ENTRY* elist, int entry_count) {
  * \param build_rebuild_flag            build or rebuild
  * \return void
  */
-void build_main(int build_rebuild_flag) {
+void build_main(int build_rebuild_flag)
+{
 
     clock_t time_build_start = clock();
 
-    FILE *nsfnew = NULL, *nsd = NULL;               // file pointers for input nsf, output nsf (nsfnew) and output nsd
+    FILE *nsfnew = NULL, *nsd = NULL; // file pointers for input nsf, output nsf (nsfnew) and output nsd
     FILE *nsfnew2 = NULL, *nsd2 = NULL;
     SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
     ENTRY elist[ELIST_DEFAULT_SIZE];                // array of structs used to store entries, fixed length cuz lazy & struct is small
@@ -640,45 +695,45 @@ void build_main(int build_rebuild_flag) {
     DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types
     DEPENDENCIES mus_dep = build_init_dep();
-    int level_ID = 0;                               // level ID, used for naming output files and needed in output nsd
+    int level_ID = 0; // level ID, used for naming output files and needed in output nsd
 
     // used to keep track of counts and to separate groups of chunks
-    //int chunk_border_base       = 0;
-    int chunk_border_texture    = 0,
-        chunk_border_sounds     = 0,
-        chunk_count             = 0,
-        entry_count_base        = 0,
-        entry_count             = 0;
+    // int chunk_border_base       = 0;
+    int chunk_border_texture = 0,
+        chunk_border_sounds = 0,
+        chunk_count = 0,
+        entry_count_base = 0,
+        entry_count = 0;
 
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE];                // table w/ eids of gool entries, needed for nsd, filled using input entries
+    unsigned int gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
     for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     // config:
     int config[] = {
-        0,  // 0 - gool initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
-        0,  // 1 - zone initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
-        1,  // 2 - merge type value             0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
+        0, // 0 - gool initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
+        0, // 1 - zone initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
+        1, // 2 - merge type value             0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
 
-        0,  // 3 - slst distance value              set by user in function build_ask_distances(config); affects load lists
-        0,  // 4 - neighbour distance value         set by user in function build_ask_distances(config); affects load lists
-        0,  // 5 - draw list distance value         set by user in function build_ask_distances(config); affects load lists
-        0,  // 6 - transition pre-load flag         set by user in function build_ask_distances(config); affects load lists
-        0,  // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int, range 0 - 0.5
+        0, // 3 - slst distance value              set by user in function build_ask_distances(config); affects load lists
+        0, // 4 - neighbour distance value         set by user in function build_ask_distances(config); affects load lists
+        0, // 5 - draw list distance value         set by user in function build_ask_distances(config); affects load lists
+        0, // 6 - transition pre-load flag         set by user in function build_ask_distances(config); affects load lists
+        0, // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int, range 0 - 0.5
 
-        0,  // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge (1 is kinda meh)
-        0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
+        0, // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge (1 is kinda meh)
+        0, // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
 
-        0,  //10 - load list remake flag        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
-        0,  //11 - merge technique value                                                                    set by user in build_ask_build_flags
+        0, // 10 - load list remake flag        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
+        0, // 11 - merge technique value                                                                    set by user in build_ask_build_flags
 
-        1,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
-        1,  //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
+        1, // 12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
+        1, // 13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
 
-        0,  //14 - draw list gen dist 2D            set by user in build_ask_draw_distances
-        0,  //15 - draw list gen dist 3D            set by user in build_ask_draw_distances
-        0,  //16 - draw list gen dist 2D vertictal| set by user in build_ask_draw_distances
-        0,  //17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
+        0, // 14 - draw list gen dist 2D            set by user in build_ask_draw_distances
+        0, // 15 - draw list gen dist 3D            set by user in build_ask_draw_distances
+        0, // 16 - draw list gen dist 2D vertictal| set by user in build_ask_draw_distances
+        0, // 17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
     };
 
     int input_parse_rtrn_value = 1;
@@ -693,12 +748,13 @@ void build_main(int build_rebuild_flag) {
     chunk_count = chunk_border_texture;
 
     // end if something went wrong
-    if (input_parse_rtrn_value) {
+    if (input_parse_rtrn_value)
+    {
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
         return;
     }
 
-    //build_get_box_count(elist, entry_count);
+    // build_get_box_count(elist, entry_count);
     build_try_second_output(&nsfnew2, &nsd2, level_ID);
 
     // user picks whether to remake load lists or not, also merge method
@@ -712,10 +768,12 @@ void build_main(int build_rebuild_flag) {
     // during the load list generation procedure
     if (spawns.spawn_count > 0)
         build_ask_spawn(spawns);
-    else {
+    else
+    {
         printf("[ERROR] No spawns found, add one using the usual 'willy' entity or a checkpoint\n\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
-        if (nsfnew2 != NULL) {
+        if (nsfnew2 != NULL)
+        {
             fclose(nsfnew2);
             fclose(nsd2);
         }
@@ -736,10 +794,12 @@ void build_main(int build_rebuild_flag) {
     qsort(elist, entry_count, sizeof(ENTRY), cmp_func_eid);
     // ask user paths to files with permaloaded entries, type/subtype dependencies and collision type dependencies,
     // parse files and store info in permaloaded, subtype_info and collisions structs
-    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, &mus_dep, elist, entry_count, gool_table, config)) {
+    if (!build_read_entry_config(&permaloaded, &subtype_info, &collisions, &mus_dep, elist, entry_count, gool_table, config))
+    {
         printf("[ERROR] File could not be opened or a different error occured\n\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
-        if (nsfnew2 != NULL) {
+        if (nsfnew2 != NULL)
+        {
             fclose(nsfnew2);
             fclose(nsd2);
         }
@@ -750,12 +810,14 @@ void build_main(int build_rebuild_flag) {
     /*for (int i = 0; i < entry_count; i++)
         list_add(&permaloaded, elist[i].eid);*/
 
-    if (build_rebuild_flag == FUNCTION_REBUILD_DL) {
+    if (build_rebuild_flag == FUNCTION_REBUILD_DL)
+    {
         build_ask_draw_distances(config);
         build_remake_draw_lists(elist, entry_count, config);
     }
 
-    if (load_list_flag == 1) {
+    if (load_list_flag == 1)
+    {
         // print for the user, informs them about entity type/subtypes that have no dependency list specified
         build_find_unspecified_entities(elist, entry_count, subtype_info);
 
@@ -775,33 +837,34 @@ void build_main(int build_rebuild_flag) {
 
     clock_t time_start = clock();
     // call merge function
-    switch(merge_tech_flag) {
-        case 5:
-            #if COMPILE_WITH_THREADS
-                build_matrix_merge_random_thr_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            #else
-                printf("This build does not support this method, using method 4 instead\n");
-                build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            #endif // COMPILE_WITH_THREADS
-            break;
-        case 4:
-            build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            break;
-        case 3:
-            build_merge_state_search_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            break;
-        case 2:
-            deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            break;
-        case 1:
-            build_matrix_merge_relative_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            break;
-        case 0:
-        default:
-            build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-            break;
+    switch (merge_tech_flag)
+    {
+    case 5:
+#if COMPILE_WITH_THREADS
+        build_matrix_merge_random_thr_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+#else
+        printf("This build does not support this method, using method 4 instead\n");
+        build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+#endif // COMPILE_WITH_THREADS
+        break;
+    case 4:
+        build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        break;
+    case 3:
+        build_merge_state_search_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        break;
+    case 2:
+        deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        break;
+    case 1:
+        build_matrix_merge_relative_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        break;
+    case 0:
+    default:
+        build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        break;
     }
-    printf("Merge took %.3fs\n", ((double) clock() - time_start) / CLOCKS_PER_SEC);
+    printf("Merge took %.3fs\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
 
     // build and write nsf and nsd file
     build_write_nsd(nsd, nsd2, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
@@ -810,10 +873,11 @@ void build_main(int build_rebuild_flag) {
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
     build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
-    if (nsfnew2 != NULL) {
+    if (nsfnew2 != NULL)
+    {
         fclose(nsfnew2);
         fclose(nsd2);
     }
-    printf("Build/rebuild took %.3fs\n", ((double) clock() - time_build_start) / CLOCKS_PER_SEC);
+    printf("Build/rebuild took %.3fs\n", ((double)clock() - time_build_start) / CLOCKS_PER_SEC);
     printf("Done. It is recommended to save NSD & NSF couple times with CrashEdit, e.g. 0.2.135.2 (or higher),\notherwise the level might not work.\n\n");
 }

@@ -3,7 +3,8 @@
 #if COMPILE_WITH_THREADS
 #include <pthread.h>
 
-typedef struct matrix_merge_thread_input_struct {
+typedef struct matrix_merge_thread_input_struct
+{
     ENTRY *elist;
     int entry_count;
     unsigned int *best_zone_ptr;
@@ -28,7 +29,8 @@ typedef struct matrix_merge_thread_input_struct {
 #endif // COMPILE_WITH_THREADS
 
 // asking user parameters for the method
-void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payload_limit) {
+void ask_params_matrix(double *mult, int *iter_count, int *seed, int *max_payload_limit)
+{
 
     printf("\nMax payload limit? (usually 21 or 20)\n");
     scanf("%d", max_payload_limit);
@@ -42,7 +44,8 @@ void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payloa
 
     printf("Randomness multiplier? (> 1, use 1.5 if not sure)\n");
     scanf("%lf", mult);
-    if (*mult < 1.0) {
+    if (*mult < 1.0)
+    {
         *mult = 1.5;
         printf("Invalid multiplier, defaulting to 1.5\n");
     }
@@ -50,7 +53,8 @@ void ask_params_matrix(double *mult, int* iter_count, int *seed, int* max_payloa
 
     printf("Seed? (0 for random)\n");
     scanf("%d", seed);
-    if (*seed == 0) {
+    if (*seed == 0)
+    {
         time_t raw_time;
         time(&raw_time);
         srand(raw_time);
@@ -68,23 +72,25 @@ double randfrom(double min, double max)
 }
 
 #if COMPILE_WITH_THREADS
-void* build_matrix_merge_random_util(void *args) {
+void *build_matrix_merge_random_util(void *args)
+{
     char temp[6] = "";
     char temp2[6] = "";
     int limit_reached = 0, best_reached = 0;
 
-    MTRX_THRD_IN_STR inp_args = *(MTRX_THRD_IN_STR *) args;
+    MTRX_THRD_IN_STR inp_args = *(MTRX_THRD_IN_STR *)args;
     ENTRY clone_elist[ELIST_DEFAULT_SIZE];
     int entry_count = inp_args.entry_count;
     RELATIONS array_repr_untouched = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
-    RELATIONS array_representation = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count) ;
+    RELATIONS array_representation = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
     srand(inp_args.rnd_seed);
     int iter_count = inp_args.iter_cnt;
     int curr_i;
     int t_id = inp_args.thread_idx;
     double mult = inp_args.mlt;
 
-    while (1) {
+    while (1)
+    {
 
         // check whether iter limit was reached
         pthread_mutex_lock(inp_args.mutex_iter);
@@ -105,7 +111,7 @@ void* build_matrix_merge_random_util(void *args) {
             array_representation.relations[j].value = array_repr_untouched.relations[j].value * randfrom(1.0, mult);
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
-         // do the merges according to the slightly randomised relation array
+        // do the merges according to the slightly randomised relation array
         build_matrix_merge_util(array_representation, clone_elist, entry_count, inp_args.entrs, 1.0);
 
         // get payload ladder for current iteration
@@ -117,14 +123,16 @@ void* build_matrix_merge_random_util(void *args) {
 
         // gets current 'score', its multiplied by 100 instead of being bit shifted each iter so its legible in the console
         long long int curr = 0;
-        for (int j = 0; j < src_depth; j++) {
-            curr = curr * (long long int) 100;
-            curr += (long long int) payloads.arr[j].count;
+        for (int j = 0; j < src_depth; j++)
+        {
+            curr = curr * (long long int)100;
+            curr += (long long int)payloads.arr[j].count;
         }
         pthread_mutex_lock(inp_args.mutex_best);
         int is_new_best = 0;
         // if its better than the previous best it gets stored in best_elist and score and zone are remembered
-        if (curr < *inp_args.best_max_ptr) {
+        if (curr < *inp_args.best_max_ptr)
+        {
             for (int j = 0; j < entry_count; j++)
                 inp_args.best_elist[j] = clone_elist[j];
             *inp_args.best_max_ptr = curr;
@@ -142,13 +150,15 @@ void* build_matrix_merge_random_util(void *args) {
         if (cr_max <= inp_args.max_pay)
             best_reached = 1;
 
-        if (best_reached) {
+        if (best_reached)
+        {
             if (is_new_best)
                 printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- DONE\n", curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
             else
                 printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_i, t_id);
         }
-        else {
+        else
+        {
             if (is_new_best)
                 printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, t_id, curr,
                        eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
@@ -172,7 +182,7 @@ void* build_matrix_merge_random_util(void *args) {
     (*inp_args.running_threads)--;
     pthread_mutex_unlock(inp_args.mutex_running_thr_cnt);
     pthread_exit(NULL);
-    return (void *) NULL;
+    return (void *)NULL;
 }
 
 /** \brief
@@ -185,7 +195,8 @@ void* build_matrix_merge_random_util(void *args) {
  * \param permaloaded LIST
  *
  */
-void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
+void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded)
+{
 
     // asking user parameters for the method
     double mult;
@@ -211,8 +222,8 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
 
     // first half of matrix merge method, unchanged
     // this can be done once instead of every iteration since its the same every time
-    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                     // merge permaloaded entries' chunks as well as possible
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                           // chunks start off having one entry per chunk
 
     // get occurence matrix
     int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
@@ -232,10 +243,11 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
 
     // declare, initialise and create threads, pass them necessary args thru structs
-    pthread_t *threads = (pthread_t *) malloc(t_count * sizeof(pthread_t));
-    MTRX_THRD_IN_STR *thread_args = (MTRX_THRD_IN_STR *) malloc(t_count * sizeof(MTRX_THRD_IN_STR));
+    pthread_t *threads = (pthread_t *)malloc(t_count * sizeof(pthread_t));
+    MTRX_THRD_IN_STR *thread_args = (MTRX_THRD_IN_STR *)malloc(t_count * sizeof(MTRX_THRD_IN_STR));
 
-    for (int i = 0; i < t_count; i++) {
+    for (int i = 0; i < t_count; i++)
+    {
         thread_args[i].best_elist = best_elist;
         thread_args[i].best_max_ptr = &best_max;
         thread_args[i].best_zone_ptr = &best_zone;
@@ -261,18 +273,20 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
         running_threads++;
         pthread_mutex_unlock(&running_mutex);
 
-        int rc = pthread_create(&threads[i], NULL, build_matrix_merge_random_util, (void *) &thread_args[i]);
+        int rc = pthread_create(&threads[i], NULL, build_matrix_merge_random_util, (void *)&thread_args[i]);
         if (rc)
             printf("Error while creating %d. thread - err %d\n", i, rc);
     }
 
     // wait for the threads to stop running
-    while (running_threads > 0) {
+    while (running_threads > 0)
+    {
         Sleep(50);
     }
 
     // copy in the best one
-    for (int i = 0; i < entry_count; i++) {
+    for (int i = 0; i < entry_count; i++)
+    {
         elist[i] = best_elist[i];
         if (elist[i].chunk >= *chunk_count)
             *chunk_count = elist[i].chunk + 1;
@@ -287,13 +301,13 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
     free(entry_matrix);
     free(threads);
     free(thread_args);
-    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);   // gets rid of empty chunks at the end
+    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist); // gets rid of empty chunks at the end
     printf("\07");
 }
 #endif // COMPILE_WITH_THREADS
 
-
-MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int entry_count) {
+MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int entry_count)
+{
     MATRIX_STORED_LLS stored_stuff;
     stored_stuff.count = 0;
     stored_stuff.stored_lls = NULL;
@@ -324,12 +338,13 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int entry_count) {
                             if (load_list.array[l].index == load_list.array[l + 1].index)
                                 continue;
 
-                    if (list.count > 0) {
+                    if (list.count > 0)
+                    {
                         int stored_c = stored_stuff.count;
                         if (stored_c > 0)
-                            stored_stuff.stored_lls = (MATRIX_STORED_LL *) realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
+                            stored_stuff.stored_lls = (MATRIX_STORED_LL *)realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
                         else
-                            stored_stuff.stored_lls = (MATRIX_STORED_LL *) malloc(sizeof(MATRIX_STORED_LL));
+                            stored_stuff.stored_lls = (MATRIX_STORED_LL *)malloc(sizeof(MATRIX_STORED_LL));
 
                         LIST new_l = init_list();
                         list_copy_in(&new_l, list);
@@ -346,11 +361,13 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int entry_count) {
     return stored_stuff;
 }
 
-PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int entry_count, int chunk_min) {
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int entry_count, int chunk_min)
+{
     PAYLOADS payloads;
     payloads.arr = NULL;
     payloads.count = 0;
-    for (int i = 0; i < stored_lls.count; i++) {
+    for (int i = 0; i < stored_lls.count; i++)
+    {
         MATRIX_STORED_LL curr_ll = stored_lls.stored_lls[i];
         PAYLOAD payload = deprecate_build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min);
         payload.cam_path = curr_ll.cam_path;
@@ -358,7 +375,6 @@ PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *el
     }
     return payloads;
 }
-
 
 /** \brief
  *
@@ -370,7 +386,8 @@ PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *el
  * \param permaloaded LIST
  *
  */
-void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
+void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded)
+{
 
     char temp[6] = "";
     char temp2[6] = "";
@@ -390,8 +407,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
 
     // first half of matrix merge method, unchanged
     // this can be done once instead of every iteration since its the same every time
-    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                     // merge permaloaded entries' chunks as well as possible
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                           // chunks start off having one entry per chunk
 
     // get occurence matrix and convert to the relation array (not doing this each iteration makes it way faster)
     int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
@@ -413,7 +430,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
 
     // runs until iter count is reached or until break inside goes off (iter count 0 can make it never stop)
-    for (int i = 0; i < iter_count || iter_count == 0; i++) {
+    for (int i = 0; i < iter_count || iter_count == 0; i++)
+    {
         // copy elist into clone elist
         for (int j = 0; j < entry_count; j++)
             clone_elist[j] = elist[j];
@@ -438,14 +456,16 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
 
         // gets current 'score', its multiplied by 100 instead of being bit shifted each iter so its legible in the console
         long long int curr = 0;
-        for (int j = 0; j < src_depth; j++) {
-            curr = curr * (long long int) 100;
-            curr += (long long int) payloads.arr[j].count;
+        for (int j = 0; j < src_depth; j++)
+        {
+            curr = curr * (long long int)100;
+            curr += (long long int)payloads.arr[j].count;
         }
 
         int is_new_best = 0;
         // if its better than the previous best it gets stored in best_elist and score and zone are remembered
-        if (curr < best_max) {
+        if (curr < best_max)
+        {
             for (int j = 0; j < entry_count; j++)
                 best_elist[j] = clone_elist[j];
             best_max = curr;
@@ -464,7 +484,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     }
 
     // copy best_elist into the real elist used by build_main, correct chunk_count
-    for (int i = 0; i < entry_count; i++) {
+    for (int i = 0; i < entry_count; i++)
+    {
         elist[i] = best_elist[i];
         if (elist[i].chunk >= *chunk_count)
             *chunk_count = elist[i].chunk + 1;
@@ -476,6 +497,6 @@ void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_bor
     free(stored_lls.stored_lls);
     free(array_representation.relations);
     free(array_repr_untouched.relations);
-    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);   // gets rid of empty chunks at the end
+    *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist); // gets rid of empty chunks at the end
     printf("\07");
 }

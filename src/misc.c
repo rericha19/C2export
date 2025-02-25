@@ -1,23 +1,25 @@
 #include "macros.h"
 
-
 void intro_text()
 {
-    for (int i = 0; i < 100; i++) printf("*");
+    for (int i = 0; i < 100; i++)
+        printf("*");
     printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
     printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
     printf("Type \"HELP\" for list of commands and their format. Commands >ARE NOT< case sensitive.\n");
     printf("It is recommended to provide valid data as there may be edge cases that are unaccounted for.\n");
     printf("You can drag & drop the files and folders to this window instead of copying in the paths\n");
     printf("Most stuff works only for Crash 2 !!!!\n");
-    for (int i = 0; i < 100; i++) printf("*");
+    for (int i = 0; i < 100; i++)
+        printf("*");
     printf("\n\n");
 }
 
 void print_help2()
 // help for miscellaneous, modpack-specific and obsolete commands
 {
-    for (int i = 0; i < 100; i++) printf("-");
+    for (int i = 0; i < 100; i++)
+        printf("-");
     printf("\nMisc/obsolete/modpack command list:\n");
 
     printf("KILL\n");
@@ -69,14 +71,16 @@ void print_help2()
     printf("DRAW_UTIL\n");
     printf("\t detailed info about draw lists\n");
 
-    for (int i = 0; i < 100; i++) printf("-");
+    for (int i = 0; i < 100; i++)
+        printf("-");
     printf("\n");
 }
 
 void print_help()
 // main help
 {
-    for (int i = 0; i < 100; i++) printf("-");
+    for (int i = 0; i < 100; i++)
+        printf("-");
     printf("\nCommand list:\n");
     printf("HELP & HELP2\n");
     printf("\t print a list of commands\n");
@@ -138,7 +142,8 @@ void print_help()
 
     printf("[warning] warning text\n");
     printf("\tjust a warning, something may or may not be wrong\n");
-    for (int i = 0; i < 100; i++) printf("-");
+    for (int i = 0; i < 100; i++)
+        printf("-");
     printf("\n");
 }
 
@@ -148,7 +153,7 @@ void clrscr()
     system("@cls||clear");
 }
 
-int from_s32(unsigned char *data) 
+int from_s32(unsigned char *data)
 {
     const unsigned char *p = data;
     int result = p[0];
@@ -178,14 +183,14 @@ unsigned int from_u16(unsigned char *data)
     return result;
 }
 
-unsigned int from_u8(unsigned char *data) {
+unsigned int from_u8(unsigned char *data)
+{
     const unsigned char *p = data;
     unsigned int result = p[0];
     return result;
 }
 
-
-//changes the input string to a number, i just copied this over from somewhere
+// changes the input string to a number, i just copied this over from somewhere
 unsigned long comm_str_hash(const char *str)
 {
     unsigned long comm_str_hash = 5381;
@@ -196,15 +201,14 @@ unsigned long comm_str_hash(const char *str)
     return comm_str_hash;
 }
 
-
-//converts int eid to string eid
-const char* eid_conv(unsigned int m_value, char *eid)
+// converts int eid to string eid
+const char *eid_conv(unsigned int m_value, char *eid)
 {
     const char charset[] =
-    "0123456789"
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "_!";
+        "0123456789"
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "_!";
 
     char temp[6] = "abcde";
     temp[0] = charset[(m_value >> 25) & 0x3F];
@@ -223,10 +227,10 @@ unsigned int eid_to_int(char *eid)
 {
     unsigned int result = 0;
     const char charset[] =
-    "0123456789"
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "_!";
+        "0123456789"
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "_!";
 
     for (int i = 0; i < 5; i++)
         for (int j = 0; j < 0x40; j++)
@@ -237,12 +241,12 @@ unsigned int eid_to_int(char *eid)
     return result;
 }
 
-
 unsigned int nsfChecksum(const unsigned char *data)
 // calculates chunk checksum
 {
     unsigned int checksum = 0x12345678;
-    for (int i = 0;i < 65536;i++) {
+    for (int i = 0; i < 65536; i++)
+    {
         if (i < 12 || i >= 16)
             checksum += data[i];
         checksum = checksum << 3 | checksum >> 29;
@@ -250,19 +254,17 @@ unsigned int nsfChecksum(const unsigned char *data)
     return checksum;
 }
 
-
 // integer comparison func for qsort
 int cmp_func_int(const void *a, const void *b)
 {
-   return (*(int*) a - *(int*) b);
+    return (*(int *)a - *(int *)b);
 }
-
 
 // used to sort payload ladder in descending order
 int cmp_func_payload(const void *a, const void *b)
 {
-    PAYLOAD x = *(PAYLOAD *) a;
-    PAYLOAD y = *(PAYLOAD *) b;
+    PAYLOAD x = *(PAYLOAD *)a;
+    PAYLOAD y = *(PAYLOAD *)b;
 
     if (y.count != x.count)
         return (y.count - x.count);
@@ -273,32 +275,31 @@ int cmp_func_payload(const void *a, const void *b)
 // used in LIST struct
 int cmp_func_uint(const void *a, const void *b)
 {
-    unsigned int x = *(unsigned int*) a;
-    unsigned int y = *(unsigned int*) b;
+    unsigned int x = *(unsigned int *)a;
+    unsigned int y = *(unsigned int *)b;
 
     return (x - y);
 }
 
-
 int cmp_func_eid(const void *a, const void *b)
 // by entry eid
 {
-    return ((*(ENTRY*) a).eid - (*(ENTRY *) b).eid);
+    return ((*(ENTRY *)a).eid - (*(ENTRY *)b).eid);
 }
 
 // used to sort entries by size
 int cmp_func_esize(const void *a, const void *b)
 {
-    return ((*(ENTRY *) b).esize - (*(ENTRY *) a).esize);
+    return ((*(ENTRY *)b).esize - (*(ENTRY *)a).esize);
 }
-
 
 /** \brief
  *  List struct init function.
  *
  * \return LIST
  */
-LIST init_list(){
+LIST init_list()
+{
     LIST list;
     list.count = 0;
     list.eids = NULL;
@@ -306,20 +307,19 @@ LIST init_list(){
     return list;
 }
 
-
 /** \brief
  *  Spawns object init function.
  *
  * \return SPAWNS
  */
-SPAWNS init_spawns(){
+SPAWNS init_spawns()
+{
     SPAWNS temp;
     temp.spawn_count = 0;
     temp.spawns = NULL;
 
     return temp;
 }
-
 
 /** \brief
  *  Binary search in a sorted list.
@@ -332,7 +332,7 @@ int list_find(LIST list, unsigned int searched)
 {
     int first = 0;
     int last = list.count - 1;
-    int middle = (first + last)/2;
+    int middle = (first + last) / 2;
 
     while (first <= last)
     {
@@ -343,12 +343,11 @@ int list_find(LIST list, unsigned int searched)
         else
             last = middle - 1;
 
-        middle = (first + last)/2;
+        middle = (first + last) / 2;
     }
 
     return -1;
 }
-
 
 /** \brief
  *  Adds an item to the list.
@@ -363,9 +362,9 @@ void list_add(LIST *list, unsigned int eid)
         return;
 
     if (list->count)
-        list->eids = (unsigned int *) realloc(list->eids, (list->count + 1) * sizeof(unsigned int));     // realloc is slow
+        list->eids = (unsigned int *)realloc(list->eids, (list->count + 1) * sizeof(unsigned int)); // realloc is slow
     else
-        list->eids = (unsigned int *) malloc(sizeof(unsigned int));         // not freed, big issue
+        list->eids = (unsigned int *)malloc(sizeof(unsigned int)); // not freed, big issue
     list->eids[list->count] = eid;
     list->count++;
     qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
@@ -381,10 +380,11 @@ void list_add(LIST *list, unsigned int eid)
 void list_remove(LIST *list, unsigned int eid)
 {
     int index = list_find(*list, eid);
-    if (index == -1) return;
+    if (index == -1)
+        return;
 
     list->eids[index] = list->eids[list->count - 1];
-    list->eids = (unsigned int *) realloc(list->eids, (list->count - 1) * sizeof(unsigned int));    // realloc is slow
+    list->eids = (unsigned int *)realloc(list->eids, (list->count - 1) * sizeof(unsigned int)); // realloc is slow
     list->count--;
     qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
 }
@@ -393,7 +393,6 @@ void list_remove(LIST *list, unsigned int eid)
 void list_free(LIST list) {
     free(list.eids);
 }*/
-
 
 /** \brief
  *  Copies contents of the 'source' list into 'destination' list.
@@ -413,7 +412,8 @@ void list_copy_in(LIST *destination, LIST source)
  *
  * \return LOAD_LIST
  */
-LOAD_LIST init_load_list(){
+LOAD_LIST init_load_list()
+{
     LOAD_LIST temp;
     temp.count = 0;
 
@@ -423,7 +423,7 @@ LOAD_LIST init_load_list(){
 // calculates distance of two 3D points
 int point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2)
 {
-    return (int) sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
+    return (int)sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
 }
 
 // misc convertion thing
@@ -448,10 +448,10 @@ void delete_load_list(LOAD_LIST load_list)
 // fixes path string supplied by the user, if it starts with "
 void path_fix(char *fpath)
 {
-    if (fpath[0]=='\"')
+    if (fpath[0] == '\"')
     {
-        strcpy(fpath,fpath + 1);
-        *(strchr(fpath,'\0')-1) = '\0';
+        strcpy(fpath, fpath + 1);
+        *(strchr(fpath, '\0') - 1) = '\0';
     }
 }
 
@@ -461,7 +461,8 @@ DIST_GRAPH_Q graph_init()
     DIST_GRAPH_Q queue;
     queue.add_index = 0;
     queue.pop_index = 0;
-    for (int i = 0; i < QUEUE_ITEM_COUNT; i++) {
+    for (int i = 0; i < QUEUE_ITEM_COUNT; i++)
+    {
         queue.zone_indices[i] = -1;
         queue.camera_indices[i] = -1;
     }
@@ -480,7 +481,6 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_ind
     elist[zone_index].visited[camera_index] = 1;
 }
 
-
 void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
 {
     int n = graph->pop_index;
@@ -489,33 +489,42 @@ void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
     (graph->pop_index)++;
 }
 
-int build_get_nth_item_offset(unsigned char *entry, int n) {
+int build_get_nth_item_offset(unsigned char *entry, int n)
+{
     return from_u32(entry + 0x10 + 4 * n);
 }
 
-unsigned char* build_get_nth_item(unsigned char *entry, int n) {
+unsigned char *build_get_nth_item(unsigned char *entry, int n)
+{
     return entry + build_get_nth_item_offset(entry, n);
 }
 
 // copied from stackoverflow
-int getdelim(char **linep, int *n, int delim, FILE *fp){
+int getdelim(char **linep, int *n, int delim, FILE *fp)
+{
     int ch;
     int i = 0;
-    if(!linep || !n || !fp){
+    if (!linep || !n || !fp)
+    {
         errno = EINVAL;
         return -1;
     }
-    if(*linep == NULL){
-        if(NULL==(*linep = malloc(*n=128))){
+    if (*linep == NULL)
+    {
+        if (NULL == (*linep = malloc(*n = 128)))
+        {
             *n = 0;
             errno = ENOMEM;
             return -1;
         }
     }
-    while((ch = fgetc(fp)) != EOF){
-        if(i + 1 >= *n){
+    while ((ch = fgetc(fp)) != EOF)
+    {
+        if (i + 1 >= *n)
+        {
             char *temp = realloc(*linep, *n + 128);
-            if(!temp){
+            if (!temp)
+            {
                 errno = ENOMEM;
                 return -1;
             }
@@ -523,21 +532,20 @@ int getdelim(char **linep, int *n, int delim, FILE *fp){
             *linep = temp;
         }
         (*linep)[i++] = ch;
-        if(ch == delim)
+        if (ch == delim)
             break;
     }
     (*linep)[i] = '\0';
     return !i && ch == EOF ? -1 : i;
 }
 
-
-int getline(char **linep, int *n, FILE *fp){
+int getline(char **linep, int *n, FILE *fp)
+{
     return getdelim(linep, n, '\n', fp);
 }
 
-
-
-DEPENDENCIES build_init_dep() {
+DEPENDENCIES build_init_dep()
+{
     DEPENDENCIES dep;
     dep.array = NULL;
     dep.count = 0;

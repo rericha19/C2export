@@ -14,24 +14,23 @@
  * \param config int*                   config
  * \return void
  */
-void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
-
-    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                     // merge permaloaded entries' chunks as well as possible
-    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                               // chunks start off having one entry per chunk
-    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0, 1.0);             // current best algorithm
-    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);  // for payload printout, doesnt do much anymore
-    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                                         // jic something didnt get merged it gets merged
+void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded)
+{
+    build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);                    // merge permaloaded entries' chunks as well as possible
+    build_assign_primary_chunks_all(elist, entry_count, chunk_count);                                              // chunks start off having one entry per chunk
+    build_matrix_merge(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0, 1.0);       // current best algorithm
+    deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY); // for payload printout, doesnt do much anymore
+    build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);                                        // jic something didnt get merged it gets merged
 }
 
-
-void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int* config, LIST permaloaded) {
+void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded)
+{
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded);
     build_assign_primary_chunks_all(elist, entry_count, chunk_count);
     build_matrix_merge_relative(elist, entry_count, chunk_border_sounds, chunk_count, config, permaloaded, 1.0);
     deprecate_build_payload_merge(elist, entry_count, chunk_border_sounds, chunk_count, PAYLOAD_MERGE_STATS_ONLY);
     build_dumb_merge(elist, chunk_border_sounds, chunk_count, entry_count);
 }
-
 
 /** \brief
  *  Assigns primary chunks to all entries, merges need them.
@@ -41,31 +40,35 @@ void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_b
  * \param chunk_count int*              chunk count
  * \return int                          number of entries that have been assigned a chunk in this function
  */
-int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count) {
+int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count)
+{
     int counter = 0;
     for (int i = 0; i < entry_count; i++)
-        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1 && elist[i].norm_chunk_ent_is_loaded) {
+        if (build_is_normal_chunk_entry(elist[i]) && elist[i].chunk == -1 && elist[i].norm_chunk_ent_is_loaded)
+        {
             elist[i].chunk = (*chunk_count)++;
             counter++;
         }
     return counter;
 }
 
-
 // builds a triangular matrix that contains the count of common load list occurences of i-th and j-th entry
-int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int *config) {
+int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int *config)
+{
     int ll_pollin_flag = config[CNFG_IDX_MTRX_LL_POLL_FLAG];
 
-    int i,j,l,m;
-    int **entry_matrix = (int **) malloc(entries.count * sizeof(int*));     // freed by caller
+    int i, j, l, m;
+    int **entry_matrix = (int **)malloc(entries.count * sizeof(int *)); // freed by caller
     for (i = 0; i < entries.count; i++)
-        entry_matrix[i] = (int *) calloc((i), sizeof(int));                 // freed by caller
+        entry_matrix[i] = (int *)calloc((i), sizeof(int)); // freed by caller
 
     // for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
     for (i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL) {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        {
             int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (j = 0; j < cam_count; j++) {
+            for (j = 0; j < cam_count; j++)
+            {
 
                 LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
 
@@ -73,52 +76,58 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
                 int cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 LIST list = init_list();
-                switch(ll_pollin_flag) {
-                    // per point (seems to generally be better), but its actually kinda fucky because if its not it gives worse results
-                    // if it were properly per point, the 'build_increment_common' function would use the 'counter' variable as 4th arg instead of 1
-                    case 2:
-                    case 1: {
-                        int sublist_index = 0;
-                        int counter = 0;
-                        for (l = 0; l < cam_length; l++) {
-                            counter++;
-                            if (load_list.array[sublist_index].index == l) {
-                                if (load_list.array[sublist_index].type == 'A')
-                                    for (m = 0; m < load_list.array[sublist_index].list_length; m++)
-                                        list_add(&list, load_list.array[sublist_index].list[m]);
+                switch (ll_pollin_flag)
+                {
+                // per point (seems to generally be better), but its actually kinda fucky because if its not it gives worse results
+                // if it were properly per point, the 'build_increment_common' function would use the 'counter' variable as 4th arg instead of 1
+                case 2:
+                case 1:
+                {
+                    int sublist_index = 0;
+                    int counter = 0;
+                    for (l = 0; l < cam_length; l++)
+                    {
+                        counter++;
+                        if (load_list.array[sublist_index].index == l)
+                        {
+                            if (load_list.array[sublist_index].type == 'A')
+                                for (m = 0; m < load_list.array[sublist_index].list_length; m++)
+                                    list_add(&list, load_list.array[sublist_index].list[m]);
 
-                                if (load_list.array[sublist_index].type == 'B')
-                                    for (m = 0; m < load_list.array[sublist_index].list_length; m++)
-                                        list_remove(&list, load_list.array[sublist_index].list[m]);
+                            if (load_list.array[sublist_index].type == 'B')
+                                for (m = 0; m < load_list.array[sublist_index].list_length; m++)
+                                    list_remove(&list, load_list.array[sublist_index].list[m]);
 
-                                sublist_index++;
-                                if (ll_pollin_flag == 1)
-                                    build_increment_common(list, entries, entry_matrix, 1);
-                                if (ll_pollin_flag == 2)
-                                    build_increment_common(list, entries, entry_matrix, counter);
-                                counter = 0;
-                            }
-                        }
-                        break;
-                    }
-                    // per delta item
-                    case 0: {
-                        for (l = 0; l < load_list.count; l++) {
-                            if (load_list.array[l].type == 'A')
-                                for (m = 0; m < load_list.array[l].list_length; m++)
-                                    list_add(&list, load_list.array[l].list[m]);
-
-                            if (load_list.array[l].type == 'B')
-                                for (m = 0; m < load_list.array[l].list_length; m++)
-                                    list_remove(&list, load_list.array[l].list[m]);
-
-                            if (list.count)
+                            sublist_index++;
+                            if (ll_pollin_flag == 1)
                                 build_increment_common(list, entries, entry_matrix, 1);
+                            if (ll_pollin_flag == 2)
+                                build_increment_common(list, entries, entry_matrix, counter);
+                            counter = 0;
                         }
-                        break;
                     }
-                    default:
-                        break;
+                    break;
+                }
+                // per delta item
+                case 0:
+                {
+                    for (l = 0; l < load_list.count; l++)
+                    {
+                        if (load_list.array[l].type == 'A')
+                            for (m = 0; m < load_list.array[l].list_length; m++)
+                                list_add(&list, load_list.array[l].list[m]);
+
+                        if (load_list.array[l].type == 'B')
+                            for (m = 0; m < load_list.array[l].list_length; m++)
+                                list_remove(&list, load_list.array[l].list[m]);
+
+                        if (list.count)
+                            build_increment_common(list, entries, entry_matrix, 1);
+                    }
+                    break;
+                }
+                default:
+                    break;
                 }
 
                 delete_load_list(load_list);
@@ -127,28 +136,30 @@ int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, in
     return entry_matrix;
 }
 
-LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
+LIST build_get_normal_entry_list(ENTRY *elist, int entry_count)
+{
 
     LIST entries = init_list();
     // add all normal chunk entries to a new temporary array
-    for (int i = 0; i < entry_count; i++) {
-        switch (build_entry_type(elist[i])) {
-            case -1:
-            case 5:
-            case 6:
-            case 12:
-            case 14:
-            case 20:
-            case 21:
-                continue;
-            default: ;
+    for (int i = 0; i < entry_count; i++)
+    {
+        switch (build_entry_type(elist[i]))
+        {
+        case -1:
+        case 5:
+        case 6:
+        case 12:
+        case 14:
+        case 20:
+        case 21:
+            continue;
+        default:;
         }
 
         list_add(&entries, elist[i].eid);
     }
     return entries;
 }
-
 
 /** \brief
  *  Current best chunk merge method based on common load list occurence count of each pair of entries,
@@ -165,7 +176,8 @@ LIST build_get_normal_entry_list(ENTRY *elist, int entry_count) {
  * \param mult double                   max multiplier
  * \return void
  */
-void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio, double mult) {
+void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded, double merge_ratio, double mult)
+{
 
     int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
 
@@ -183,10 +195,11 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
         free(entry_matrix[i]);
     free(entry_matrix);
 
-    if (mult != 1.0) {
-        int dec_mult = (int) (1000 * mult);
+    if (mult != 1.0)
+    {
+        int dec_mult = (int)(1000 * mult);
         for (int i = 0; i < array_representation.count; i++)
-            array_representation.relations[i].value *= ((double) ((rand() % dec_mult)) / 1000);
+            array_representation.relations[i].value *= ((double)((rand() % dec_mult)) / 1000);
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
     }
 
@@ -197,7 +210,8 @@ void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, 
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
-void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border_sounds, int* chunk_count, int* config, LIST permaloaded, double merge_ratio) {
+void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded, double merge_ratio)
+{
 
     int permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
 
@@ -208,8 +222,9 @@ void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border
 
     int **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
 
-    int* total_occurences = (int*) malloc(entries.count * sizeof(int));                 // freed here
-    for (int i = 0; i < entries.count; i++) {
+    int *total_occurences = (int *)malloc(entries.count * sizeof(int)); // freed here
+    for (int i = 0; i < entries.count; i++)
+    {
         int temp_occurences = 0;
         for (int j = 0; j < i; j++)
             temp_occurences += entry_matrix[i][j];
@@ -218,22 +233,25 @@ void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border
         total_occurences[i] = temp_occurences;
     }
 
-    int **entry_matrix_relative = (int **) malloc(entries.count * sizeof(int *));       // freed here
+    int **entry_matrix_relative = (int **)malloc(entries.count * sizeof(int *)); // freed here
     for (int i = 0; i < entries.count; i++)
-        entry_matrix_relative[i] = (int *) calloc((i), sizeof(int *));                  // freed here
+        entry_matrix_relative[i] = (int *)calloc((i), sizeof(int *)); // freed here
 
     // need int in other functions, thats why its converted from float to int
-    for (int i = 0; i < entries.count; i++) {
-        for (int j = 0; j < i; j++) {
+    for (int i = 0; i < entries.count; i++)
+    {
+        for (int j = 0; j < i; j++)
+        {
             if (total_occurences[i] && total_occurences[j])
-                entry_matrix_relative[i][j] = (int) (100000000 * ((double) entry_matrix[i][j] / total_occurences[i] + (double) entry_matrix[i][j] / total_occurences[j]));
+                entry_matrix_relative[i][j] = (int)(100000000 * ((double)entry_matrix[i][j] / total_occurences[i] + (double)entry_matrix[i][j] / total_occurences[j]));
             else
                 entry_matrix_relative[i][j] = 0;
         }
     }
 
     RELATIONS array_representation = build_transform_matrix(entries, entry_matrix_relative, config, elist, entry_count);
-    for (int i = 0; i < entries.count; i++) {
+    for (int i = 0; i < entries.count; i++)
+    {
         free(entry_matrix[i]);
         free(entry_matrix_relative[i]);
     }
@@ -248,8 +266,6 @@ void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
 }
 
-
-
 /** \brief
  *  For each pair of entries it increments corresponding triangular matrix tile.
  *
@@ -259,14 +275,17 @@ void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border
  * \param rating int                    increment value (used to properly consider all camera points without doing it for every single point)
  * \return void
  */
-void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating) {
+void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating)
+{
     for (int i = 0; i < list.count; i++)
-        for (int j = i + 1; j < list.count; j++) {
+        for (int j = i + 1; j < list.count; j++)
+        {
             int indexA = list_find(entries, list.eids[i]);
             int indexB = list_find(entries, list.eids[j]);
 
             // matrix is triangular
-            if (indexA < indexB) {
+            if (indexA < indexB)
+            {
                 int temp = indexA;
                 indexA = indexB;
                 indexB = temp;
@@ -280,7 +299,6 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
         }
 }
 
-
 /** \brief
  *  For each entry pair it finds out what chunk each is in and attempts to merge.
  *  Starts with entries with highest common occurence count.
@@ -292,14 +310,16 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
  * \param merge_ratio double            what portion of entries is to be merged
  * \return void
  */
-void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio) {
+void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio)
+{
     // for each relation it calculates size of the chunk that would be created by the merge
     // if the size is ok it merges, there are empty chunks afterwards that get cleaned up by a function called
     // after this function
 
-    int iter_count = min((int) (relations.count * merge_ratio), relations.count);
+    int iter_count = min((int)(relations.count * merge_ratio), relations.count);
 
-    for (int x = 0; x < iter_count; x++) {
+    for (int x = 0; x < iter_count; x++)
+    {
         // awkward index shenanishans because entries in the matrix and later relation array werent indexed the same way
         // elist is, so theres the need to get index of the elist entry and then that one's chunk
 
@@ -312,7 +332,8 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
         int merged_chunk_size = 0x14;
         int new_entry_count = 0;
         for (int i = 0; i < entry_count; i++)
-            if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2) {
+            if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
+            {
                 merged_chunk_size += elist[i].esize + 4;
                 new_entry_count++;
             }
@@ -324,7 +345,6 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
     }
 }
 
-
 /** \brief
  *  Creates an array representation of the common load list occurence matrix, sorts high to low.
  *  To prevent having to search the entire matrix every time in the main merge util thing.
@@ -333,31 +353,33 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
  * \param entry_matrix int**            matrix that contains common load list occurences
  * \return RELATIONS
  */
-RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config, ENTRY *elist, int entry_count) {
+RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int *config, ENTRY *elist, int entry_count)
+{
 
     int relation_array_sort_flag = config[CNFG_IDX_MTRI_REL_SORT_FLAG];
     int zeroval_inc_flag = config[CNFG_IDX_MTRI_ZEROVAL_INC_FLAG];
 
-
     int rel_counter = 0, i, j, indexer = 0;
 
-    if (zeroval_inc_flag == 0) {
+    if (zeroval_inc_flag == 0)
+    {
         for (i = 0; i < entries.count; i++)
             for (j = 0; j < i; j++)
                 if (entry_matrix[i][j] != 0)
                     rel_counter++;
-    } else {
-         rel_counter = (entries.count * (entries.count - 1))/2;
     }
-
+    else
+    {
+        rel_counter = (entries.count * (entries.count - 1)) / 2;
+    }
 
     RELATIONS relations;
     relations.count = rel_counter;
-    relations.relations = (RELATION *) malloc(rel_counter * sizeof(RELATION));      // freed by caller
-
+    relations.relations = (RELATION *)malloc(rel_counter * sizeof(RELATION)); // freed by caller
 
     for (i = 0; i < entries.count; i++)
-        for (j = 0; j < i; j++) {
+        for (j = 0; j < i; j++)
+        {
             if (zeroval_inc_flag == 0 && entry_matrix[i][j] == 0)
                 continue;
             relations.relations[indexer].value = entry_matrix[i][j];
@@ -376,13 +398,12 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config, 
         }
 
     if (relation_array_sort_flag == 0)
-        qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp);           // the 'consistent' one
+        qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp); // the 'consistent' one
     if (relation_array_sort_flag == 1)
         qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp2);
 
     return relations;
 }
-
 
 /** \brief
  *  Specially merges permaloaded entries as they dont require any association.
@@ -396,7 +417,8 @@ RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int* config, 
  * \param permaloaded LIST              list with permaloaded entries
  * \return int                          permaloaded chunk count
  */
-int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded) {
+int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded)
+{
     int i, j;
     int temp_count = *chunk_count;
     int perma_normal_entry_count = 0;
@@ -406,7 +428,7 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
         if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
 
-    ENTRY *perma_elist = (ENTRY *) malloc(perma_normal_entry_count * sizeof(ENTRY));        // freed here
+    ENTRY *perma_elist = (ENTRY *)malloc(perma_normal_entry_count * sizeof(ENTRY)); // freed here
     int indexer = 0;
     for (i = 0; i < entry_count; i++)
         if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
@@ -415,15 +437,16 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
     qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_func_esize);
 
     // keep putting them into existing chunks if they fit
-    int perma_chunk_count = perma_normal_entry_count;   //idrc about optimising this
-    int *sizes = (int*) malloc(perma_chunk_count * sizeof(int));                            // freed here
+    int perma_chunk_count = perma_normal_entry_count;            // idrc about optimising this
+    int *sizes = (int *)malloc(perma_chunk_count * sizeof(int)); // freed here
     for (i = 0; i < perma_chunk_count; i++)
         sizes[i] = 0x14;
 
     // place where fits
     for (i = 0; i < perma_normal_entry_count; i++)
         for (j = 0; j < perma_chunk_count; j++)
-            if (sizes[j] + 4 + perma_elist[i].esize <= CHUNKSIZE) {
+            if (sizes[j] + 4 + perma_elist[i].esize <= CHUNKSIZE)
+            {
                 perma_elist[i].chunk = temp_count + j;
                 sizes[j] += 4 + perma_elist[i].esize;
                 break;
@@ -446,7 +469,6 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
     return counter;
 }
 
-
 /** \brief
  *  If a chunk is empty it gets replaced with the last existing chunk.
  *  This goes on until no further replacements are done (no chunks are empty).
@@ -457,16 +479,21 @@ int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_soun
  * \param entry_list ENTRY*             entry list
  * \return int                          new chunk count
  */
-int build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list) {
+int build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list)
+{
     int i, j, is_occupied = 0, empty_chunk = 0;
-    while (1) {
-        for (i = index_start; i < index_end; i++) {
+    while (1)
+    {
+        for (i = index_start; i < index_end; i++)
+        {
             is_occupied = 0;
             empty_chunk = -1;
             for (j = 0; j < entry_count; j++)
-                if (entry_list[j].chunk == i) is_occupied++;
+                if (entry_list[j].chunk == i)
+                    is_occupied++;
 
-            if (!is_occupied) {
+            if (!is_occupied)
+            {
                 empty_chunk = i;
                 break;
             }
@@ -485,13 +512,11 @@ int build_remove_empty_chunks(int index_start, int index_end, int entry_count, E
     return index_end;
 }
 
-
-
 // used to sort relations that store how much entries are loaded simultaneously, sorts in descending order, also takes total occurence count into consideration (experimental)
 int relations_cmp2(const void *a, const void *b)
 {
-    RELATION x = *(RELATION *) a;
-    RELATION y = *(RELATION *) b;
+    RELATION x = *(RELATION *)a;
+    RELATION y = *(RELATION *)b;
 
     if (y.value - x.value != 0)
         return y.value - x.value;
@@ -499,13 +524,11 @@ int relations_cmp2(const void *a, const void *b)
     return x.total_occurences - y.total_occurences;
 }
 
-
 // used to sort relations that store how much entries are loaded simultaneously, sorts in descending order
 int relations_cmp(const void *a, const void *b)
 {
-    RELATION x = *(RELATION *) a;
-    RELATION y = *(RELATION *) b;
+    RELATION x = *(RELATION *)a;
+    RELATION y = *(RELATION *)b;
 
     return y.value - x.value;
 }
-
