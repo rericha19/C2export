@@ -157,7 +157,7 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                     int camera_angle = avg_angles[m];
                     int angle_dist = angle_distance(angle_to_ent, camera_angle);
 
-                    if (angle_dist < config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D])
+                    if (angle_dist < config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] && dist_xz < allowed_dist_xz)
                     {
                         list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
                         break;
