@@ -91,6 +91,10 @@ void build_ask_draw_distances(int *config) {
     printf("\nDraw distance 3D sections (xz-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D] = temp;
+
+    printf("\nMax allowed angle distance for 3D sections (default to 90)\n");
+    scanf("%d", &temp);
+    config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] = temp;
 }
 
 

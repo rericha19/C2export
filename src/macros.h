@@ -40,6 +40,7 @@
 #define CNFG_IDX_DRAW_LIST_GEN_DIST_2D  14
 #define CNFG_IDX_DRAW_LIST_GEN_DIST_3D  15
 #define CNFG_IDX_DRAW_LIST_GEN_DIST_2DV 16
+#define CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D 17
 
 #define PRELOADING_NOTHING              0
 #define PRELOADING_TEXTURES_ONLY        1
@@ -120,6 +121,7 @@
 #define IMPORT                          3083219648u
 #define NSD_UTIL                        308922119u
 #define FOV_UTIL                        2792294477u
+#define DRAW_UTIL                       3986824656u
 
 //#define INTRO                           223621809u
 //#define STATUS                          3482341513u
@@ -653,3 +655,4 @@ void         special_load_lists_list();
 void         checkpoint_stats();
 void         nsd_util();
 void         fov_stats();
+void         draw_util();         

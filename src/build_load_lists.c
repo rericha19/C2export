@@ -6,27 +6,67 @@ int abs(int val) {
     return (val >= 0) ? val : -val;
 }
 
+int normalize_angle(int angle)  
+{    
+    while (angle < 0) angle += 360;
+    while (angle >= 360) angle -= 360;
+    
+    return angle;
+}
+
+int c2yaw_to_deg(int yaw)
+{
+    int angle = (yaw * 360) / 4096;
+    angle += 90;
+    
+    return normalize_angle(angle);
+}
+
+int angle_distance(int angle1, int angle2) {
+    angle1 = normalize_angle(angle1);
+    angle2 = normalize_angle(angle2);
+    
+    int diff1 = normalize_angle(angle2 - angle1);
+    int diff2 = normalize_angle(angle1 - angle2);
+
+    return min(diff1, diff2);
+}
+
 void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *config, int curr_idx, int neighbour_idx, int cam_idx, int neighbour_ref_idx) {
-    int m, n, path_len, path_len2;
+    int cam_len, ent_len, angles_len = 0;
     char temp[6] = "";
     ENTRY curr = elist[curr_idx];
     ENTRY neighbour = elist[neighbour_idx];
     LIST remember = init_list();
 
     int cam_mode = build_get_entity_prop(build_get_nth_item(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
-    short int *path = build_get_path(elist, curr_idx, 2 + cam_idx*3, &path_len);
+    short int *path = build_get_path(elist, curr_idx, 2 + cam_idx * 3, &cam_len);
+    short int* angles = build_get_path(elist, curr_idx, 2 + cam_idx * 3 + 1, &angles_len);
 
     int neigh_ents = build_get_entity_count(neighbour.data);
-    int neigh_cams = build_get_cam_item_count(neighbour.data);
+    int neigh_cams = build_get_cam_item_count(neighbour.data);    
 
+    if (cam_len != angles_len / 2) {
+        printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", eid_conv(curr.eid, temp), cam_idx, cam_len, angles_len);
+    }
+
+    int* avg_angles = malloc(cam_len * sizeof(int));
+    if (cam_mode == C2_CAM_MODE_3D) 
+    {
+        for (int n = 0; n < angles_len; n += 2) 
+        {
+            avg_angles[n / 2] = (c2yaw_to_deg(angles[3 * n + 1]) + c2yaw_to_deg(angles[3 * n + 4])) / 2;
+        }
+    }
+    
     // for each point of the camera path
-    for (m = 0; m < path_len; m++) {
+    for (int m = 0; m < cam_len; m++) {
         int cam_x = path[3*m + 0] + from_u32(build_get_nth_item(curr.data, 1) + 0);
         int cam_y = path[3*m + 1] + from_u32(build_get_nth_item(curr.data, 1) + 4);
-        int cam_z = path[3*m + 2] + from_u32(build_get_nth_item(curr.data, 1) + 8);
-
+        int cam_z = path[3*m + 2] + from_u32(build_get_nth_item(curr.data, 1) + 8);        
+        
         // check all neighbour entities
-        for (n = 0; n < neigh_ents; n++) {            
+        for (int n = 0; n < neigh_ents; n++) {            
             unsigned char* entity = build_get_nth_item(neighbour.data, 2 + neigh_cams + n);
             int ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
             int ent_dist_mult = build_get_entity_prop(entity, 0x337);
@@ -59,10 +99,10 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
             else
                 ent_dist_mult = ent_dist_mult / 0x100;
 
-            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &path_len2); 
+            short int* ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &ent_len); 
             
             // check all entity points to see whether its visible
-            for (int o = 0; o < path_len2; o++) 
+            for (int o = 0; o < ent_len; o++) 
             {
                 int ent_x = (4*ent_path[3*o + 0]) + from_s32(build_get_nth_item(neighbour.data, 1) + 0);
                 int ent_y = (4*ent_path[3*o + 1]) + from_s32(build_get_nth_item(neighbour.data, 1) + 4);
@@ -91,18 +131,33 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                     int dist_xz = sqrt(pow(dist_x, 2) + pow(dist_z, 2));
                     int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
                     
-                    // todo frustum culling (angle and stuff)
-                    // poke poke
-                    if (dist_xz < allowed_dist_xz || !allowed_dist_xz) {
-                        list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));                        
+                    // entities closer than 20% of the distance cap are drawn regardless of the check
+                    if (dist_xz < (allowed_dist_xz / 5) || !allowed_dist_xz) {
+                        list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));                  
                         break;
                     }
+
+                    // simple frustum check
+                    // Zs swapped because of the z axis orientation in c2
+                    double t = atan2(cam_z - ent_z, ent_x - cam_x);                    
+                    int angle_to_ent = (int)(t * (180.0 / PI));
+                    int camera_angle = avg_angles[m];
+                    int angle_dist = angle_distance(angle_to_ent, camera_angle);
+                  
+                    if (angle_dist < config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D]) 
+                    {
+                        list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                        break;
+                    }
+
                 } else {
                     printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv(curr.eid, temp), cam_idx);
                 }
             }
         }
     }
+
+    free(avg_angles);
 }
 
 void build_remake_draw_lists(ENTRY *elist, int entry_count, int* config) {

@@ -196,6 +196,9 @@ int main() {
             case FOV_UTIL:
                 fov_stats();
                 break;
+            case DRAW_UTIL:
+                draw_util();
+                break;
             default:
                 printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
                 break;

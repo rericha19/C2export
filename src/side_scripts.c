@@ -2062,3 +2062,71 @@ void nsd_util() {
     recursive_folder_iter(dpath, nsd_util_util);
     printf("\nDone.\n\n");
 }
+
+void draw_util() 
+{
+    char temp[6] = "";
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
+        return;
+
+    int total = 0;
+    int point_count = 0;
+
+    for (int i = 0; i < entry_count; i++) 
+    {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+            continue;
+
+        int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int j = 0; j < cam_count; j++) 
+        {            
+            int path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
+            LIST *draw_list = build_get_complete_draw_list(elist, i, 2 + 3 * j, path_len);
+            
+            for (int k = 0; k < path_len - 1; k++) 
+            {
+                int drawn = draw_list[k].count;                
+                printf("%s-%d, point %2d/%2d - drawing %d entities\n", eid_conv(elist[i].eid, temp), j, k, path_len, drawn);
+
+                total += drawn;
+                point_count += 1;
+            }
+        }
+    }
+
+    printf("\n");
+
+    // copypaste, cba to optimise
+    for (int i = 0; i < entry_count; i++) 
+    {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+            continue;
+
+        int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int j = 0; j < cam_count; j++) 
+        {            
+            int path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
+            LIST *draw_list = build_get_complete_draw_list(elist, i, 2 + 3 * j, path_len);
+            
+            int zone_total = 0;
+            int zone_points = 0;
+
+            for (int k = 0; k < path_len - 1; k++) 
+            {
+                int drawn = draw_list[k].count;                
+                zone_total += drawn;
+                zone_points += 1;
+            }
+
+            printf("%s-%d average entities drawn: %d\n", eid_conv(elist[i].eid, temp), j, zone_total / zone_points);
+        }
+    }
+
+    printf("\nAverage entities drawn in level: %d\n", total / point_count);
+
+    build_cleanup_elist(elist, entry_count);   
+    printf("\nDone.\n\n");
+}

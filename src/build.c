@@ -659,20 +659,26 @@ void build_main(int build_rebuild_flag) {
         0,  // 0 - gool initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         0,  // 1 - zone initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         1,  // 2 - merge type value             0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
+
         0,  // 3 - slst distance value              set by user in function build_ask_distances(config); affects load lists
         0,  // 4 - neighbour distance value         set by user in function build_ask_distances(config); affects load lists
         0,  // 5 - draw list distance value         set by user in function build_ask_distances(config); affects load lists
         0,  // 6 - transition pre-load flag         set by user in function build_ask_distances(config); affects load lists
         0,  // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int, range 0 - 0.5
+
         0,  // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge (1 is kinda meh)
         0,  // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
+
         0,  //10 - load list remake flag        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
         0,  //11 - merge technique value                                                                    set by user in build_ask_build_flags
+
         1,  //12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
         1,  //13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
-        -1, //14 - draw list gen dist 2D       -1 - dont gen    | >=0 - do gen, x distance 2D               set by user in build_ask_draw_distances
-        -1, //15 - draw list gen dist 3D       -1 - dont gen    | >=0 - do gen, xz distance 3D              set by user in build_ask_draw_distances
-        -1, //16 - draw list gen dist 2D vert  -1 - dont gen    | >=0 - do gen, y distance 2D               set by user in build_ask_draw_distances
+
+        0,  //14 - draw list gen dist 2D            set by user in build_ask_draw_distances
+        0,  //15 - draw list gen dist 3D            set by user in build_ask_draw_distances
+        0,  //16 - draw list gen dist 2D vertictal| set by user in build_ask_draw_distances
+        0,  //17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
     };
 
     int input_parse_rtrn_value = 1;

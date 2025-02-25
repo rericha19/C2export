@@ -66,6 +66,9 @@ void print_help2()
     printf("FOV_UTIL\n");
     printf("\t misc fov listing util\n");
 
+    printf("DRAW_UTIL\n");
+    printf("\t detailed info about draw lists\n");
+
     for (int i = 0; i < 100; i++) printf("-");
     printf("\n");
 }
