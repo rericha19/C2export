@@ -53,7 +53,7 @@ This writeup assumes and recommends that you:
 - [REBUILD_DL] **draw distance 2D horizontal** - maximal x-distance between current camera point and tested entity
 - [REBUILD_DL] **draw distance 2D vertical** - maximal y-distance between current camera point and tested entity
 - [REBUILD_DL] **draw distance 3D (xz)** - maximal xz-distance between current camera point and tested entity
-- [REBUILD_DL] **draw angle 3D (y-rot/yaw)** - max distance between curr campoint's angle and angle to tested entity
+- [REBUILD_DL] **draw angle 3D (y-rot/yaw)** - max distance between curr campoint angle and angle to tested entity
 - **SLST distance** - dist between current campoint and other camera up to which neighbouring SLSTS are loaded
 - **neighbour dist** - dist between current campoint and other zone up to which the zone's header deps are loaded
 - **draw list dist** - dist between current and other campoint up to which dependencies of drawn objects are loaded
