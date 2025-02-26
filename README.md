@@ -20,7 +20,7 @@ See program's **help** command, if there are issues or questions DM me at Averso
 
 Arguably the most useful commands in the tool, used to rebuild levels. \
 Allows to generate load lists and draw lists given parameters and input files. \
-Places entries into chunks and creates a playable NSF & NSD (although it is recommended to Patch NSD with CrashEdit) \
+Places entries into chunks and creates a playable NSF & NSD (it is recommended to Patch NSD with CrashEdit) \
 The parameter list is quite long, it is recommended to keep it in a separate file to copy-paste into c2export. \
 Examples of input files can be found in the **rebuild_examples** folder.
 
