@@ -53,10 +53,10 @@ This writeup assumes and recommends that you:
 - [REBUILD_DL] **draw distance 2D horizontal** - maximal x-distance between current camera point and tested entity
 - [REBUILD_DL] **draw distance 2D vertical** - maximal y-distance between current camera point and tested entity
 - [REBUILD_DL] **draw distance 3D (xz)** - maximal xz-distance between current camera point and tested entity
-- [REBUILD_DL] **draw angle 3D (y-rot/yaw)** - max distance between current campoint's angle and angle to tested entity
-- **SLST distance** - distance between current campoint and another camera up to which neighbouring SLSTS are loaded
-- **neighbour dist** - distance between current campoint and another zone up to which neighbouring zones are loaded
-- **draw list dist** - distance between current and another campoint up to which dependencies of drawn objects are loaded
+- [REBUILD_DL] **draw angle 3D (y-rot/yaw)** - max distance between curr campoint's angle and angle to tested entity
+- **SLST distance** - dist between current campoint and other camera up to which neighbouring SLSTS are loaded
+- **neighbour dist** - dist between current campoint and other zone up to which the zone's header deps are loaded
+- **draw list dist** - dist between current and other campoint up to which dependencies of drawn objects are loaded
 - **transition pre-loading** - select what to load on transitions (none, textures, normal entries, all)
 - **backwards loading penalty** - penalty for loading things in the 'backwards' direction (0 recommended)
 - **omit unused entries** - omit normal chunk entries that are never loaded (not recommended)
