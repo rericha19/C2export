@@ -1,0 +1,29 @@
+c2export_dl.exe
+wipe
+rebuild_dl
+"..\rebuild_examples\snowgo_rblt_dl\og_snowgo.NSF"
+0E
+-
+1
+5
+1
+"..\rebuild_examples\snowgo_rblt_dl\snow go perma list.txt"
+"..\rebuild_examples\snowgo_rblt_dl\vanilla dependency list.txt"
+-
+-
+5000
+5000
+30000
+50
+10000
+10000
+10000
+3
+0
+0
+20
+1000
+2.5
+0
+4
+kill

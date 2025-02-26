@@ -1,0 +1,25 @@
+c2export_dl.exe
+wipe
+rebuild
+"..\rebuild_examples\turtle_woods_rebuilt\og_turtle_woods.NSF"
+1E
+-
+1
+5
+1
+"..\rebuild_examples\turtle_woods_rebuilt\turtle woods perma list.txt"
+"..\rebuild_examples\turtle_woods_rebuilt\vanilla dependency list.txt"
+-
+-
+8000
+8000
+8000
+3
+0
+0
+20
+3000
+2.5
+0
+4
+kill
