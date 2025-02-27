@@ -70,3 +70,18 @@ This writeup assumes and recommends that you:
 - NSF and NSD with the specified output ID (in the same folder as input NSF)
 - [optional] NSF and NSD with specified ID in secondary output folder
   
+**Special properties and attributes**
+For load list generation, it is possible to specify extra entries to load in that zone.
+It is in zone header (item 0), +0x1DC is special load list entry count, following data is special entries' EIDs.
+Airumu's 2025 CrashEdit fork supports them without having to hex edit.
+
+**For draw list generation, for each entity it is possible to specify 2 extra properties:**
+- position override id
+  - instead of using current entity's position, use position of another entity (specify its ID)
+  - the entity must be from the same zone as the replacement/override entity
+  - uses BOX COUNT PROP (for 0-0 it doesnt matter, for 4-17 entities its disabled because of modpack)
+- distance multiplier
+  - instead of using the exact value of current distance, use a percentage of it
+  - default is 100, can be >100
+  - uses BONUS BOX COUNT PROP
+  
