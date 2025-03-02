@@ -1818,6 +1818,8 @@ void generate_slst()
     printf("Done. Saved as %s\n\n", fpath);
 }
 
+#define WARP_SPAWN_COUNT 32
+
 void warp_spawns_generate()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1826,8 +1828,7 @@ void warp_spawns_generate()
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    int df = 26;
-    int pathlen;
+    /* older, hardcoded spawns
     int spawn_ids[] = {
         27, 34, 40, 27, df, 40, 36,
         32, 41, 32, 32, 35,
@@ -1836,48 +1837,83 @@ void warp_spawns_generate()
         27, 37, 38, 32, 131,
         30, df, df, 37, df,
         df};
+    */
 
-    for (int i = 0; i < 33; i++)
+    char path[MAX];
+    printf("\nInput the path to the warp spawns file:\n");
+    scanf(" %[^\n]", path);
+    path_fix(path);
+
+    FILE *file = fopen(path, "r");
+    if (!file)
+    {
+        printf("File could not be opened!\n");
+        return;
+    }
+
+    char buffer[1 << 16];
+    int count = 0;
+    int spawn_ids[WARP_SPAWN_COUNT] = {0};
+
+    size_t len = fread(buffer, 1, sizeof(buffer) - 1, file);
+    fclose(file);
+    buffer[len] = '\0';
+
+    char *token = strtok(buffer, ",\n\r");
+    while (token && count < WARP_SPAWN_COUNT)
+    {
+        spawn_ids[count++] = atoi(token);
+        token = strtok(NULL, ",\n\r");
+    }
+
+    for (int i = 0; i < WARP_SPAWN_COUNT; i++)
+    {
+        if (spawn_ids[i] == 0)
+            spawn_ids[i] = 26; // default to ID 26
+    }
+
+    for (int i = 0; i < WARP_SPAWN_COUNT; i++)
     {
         for (int j = 0; j < entry_count; j++)
         {
-            if (build_entry_type(elist[j]) == ENTRY_TYPE_ZONE)
+            if (build_entry_type(elist[j]) != ENTRY_TYPE_ZONE)
+                continue;
+
+            unsigned char *curr_zone = elist[j].data;
+            int camc = build_get_cam_item_count(curr_zone);
+
+            for (int k = 0; k < build_get_entity_count(curr_zone); k++)
             {
-                unsigned char *curr_zone = elist[j].data;
-                int camc = build_get_cam_item_count(curr_zone);
-
-                for (int k = 0; k < build_get_entity_count(curr_zone); k++)
+                int offset = build_get_nth_item_offset(curr_zone, 2 + camc + k);
+                int ent_id = build_get_entity_prop(curr_zone + offset, ENTITY_PROP_ID);
+                if (ent_id == spawn_ids[i])
                 {
-                    int offset = build_get_nth_item_offset(curr_zone, 2 + camc + k);
-                    int ent_id = build_get_entity_prop(curr_zone + offset, ENTITY_PROP_ID);
-                    if (ent_id == spawn_ids[i])
+                    int pathlen;
+                    short int *path = build_get_path(elist, j, 2 + camc + k, &pathlen);
+
+                    unsigned char *coll_item = build_get_nth_item(elist[j].data, 1);
+                    unsigned int zone_x = from_u32(coll_item);
+                    unsigned int zone_y = from_u32(coll_item + 4);
+                    unsigned int zone_z = from_u32(coll_item + 8);
+
+                    unsigned int x = (zone_x + 4 * path[0]) << 8;
+                    unsigned int y = (zone_y + 4 * path[1]) << 8;
+                    unsigned int z = (zone_z + 4 * path[2]) << 8;
+
+                    unsigned char arr[0x18] = {0};
+                    *(unsigned int *)arr = elist[j].eid;
+                    *(unsigned int *)(arr + 0x4) = 0;
+                    *(unsigned int *)(arr + 0x8) = 0;
+                    *(unsigned int *)(arr + 0xC) = x;
+                    *(unsigned int *)(arr + 0x10) = y;
+                    *(unsigned int *)(arr + 0x14) = z;
+
+                    printf("\n");
+                    for (int j = 0; j < 0x18; j++)
                     {
-                        short int *path = build_get_path(elist, j, 2 + camc + k, &pathlen);
-
-                        unsigned char *coll_item = build_get_nth_item(elist[j].data, 1);
-                        unsigned int zone_x = from_u32(coll_item);
-                        unsigned int zone_y = from_u32(coll_item + 4);
-                        unsigned int zone_z = from_u32(coll_item + 8);
-
-                        unsigned int x = (zone_x + 4 * path[0]) << 8;
-                        unsigned int y = (zone_y + 4 * path[1]) << 8;
-                        unsigned int z = (zone_z + 4 * path[2]) << 8;
-
-                        unsigned char arr[0x18] = {0};
-                        *(unsigned int *)arr = elist[j].eid;
-                        *(unsigned int *)(arr + 0x4) = 0;
-                        *(unsigned int *)(arr + 0x8) = 0;
-                        *(unsigned int *)(arr + 0xC) = x;
-                        *(unsigned int *)(arr + 0x10) = y;
-                        *(unsigned int *)(arr + 0x14) = z;
-
-                        printf("\n");
-                        for (int j = 0; j < 0x18; j++)
-                        {
-                            printf("%02X", arr[j]);
-                            if (j % 4 == 3)
-                                printf(" ");
-                        }
+                        printf("%02X", arr[j]);
+                        if (j % 4 == 3)
+                            printf(" ");
                     }
                 }
             }
