@@ -24,6 +24,9 @@ Places entries into chunks and creates a playable NSF & NSD (it is recommended t
 The parameter list is quite long, it is recommended to keep it in a separate file to copy-paste into c2export. \
 Examples of input files can be found in the **rebuild_examples** folder.
 
+An alternative to copy-pasting is a python script to launch c2export, \
+with input being redirected from a file, example of which is **run_rebuild.py** in **rebuild_examples**.
+
 This writeup assumes and recommends that you:
 - use either **rebuild** or **rebuild_dl** (**build** command not included)
 - want to rebuild load lists
