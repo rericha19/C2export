@@ -57,7 +57,7 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
     }
 
     int *avg_angles = malloc(cam_len * sizeof(int));
-    if (cam_mode == C2_CAM_MODE_3D)
+    if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
     {
         for (int n = 0; n < angles_len; n += 2)
         {
@@ -246,13 +246,17 @@ void build_remake_draw_lists(ENTRY *elist, int entry_count, int *config)
                 PROPERTY prop_0x13C = build_make_load_list_prop(listB, cam_length, 0x13C);
 
                 if (dbg_print)
-                    printf("Converted full list to delta christianity and delta to props islam\n");
+                    printf("Converted full list to delta form and delta to props\n");
 
                 // removes existing draw list properties, inserts newly made ones
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13B, NULL);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13C, NULL);
-                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13B, &prop_0x13B);
-                build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
+
+                if (max_c)
+                {
+                    build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13B, &prop_0x13B);
+                    build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
+                }
 
                 if (dbg_print)
                     printf("Replaced draw list props\n");
