@@ -36,6 +36,20 @@ int angle_distance(int angle1, int angle2)
     return min(diff1, diff2);
 }
 
+int average_angles(int angle1, int angle2)
+{
+    // Convert degrees to radians
+    double a1 = angle1 * PI / 180.0;
+    double a2 = angle2 * PI / 180.0;
+
+    // Convert to Cartesian coordinates
+    double x = cos(a1) + cos(a2);
+    double y = sin(a1) + sin(a2);
+
+    // Compute the averaged angle in degrees
+    return (int)round(atan2(y, x) * 180.0 / PI);
+}
+
 void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *config, int curr_idx, int neighbour_idx, int cam_idx, int neighbour_ref_idx)
 {
     int cam_len, ent_len, angles_len = 0;
@@ -61,7 +75,9 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
     {
         for (int n = 0; n < angles_len; n += 2)
         {
-            avg_angles[n / 2] = (c2yaw_to_deg(angles[3 * n + 1]) + c2yaw_to_deg(angles[3 * n + 4])) / 2;
+            int angle1 = c2yaw_to_deg(angles[3 * n + 1]);
+            int angle2 = c2yaw_to_deg(angles[3 * n + 4]);
+            avg_angles[n / 2] = normalize_angle(average_angles(angle1, angle2));
         }
     }
 
