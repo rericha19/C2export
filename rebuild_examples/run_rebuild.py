@@ -45,7 +45,7 @@ def main():
 
     print(f"Running c2export_dl.exe in folder: {target_folder} with input from: {target_file}")
     # Run c2export_dl.exe, passing file_content as the input.
-    result = subprocess.run(["c2export_dl.exe"], input=file_content, text=True)
+    result = subprocess.run(["../bin/c2export_dl.exe"], input=file_content, text=True)
 
     print("c2export_dl.exe finished", target_folder, target_file)
 
