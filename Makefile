@@ -7,20 +7,38 @@ LDFLAGS = -lpthread
 SRCDIR = src
 SRC = $(wildcard $(SRCDIR)/*.c)
 
-# Object files
-OBJ = $(SRC:.c=.o)
+# Object files - separate for threaded and non-threaded versions
+OBJ_MT = $(SRC:%.c=%_mt.o)
+OBJ_ST = $(SRC:%.c=%_st.o)
 
-# Executable name
-TARGET = bin/c2export_dl.exe
+# Executable names
+TARGET_MT = bin/c2export_multithr.exe
+TARGET_ST = bin/c2export_singlethr.exe
 
-# Build target
-$(TARGET): $(OBJ)
+all: $(TARGET_MT) $(TARGET_ST)
+
+# Threaded version
+$(TARGET_MT): $(OBJ_MT)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-# Rule for building object files
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+# Non-threaded version
+$(TARGET_ST): $(OBJ_ST)
+	$(CC) -o $@ $^
+
+# Rule for building threaded object files
+%_mt.o: %.c
+	$(CC) $(CFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
+
+# Rule for building non-threaded object files
+%_st.o: %.c
+	$(CC) $(CFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
 
 # Clean up
 clean:
-	del /Q src\*.o
+	del /Q src\*_mt.o src\*_st.o bin\*.exe
+
+# Create bin directory if it doesn't exist
+$(TARGET_MT) $(TARGET_ST): | bin
+
+bin:
+	mkdir -p bin
