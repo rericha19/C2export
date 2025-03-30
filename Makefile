@@ -41,4 +41,4 @@ clean:
 $(TARGET_MT) $(TARGET_ST): | bin
 
 bin:
-	mkdir -p bin
+	if not exist bin mkdir bin

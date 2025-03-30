@@ -86,15 +86,15 @@ void build_ask_draw_distances(int *config)
 
     printf("\nDraw distance 2D horizontal (x-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D] = temp;
+    config[CNFG_IDX_DRAW_LIST_GEN_CAP_X] = temp;
 
     printf("\nDraw distance 2D vertical (y-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_DIST_2DV] = temp;
+    config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y] = temp;
 
     printf("\nDraw distance 3D sections (xz-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D] = temp;
+    config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ] = temp;
 
     printf("\nMax allowed angle distance for 3D sections (default to 90)\n");
     scanf("%d", &temp);

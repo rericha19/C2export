@@ -127,6 +127,11 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
             else
                 ent_dist_mult = ent_dist_mult / 0x100;
 
+            int allowed_dist_x = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_X]) / 100);
+            int allowed_dist_y = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y]) / 100);
+            int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ]) / 100);
+            int allowed_angledist = config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D];
+
             short int *ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);
 
             // check all entity points to see whether its visible
@@ -139,27 +144,23 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                 int dist_x = abs(cam_x - ent_x);
                 int dist_y = abs(cam_y - ent_y);
                 int dist_z = abs(cam_z - ent_z);
+                int dist_xz = sqrt(pow(dist_x, 2) + pow(dist_z, 2));
+
+                if (allowed_dist_x && dist_x > allowed_dist_x)
+                    continue;
+                if (allowed_dist_y && dist_y > allowed_dist_y)
+                    continue;
+                if (allowed_dist_xz && dist_xz > allowed_dist_xz)
+                    continue;
 
                 if (cam_mode == C2_CAM_MODE_2D || cam_mode == C2_CAM_MODE_VERTICAL)
                 {
-                    int allowed_dist_x = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2D]) / 100);
-                    int allowed_dist_y = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_2DV]) / 100);
-
-                    if (dist_x < allowed_dist_x || !allowed_dist_x)
-                    {
-                        if (dist_y < allowed_dist_y || !allowed_dist_y)
-                        {
-                            list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
-                            break;
-                        }
-                    }
+                    list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                    break;
                 }
                 else if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
                 {
-                    int dist_xz = sqrt(pow(dist_x, 2) + pow(dist_z, 2));
-                    int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_DIST_3D]) / 100);
-
-                    // entities closer than 20% of the distance cap are drawn regardless of the check
+                    // in 3D, entities closer than 20% of the distance cap are drawn regardless of the check
                     if (dist_xz < (allowed_dist_xz / 5) || !allowed_dist_xz)
                     {
                         list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
@@ -173,7 +174,7 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                     int camera_angle = avg_angles[m];
                     int angle_dist = angle_distance(angle_to_ent, camera_angle);
 
-                    if (angle_dist < config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] && dist_xz < allowed_dist_xz)
+                    if (angle_dist < allowed_angledist && dist_xz < allowed_dist_xz)
                     {
                         list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
                         break;
