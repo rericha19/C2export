@@ -1087,11 +1087,10 @@ void nsd_gool_table_print(char *fpath)
     fread(buffer, sizeof(unsigned char), filesize, file);
 
     int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
-    char temp[100] = "";
     for (int i = 0; i < 64; i++)
     {
         int eid = from_u32(buffer + C2_NSD_ENTRY_TABLE_OFFSET + 0x10 + 8 * entry_count + 4 * i);
-        printf("%2d: %s  ", i, eid_conv(eid, temp));
+        printf("%2d: %s  ", i, eid_conv2(eid));
         if (i % 4 == 3)
             putchar('\n');
     }
@@ -1464,9 +1463,8 @@ void print_model_refs_util(unsigned char *model)
         int width = endx - startx + 1;
         int height = endy - starty + 1;
 
-        char temp[6] = "";
         sprintf(curr_str, " %5s: %04X %d %d-%02X %02X %02X %02X",
-                eid_conv(from_u32(model + item1off + 0xC + tex), temp), clut, bit, seg, startx, starty, width, height);
+                eid_conv2(from_u32(model + item1off + 0xC + tex)), clut, bit, seg, startx, starty, width, height);
         int str_listed = 0;
         for (int j = 0; j < str_cnt; j++)
         {
@@ -1514,7 +1512,7 @@ void print_model_tex_refs_nsf()
         {
             if (strcmp(eid_conv(elist[i].eid, temp), ename) == 0 || strcmp(ename, "all") == 0)
             {
-                printf("\nModel %s:", eid_conv(elist[i].eid, temp));
+                printf("\nModel %s:", eid_conv2(elist[i].eid));
                 print_model_refs_util(elist[i].data);
                 printed_something = 1;
             }
@@ -1563,12 +1561,11 @@ void print_all_entries_perma()
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
-    char temp[6] = "";
 
     for (int i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_INST)
-            printf("%5s\n", eid_conv(elist[i].eid, temp));
+            printf("%5s\n", eid_conv2(elist[i].eid));
     }
 
     build_cleanup_elist(elist, entry_count);
@@ -1673,7 +1670,6 @@ void entity_usage_folder()
 {
     printf("Input the path to the folder\n");
     char dpath[MAX] = "";
-    char temp[6] = "";
     DEPENDENCIES deps = build_init_dep();
 
     unsigned int gool_table[C2_GOOL_TABLE_SIZE];
@@ -1695,7 +1691,7 @@ void entity_usage_folder()
 
     printf("\nEntity type/subtype usage:\n");
     for (int i = 0; i < deps.count; i++)
-        printf(" %2d(%5s)-%2d: %4d entities\n", deps.array[i].type, eid_conv(gool_table[deps.array[i].type], temp), deps.array[i].subtype, deps.array[i].dependencies.count);
+        printf(" %2d(%5s)-%2d: %4d entities\n", deps.array[i].type, eid_conv2(gool_table[deps.array[i].type]), deps.array[i].subtype, deps.array[i].dependencies.count);
 
     printf("\nDone.\n\n");
 }
@@ -1711,7 +1707,6 @@ void nsf_props_scr()
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    char temp[6] = "";
     int printed_something = 0;
     int prop_code;
 
@@ -1742,7 +1737,7 @@ void nsf_props_scr()
                         if (code == prop_code)
                         {
                             printed_something = 1;
-                            printf("Zone %5s path %d item %d", eid_conv(elist[i].eid, temp), j, k);
+                            printf("Zone %5s path %d item %d", eid_conv2(elist[i].eid), j, k);
                             print_prop_header(item, 0x10 + 8 * l);
                             print_prop_body(item, offset, offset_next);
                         }
@@ -1927,7 +1922,6 @@ void warp_spawns_generate()
 void special_load_lists_util(char *fpath)
 {
     printf("Checking %s\n", fpath);
-    char temp[6] = "";
     int printed_something = 0;
 
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1946,10 +1940,10 @@ void special_load_lists_util(char *fpath)
         if (special_entries.count)
         {
             printed_something = 1;
-            printf("Zone %5s:\t", eid_conv(curr.eid, temp));
+            printf("Zone %5s:\t", eid_conv2(curr.eid));
             for (int j = 0; j < special_entries.count; j++)
             {
-                printf("%5s ", eid_conv(special_entries.eids[j], temp));
+                printf("%5s ", eid_conv2(special_entries.eids[j]));
                 if (j && j % 8 == 7 && (j + 1) != special_entries.count)
                     printf("\n           \t");
             }
@@ -1973,10 +1967,8 @@ int check_level_name(char *fpath, char *name)
 
 void nsd_util_util(char *fpath)
 {
-
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
-    char temp[6] = "";
 
     char *filename = strrchr(fpath, '\\');
     if (filename != NULL)
@@ -2001,7 +1993,7 @@ void nsd_util_util(char *fpath)
         int tpe = from_u32(elist[i].data + off1);
         int cat = from_u32(elist[i].data + off1 + 4) >> 8;
 
-        printf("%s %5s, type %d category %d\n", filename, eid_conv(elist[i].eid, temp), tpe, cat);
+        printf("%s %5s, type %d category %d\n", filename, eid_conv2(elist[i].eid), tpe, cat);
     }
 
     build_cleanup_elist(elist, entry_count);
@@ -2012,7 +2004,6 @@ void fov_stats_util(char *fpath)
     printf("Level: %s\n", fpath);
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
-    char temp[6] = "";
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
@@ -2027,7 +2018,7 @@ void fov_stats_util(char *fpath)
         {
             unsigned char *entity = build_get_nth_item(elist[i].data, 2 + 3 * j);
             int fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
-            printf("Zone %5s : fov %d\n", eid_conv(elist[i].eid, temp), fov);
+            printf("Zone %5s : fov %d\n", eid_conv2(elist[i].eid), fov);
         }
     }
 
@@ -2233,7 +2224,6 @@ void nsd_util()
 
 void draw_util()
 {
-    char temp[6] = "";
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int entry_count = 0;
 
@@ -2257,7 +2247,7 @@ void draw_util()
             for (int k = 0; k < path_len - 1; k++)
             {
                 int drawn = draw_list[k].count;
-                printf("%s-%d, point %2d/%2d - drawing %d entities\n", eid_conv(elist[i].eid, temp), j, k, path_len, drawn);
+                printf("%s-%d, point %2d/%2d - drawing %d entities\n", eid_conv2(elist[i].eid), j, k, path_len, drawn);
 
                 total += drawn;
                 point_count += 1;
@@ -2289,12 +2279,58 @@ void draw_util()
                 zone_points += 1;
             }
 
-            printf("%s-%d average entities drawn: %d\n", eid_conv(elist[i].eid, temp), j, zone_total / zone_points);
+            printf("%s-%d average entities drawn: %d\n", eid_conv2(elist[i].eid), j, zone_total / zone_points);
         }
     }
 
     printf("\nAverage entities drawn in level: %d\n", total / point_count);
 
     build_cleanup_elist(elist, entry_count);
+    printf("\nDone.\n\n");
+}
+
+void tpage_util_util(char *fpath)
+{
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    char *filename = strrchr(fpath, '\\');
+    if (filename != NULL)
+    {
+        filename++;
+    }
+    else
+    {
+        filename = fpath;
+    }
+
+    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
+    int chunk_border_texture = 0;
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_border_texture, NULL, elist, &entry_count, chunks, NULL, 1, fpath))
+        return;
+
+    printf("File %s:\n", fpath);
+    for (int i = 0; i < chunk_border_texture; i++)
+    {
+        if (chunks[i] == NULL)
+            continue;
+        if (from_u16(chunks[i] + 0x2) != CHUNK_TYPE_TEXTURE)
+            continue;
+
+        printf("\t tpage %s\n", eid_conv2(from_u32(chunks[i] + 0x4)));
+    }
+    printf("\n");
+    build_cleanup_elist(elist, entry_count);
+}
+
+void tpage_util()
+{
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+
+    recursive_folder_iter(dpath, tpage_util_util);
     printf("\nDone.\n\n");
 }

@@ -61,7 +61,7 @@ void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int *config)
  */
 void build_ask_spawn(SPAWNS spawns)
 {
-    int input;
+    int input = 0;
     char temp[100] = "";
 
     // lets u pick a spawn point

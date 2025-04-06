@@ -29,10 +29,22 @@ void print_help2()
     printf("\t modpack, used to generate warp room spawns from the nsf\n");
 
     printf("CHECK_UTIL\n");
-    printf("\t modpack, lists regular and dda checks/masks (some levels have special hardcoded exceptions)\n");
+    printf("\t modpack, lists regular+dda checks/masks, some levels have hardcoded exceptions (folder)\n");
 
     printf("LIST_SPECIAL_LL\n");
-    printf("\t lists special zone-specific load list entries (rebuild thing) located within first item\n");
+    printf("\t lists special zone load list entries (for rebuild) located within first item (folder)\n");
+
+    printf("NSD_UTIL\n");
+    printf("\t misc gool listing util (folder)\n");
+
+    printf("FOV_UTIL\n");
+    printf("\t misc fov listing util (folder)\n");
+
+    printf("DRAW_UTIL\n");
+    printf("\t detailed info about draw lists (NSF)\n");
+
+    printf("TPAGE_UTIL\n");
+    printf("\t list tpages within files (folder)\n");
 
     printf("A <angle> & TIME\n");
     printf("\t modpack crate rotation, TT value\n");
@@ -41,7 +53,7 @@ void print_help2()
     printf("\t creates an 'empty' SLST entry for path with chosen length\n");
 
     printf("ALL_PERMA\n");
-    printf("\t list all non-instrument entries and tpages\n");
+    printf("\t list all non-instrument entries and tpages (NSF)\n");
 
     printf("SCEN_RECOLOR2\n");
     printf("\t modpack, hardcoded values, dont use\n");
@@ -61,15 +73,6 @@ void print_help2()
 
     printf("CHANGEPRINT & IMPORT (obsolete)\n");
     printf("\t print selection, entry->NSF import (pretty much useless)\n");
-
-    printf("NSD_UTIL\n");
-    printf("\t misc gool listing util\n");
-
-    printf("FOV_UTIL\n");
-    printf("\t misc fov listing util\n");
-
-    printf("DRAW_UTIL\n");
-    printf("\t detailed info about draw lists\n");
 
     for (int i = 0; i < 100; i++)
         printf("-");
@@ -201,8 +204,14 @@ unsigned long comm_str_hash(const char *str)
     return comm_str_hash;
 }
 
+// doesnt copy
+const char *eid_conv2(unsigned int value)
+{
+    return eid_conv(value, NULL);
+}
+
 // converts int eid to string eid
-const char *eid_conv(unsigned int m_value, char *eid)
+const char *eid_conv(unsigned int value, char *eid)
 {
     const char charset[] =
         "0123456789"
@@ -210,13 +219,16 @@ const char *eid_conv(unsigned int m_value, char *eid)
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "_!";
 
-    char temp[6] = "abcde";
-    temp[0] = charset[(m_value >> 25) & 0x3F];
-    temp[1] = charset[(m_value >> 19) & 0x3F];
-    temp[2] = charset[(m_value >> 13) & 0x3F];
-    temp[3] = charset[(m_value >> 7) & 0x3F];
-    temp[4] = charset[(m_value >> 1) & 0x3F];
+    static char temp[6] = "abcde";
+    temp[0] = charset[(value >> 25) & 0x3F];
+    temp[1] = charset[(value >> 19) & 0x3F];
+    temp[2] = charset[(value >> 13) & 0x3F];
+    temp[3] = charset[(value >> 7) & 0x3F];
+    temp[4] = charset[(value >> 1) & 0x3F];
     temp[5] = '\0';
+
+    if (eid == NULL)
+        return temp;
 
     memcpy(eid, temp, 6);
     return eid;

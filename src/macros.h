@@ -122,6 +122,7 @@
 #define NSD_UTIL 308922119u
 #define FOV_UTIL 2792294477u
 #define DRAW_UTIL 3986824656u
+#define TPAGE_UTIL 3993095059u
 
 // #define INTRO                           223621809u
 // #define STATUS                          3482341513u
@@ -413,8 +414,8 @@ unsigned int from_u8(unsigned char *data);
 void export_countwipe(DEPRECATE_INFO_STRUCT *status);
 void export_askprint(DEPRECATE_INFO_STRUCT *status);
 unsigned long comm_str_hash(const char *str);
-int hash_main();
-const char *eid_conv(unsigned int m_value, char *eid);
+const char *eid_conv2(unsigned int value);
+const char *eid_conv(unsigned int value, char *eid);
 unsigned int eid_to_int(char *eid);
 unsigned int nsfChecksum(const unsigned char *data);
 void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
@@ -655,3 +656,4 @@ void checkpoint_stats();
 void nsd_util();
 void fov_stats();
 void draw_util();
+void tpage_util();

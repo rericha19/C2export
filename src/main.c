@@ -205,6 +205,9 @@ int main()
         case DRAW_UTIL:
             draw_util();
             break;
+        case TPAGE_UTIL:
+            tpage_util();
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;
