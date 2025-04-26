@@ -48,9 +48,10 @@
 #define PRELOADING_ALL 3
 
 #define C2_GOOL_TABLE_SIZE 0x40
-#define FPATH_COUNT 4
-#define OFFSET 0xC
+#define BUILD_FPATH_COUNT 4
+#define OFFSET 0xC // bad name
 #define CHUNKSIZE 65536
+#define CHUNK_CHECKSUM_OFFSET 0xC
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
@@ -550,7 +551,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                             ENTRY *elist, int entry_count, unsigned int *gool_table, int *config);
 int build_get_chunk_count_base(FILE *nsf);
 int build_ask_ID();
-void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int *config);
+void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config);
 void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char **chunks);
 void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char **chunks);
 int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);

@@ -30,7 +30,7 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
             *(unsigned int *)(chunks[chunk_index] + 0x14) = 0x24 + elist[i].esize;
 
             memcpy(chunks[chunk_index] + 0x24, elist[i].data, elist[i].esize);
-            *((unsigned int *)(chunks[chunk_index] + 0xC)) = nsfChecksum(chunks[chunk_index]);
+            *((unsigned int *)(chunks[chunk_index] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[chunk_index]);
             chunk_index++;
         }
 
@@ -128,7 +128,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
             if (sound_list[j].chunk == temp_chunk_count + i)
                 memcpy(chunks[temp_chunk_count + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
 
-        *(unsigned int *)(chunks[temp_chunk_count + i] + 0xC) = nsfChecksum(chunks[temp_chunk_count + i]);
+        *(unsigned int *)(chunks[temp_chunk_count + i] + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[temp_chunk_count + i]);
         free(offsets);
     }
 

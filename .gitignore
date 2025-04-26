@@ -17,3 +17,5 @@ c2export
 *.nsentry
 *.save-failed
 *.cscope_file_list
+
+!bin/run_make.bat

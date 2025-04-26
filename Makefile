@@ -35,7 +35,7 @@ $(TARGET_ST): $(OBJ_ST)
 
 # Clean up
 clean:
-	del /Q src\*_mt.o src\*_st.o bin\*.exe
+	del /Q src\*_mt.o src\*_st.o
 
 # Create bin directory if it doesn't exist
 $(TARGET_MT) $(TARGET_ST): | bin

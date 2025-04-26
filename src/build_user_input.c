@@ -26,9 +26,8 @@ int build_ask_ID()
  * \param fpath char*                   path to the file
  * \return void
  */
-void build_ask_list_paths(char fpaths[FPATH_COUNT][MAX], int *config)
+void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config)
 {
-
     int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
 
     printf("\nInput path to file with permaloaded entries:\n");

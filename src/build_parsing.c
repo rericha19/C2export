@@ -154,7 +154,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     int line_len, read;
     char temp[6];
 
-    char fpaths[FPATH_COUNT][MAX] = {0}; // paths to files, fpaths contains user-input metadata like perma list file
+    char fpaths[BUILD_FPATH_COUNT][MAX] = {0}; // paths to files, fpaths contains user-input metadata like perma list file
     build_ask_list_paths(fpaths, config);
 
     LIST perma = init_list();
@@ -996,7 +996,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
     {
         fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf);
         unsigned int checksum_calc = nsfChecksum(buffer);
-        unsigned int checksum_used = *(unsigned int *)(buffer + 0xC);
+        unsigned int checksum_used = *(unsigned int *)(buffer + CHUNK_CHECKSUM_OFFSET);
         if (checksum_calc != checksum_used)
             printf("Chunk %3d has invalid checksum\n", 2 * i + 1);
         int chunk_entry_count = from_u32(buffer + 0x8);

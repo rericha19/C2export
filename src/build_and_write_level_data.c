@@ -80,7 +80,7 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
         }
 
         sum += curr_offset;                                            // for avg
-        *((unsigned int *)(chunks[i] + 0xC)) = nsfChecksum(chunks[i]); // chunk checksum
+        *((unsigned int *)(chunks[i] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[i]); // chunk checksum
         free(offsets);
     }
 

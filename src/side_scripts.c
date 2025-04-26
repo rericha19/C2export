@@ -2317,7 +2317,8 @@ void tpage_util_util(char *fpath)
         if (from_u16(chunks[i] + 0x2) != CHUNK_TYPE_TEXTURE)
             continue;
 
-        printf("\t tpage %s\n", eid_conv2(from_u32(chunks[i] + 0x4)));
+        int checksum = from_u32(chunks[i] + CHUNK_CHECKSUM_OFFSET);
+        printf("\t tpage %s \t%08X\n", eid_conv2(from_u32(chunks[i] + 0x4)), checksum);
     }
     printf("\n");
     build_cleanup_elist(elist, entry_count);

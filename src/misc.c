@@ -259,7 +259,7 @@ unsigned int nsfChecksum(const unsigned char *data)
     unsigned int checksum = 0x12345678;
     for (int i = 0; i < 65536; i++)
     {
-        if (i < 12 || i >= 16)
+        if (i < CHUNK_CHECKSUM_OFFSET || i >= CHUNK_CHECKSUM_OFFSET + 4)
             checksum += data[i];
         checksum = checksum << 3 | checksum >> 29;
     }
