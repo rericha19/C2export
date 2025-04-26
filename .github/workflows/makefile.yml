@@ -20,7 +20,6 @@ jobs:
 
     - name: Build Executable using Makefile
       run: |
-        mkdir -p bin
         make all
 
     - name: Upload Executable
