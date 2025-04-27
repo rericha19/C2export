@@ -124,6 +124,7 @@
 #define FOV_UTIL 2792294477u
 #define DRAW_UTIL 3986824656u
 #define TPAGE_UTIL 3993095059u
+#define GOOL_UTIL 2723710419u
 
 // #define INTRO                           223621809u
 // #define STATUS                          3482341513u
@@ -418,6 +419,7 @@ unsigned long comm_str_hash(const char *str);
 const char *eid_conv2(unsigned int value);
 const char *eid_conv(unsigned int value, char *eid);
 unsigned int eid_to_int(char *eid);
+unsigned int nsfChecksumA(const unsigned char *data, int size);
 unsigned int nsfChecksum(const unsigned char *data);
 void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
 void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status);
@@ -427,12 +429,8 @@ int cmp_func_load2(const void *a, const void *b);
 int cmp_func_payload(const void *a, const void *b);
 int cmp_func_uint(const void *a, const void *b);
 int load_list_sort(const void *a, const void *b);
-void combinationUtil(int arr[], int data[], int start, int end, int index, int r, int ***res, int *counter);
-void getCombinations(int arr[], int n, int r, int ***res, int *counter);
-int to_enum(const void *a);
 int cmp_func_eid(const void *a, const void *b);
 int cmp_func_esize(const void *a, const void *b);
-int snd_cmp(const void *a, const void *b);
 int relations_cmp(const void *a, const void *b);
 int relations_cmp2(const void *a, const void *b);
 LIST init_list();
@@ -658,3 +656,4 @@ void nsd_util();
 void fov_stats();
 void draw_util();
 void tpage_util();
+void gool_util();

@@ -46,6 +46,9 @@ void print_help2()
     printf("TPAGE_UTIL\n");
     printf("\t list tpages within files (folder)\n");
 
+    printf("GOOL_UTIL\n");
+    printf("\t list gool entries within files (folder)\n");
+
     printf("A <angle> & TIME\n");
     printf("\t modpack crate rotation, TT value\n");
 
@@ -253,17 +256,22 @@ unsigned int eid_to_int(char *eid)
     return result;
 }
 
-unsigned int nsfChecksum(const unsigned char *data)
-// calculates chunk checksum
-{
+unsigned int nsfChecksumA(const unsigned char *data, int size) 
+// calculates chunk checksum, also can used for other things since its just CRC
+{    
     unsigned int checksum = 0x12345678;
-    for (int i = 0; i < 65536; i++)
+    for (int i = 0; i < size; i++)
     {
         if (i < CHUNK_CHECKSUM_OFFSET || i >= CHUNK_CHECKSUM_OFFSET + 4)
             checksum += data[i];
         checksum = checksum << 3 | checksum >> 29;
     }
     return checksum;
+}
+
+unsigned int nsfChecksum(const unsigned char *data)
+{
+    return nsfChecksumA(data, CHUNKSIZE);
 }
 
 // integer comparison func for qsort

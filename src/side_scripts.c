@@ -2335,3 +2335,50 @@ void tpage_util()
     recursive_folder_iter(dpath, tpage_util_util);
     printf("\nDone.\n\n");
 }
+
+
+void gool_util_util(char *fpath)
+{
+    ENTRY elist[ELIST_DEFAULT_SIZE];
+    int entry_count = 0;
+
+    char *filename = strrchr(fpath, '\\');
+    if (filename != NULL)
+    {
+        filename++;
+    }
+    else
+    {
+        filename = fpath;
+    }
+
+    if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+        return;
+
+    printf("File %s:\n", fpath);
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_GOOL)
+            continue;
+
+        int off1 = build_get_nth_item_offset(elist[i].data, 0);
+        int tpe = from_u32(elist[i].data + off1);
+
+        printf("\t gool %5s-%02d \t%08X\n", eid_conv2(elist[i].eid), tpe, nsfChecksumA(elist[i].data, elist[i].esize));
+    }
+
+    printf("\n");
+    build_cleanup_elist(elist, entry_count);
+}
+
+void gool_util() 
+{
+    printf("Input the path to the folder\n");
+    char dpath[MAX] = "";
+
+    scanf(" %[^\n]", dpath);
+    path_fix(dpath);
+
+    recursive_folder_iter(dpath, gool_util_util);
+    printf("\nDone.\n\n");
+}
