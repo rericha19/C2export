@@ -431,7 +431,7 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     temp.chunks = (int *)malloc(count * sizeof(int)); // freed by payload ladder function, caller 3 layers up iirc
     memcpy(temp.chunks, chunks, sizeof(int) * count);
     temp.tcount = tcount;
-    temp.tchunks = (int *)malloc(count * sizeof(int));
+    temp.tchunks = (int *)malloc(tcount * sizeof(int));
     memcpy(temp.tchunks, tchunks, sizeof(int) * tcount);
     return temp;
 }
