@@ -42,7 +42,7 @@ void print_help2()
 
     printf("TEXTURE_RECOLOR\n");
     printf("\t recolor texture clut colors to selected hue / brightness\n");
-    
+
     printf("WARP_SPAWNS\n");
     printf("\t modpack, used to generate warp room spawns from the nsf\n");
 
@@ -121,7 +121,7 @@ void print_help()
     printf("EXPORT & EXPORTALL\n");
     printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
 
-    printf("LEVEL_WIPE_DL & LEVEL_WIPE_CLS\n");
+    printf("LEVEL_WIPE_DL & LEVEL_WIPE_ENT\n");
     printf("\t remove draw lists / remove draw lists + entities from level (scrambles the level a bit)\n");
 
     printf("NSD\n");

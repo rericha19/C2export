@@ -215,7 +215,7 @@ int main()
             level_wipe(0);
             break;
         case LEVEL_WIPE_ENT:
-            printf("Not implemented\n");
+            printf("WIP Not implemented yet\n");
             //level_wipe(1);
             break;
         default:
