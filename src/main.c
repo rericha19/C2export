@@ -211,6 +211,13 @@ int main()
         case GOOL_UTIL:
             gool_util();
             break;
+        case LEVEL_WIPE_DL:
+            level_wipe(0);
+            break;
+        case LEVEL_WIPE_ENT:
+            printf("Not implemented\n");
+            //level_wipe(1);
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;

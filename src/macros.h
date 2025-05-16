@@ -104,6 +104,8 @@
 #define ENTITY_USAGE 3822178934u
 #define PAYLOAD_INFO 2536593146u
 #define REBUILD_DL 242786907u
+#define LEVEL_WIPE_DL 759838528u
+#define LEVEL_WIPE_ENT 3599836183u
 
 #define KILL 2089250961u
 #define WARP_SPAWNS 3243144250u
@@ -233,6 +235,7 @@ typedef struct entry
     unsigned int eid;
     int esize;
     int chunk;
+    int og_chunk;
     unsigned char *data;
     unsigned int *related;
     unsigned int *distances;
@@ -501,6 +504,7 @@ int build_get_scen_count(unsigned char *entry);
 int build_get_entity_count(unsigned char *entry);
 unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns);
 int build_entry_type(ENTRY entry);
+int build_chunk_type(unsigned char* chunk);
 unsigned int *build_get_gool_relatives(unsigned char *entry, int entrysize);
 void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture,
                     int *entry_count, FILE *nsf, unsigned int *gool_table);
@@ -514,7 +518,7 @@ void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rat
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
 RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int *config, ENTRY *elist, int entry_count);
 void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded, double merge_ratio, double mult);
-void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks);
+void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks, int do_end_print);
 int build_get_entity_prop(unsigned char *entity, int prop_code);
 void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void build_add_model_textures_to_list(unsigned char *model, LIST *list);
@@ -657,3 +661,4 @@ void fov_stats();
 void draw_util();
 void tpage_util();
 void gool_util();
+void level_wipe(int wipe_entities);

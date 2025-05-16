@@ -1000,7 +1000,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
         if (checksum_calc != checksum_used)
             printf("Chunk %3d has invalid checksum\n", 2 * i + 1);
         int chunk_entry_count = from_u32(buffer + 0x8);
-        if (from_u16(buffer + 0x2) == CHUNK_TYPE_TEXTURE)
+        if (build_chunk_type(buffer) == CHUNK_TYPE_TEXTURE)
         {
             if (chunks != NULL)
             {
@@ -1009,6 +1009,7 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
             }
             elist[*entry_count].eid = from_u32(buffer + 4);
             elist[*entry_count].chunk = lcl_chunk_border_texture;
+            elist[*entry_count].og_chunk = i;
             elist[*entry_count].data = NULL;
             elist[*entry_count].related = NULL;
             elist[*entry_count].visited = NULL;
@@ -1036,6 +1037,8 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
                     elist[*entry_count].chunk = -1;
                 else
                     elist[*entry_count].chunk = i;
+
+                elist[*entry_count].og_chunk = i;
 
                 if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_ZONE)
                     build_check_item_count(elist[*entry_count].data, elist[*entry_count].eid);

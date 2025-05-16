@@ -16,7 +16,6 @@
  */
 void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks, FILE *nsfnew2)
 {
-    build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks);
     for (int i = 0; i < chunk_count; i++)
         fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
     if (nsfnew2 != NULL)
@@ -34,7 +33,7 @@ void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_bord
  * \param chunks unsigned char**        array of chunks
  * \return void
  */
-void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks)
+void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks, int do_end_print)
 {
     int i, j, sum = 0;
     // texture, wavebank and sound chunks are already taken care of, thats why it starts after sounds
@@ -84,7 +83,8 @@ void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds,
         free(offsets);
     }
 
-    printf("Average normal chunk portion taken: %.3f%c\n", (100 * (double)sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE, '%');
+    if (do_end_print)
+        printf("Average normal chunk portion taken: %.3f%c\n", (100 * (double)sum / (chunk_count - chunk_border_sounds)) / CHUNKSIZE, '%');
 }
 
 unsigned int build_get_ldat_eid(int level_ID)

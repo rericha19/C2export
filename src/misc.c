@@ -25,6 +25,24 @@ void print_help2()
     printf("KILL\n");
     printf("\t ends the program\n");
 
+    printf("PROP & NSF_PROP\n");
+    printf("\t print a list of properties in an entity or all occurences of entity in a NSF\n");
+
+    printf("PROP_REMOVE\n");
+    printf("\t removes a property from an entity\n");
+
+    printf("PROP_REPLACE\n");
+    printf("\t replaces (or inserts) a property into dest entity with prop from source entity\n");
+
+    printf("TEXTURE\n");
+    printf("\t copies tiles from one texture chunk to another (doesnt include CLUTs)\n");
+
+    printf("SCEN_RECOLOR\n");
+    printf("\t recolor vertex colors to selected hue / brightness\n");
+
+    printf("TEXTURE_RECOLOR\n");
+    printf("\t recolor texture clut colors to selected hue / brightness\n");
+    
     printf("WARP_SPAWNS\n");
     printf("\t modpack, used to generate warp room spawns from the nsf\n");
 
@@ -97,35 +115,20 @@ void print_help()
     printf("BUILD & REBUILD & REBUILD_DL\n");
     printf("\t builds a level from chosen inputs\n");
 
+    printf("LL_ANALYZE\n");
+    printf("\t stats about the level, integrity checks\n");
+
     printf("EXPORT & EXPORTALL\n");
     printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
 
-    printf("PROP & NSF_PROP\n");
-    printf("\t print a list of properties in an entity or all occurences of entity in a NSF\n");
-
-    printf("PROP_REMOVE\n");
-    printf("\t removes a property from an entity\n");
-
-    printf("PROP_REPLACE\n");
-    printf("\t replaces (or inserts) a property into dest entity with prop from source entity\n");
-
-    printf("TEXTURE\n");
-    printf("\t copies tiles from one texture chunk to another (doesnt include CLUTs)\n");
-
-    printf("SCEN_RECOLOR\n");
-    printf("\t recolor vertex colors to selected hue / brightness\n");
-
-    printf("TEXTURE_RECOLOR\n");
-    printf("\t recolor texture clut colors to selected hue / brightness\n");
+    printf("LEVEL_WIPE_DL & LEVEL_WIPE_CLS\n");
+    printf("\t remove draw lists / remove draw lists + entities from level (scrambles the level a bit)\n");
 
     printf("NSD\n");
     printf("\t prints gool table from the nsd\n");
 
     printf("EID <EID>\n");
     printf("\t prints the EID in hex form\n");
-
-    printf("LL_ANALYZE\n");
-    printf("\t stats about the level, integrity checks\n");
 
     printf("GEN_SPAWN\n");
     printf("\t NSD spawn generation for input level, zone and entity ID\n");

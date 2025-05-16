@@ -271,6 +271,13 @@ int build_entry_type(ENTRY entry)
     return *(int *)(entry.data + 8);
 }
 
+int build_chunk_type(unsigned char* chunk) {
+    if (chunk == NULL)
+        return -1;
+
+    return from_u16(chunk + 0x2);
+}
+
 void build_check_item_count(unsigned char *zone, int eid)
 {
     int item_count = build_item_count(zone);
@@ -869,6 +876,7 @@ void build_main(int build_rebuild_flag)
     // build and write nsf and nsd file
     build_write_nsd(nsd, nsd2, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
     build_sort_load_lists(elist, entry_count);
+    build_normal_chunks(elist, entry_count, chunk_border_sounds, chunk_count, chunks, 1);
     build_write_nsf(nsfnew, elist, entry_count, chunk_border_sounds, chunk_count, chunks, nsfnew2);
 
     // get rid of at least some dynamically allocated memory, p sure there are leaks all over the place but oh well
