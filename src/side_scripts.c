@@ -2473,6 +2473,26 @@ void level_wipe(int wipe_ents)
         }
     }
 
+    if (wipe_ents)
+    {
+        for (int i = 0; i < entry_count; i++)
+        {
+            if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+                continue;
+
+            int cam_item_count = build_get_cam_item_count(elist[i].data);
+            int entity_count = build_get_entity_count(elist[i].data);
+
+            for (int j = entity_count - 1; j >= 0; j--)
+            {
+                build_remove_nth_item(&elist[i], 2 + cam_item_count + j);
+            }
+
+            int item1off = build_get_nth_item_offset(elist[i].data, 0);
+            *(int *)(elist[i].data + item1off + 0x18C) = 0;
+        }
+    }
+
     for (int i = 0; i < entry_count; i++)
     {
         int et = build_entry_type(elist[i]);

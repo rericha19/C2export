@@ -526,6 +526,7 @@ unsigned char *build_add_property(unsigned int code, unsigned char *item, int *i
 unsigned char *build_rem_property(unsigned int code, unsigned char *item, int *item_size, PROPERTY *prop);
 void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *),
                         int property_code, PROPERTY *prop);
+void build_remove_nth_item(ENTRY *zone, int n);
 LIST build_get_links(unsigned char *entry, int cam_index);
 void build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int *coords, int path_length, LIST additions);
 void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int *coords, int path_length, LIST additions);

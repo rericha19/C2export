@@ -215,8 +215,7 @@ int main()
             level_wipe(0);
             break;
         case LEVEL_WIPE_ENT:
-            printf("WIP Not implemented yet\n");
-            //level_wipe(1);
+            level_wipe(1);
             break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
