@@ -10,10 +10,10 @@
 
 use **make** to compile
 
-
 ##### How to use
 
-See program's **help** command, if there are issues or questions DM me at Averso#5633 or create an issue.
+See program's **HELP** command (and HELP2), if there are issues or questions DM me at Averso#5633 or create an issue. \
+**See github Actions tab for compiled executables (Artifacts).**
 
 
 #### REBUILD / REBUILD_DL
@@ -79,7 +79,7 @@ It is in zone header (item 0), +0x1DC is special load list entry count, followin
 Airumu's 2025 CrashEdit fork supports them without having to hex edit.
 
 **For draw list generation, for each entity it is possible to specify 2 extra properties:**
-- position override id
+- position override ID
   - instead of using current entity's position, use position of another entity (specify its ID)
   - the entity must be from the same zone as the replacement/override entity
   - uses BOX COUNT PROP (for 0-0 it doesnt matter, for 4-17 entities its disabled because of modpack)
@@ -88,3 +88,15 @@ Airumu's 2025 CrashEdit fork supports them without having to hex edit.
   - default is 100, can be >100
   - uses BONUS BOX COUNT PROP
   
+### Other more useful commands
+
+#### LL_ANALYZE
+- runs a series of checks on the NSF, including draw list integrity, entry and entity usage, payload info and others
+
+#### PAYLOAD_INFO
+- prints a more detailed rundown of what is being loaded in all cameras of the level (chunks)
+
+#### EID
+- conversion from string version of an eid to game's hex representation
+
+... for full list see in-program's HELP / HELP2 commands
