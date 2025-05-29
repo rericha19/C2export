@@ -608,6 +608,7 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count)
 
     if (!omit)
     {
+        printf("Not omitting\n");
         return;
     }
 

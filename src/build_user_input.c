@@ -16,6 +16,7 @@ int build_ask_ID()
         printf("Invalid ID, defaulting to 1\n");
         level_ID = 1;
     }
+    printf("Selected level ID %02X\n", level_ID);
 
     return level_ID;
 }
@@ -33,6 +34,7 @@ void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config)
     printf("\nInput path to file with permaloaded entries:\n");
     scanf(" %[^\n]", fpaths[0]);
     path_fix(fpaths[0]);
+    printf("Using %s for permaloaded entries\n", fpaths[0]);
 
     // if building load lists
     if (remaking_load_lists_flag)
@@ -40,15 +42,17 @@ void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config)
         printf("\nInput path to file with type/subtype dependencies:\n");
         scanf(" %[^\n]", fpaths[1]);
         path_fix(fpaths[1]);
+        printf("Using %s for type/subtype dependencies\n", fpaths[1]);
 
         printf("\nInput path to file with collision dependencies [assumes file is not necessary if path is invalid]:\n");
         scanf(" %[^\n]", fpaths[2]);
         path_fix(fpaths[2]);
-        // strcpy(fpaths[2], "collision list.txt");
+        printf("Using %s for collision dependencies\n", fpaths[2]);
 
         printf("\nInput path to file with music entry dependencies [assumes file is not necessary if path is invalid]:\n");
         scanf(" %[^\n]", fpaths[3]);
         path_fix(fpaths[3]);
+        printf("Using %s for music entry dependencies\n\n", fpaths[3]);
     }
 }
 
@@ -77,6 +81,7 @@ void build_ask_spawn(SPAWNS spawns)
     }
 
     build_swap_spawns(spawns, 0, input);
+    printf("Using spawn %d: Zone: %s\n", input + 1, eid_conv(spawns.spawns[0].zone, temp));
 }
 
 void build_ask_draw_distances(int *config)
@@ -86,18 +91,22 @@ void build_ask_draw_distances(int *config)
     printf("\nDraw distance 2D horizontal (x-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_CAP_X] = temp;
+    printf("Selected %d for horizontal draw distance\n", temp);
 
     printf("\nDraw distance 2D vertical (y-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y] = temp;
+    printf("Selected %d for vertical draw distance\n", temp);
 
     printf("\nDraw distance 3D sections (xz-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ] = temp;
+    printf("Selected %d for 3D sections draw distance\n", temp);
 
     printf("\nMax allowed angle distance for 3D sections (default to 90)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] = temp;
+    printf("Selected %d for max allowed angle distance for 3D sections\n", temp);
 }
 
 /** \brief
@@ -113,14 +122,17 @@ void build_ask_distances(int *config)
     printf("\nSLST distance?      (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_LL_SLST_DIST_VALUE] = temp;
+    printf("Selected %d for SLST distance\n", temp);
 
     printf("\nNeighbour distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_LL_NEIGH_DIST_VALUE] = temp;
+    printf("Selected %d for neighbour distance\n", temp);
 
     printf("\nDraw list distance? (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_LL_DRAW_DIST_VALUE] = temp;
+    printf("Selected %d for draw list distance\n", temp);
 
     printf("\nTransition pre-loading? [0 - none / 1 - textures / 2 - normal chunk entries only / 3 - all]\n");
     scanf("%d", &ans);
@@ -128,6 +140,7 @@ void build_ask_distances(int *config)
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = ans;
     else
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
+    
     switch (config[CNFG_IDX_LL_TRNS_PRLD_FLAG])
     {
     default:
@@ -154,6 +167,7 @@ void build_ask_distances(int *config)
         backw = 0;
     }
     config[CNFG_IDX_LL_BACKWARDS_PENALTY] = (int)(PENALTY_MULT_CONSTANT * backw);
+    printf("Selected %.2f for backwards loading penalty\n", backw);
 }
 
 /** \brief
@@ -193,11 +207,20 @@ void build_ask_build_flags(int *config)
     printf("[2] - relatives & payload merge [deprecate, bad]\n");
     printf("[3] - state set graph search based merge (A*/DFS) [slow, no guaranteed result]\n");
     printf("[4] - occurence count matrix merge (absolute) with randomness\n");
+    int max_ans = 4;
 #if COMPILE_WITH_THREADS
     printf("[5] - occurence count matrix merge (absolute) with randomness multithreaded\n");
+    max_ans = 5;
 #endif // COMPILE_WITH_THREADS
+
     scanf("%d", &ans);
     config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
+    printf("Selected merge method %d\n", ans);
+        
+    if (ans < 0 || ans > max_ans){
+        printf(" unknown, defaulting to 4\n");
+        config[CNFG_IDX_MERGE_METHOD_VALUE] = 4;
+    }
     printf("\n");
 }
 

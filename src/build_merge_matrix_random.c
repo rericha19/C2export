@@ -31,16 +31,17 @@ typedef struct matrix_merge_thread_input_struct
 // asking user parameters for the method
 void ask_params_matrix(double *mult, int *iter_count, int *seed, int *max_payload_limit)
 {
-
     printf("\nMax payload limit? (usually 21 or 20)\n");
     scanf("%d", max_payload_limit);
+    printf("Max payload limit used: %d\n", *max_payload_limit);
     printf("\n");
 
     printf("Max iteration count? (0 for no limit)\n");
-    scanf("%d", iter_count);
-    printf("\n");
+    scanf("%d", iter_count);    
     if (*iter_count < 0)
         *iter_count = 100;
+    printf("Max iteration count used: %d\n", *iter_count);
+    printf("\n");
 
     printf("Randomness multiplier? (> 1, use 1.5 if not sure)\n");
     scanf("%lf", mult);
@@ -49,6 +50,7 @@ void ask_params_matrix(double *mult, int *iter_count, int *seed, int *max_payloa
         *mult = 1.5;
         printf("Invalid multiplier, defaulting to 1.5\n");
     }
+    printf("Multiplier used: %.2f\n", *mult);
     printf("\n");
 
     printf("Seed? (0 for random)\n");

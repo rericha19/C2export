@@ -1,7 +1,5 @@
-c2export_dl.exe
-wipe
 rebuild_dl
-"..\rebuild_examples\snowgo_rblt_dl\og_snowgo.NSF"
+..\rebuild_examples\snowgo_rblt_dl\og_snowgo.NSF
 0E
 -
 1
@@ -26,4 +24,3 @@ rebuild_dl
 2.5
 0
 4
-kill

@@ -617,13 +617,13 @@ void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_
     int max_payload_limit = 21;
     printf("Max payload limit? [usually 21 or 20]\n");
     scanf("%d", &max_payload_limit);
-    printf("\n");
+    printf("Max payload limit is %d\n", max_payload_limit);
 
     long long int iter_limit = 0;
     int iter_print = 1000;
     printf("Iteration limit? [try 10000 if you're not sure] [0 removes the limit]\n");
     scanf("%I64d", &iter_limit);
-    printf("\n");
+    printf("Iteration limit is %I64d\n", iter_limit);
 
     int temp_max, temp_eval, min = 0x7FFFFFFF;
     printf("Printing status line every time new best is reached, or every %d iterations\n", iter_print);
