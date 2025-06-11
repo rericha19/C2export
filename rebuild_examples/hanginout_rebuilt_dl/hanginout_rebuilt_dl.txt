@@ -1,13 +1,11 @@
-wipe
-
 rebuild_dl
-"..\rebuild_examples\hanginout_rebuilt_dl\S0000024.NSF"
-0D
+..\rebuild_examples\hanginout_rebuilt_dl\S0000024.NSF
+D
 -
 1
 5
 1
-"..\rebuild_examples\hanginout_rebuilt_dl\hangin_out_perma.txt"
+..\rebuild_examples\hanginout_rebuilt_dl\hangin_out_perma.txt
 "..\rebuild_examples\hanginout_rebuilt_dl\vanilla dependency list.txt"
 -
 -
@@ -26,5 +24,3 @@ rebuild_dl
 2.5
 0
 4
-
-kill

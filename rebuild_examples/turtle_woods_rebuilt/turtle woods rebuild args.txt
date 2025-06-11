@@ -1,7 +1,5 @@
-c2export_dl.exe
-wipe
 rebuild
-"..\rebuild_examples\turtle_woods_rebuilt\og_turtle_woods.NSF"
+..\rebuild_examples\turtle_woods_rebuilt\og_turtle_woods.NSF
 1E
 -
 1
@@ -22,4 +20,3 @@ rebuild
 2.5
 0
 4
-kill

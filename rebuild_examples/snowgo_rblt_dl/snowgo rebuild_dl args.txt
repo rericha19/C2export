@@ -1,6 +1,6 @@
 rebuild_dl
 ..\rebuild_examples\snowgo_rblt_dl\og_snowgo.NSF
-0E
+E
 -
 1
 5
@@ -9,10 +9,10 @@ rebuild_dl
 "..\rebuild_examples\snowgo_rblt_dl\vanilla dependency list.txt"
 -
 -
-5000
+6000
 5000
 30000
-50
+70
 10000
 10000
 10000

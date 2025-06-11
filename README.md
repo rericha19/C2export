@@ -15,8 +15,17 @@ use **make** to compile
 See program's **HELP** command (and HELP2), if there are issues or questions DM me at Averso#5633 or create an issue. \
 **See github Actions tab for compiled executables (Artifacts).**
 
+### REBUILD / REBUILD_DL (CrashEdit:Re integration)
+Since CrashEdit:Re's v0.4.0.2 there is integration for rebuild and rebuild_dl commands, which allows you to run c2export from CrashEdit.
+It has UI for creating and editing rebuild argument files, which is easier to use than raw cmd input.
+\
+CrashEdit:Re: 
+https://github.com/airumu/CrashEdit
+Showcase:
+todo
 
-#### REBUILD / REBUILD_DL
+
+#### REBUILD / REBUILD_DL (standalone / direct)
 
 Arguably the most useful commands in the tool, used to rebuild levels. \
 Allows to generate load lists and draw lists given parameters and input files. \
