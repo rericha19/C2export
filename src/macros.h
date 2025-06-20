@@ -127,14 +127,25 @@
 #define DRAW_UTIL 3986824656u
 #define TPAGE_UTIL 3993095059u
 #define GOOL_UTIL 2723710419u
+#define CONV_OLD_DL_OVERRIDE 2382887815u
 
 // #define INTRO                           223621809u
 // #define STATUS                          3482341513u
 // #define CHANGEMODE                      588358864u
 
-#define FUNCTION_BUILD 1
-#define FUNCTION_REBUILD 2
-#define FUNCTION_REBUILD_DL 3
+enum
+{
+    BuildType_Build = 1,
+    BuildType_Rebuild,
+    BuildType_Rebuild_DL,
+};
+
+enum
+{
+    Alter_Type_WipeDL,
+    Alter_Type_WipeEnts,
+    Alter_Type_Old_DL_Override,
+};
 
 #define ENTRY_TYPE_ANIM 0x1
 #define ENTRY_TYPE_MODEL 0x2
@@ -166,6 +177,11 @@
 #define ENTITY_PROP_VICTIMS 0x287
 #define ENTITY_PROp_DDA_SECTION 0x288
 #define ENTITY_PROP_BOX_COUNT 0x28B
+
+#define ENTITY_PROP_OVERRIDE_DRAW_ID 0x3FE
+#define ENTITY_PROP_OVERRIDE_DRAW_MULT 0x3FF
+#define ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD 0x337
+#define ENTITY_PROP_OVERRIDE_DRAW_ID_OLD 0x28B
 
 #define ENTITY_PROP_CAMERA_MODE 0x29
 #define ENTITY_PROP_CAM_AVG_PT_DIST 0xC9
@@ -504,7 +520,7 @@ int build_get_scen_count(unsigned char *entry);
 int build_get_entity_count(unsigned char *entry);
 unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns);
 int build_entry_type(ENTRY entry);
-int build_chunk_type(unsigned char* chunk);
+int build_chunk_type(unsigned char *chunk);
 unsigned int *build_get_gool_relatives(unsigned char *entry, int entrysize);
 void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture,
                     int *entry_count, FILE *nsf, unsigned int *gool_table);
@@ -641,6 +657,7 @@ void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
 void rotate_rotate(unsigned int *y, unsigned int *x, double rotation);
 void crate_rotation_angle();
 void nsd_gool_table_print(char *fpath);
+PROPERTY *get_prop(unsigned char *item, int prop_code);
 void prop_remove_script();
 void prop_replace_script();
 void generate_spawn();
@@ -662,4 +679,9 @@ void fov_stats();
 void draw_util();
 void tpage_util();
 void gool_util();
-void level_wipe(int wipe_entities);
+
+// level_alter.c
+void level_alter_pseudorebuild(int wipe_entities);
+void wipe_draw_lists(ENTRY *elist, int entry_count);
+void wipe_entities(ENTRY *elist, int entry_count);
+void convert_old_dl_override(ENTRY *elist, int entry_count);

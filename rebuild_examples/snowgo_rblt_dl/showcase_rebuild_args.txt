@@ -1,0 +1,26 @@
+rebuild_dl
+C:\Users\samo1\Desktop\C2export\rebuild_examples\snowgo_rblt_dl\og_snowgo.NSF
+E
+-
+1
+5
+1
+"C:\Users\samo1\Desktop\C2export\rebuild_examples\snowgo_rblt_dl\snow go perma list.txt"
+"C:\Users\samo1\Desktop\C2export\rebuild_examples\snowgo_rblt_dl\vanilla dependency list.txt"
+-
+-
+7000
+6000
+7000
+70
+10000
+10000
+10000
+3
+0
+0
+20
+2000
+2.00
+0
+4

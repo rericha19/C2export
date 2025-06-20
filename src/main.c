@@ -104,13 +104,13 @@ int main()
             rotate_main(lcltemp);
             break;
         case BUILD:
-            build_main(FUNCTION_BUILD);
+            build_main(BuildType_Build);
             break;
         case REBUILD:
-            build_main(FUNCTION_REBUILD);
+            build_main(BuildType_Rebuild);
             break;
         case REBUILD_DL:
-            build_main(FUNCTION_REBUILD_DL);
+            build_main(BuildType_Rebuild_DL);
             break;
         case PROP:
             printf("Input the path to the file:\n");
@@ -212,10 +212,13 @@ int main()
             gool_util();
             break;
         case LEVEL_WIPE_DL:
-            level_wipe(0);
+            level_alter_pseudorebuild(Alter_Type_WipeDL);
             break;
         case LEVEL_WIPE_ENT:
-            level_wipe(1);
+            level_alter_pseudorebuild(Alter_Type_WipeEnts);
+            break;
+        case CONV_OLD_DL_OVERRIDE:
+            level_alter_pseudorebuild(Alter_Type_Old_DL_Override);
             break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);

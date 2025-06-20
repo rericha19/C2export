@@ -686,10 +686,10 @@ void build_print_transitions(ENTRY *elist, int entry_count)
 /** \brief
  *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
  *
- * \param build_rebuild_flag            build or rebuild
+ * \param build_type            build or rebuild
  * \return void
  */
-void build_main(int build_rebuild_flag)
+void build_main(int build_type)
 {
 
     clock_t time_build_start = clock();
@@ -746,11 +746,11 @@ void build_main(int build_rebuild_flag)
 
     int input_parse_rtrn_value = 1;
     // reading contents of the nsf/folder and collecting metadata
-    if (build_rebuild_flag == FUNCTION_BUILD)
+    if (build_type == BuildType_Build)
         input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
-    if (build_rebuild_flag == FUNCTION_REBUILD || build_rebuild_flag == FUNCTION_REBUILD_DL)
+    if (build_type == BuildType_Rebuild || build_type == BuildType_Rebuild_DL)
         input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
 
     chunk_count = chunk_border_texture;
@@ -818,7 +818,7 @@ void build_main(int build_rebuild_flag)
     /*for (int i = 0; i < entry_count; i++)
         list_add(&permaloaded, elist[i].eid);*/
 
-    if (build_rebuild_flag == FUNCTION_REBUILD_DL)
+    if (build_type == BuildType_Rebuild_DL)
     {
         build_ask_draw_distances(config);
         build_remake_draw_lists(elist, entry_count, config);

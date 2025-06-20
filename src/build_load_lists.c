@@ -93,8 +93,8 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
         {
             unsigned char *entity = build_get_nth_item(neighbour.data, 2 + neigh_cams + n);
             int ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
-            int ent_dist_mult = build_get_entity_prop(entity, 0x337);
-            int pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_BOX_COUNT);
+            int ent_override_mult = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_MULT);
+            int pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_ID);
 
             int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
             int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
@@ -122,14 +122,14 @@ void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *c
                 }
             }
 
-            if (ent_dist_mult == -1)
-                ent_dist_mult = 100;
+            if (ent_override_mult == -1)
+                ent_override_mult = 100;
             else
-                ent_dist_mult = ent_dist_mult / 0x100;
+                ent_override_mult = ent_override_mult / 0x100;
 
-            int allowed_dist_x = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_X]) / 100);
-            int allowed_dist_y = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y]) / 100);
-            int allowed_dist_xz = ((ent_dist_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ]) / 100);
+            int allowed_dist_x = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_X]) / 100);
+            int allowed_dist_y = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y]) / 100);
+            int allowed_dist_xz = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ]) / 100);
             int allowed_angledist = config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D];
 
             short int *ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);

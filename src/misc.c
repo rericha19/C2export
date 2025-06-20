@@ -89,6 +89,9 @@ void print_help2()
     printf("ENT_RESIZE\n");
     printf("\t converts c3 entity to c2 entity (path adjustment)\n");
 
+    printf("CONV_OLD_DL_OVERRIDE\n");
+    printf("\t converts old draw list override to new format (NSF)\n");
+
     printf("ENT_MOVE\n");
     printf("\t moves an entity by chosen amount\n");
 
@@ -121,7 +124,7 @@ void print_help()
     printf("EXPORT & EXPORTALL\n");
     printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
 
-    printf("LEVEL_WIPE_DL & LEVEL_WIPE_ENT\n");
+    printf("level_alter_pseudorebuild_DL & level_alter_pseudorebuild_ENT\n");
     printf("\t remove draw lists / remove draw lists + entities from level (scrambles the level a bit)\n");
 
     printf("NSD\n");
