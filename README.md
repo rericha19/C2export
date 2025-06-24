@@ -19,10 +19,10 @@ See program's **HELP** command (and HELP2), if there are issues or questions DM 
 Since CrashEdit:Re's v0.4.0.2 there is integration for rebuild and rebuild_dl commands, which allows you to run c2export from CrashEdit.
 It has UI for creating and editing rebuild argument files, which is easier to use than raw cmd input.
 \
-CrashEdit:Re: 
-https://github.com/airumu/CrashEdit
-Showcase:
-todo
+CrashEdit:Re: \
+https://github.com/airumu/CrashEdit \
+Showcase: \
+https://youtu.be/BTdX0XOQf4E \
 
 
 #### REBUILD / REBUILD_DL (standalone / direct)
@@ -85,17 +85,17 @@ This writeup assumes and recommends that you:
 **Special properties and attributes**
 For load list generation, it is possible to specify extra entries to load in that zone.
 It is in zone header (item 0), +0x1DC is special load list entry count, following data is special entries' EIDs.
-Airumu's 2025 CrashEdit fork supports them without having to hex edit.
+CrashEdit:Re fork has UI support for them
 
 **For draw list generation, for each entity it is possible to specify 2 extra properties:**
-- position override ID
+- draw list position override ID
   - instead of using current entity's position, use position of another entity (specify its ID)
   - the entity must be from the same zone as the replacement/override entity
-  - uses BOX COUNT PROP (for 0-0 it doesnt matter, for 4-17 entities its disabled because of modpack)
-- distance multiplier
+  - uses property 0x3FE, CrashEdit:Re fork lets you edit them in UI
+- draw list distance multiplier
   - instead of using the exact value of current distance, use a percentage of it
   - default is 100, can be >100
-  - uses BONUS BOX COUNT PROP
+  - uses property 0x3FF, CrashEdit:Re fork lets you edit them in UI
   
 ### Other more useful commands
 
