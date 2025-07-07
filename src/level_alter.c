@@ -80,6 +80,444 @@ void convert_old_dl_override(ENTRY *elist, int entry_count)
     }
 }
 
+void swap_node(unsigned short int *a, unsigned short int *b)
+{
+    unsigned short int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+typedef struct col_info_single
+{
+    unsigned short int offset_value;
+    unsigned short int children_count;
+    LIST found_at;
+} CollisionNodeInfoSingle;
+
+typedef struct col_info
+{
+    CollisionNodeInfoSingle nodes[CHUNKSIZE / 2];
+    int count;
+} CollisionNodeInfo;
+
+void collflip_list_nodes(unsigned char *item, int offset, int depth, int maxx, int maxy, int maxz, CollisionNodeInfo *node_info, int parent_offset)
+{
+    if (offset < 0x1C)
+    {
+        printf("!!!!!!!!!!!!! uuu weird (doesnt happen anymore?) %4x\n", offset);
+        return;
+    }
+    unsigned short int *children = (unsigned short int *)(item + offset);
+
+    int num_children = 1;
+    if (depth)
+    {
+        if (depth <= maxx)
+            num_children <<= 1;
+        if (depth <= maxy)
+            num_children <<= 1;
+        if (depth <= maxz)
+            num_children <<= 1;
+    }
+
+    int is_new = 1;
+    for (int i = 0; i < node_info->count; i++)
+    {
+        if (node_info->nodes[i].offset_value == offset && node_info->nodes[i].children_count == num_children)
+        {
+            list_add(&node_info->nodes[i].found_at, parent_offset);
+            is_new = 0;
+            break;
+        }
+    }
+    if (is_new)
+    {
+        int add_idx = node_info->count;
+        node_info->nodes[add_idx].offset_value = offset;
+        node_info->nodes[add_idx].children_count = num_children;
+        node_info->nodes[add_idx].found_at = init_list();
+        list_add(&node_info->nodes[add_idx].found_at, parent_offset);
+        node_info->count++;
+    }
+
+    for (int i = 0; i < num_children; i++)
+    {
+        int is_leaf = children[i] == 0 || (children[i] & 1);
+
+        if (!is_leaf)
+        {
+            if (children[i] < 0x1C)
+            {
+                printf("!!!!!!!!!!!!! uuu weird (doesnt happen anymore?) %4x\n", children[i]);
+                continue;
+            }
+            collflip_list_nodes(item, children[i], depth + 1, maxx, maxy, maxz, node_info, offset + 2 * i);
+        }
+    }
+}
+
+void dbg_print_node_info_single(CollisionNodeInfoSingle *node)
+{
+    printf("  NodeInfo: offset_value=0x%04X, children_count=%d, found_at.count=%d, found_at.eids=[",
+           node->offset_value, node->children_count, node->found_at.count);
+    for (int j = 0; j < node->found_at.count; j++)
+    {
+        printf("%s0x%04X", (j > 0) ? ", " : "", node->found_at.eids[j]);
+    }
+    printf("]\n");
+}
+
+int collfip_unwrap_overlaps(unsigned char *item, CollisionNodeInfo *node_info, int *new_size)
+{
+    for (int i = 0; i < node_info->count; i++)
+    {
+        CollisionNodeInfoSingle nodeA = node_info->nodes[i];
+        unsigned short int offsetA = nodeA.offset_value;
+        unsigned short int childrenA = nodeA.children_count;
+        unsigned short int endA = offsetA + 2 * childrenA;
+
+        for (int j = 0; j < i; j++)
+        {
+            CollisionNodeInfoSingle nodeB = node_info->nodes[j];
+            unsigned int offsetB = nodeB.offset_value;
+            unsigned short int childrenB = nodeB.children_count;
+            unsigned short int endB = offsetB + 2 * childrenB;
+
+            // exact reuse of the same node, allowed
+            if (offsetA == offsetB && childrenA == childrenB)
+                continue;
+
+            int new_offset = *new_size;
+            int case1 = (offsetA < offsetB && endA > offsetB);
+            int case2 = (offsetB < offsetA && endB > offsetA);
+            int case3 = (offsetA != offsetB && endA == endB);
+
+            // if A is a subset of B its ok i think? todo mby also check B subset of A
+            int case4 = (offsetA == offsetB && childrenA != childrenB);
+            for (int k = 0; k < nodeA.found_at.count; k++)
+            {
+                if (list_find(nodeB.found_at, nodeA.found_at.eids[k]) == -1)
+                {
+                    case4 = 0;
+                    break;
+                }
+            }
+
+            // if overlapping, move node B to the end of the item, update refs
+            if (case1 || case2 || case3 || case4)
+            {
+                memcpy(item + new_offset, item + offsetB, 2 * childrenB);
+                // all my homies hate case4
+                if (case4)
+                {
+                    for (int k = 0; k < nodeB.found_at.count; k++)
+                    {
+                        *(unsigned short int *)(item + nodeB.found_at.eids[k]) = new_offset;
+                    }
+                }
+                else
+                {
+                    for (int k = 0x24; k < new_offset; k += 2)
+                    {
+                        if (*(unsigned short int *)(item + k) == offsetB)
+                            *(unsigned short int *)(item + k) = new_offset;
+                    }
+                }
+                *new_size += 2 * childrenB;
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+unsigned char *coll_get_expanded(unsigned char *item1, int *new_size, int maxx, int maxy, int maxz)
+{
+    int found_overlap = 1;
+    unsigned char *item1_edited = (unsigned char *)calloc(CHUNKSIZE, 1);
+    memcpy(item1_edited, item1, *new_size);
+    while (found_overlap)
+    {
+        // maybe could be done nicer (not in a while loop) but good enough
+        CollisionNodeInfo node_info;
+        node_info.count = 0;
+        collflip_list_nodes(item1_edited, 0x1C, 0, maxx, maxy, maxz, &node_info, 0);
+        found_overlap = collfip_unwrap_overlaps(item1_edited, &node_info, new_size);
+    }
+    // *new_size += 0xC; // padding?
+    return item1_edited;
+}
+
+void collision_flip(unsigned char *item, int offset, int depth, int maxx, int maxy, int maxz, LIST *flipped, int is_x)
+{
+    if (offset < 0x1C)
+    {
+        printf("!!!!!!!!!!!!! uuu weird (doesnt happen anymore?) %4x\n", offset);
+        return;
+    }
+
+    if (list_find(*flipped, offset) != -1)
+        return;
+
+    list_add(flipped, offset);
+    unsigned short int *children = (unsigned short int *)(item + offset);
+    int num_children = 1;
+    if (depth)
+    {
+        if (depth <= maxx)
+            num_children <<= 1;
+        if (depth <= maxy)
+            num_children <<= 1;
+        if (depth <= maxz)
+            num_children <<= 1;
+    }
+
+    int M[] = {maxx, maxy, maxz};
+    qsort(M, 3, sizeof(int), cmp_func_int);
+    int min = M[0];
+    // int min2 = M[1];
+    int max = M[2];
+
+    if (is_x)
+    {
+        if (num_children == 8)
+        {
+            swap_node(&children[0], &children[4]);
+            swap_node(&children[1], &children[5]);
+            swap_node(&children[2], &children[6]);
+            swap_node(&children[3], &children[7]);
+        }
+        else if (num_children == 4 && min != maxx)
+        {
+            // e.g 665
+            if (maxx == maxy)
+            {
+                swap_node(&children[0], &children[1]);
+                swap_node(&children[2], &children[3]);
+            }
+            // e.g 566
+            if (maxy == maxz)
+            {
+                swap_node(&children[0], &children[2]);
+                swap_node(&children[1], &children[3]);
+            }
+        }
+        else if (num_children == 2 && max == maxx)
+        {
+            swap_node(&children[0], &children[1]);
+        }
+    }
+    else
+    {
+        if (num_children == 8)
+        {
+            // e.g 555
+            swap_node(&children[0], &children[2]);
+            swap_node(&children[1], &children[3]);
+            swap_node(&children[4], &children[6]);
+            swap_node(&children[5], &children[7]);
+        }
+        else if (num_children == 4 && min != maxy)
+        {
+            // e.g 566/665
+            swap_node(&children[0], &children[2]);
+            swap_node(&children[1], &children[3]);
+        }
+        else if (num_children == 2 && max == maxy)
+        {
+            // 565
+            swap_node(&children[0], &children[1]);
+        }
+    }
+
+    for (int i = 0; i < num_children; i++)
+    {
+        int is_leaf = children[i] == 0 || (children[i] & 1);
+        if (!is_leaf)
+            collision_flip(item, children[i], depth + 1, maxx, maxy, maxz, flipped, is_x);
+    }
+}
+
+void flip_entity_y(unsigned char *item, int offset_y)
+{
+    unsigned int offset = 0;
+    for (int k = 0; k < build_prop_count(item); k++)
+    {
+        if ((from_u16(item + 0x10 + 8 * k)) == ENTITY_PROP_PATH)
+            offset = OFFSET + from_u16(item + 0x10 + 8 * k + 2);
+    }
+
+    if (!offset)
+    {
+        printf("uuu weird? %d\n", build_get_entity_prop(item, ENTITY_PROP_ID));
+        return;
+    }
+
+    int length = from_u32(item + offset);
+    for (int k = 0; k < length; k++)
+    {
+        *(short int *)(item + offset + 4 + 6 * k + 2) *= -1;
+        *(short int *)(item + offset + 4 + 6 * k + 2) += offset_y;
+    }
+}
+
+void flip_level_y(ENTRY *elist, int entry_count, int *chunk_count)
+{
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_SCENERY)
+        {
+            // vertices
+            unsigned char *item0 = build_get_nth_item(elist[i].data, 0);
+            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+
+            int vert_count = from_u32(item0 + 0x10);
+            for (int j = 0; j < vert_count; j++)
+            {
+                unsigned char *vert = item1 + j * 4;
+                short int y = from_s16(vert + 2) / 16;
+                short int rest = from_s16(vert + 2) % 16;
+
+                *(short int *)(vert + 2) = -(y * 16) + rest;
+            }
+
+            // position
+            *(int *)(item0 + 0x4) *= -1;
+        }
+
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
+            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+            int new_size = build_get_nth_item_offset(elist[i].data, 2) - build_get_nth_item_offset(elist[i].data, 1);
+
+            // zone position
+            *(int *)(item1 + 0x4) *= -1;
+            *(int *)(item1 + 0x4) -= from_s32(item1 + 0x10);
+
+            // flip collision
+            int maxx = from_u16(item1 + 0x1E);
+            int maxy = from_u16(item1 + 0x20);
+            int maxz = from_u16(item1 + 0x22);
+            printf("y flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
+            unsigned char *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
+            LIST flipped = init_list();
+            collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 0);
+            build_replace_item(&elist[i], 1, item1_edited, new_size);
+
+            // object positions
+            int cam_item_count = build_get_cam_item_count(elist[i].data);
+            int entity_count = build_get_entity_count(elist[i].data);
+
+            for (int j = 0; j < cam_item_count / 3; j++)
+            {
+                unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j);
+                flip_entity_y(item, from_s32(item1 + 0x10));
+            }
+
+            for (int j = 0; j < entity_count; j++)
+            {
+                unsigned char *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
+                flip_entity_y(item, from_s32(item1 + 0x10) / 4);
+            }
+
+            elist[i].chunk = *chunk_count;
+            *chunk_count += 1;
+        }
+    }
+}
+// ~flip y
+
+// flip x
+void flip_entity_x(unsigned char *item, int offset_x)
+{
+    unsigned int offset = 0;
+    for (int k = 0; k < build_prop_count(item); k++)
+    {
+        if ((from_u16(item + 0x10 + 8 * k)) == ENTITY_PROP_PATH)
+            offset = OFFSET + from_u16(item + 0x10 + 8 * k + 2);
+    }
+
+    if (!offset)
+    {
+        printf("uuu weird? %d\n", build_get_entity_prop(item, ENTITY_PROP_ID));
+        return;
+    }
+
+    int length = from_u32(item + offset);
+    for (int k = 0; k < length; k++)
+    {
+        *(short int *)(item + offset + 4 + 6 * k + 0) *= -1;
+        *(short int *)(item + offset + 4 + 6 * k + 0) += offset_x;
+    }
+}
+
+void flip_level_x(ENTRY *elist, int entry_count, int *chunk_count)
+{
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_SCENERY)
+        {
+            // vertices
+            unsigned char *item0 = build_get_nth_item(elist[i].data, 0);
+            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+
+            int vert_count = from_u32(item0 + 0x10);
+            for (int j = 0; j < vert_count; j++)
+            {
+                unsigned char *vert = item1 + j * 4;
+                short int y = from_s16(vert + 0) / 16;
+                short int rest = from_s16(vert + 0) % 16;
+
+                *(short int *)(vert + 0) = -(y * 16) + rest;
+            }
+
+            // position
+            *(int *)(item0 + 0x0) *= -1;
+        }
+
+        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+        {
+            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+            int new_size = build_get_nth_item_offset(elist[i].data, 2) - build_get_nth_item_offset(elist[i].data, 1);
+
+            // zone position
+            *(int *)(item1 + 0x0) *= -1;
+            *(int *)(item1 + 0x0) -= from_s32(item1 + 0xC);
+
+            // flip collision
+            int maxx = from_u16(item1 + 0x1E);
+            int maxy = from_u16(item1 + 0x20);
+            int maxz = from_u16(item1 + 0x22);
+            printf("x flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
+            unsigned char *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
+            LIST flipped = init_list();
+            collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 1);
+            build_replace_item(&elist[i], 1, item1_edited, new_size);
+
+            // object positions
+            int cam_item_count = build_get_cam_item_count(elist[i].data);
+            int entity_count = build_get_entity_count(elist[i].data);
+
+            for (int j = 0; j < cam_item_count / 3; j++)
+            {
+                unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j);
+                flip_entity_x(item, from_s32(item1 + 0xC));
+            }
+
+            for (int j = 0; j < entity_count; j++)
+            {
+                unsigned char *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
+                flip_entity_x(item, from_s32(item1 + 0xC) / 4);
+            }
+
+            elist[i].chunk = *chunk_count;
+            *chunk_count += 1;
+        }
+    }
+}
+// ~flip x
+
 // mix of rebuild and keeping original stuff
 void level_alter_pseudorebuild(int alter_type)
 {
@@ -183,6 +621,14 @@ void level_alter_pseudorebuild(int alter_type)
         break;
     case Alter_Type_Old_DL_Override:
         convert_old_dl_override(elist, entry_count);
+        break;
+    case Alter_Type_FlipScenY:
+        printf("\n!!!Zones are put into indidual chunks at the end\n");
+        flip_level_y(elist, entry_count, &chunk_count);
+        break;
+    case Alter_Type_FlipScenX:
+        printf("\n!!!Zones are put into indidual chunks at the end\n");
+        flip_level_x(elist, entry_count, &chunk_count);
         break;
     default:
         break;

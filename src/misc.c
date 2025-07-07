@@ -98,6 +98,9 @@ void print_help2()
     printf("CHANGEPRINT & IMPORT (obsolete)\n");
     printf("\t print selection, entry->NSF import (pretty much useless)\n");
 
+    printf("LEVEL_FLIP_Y & LEVEL_FLIP_X\n");
+    printf("\t flips the level horizontally or vertically\n");
+
     for (int i = 0; i < 100; i++)
         printf("-");
     printf("\n");
@@ -124,7 +127,7 @@ void print_help()
     printf("EXPORT & EXPORTALL\n");
     printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
 
-    printf("level_alter_pseudorebuild_DL & level_alter_pseudorebuild_ENT\n");
+    printf("LEVEL_WIPE_DL & LEVEL_WIPE_ENT\n");
     printf("\t remove draw lists / remove draw lists + entities from level (scrambles the level a bit)\n");
 
     printf("NSD\n");
@@ -184,6 +187,11 @@ unsigned int from_u32(unsigned char *data)
     result |= p[2] << 16;
     result |= p[3] << 24;
     return result;
+}
+
+int from_s16(unsigned char *data)
+{
+    return *(short int*)(data);
 }
 
 unsigned int from_u16(unsigned char *data)

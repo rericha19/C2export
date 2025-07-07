@@ -220,6 +220,12 @@ int main()
         case CONV_OLD_DL_OVERRIDE:
             level_alter_pseudorebuild(Alter_Type_Old_DL_Override);
             break;
+        case FLIP_Y:
+            level_alter_pseudorebuild(Alter_Type_FlipScenY);
+            break;
+        case FLIP_X:
+            level_alter_pseudorebuild(Alter_Type_FlipScenX);
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;

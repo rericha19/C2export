@@ -1405,6 +1405,52 @@ LIST build_get_links(unsigned char *entry, int cam_index)
     return links_list;
 }
 
+void build_replace_item(ENTRY *zone, int item_index, unsigned char *new_item, int item_size)
+{
+    int i, offset;
+    int item_count = build_item_count(zone->data);
+    int first_item_offset = 0x14 + 4 * item_count;
+
+    int *item_lengths = (int *)malloc(item_count * sizeof(int));
+    unsigned char **items = (unsigned char **)malloc(item_count * sizeof(unsigned char **));
+    for (i = 0; i < item_count; i++)
+        item_lengths[i] = build_get_nth_item_offset(zone->data, i + 1) - build_get_nth_item_offset(zone->data, i);
+
+    for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
+    {
+        items[i] = (unsigned char *)malloc(item_lengths[i]);
+        memcpy(items[i], zone->data + offset, item_lengths[i]);
+    }
+
+    item_lengths[item_index] = item_size;
+    items[item_index] = new_item;
+
+    int new_size = first_item_offset;
+    for (i = 0; i < item_count; i++)
+        new_size += item_lengths[i];
+
+    unsigned char *new_data = (unsigned char *)malloc(new_size);
+    *(int *)(new_data) = MAGIC_ENTRY;
+    *(int *)(new_data + 0x4) = zone->eid;
+    *(int *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
+    *(int *)(new_data + 0xC) = item_count;
+
+    for (offset = first_item_offset, i = 0; i < item_count + 1; offset += item_lengths[i], i++)
+        *(int *)(new_data + 0x10 + i * 4) = offset;
+
+    for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
+        memcpy(new_data + offset, items[i], item_lengths[i]);
+
+    free(zone->data);
+    zone->data = new_data;
+    zone->esize = new_size;
+
+    for (i = 0; i < item_count; i++)
+        free(items[i]);
+    free(items);
+    free(item_lengths);
+}
+
 /** \brief
  *  Deconstructs the zone, alters specified item using the func_arg function, reconstructs the zone.
  *
@@ -1670,7 +1716,8 @@ void build_remove_nth_item(ENTRY *zone, int n)
 
     int *item_lengths = (int *)malloc(item_count * sizeof(int));
     unsigned char **items = (unsigned char **)malloc(item_count * sizeof(unsigned char **));
-    for (i = 0; i < item_count; i++) {
+    for (i = 0; i < item_count; i++)
+    {
         int next_start = build_get_nth_item_offset(zone->data, i + 1);
         if (i == n)
             next_start = zone->esize;
@@ -1701,14 +1748,14 @@ void build_remove_nth_item(ENTRY *zone, int n)
     {
         if (i == n)
             continue;
-            
+
         int curr = i;
         if (i > n)
             curr--;
         *(int *)(new_data + 0x10 + curr * 4) = offset;
     }
 
-    for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++) 
+    for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
         if (i == n)
             continue;

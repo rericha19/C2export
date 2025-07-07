@@ -128,6 +128,8 @@
 #define TPAGE_UTIL 3993095059u
 #define GOOL_UTIL 2723710419u
 #define CONV_OLD_DL_OVERRIDE 2382887815u
+#define FLIP_Y 2964377512u
+#define FLIP_X 2964377511u
 
 // #define INTRO                           223621809u
 // #define STATUS                          3482341513u
@@ -145,6 +147,8 @@ enum
     Alter_Type_WipeDL,
     Alter_Type_WipeEnts,
     Alter_Type_Old_DL_Override,
+    Alter_Type_FlipScenY,
+    Alter_Type_FlipScenX,
 };
 
 #define ENTRY_TYPE_ANIM 0x1
@@ -251,7 +255,7 @@ typedef struct entry
     unsigned int eid;
     int esize;
     int chunk;
-    int og_chunk;
+    // int og_chunk;
     unsigned char *data;
     unsigned int *related;
     unsigned int *distances;
@@ -430,6 +434,7 @@ void export_condprint(DEPRECATE_INFO_STRUCT status);
 void clrscr();
 int from_s32(unsigned char *data);
 unsigned int from_u32(unsigned char *data);
+int from_s16(unsigned char *data);
 unsigned int from_u16(unsigned char *data);
 unsigned int from_u8(unsigned char *data);
 void export_countwipe(DEPRECATE_INFO_STRUCT *status);
@@ -540,6 +545,7 @@ void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void build_add_model_textures_to_list(unsigned char *model, LIST *list);
 unsigned char *build_add_property(unsigned int code, unsigned char *item, int *item_size, PROPERTY *prop);
 unsigned char *build_rem_property(unsigned int code, unsigned char *item, int *item_size, PROPERTY *prop);
+void build_replace_item(ENTRY *zone, int item_index, unsigned char *new_item, int new_size);
 void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *),
                         int property_code, PROPERTY *prop);
 void build_remove_nth_item(ENTRY *zone, int n);
@@ -685,3 +691,5 @@ void level_alter_pseudorebuild(int wipe_entities);
 void wipe_draw_lists(ENTRY *elist, int entry_count);
 void wipe_entities(ENTRY *elist, int entry_count);
 void convert_old_dl_override(ENTRY *elist, int entry_count);
+void flip_level_y(ENTRY* elist, int entry_count, int* chunk_count);
+void flip_level_x(ENTRY* elist, int entry_count, int* chunk_count);
