@@ -168,9 +168,10 @@ enum
 #define ENTITY_PROP_ARGUMENTS 0xA4
 #define ENTITY_PROP_TYPE 0xA9
 #define ENTITY_PROP_SUBTYPE 0xAA
+#define ENTITY_PROP_WARPIN_COORDS 0x198
 #define ENTITY_PROP_DDA_DEATHS 0x277
 #define ENTITY_PROP_VICTIMS 0x287
-#define ENTITY_PROp_DDA_SECTION 0x288
+#define ENTITY_PROP_DDA_SECTION 0x288
 #define ENTITY_PROP_BOX_COUNT 0x28B
 
 #define ENTITY_PROP_OVERRIDE_DRAW_ID 0x3FE
@@ -536,6 +537,7 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count,
 RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int *config, ENTRY *elist, int entry_count);
 void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded, double merge_ratio, double mult);
 void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks, int do_end_print);
+int build_get_prop_offset(unsigned char* item, int prop_code);
 int build_get_entity_prop(unsigned char *entity, int prop_code);
 void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void build_add_model_textures_to_list(unsigned char *model, LIST *list);
@@ -606,6 +608,14 @@ void build_ask_premerge(int *premerge_type, double *merge_ratio);
 void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
 void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
 void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int levelID);
+int abs(int val);
+int normalize_angle(int angle);
+int c2yaw_to_deg(int yaw);
+int deg_to_c2yaw(int deg);
+int angle_distance(int angle1, int angle2);
+int average_angles(int angle1, int angle2);
+void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *config, int curr_idx, int neighbour_idx, int cam_idx, int neighbour_ref_idx);
+void build_remake_draw_lists(ENTRY *elist, int entry_count, int *config);
 
 // state thing
 
@@ -662,7 +672,7 @@ void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
 void rotate_rotate(unsigned int *y, unsigned int *x, double rotation);
 void crate_rotation_angle();
 void nsd_gool_table_print(char *fpath);
-PROPERTY *get_prop(unsigned char *item, int prop_code);
+PROPERTY *build_get_prop_full(unsigned char *item, int prop_code);
 void prop_remove_script();
 void prop_replace_script();
 void generate_spawn();

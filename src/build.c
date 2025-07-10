@@ -162,10 +162,7 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count)
  */
 unsigned int build_get_slst(unsigned char *item)
 {
-    int i, offset = 0;
-    for (i = 0; i < build_prop_count(item); i++)
-        if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_CAM_SLST)
-            offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
+    int offset = build_get_prop_offset(item, ENTITY_PROP_CAM_SLST);
 
     if (offset)
         return from_u32(item + offset + 4);
@@ -181,10 +178,7 @@ unsigned int build_get_slst(unsigned char *item)
  */
 unsigned int build_get_path_length(unsigned char *item)
 {
-    int i, offset = 0;
-    for (i = 0; i < build_prop_count(item); i++)
-        if ((from_u16(item + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
-            offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
+    int offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
     if (offset)
         return from_u32(item + offset);
@@ -271,7 +265,8 @@ int build_entry_type(ENTRY entry)
     return *(int *)(entry.data + 8);
 }
 
-int build_chunk_type(unsigned char* chunk) {
+int build_chunk_type(unsigned char *chunk)
+{
     if (chunk == NULL)
         return -1;
 
@@ -309,17 +304,22 @@ DRAW_ITEM build_decode_draw_item(unsigned int value)
  */
 int build_get_entity_prop(unsigned char *entity, int prop_code)
 {
-    unsigned int i;
-    for (i = 0; i < build_prop_count(entity); i++)
-    {
-        int code = from_u16(entity + 0x10 + 8 * i);
-        int offset = from_u16(entity + 0x12 + 8 * i) + OFFSET;
+    int offset = build_get_prop_offset(entity, prop_code);
+    if (offset == 0)
+        return -1;
 
-        if (code == prop_code)
-            return from_u32(entity + offset + 4);
-    }
+    return from_u32(entity + offset + 4);
+}
 
-    return -1;
+// gets offset to data of a property within an item
+int build_get_prop_offset(unsigned char *item, int prop_code)
+{
+    int i, offset = 0;
+    for (i = 0; i < build_prop_count(item); i++)
+        if ((from_u16(item + 0x10 + 8 * i)) == prop_code)
+            offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
+
+    return offset;
 }
 
 /** \brief

@@ -63,8 +63,8 @@ void convert_old_dl_override(ENTRY *elist, int entry_count)
 
             int old_override_id = build_get_entity_prop(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD);
             int old_override_mult = build_get_entity_prop(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD);
-            PROPERTY *prop_override_id = get_prop(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD);
-            PROPERTY *prop_override_mult = get_prop(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD);
+            PROPERTY *prop_override_id = build_get_prop_full(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD);
+            PROPERTY *prop_override_mult = build_get_prop_full(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD);
 
             printf("zone %s -id %d: -ts %d-%d\t\tid %d mult %d\n", eid_conv2(elist[i].eid), id, type, subt, (short int)(old_override_id >> 8), (short int)(old_override_mult >> 8));
 
@@ -110,7 +110,7 @@ void collflip_list_nodes(unsigned char *item, int offset, int depth, int maxx, i
 {
     if (offset < 0x1C)
     {
-        printf("!!!!!!!!!!!!! uuu weird (doesnt happen anymore?) %4x\n", offset);
+        printf("!!!!!!!!!!!!! unexpected offset value %4x (parent %4x)\n", offset, parent_offset);
         return;
     }
     unsigned short int *children = (unsigned short int *)(item + offset);
@@ -154,7 +154,7 @@ void collflip_list_nodes(unsigned char *item, int offset, int depth, int maxx, i
         {
             if (children[i] < 0x1C)
             {
-                printf("!!!!!!!!!!!!! uuu weird (doesnt happen anymore?) %4x\n", children[i]);
+                printf("!!!!!!!!!!!!! child unexpected offset %4x (offset %x)\n", children[i], offset);
                 continue;
             }
             collflip_list_nodes(item, children[i], depth + 1, maxx, maxy, maxz, node_info, offset + 2 * i);
@@ -255,7 +255,6 @@ unsigned char *coll_get_expanded(unsigned char *item1, int *new_size, int maxx, 
         collflip_list_nodes(item1_edited, 0x1C, 0, maxx, maxy, maxz, &node_info, 0);
         found_overlap = collfip_unwrap_overlaps(item1_edited, &node_info, new_size);
     }
-    // *new_size += 0xC; // padding?
     return item1_edited;
 }
 
@@ -264,7 +263,7 @@ void collision_flip(unsigned char *item, int offset, int depth, int maxx, int ma
 {
     if (offset < 0x1C)
     {
-        printf("!!!!!!!!!!!!! uuu weird (doesnt happen anymore?) %4x\n", offset);
+        printf("!!!!!!!!!!!!! collision_flip x:%d || offset %4x\n", is_x, offset);
         return;
     }
 
@@ -346,21 +345,12 @@ void collision_flip(unsigned char *item, int offset, int depth, int maxx, int ma
     }
 }
 
-// for flipping an entity when doing flip_y
+// for flipping entity/camera path when doing flip_y
 void flip_entity_y(unsigned char *item, int offset_y)
 {
-    unsigned int offset = 0;
-    for (int k = 0; k < build_prop_count(item); k++)
-    {
-        if ((from_u16(item + 0x10 + 8 * k)) == ENTITY_PROP_PATH)
-            offset = OFFSET + from_u16(item + 0x10 + 8 * k + 2);
-    }
-
+    int offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
     if (!offset)
-    {
-        printf("uuu weird? %d\n", build_get_entity_prop(item, ENTITY_PROP_ID));
         return;
-    }
 
     int length = from_u32(item + offset);
     for (int k = 0; k < length; k++)
@@ -436,21 +426,13 @@ void flip_level_y(ENTRY *elist, int entry_count, int *chunk_count)
     }
 }
 
-// for flipping an entity when doing flip_x
+// for flipping entity/camera path when doing flip_x
 void flip_entity_x(unsigned char *item, int offset_x)
 {
-    unsigned int offset = 0;
-    for (int k = 0; k < build_prop_count(item); k++)
-    {
-        if ((from_u16(item + 0x10 + 8 * k)) == ENTITY_PROP_PATH)
-            offset = OFFSET + from_u16(item + 0x10 + 8 * k + 2);
-    }
+    int offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
     if (!offset)
-    {
-        printf("uuu weird? %d\n", build_get_entity_prop(item, ENTITY_PROP_ID));
         return;
-    }
 
     int length = from_u32(item + offset);
     for (int k = 0; k < length; k++)
@@ -458,6 +440,51 @@ void flip_entity_x(unsigned char *item, int offset_x)
         *(short int *)(item + offset + 4 + 6 * k + 0) *= -1;
         *(short int *)(item + offset + 4 + 6 * k + 0) += offset_x;
     }
+}
+
+// for flipping camera
+void flip_camera_angle_x(unsigned char *item2)
+{
+    int offset = build_get_prop_offset(item2, ENTITY_PROP_PATH);
+    if (!offset)
+        return;
+
+    int length = from_u32(item2 + offset);
+    for (int k = 0; k < length; k++)
+    {
+        int angle = *(short int *)(item2 + offset + 4 + 6 * k + 2);
+        angle = c2yaw_to_deg(-angle);
+        angle = normalize_angle(angle);
+        angle = deg_to_c2yaw(angle);
+        *(short int *)(item2 + offset + 4 + 6 * k + 2) = angle;
+    }
+}
+
+void flip_fix_elev_coords_x(unsigned char *item)
+{
+    int type = build_get_entity_prop(item, ENTITY_PROP_TYPE);
+    int subtype = build_get_entity_prop(item, ENTITY_PROP_SUBTYPE);
+    int offset = build_get_prop_offset(item, ENTITY_PROP_ARGUMENTS);
+
+    if (!offset)
+        return;
+
+    int count = from_u32(item + offset);
+    // most common elev
+    if (count == 8 && type == 9 && subtype == 6)
+    {
+        *(int *)(item + offset + 6 * 4) *= -1;
+    }
+}
+
+void flip_fix_prop_198_x(unsigned char *item)
+{
+    int offset = build_get_prop_offset(item, ENTITY_PROP_WARPIN_COORDS);
+    if (!offset)
+        return;
+
+    if (from_s32(item + offset) == 5)
+        *(int *)(item + offset + 0xC) *= -1;
 }
 
 // level alter utility - level flip x
@@ -512,12 +539,19 @@ void flip_level_x(ENTRY *elist, int entry_count, int *chunk_count)
             {
                 unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j);
                 flip_entity_x(item, from_s32(item1 + 0xC));
+                flip_fix_prop_198_x(item);
+
+                unsigned char *item2 = build_get_nth_item(elist[i].data, 2 + 3 * j + 1);
+                flip_camera_angle_x(item2);
+                // todo camera distance fix (2D)
+                // todo camera switching property fix?
             }
 
             for (int j = 0; j < entity_count; j++)
             {
                 unsigned char *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
                 flip_entity_x(item, from_s32(item1 + 0xC) / 4);
+                flip_fix_elev_coords_x(item);
             }
 
             elist[i].chunk = *chunk_count;
