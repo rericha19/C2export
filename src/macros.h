@@ -6,15 +6,6 @@
 #include <math.h>
 #include <stdio.h>
 
-// #include <stdlib.h>
-// #include <ctype.h>
-// #include <string.h>
-// #include <io.h>
-// #include <limits.h>
-// #include "windows.h"
-
-// #define COMPILE_WITH_THREADS 1
-
 // various constants
 #define HASH_TABLE_SIZE 100000000
 #define HEAP_SIZE_INCREMENT 200000
@@ -425,6 +416,7 @@ typedef struct chunk_str
 } CHUNK_STR;
 
 // misc.c
+
 void export_printstatus(int zonetype, int gamemode, int portmode);
 void intro_text();
 void print_help();
@@ -443,7 +435,7 @@ unsigned long comm_str_hash(const char *str);
 const char *eid_conv2(unsigned int value);
 const char *eid_conv(unsigned int value, char *eid);
 unsigned int eid_to_int(char *eid);
-unsigned int nsfChecksumA(const unsigned char *data, int size);
+unsigned int crcChecksum(const unsigned char *data, int size);
 unsigned int nsfChecksum(const unsigned char *data);
 void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
 void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status);
@@ -461,6 +453,7 @@ LIST init_list();
 SPAWNS init_spawns();
 int list_find(LIST list, unsigned int searched);
 void list_add(LIST *list, unsigned int eid);
+int list_is_subset(LIST list_a, LIST list_b);
 void list_remove(LIST *list, unsigned int eid);
 void list_copy_in(LIST *destination, LIST source);
 LOAD_LIST init_load_list();
@@ -478,6 +471,7 @@ int getdelim(char **linep, int *n, int delim, FILE *fp);
 DEPENDENCIES build_init_dep();
 
 // export.c
+
 int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status);
 int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
 int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
@@ -492,11 +486,13 @@ void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date,
 void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
 
 // import.c
+
 int import_main(char *time, DEPRECATE_INFO_STRUCT status);
 int import_file_lister(char *path, FILE *fnew);
 void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
 
 // build files in no particular order
+
 void build_get_box_count(ENTRY *elist, int entry_count);
 int build_item_count(unsigned char *entry);
 int build_prop_count(unsigned char *item);
@@ -612,6 +608,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk
 void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int levelID);
 
 // state thing
+
 void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
 STATE_SEARCH_STR *build_state_search_str_init(int length);
 void build_state_search_str_destroy(STATE_SEARCH_STR *state);
@@ -628,6 +625,7 @@ build_matrix_store_lls(ENTRY *elist, int entry_count);
 PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int entry_count, int chunk_min);
 
 // deprecate_build.c
+
 PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);
 void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count, int stats_only_flag);
 void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
@@ -645,6 +643,7 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
 void deprecate_build_payload_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
 
 // side_scripts.c
+
 int texture_recolor_stupid();
 int scenery_recolor_main();
 int scenery_recolor_main2();
@@ -687,6 +686,7 @@ void tpage_util();
 void gool_util();
 
 // level_alter.c
+
 void level_alter_pseudorebuild(int wipe_entities);
 void wipe_draw_lists(ENTRY *elist, int entry_count);
 void wipe_entities(ENTRY *elist, int entry_count);

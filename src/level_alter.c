@@ -1,5 +1,6 @@
 #include "macros.h"
 
+// removes draw list properties from cameras of all zone entries
 void wipe_draw_lists(ENTRY *elist, int entry_count)
 {
     for (int i = 0; i < entry_count; i++)
@@ -16,6 +17,7 @@ void wipe_draw_lists(ENTRY *elist, int entry_count)
     }
 }
 
+// removes non-camera entities from all zone entries
 void wipe_entities(ENTRY *elist, int entry_count)
 {
     for (int i = 0; i < entry_count; i++)
@@ -36,6 +38,8 @@ void wipe_entities(ENTRY *elist, int entry_count)
     }
 }
 
+// converts old draw override props to proper new ones
+// (used to reuse box count properties)
 void convert_old_dl_override(ENTRY *elist, int entry_count)
 {
     for (int i = 0; i < entry_count; i++)
@@ -80,6 +84,7 @@ void convert_old_dl_override(ENTRY *elist, int entry_count)
     }
 }
 
+// util function for swapping collision nodes
 void swap_node(unsigned short int *a, unsigned short int *b)
 {
     unsigned short int temp = *a;
@@ -100,6 +105,7 @@ typedef struct col_info
     int count;
 } CollisionNodeInfo;
 
+// recursively retrieves list of collision nodes found in a collision item
 void collflip_list_nodes(unsigned char *item, int offset, int depth, int maxx, int maxy, int maxz, CollisionNodeInfo *node_info, int parent_offset)
 {
     if (offset < 0x1C)
@@ -156,6 +162,7 @@ void collflip_list_nodes(unsigned char *item, int offset, int depth, int maxx, i
     }
 }
 
+// debug print for node info struct
 void dbg_print_node_info_single(CollisionNodeInfoSingle *node)
 {
     printf("  NodeInfo: offset_value=0x%04X, children_count=%d, found_at.count=%d, found_at.eids=[",
@@ -167,6 +174,8 @@ void dbg_print_node_info_single(CollisionNodeInfoSingle *node)
     printf("]\n");
 }
 
+// function for getting rid of problematic data overlaps in collision items
+// required for collision flipping, as overlapping data flip would otherwise get scrambled
 int collfip_unwrap_overlaps(unsigned char *item, CollisionNodeInfo *node_info, int *new_size)
 {
     for (int i = 0; i < node_info->count; i++)
@@ -192,22 +201,22 @@ int collfip_unwrap_overlaps(unsigned char *item, CollisionNodeInfo *node_info, i
             int case2 = (offsetB < offsetA && endB > offsetA);
             int case3 = (offsetA != offsetB && endA == endB);
 
-            // if A is a subset of B its ok i think? todo mby also check B subset of A
+            // if A is a subset of B its ok i think?
             int case4 = (offsetA == offsetB && childrenA != childrenB);
-            for (int k = 0; k < nodeA.found_at.count; k++)
-            {
-                if (list_find(nodeB.found_at, nodeA.found_at.eids[k]) == -1)
-                {
-                    case4 = 0;
-                    break;
-                }
-            }
+            int a_in_b = list_is_subset(nodeA.found_at, nodeB.found_at);
+            int b_in_a = list_is_subset(nodeB.found_at, nodeA.found_at);
+            if (a_in_b || b_in_a)
+                case4 = 0;
 
             // if overlapping, move node B to the end of the item, update refs
             if (case1 || case2 || case3 || case4)
             {
+                // printf("swapping case %d%d%d%d\n", case1, case2, case3, case4);
+                // dbg_print_node_info_single(&nodeA);
+                // dbg_print_node_info_single(&nodeB);
+                // printf("\n");
+
                 memcpy(item + new_offset, item + offsetB, 2 * childrenB);
-                // all my homies hate case4
                 if (case4)
                 {
                     for (int k = 0; k < nodeB.found_at.count; k++)
@@ -232,6 +241,7 @@ int collfip_unwrap_overlaps(unsigned char *item, CollisionNodeInfo *node_info, i
     return 0;
 }
 
+// expands supplied collision item into a form that doesnt have data/node overlaps
 unsigned char *coll_get_expanded(unsigned char *item1, int *new_size, int maxx, int maxy, int maxz)
 {
     int found_overlap = 1;
@@ -249,6 +259,7 @@ unsigned char *coll_get_expanded(unsigned char *item1, int *new_size, int maxx, 
     return item1_edited;
 }
 
+// flips/mirrors the (expanded) collision item either on x or y
 void collision_flip(unsigned char *item, int offset, int depth, int maxx, int maxy, int maxz, LIST *flipped, int is_x)
 {
     if (offset < 0x1C)
@@ -283,6 +294,7 @@ void collision_flip(unsigned char *item, int offset, int depth, int maxx, int ma
     {
         if (num_children == 8)
         {
+            // good
             swap_node(&children[0], &children[4]);
             swap_node(&children[1], &children[5]);
             swap_node(&children[2], &children[6]);
@@ -290,14 +302,8 @@ void collision_flip(unsigned char *item, int offset, int depth, int maxx, int ma
         }
         else if (num_children == 4 && min != maxx)
         {
-            // e.g 665
-            if (maxx == maxy)
-            {
-                swap_node(&children[0], &children[1]);
-                swap_node(&children[2], &children[3]);
-            }
-            // e.g 566
-            if (maxy == maxz)
+            // e.g 665/656 good?
+            if (maxx == maxy || maxx == maxz)
             {
                 swap_node(&children[0], &children[2]);
                 swap_node(&children[1], &children[3]);
@@ -305,6 +311,7 @@ void collision_flip(unsigned char *item, int offset, int depth, int maxx, int ma
         }
         else if (num_children == 2 && max == maxx)
         {
+            // eg 655
             swap_node(&children[0], &children[1]);
         }
     }
@@ -339,6 +346,7 @@ void collision_flip(unsigned char *item, int offset, int depth, int maxx, int ma
     }
 }
 
+// for flipping an entity when doing flip_y
 void flip_entity_y(unsigned char *item, int offset_y)
 {
     unsigned int offset = 0;
@@ -362,6 +370,7 @@ void flip_entity_y(unsigned char *item, int offset_y)
     }
 }
 
+// level alter utility - level flip y
 void flip_level_y(ENTRY *elist, int entry_count, int *chunk_count)
 {
     for (int i = 0; i < entry_count; i++)
@@ -426,9 +435,8 @@ void flip_level_y(ENTRY *elist, int entry_count, int *chunk_count)
         }
     }
 }
-// ~flip y
 
-// flip x
+// for flipping an entity when doing flip_x
 void flip_entity_x(unsigned char *item, int offset_x)
 {
     unsigned int offset = 0;
@@ -452,6 +460,7 @@ void flip_entity_x(unsigned char *item, int offset_x)
     }
 }
 
+// level alter utility - level flip x
 void flip_level_x(ENTRY *elist, int entry_count, int *chunk_count)
 {
     for (int i = 0; i < entry_count; i++)
@@ -516,9 +525,9 @@ void flip_level_x(ENTRY *elist, int entry_count, int *chunk_count)
         }
     }
 }
-// ~flip x
 
 // mix of rebuild and keeping original stuff
+// useful for making operations on a level then saving it again
 void level_alter_pseudorebuild(int alter_type)
 {
     // start unpacking stuff

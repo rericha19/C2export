@@ -1,5 +1,6 @@
 #include "macros.h"
 
+// text at the start when you open the program or wipe
 void intro_text()
 {
     for (int i = 0; i < 100; i++)
@@ -15,8 +16,8 @@ void intro_text()
     printf("\n\n");
 }
 
-void print_help2()
 // help for miscellaneous, modpack-specific and obsolete commands
+void print_help2()
 {
     for (int i = 0; i < 100; i++)
         printf("-");
@@ -106,8 +107,8 @@ void print_help2()
     printf("\n");
 }
 
-void print_help()
 // main help
+void print_help()
 {
     for (int i = 0; i < 100; i++)
         printf("-");
@@ -162,47 +163,50 @@ void print_help()
     printf("\n");
 }
 
-void clrscr()
 // wipes the current screen
+void clrscr()
 {
     system("@cls||clear");
 }
 
+// helper for reading signed 32b
 int from_s32(unsigned char *data)
 {
+    /*
     const unsigned char *p = data;
     int result = p[0];
     result |= p[1] << 8;
     result |= p[2] << 16;
     result |= p[3] << 24;
-    return result;
+    return result;*/
+    return *(int *)data;
 }
 
+// helper for reading unsigned 32b
 unsigned int from_u32(unsigned char *data)
-// reads a word and returns an integer
 {
-    const unsigned char *p = data;
+    /*const unsigned char *p = data;
     unsigned int result = p[0];
     result |= p[1] << 8;
     result |= p[2] << 16;
     result |= p[3] << 24;
-    return result;
+    return result;*/
+    return *(unsigned int *)data;
 }
 
+// helper for reading signed 16b
 int from_s16(unsigned char *data)
 {
-    return *(short int*)(data);
+    return *(short int *)(data);
 }
 
+// helper for reading unsigned 16b
 unsigned int from_u16(unsigned char *data)
-// reads a word and returns an integer
 {
-    const unsigned char *p = data;
-    unsigned int result = p[0];
-    result |= p[1] << 8;
-    return result;
+    return *(unsigned short int *)data;
 }
 
+// helper for reading unsigned 8b
 unsigned int from_u8(unsigned char *data)
 {
     const unsigned char *p = data;
@@ -210,7 +214,7 @@ unsigned int from_u8(unsigned char *data)
     return result;
 }
 
-// changes the input string to a number, i just copied this over from somewhere
+// hashes the input string into a number
 unsigned long comm_str_hash(const char *str)
 {
     unsigned long comm_str_hash = 5381;
@@ -221,6 +225,7 @@ unsigned long comm_str_hash(const char *str)
     return comm_str_hash;
 }
 
+// converts int eid to string eid
 // doesnt copy
 const char *eid_conv2(unsigned int value)
 {
@@ -270,9 +275,9 @@ unsigned int eid_to_int(char *eid)
     return result;
 }
 
-unsigned int nsfChecksumA(const unsigned char *data, int size) 
-// calculates chunk checksum, also can used for other things since its just CRC
-{    
+// calculates chunk checksum (CRC)
+unsigned int crcChecksum(const unsigned char *data, int size)
+{
     unsigned int checksum = 0x12345678;
     for (int i = 0; i < size; i++)
     {
@@ -283,9 +288,10 @@ unsigned int nsfChecksumA(const unsigned char *data, int size)
     return checksum;
 }
 
+// calculates chunk checksum
 unsigned int nsfChecksum(const unsigned char *data)
 {
-    return nsfChecksumA(data, CHUNKSIZE);
+    return crcChecksum(data, CHUNKSIZE);
 }
 
 // integer comparison func for qsort
@@ -315,8 +321,8 @@ int cmp_func_uint(const void *a, const void *b)
     return (x - y);
 }
 
+// for sorting by entry eid
 int cmp_func_eid(const void *a, const void *b)
-// by entry eid
 {
     return ((*(ENTRY *)a).eid - (*(ENTRY *)b).eid);
 }
@@ -404,6 +410,17 @@ void list_add(LIST *list, unsigned int eid)
     qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
 }
 
+// Returns 1 if list_a is a subset of list_b, 0 otherwise
+int list_is_subset(LIST list_a, LIST list_b)
+{
+    for (int i = 0; i < list_a.count; i++)
+    {
+        if (list_find(list_b, list_a.eids[i]) == -1)
+            return 0;
+    }
+    return 1;
+}
+
 /** \brief
  *  Removes given item from the list if it exists.
  *
@@ -424,6 +441,7 @@ void list_remove(LIST *list, unsigned int eid)
 }
 
 /*
+// should really exist but im irresponsible
 void list_free(LIST list) {
     free(list.eids);
 }*/
@@ -504,6 +522,7 @@ DIST_GRAPH_Q graph_init()
     return queue;
 }
 
+// graph add new (for checking what zone comes 'first' in the level)
 void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index)
 {
     int n = graph->add_index;
@@ -515,6 +534,7 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_ind
     elist[zone_index].visited[camera_index] = 1;
 }
 
+// graph pop out (for checking what zone comes 'first' in the level)
 void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
 {
     int n = graph->pop_index;
@@ -523,16 +543,19 @@ void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
     (graph->pop_index)++;
 }
 
+// gets offset of the nth item in an entry
 int build_get_nth_item_offset(unsigned char *entry, int n)
 {
     return from_u32(entry + 0x10 + 4 * n);
 }
 
+// gets pointer to the nth item in an entry
 unsigned char *build_get_nth_item(unsigned char *entry, int n)
 {
     return entry + build_get_nth_item_offset(entry, n);
 }
 
+// for reading txt files
 // copied from stackoverflow
 int getdelim(char **linep, int *n, int delim, FILE *fp)
 {
@@ -573,16 +596,8 @@ int getdelim(char **linep, int *n, int delim, FILE *fp)
     return !i && ch == EOF ? -1 : i;
 }
 
+// for reading text files
 int getline(char **linep, int *n, FILE *fp)
 {
     return getdelim(linep, n, '\n', fp);
-}
-
-DEPENDENCIES build_init_dep()
-{
-    DEPENDENCIES dep;
-    dep.array = NULL;
-    dep.count = 0;
-
-    return dep;
 }

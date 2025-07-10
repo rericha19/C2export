@@ -1,5 +1,6 @@
 #include "macros.h"
 
+// one of old texture recoloring utils
 int texture_recolor_stupid()
 {
     char fpath[1000];
@@ -70,12 +71,6 @@ int texture_recolor_stupid()
     fclose(file1);
     free(buffer);
     return 0;
-}
-
-int rand_func(int value)
-{
-    srand(value);
-    return rand() % 0x50;
 }
 
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
@@ -191,14 +186,15 @@ void rotate_main(char *time)
     rewind(file);
     entry = (unsigned char *)malloc(filesize); // freed here
     fread(entry, sizeof(unsigned char), filesize, file);
-    if (entry[8] == 7)
-        rotate_zone(entry, path, rotation);
+    // if (entry[8] == 7)
+    // rotate_zone(entry, path, rotation);
     if (entry[8] == 3)
         rotate_scenery(entry, path, rotation, time, filesize);
     free(entry);
     fclose(file);
 }
 
+// rotates scenery
 void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize)
 {
     FILE *filenew;
@@ -261,11 +257,7 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     free(verts);
 }
 
-void rotate_zone(unsigned char *buffer, char *filepath, double rotation)
-{
-    printf("ayo man im a zone deadass\n");
-}
-
+// rotates xy coord by some angle
 void rotate_rotate(unsigned int *y, unsigned int *x, double rotation)
 {
     int temp1, temp2;
@@ -281,11 +273,7 @@ void rotate_rotate(unsigned int *y, unsigned int *x, double rotation)
     *y = temp2;
 }
 
-/** \brief
- *  Copies texture from one texture chunk to another, doesnt include cluts.
- *
- * \return int                          unused
- */
+//  Copies texture from one texture chunk to another, doesnt include cluts.
 int texture_copy_main()
 {
     char fpath[1000];
@@ -363,6 +351,7 @@ int texture_copy_main()
     return 0;
 }
 
+// property printing util
 void print_prop_header(unsigned char *arr, int off)
 {
     printf("\nheader\t");
@@ -374,6 +363,7 @@ void print_prop_header(unsigned char *arr, int off)
     }
 }
 
+// property printing util
 void print_prop_body(unsigned char *arr, int offset, int offset_next)
 {
     printf("\ndata\t");
@@ -496,6 +486,7 @@ void prop_main(char *path)
     printf("Done \n\n");
 }
 
+// command for removing an entity property
 void prop_remove_script()
 {
     char fpath[1000];
@@ -539,6 +530,7 @@ void prop_remove_script()
     printf("Done. Altered file saved as %s\n\n", fpath2);
 }
 
+// command for retrieving full property data
 PROPERTY *get_prop(unsigned char *item, int prop_code)
 {
 
@@ -572,6 +564,7 @@ PROPERTY *get_prop(unsigned char *item, int prop_code)
         return prop;
 }
 
+// command for replacing property data
 void prop_replace_script()
 {
     char fpath[1000];
@@ -683,6 +676,7 @@ void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
     return;
 }
 
+// yep resizes level
 void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status)
 {
     FILE *filenew;
@@ -709,6 +703,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
     fclose(filenew);
 }
 
+// yep resizes model
 void resize_model(int fsize, unsigned char *buffer, double scale[3])
 {
     int eid = from_u32(buffer + 4);
@@ -742,6 +737,7 @@ void resize_model(int fsize, unsigned char *buffer, double scale[3])
     *(int *)(buffer + o + 8) = sz;
 }
 
+// yep resizes animation
 void resize_animation(int fsize, unsigned char *buffer, double scale[3])
 {
     int itemc = build_item_count(buffer);
@@ -765,6 +761,7 @@ void resize_animation(int fsize, unsigned char *buffer, double scale[3])
     }
 }
 
+// yep fixes camera distance
 void resize_zone_camera_distance(int fsize, unsigned char *buffer, double scale[3])
 {
     int cam_c = build_get_cam_item_count(buffer);
@@ -799,6 +796,7 @@ void resize_zone_camera_distance(int fsize, unsigned char *buffer, double scale[
     }
 }
 
+// yep resizes chunk
 void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
 {
     int offset_start, offset_end, i;
@@ -841,6 +839,7 @@ void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, do
     }
 }
 
+// yep resizes folder
 void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_INFO_STRUCT status)
 {
     struct dirent *de;
@@ -903,6 +902,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
     }
 }
 
+// yep resizes zone
 void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int i, itemcount;
@@ -945,6 +945,7 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
     free(itemoffs);
 }
 
+// yep resizes entity
 void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int i;
@@ -968,6 +969,7 @@ void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE
     }
 }
 
+// yep resizes scenery
 void resize_scenery(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int i, item1off, j, curr_off, next_off, group, rest, vert;
@@ -1070,6 +1072,7 @@ void crate_rotation_angle()
     printf(" (for rewards)\n\n");
 }
 
+// command for printing nsd table
 void nsd_gool_table_print(char *fpath)
 {
     FILE *file = NULL;
@@ -1099,6 +1102,7 @@ void nsd_gool_table_print(char *fpath)
     printf("Done.\n\n");
 }
 
+// command for generating spawn
 void generate_spawn()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1272,6 +1276,7 @@ int scenery_recolor_main2()
     return 0;
 }
 
+// converts time from nice format to hex/data value
 void time_convert()
 {
     int m, s, ms;
@@ -1283,6 +1288,7 @@ void time_convert()
     printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
 }
 
+// script for resizing c3 entity coords to c2 scale?
 void c3_ent_resize()
 {
     char fpath[1000];
@@ -1362,6 +1368,7 @@ void c3_ent_resize()
     printf("Done.\n\n");
 }
 
+// script for moving whole entity by xyz
 void entity_move_scr()
 {
     char fpath[1000];
@@ -1425,6 +1432,7 @@ void entity_move_scr()
     printf("Done.\n\n");
 }
 
+// prints a model's texture references
 void print_model_refs_util(unsigned char *model)
 {
     char *strs[200];
@@ -1489,6 +1497,7 @@ void print_model_refs_util(unsigned char *model)
     }
 }
 
+// prints texture references of a model or all models from a nsf
 void print_model_tex_refs_nsf()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1525,6 +1534,7 @@ void print_model_tex_refs_nsf()
     printf("Done.\n\n");
 }
 
+// prints texture references of a model from a file
 void print_model_tex_refs()
 {
     char fpath[1000];
@@ -1551,6 +1561,7 @@ void print_model_tex_refs()
     printf("Done\n\n");
 }
 
+// prints all entries?
 void print_all_entries_perma()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1572,6 +1583,7 @@ void print_all_entries_perma()
     printf("Done.\n\n");
 }
 
+// collects entity usage info from a single nsf
 void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, unsigned int *gool_table)
 {
     printf("Checking %s\n", fpath);
@@ -1631,6 +1643,7 @@ int cmp_func_dep2(const void *a, const void *b)
     return y.dependencies.count - x.dependencies.count;
 }
 
+// folder iterator for getting entity usage
 void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, unsigned int *gool_table)
 {
     char fpath[MAX + 300] = "", moretemp[MAX] = "";
@@ -1666,6 +1679,7 @@ void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, unsigned in
     closedir(df);
 }
 
+// script for getting entity usage from folder
 void entity_usage_folder()
 {
     printf("Input the path to the folder\n");
@@ -1696,6 +1710,7 @@ void entity_usage_folder()
     printf("\nDone.\n\n");
 }
 
+// script for printing a property from all cameras in a level
 void nsf_props_scr()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1753,6 +1768,7 @@ void nsf_props_scr()
     printf("Done.\n\n");
 }
 
+// makes an empty slst entry for a camera with specified length
 void generate_slst()
 {
     int cam_len = 0;
@@ -1814,7 +1830,7 @@ void generate_slst()
 }
 
 #define WARP_SPAWN_COUNT 32
-
+// modpack warp spawns generation util (for nsd)
 void warp_spawns_generate()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1919,6 +1935,7 @@ void warp_spawns_generate()
     printf("\nDone.\n\n");
 }
 
+// util for printing special load list info for single nsf
 void special_load_lists_util(char *fpath)
 {
     printf("Checking %s\n", fpath);
@@ -1957,7 +1974,7 @@ void special_load_lists_util(char *fpath)
         printf("\n");
 }
 
-int check_level_name(char *fpath, char *name)
+int check_fpath_contains(char *fpath, char *name)
 {
     if (strstr(fpath, name))
         return 1;
@@ -1965,6 +1982,7 @@ int check_level_name(char *fpath, char *name)
     return 0;
 }
 
+// for printing gool type and category list from nsf
 void nsd_util_util(char *fpath)
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -1999,6 +2017,7 @@ void nsd_util_util(char *fpath)
     build_cleanup_elist(elist, entry_count);
 }
 
+// util for printing fov info for a single level
 void fov_stats_util(char *fpath)
 {
     printf("Level: %s\n", fpath);
@@ -2026,6 +2045,7 @@ void fov_stats_util(char *fpath)
     printf("\n");
 }
 
+// util function for printing checkpoint, mask and dda info
 void checkpoint_stats_util(char *fpath)
 {
     // printf("Checking %s\n", fpath);
@@ -2083,21 +2103,21 @@ void checkpoint_stats_util(char *fpath)
                 masks_non_dda++;
 
             // snow no alt iron checks
-            if (check_level_name(fpath, "S0000015.NSF"))
+            if (check_fpath_contains(fpath, "S0000015.NSF"))
             {
                 if (type == 40 && subt == 27)
                     checks_non_dda++;
             }
 
             // lava checks
-            if (check_level_name(fpath, "S000000E.NSF"))
+            if (check_fpath_contains(fpath, "S000000E.NSF"))
             {
                 if (type == 33 && (subt == 0 || subt == 2))
                     checks_non_dda++;
             }
 
             // jet rex alt masks
-            if (check_level_name(fpath, "S0000019.NSF"))
+            if (check_fpath_contains(fpath, "S0000019.NSF"))
             {
                 if (type == 45 && subt == 7)
                     masks_non_dda++;
@@ -2111,7 +2131,7 @@ void checkpoint_stats_util(char *fpath)
             }
 
             // dream zone alt iron checks
-            if (check_level_name(fpath, "S000001B.NSF"))
+            if (check_fpath_contains(fpath, "S000001B.NSF"))
             {
                 if (type == 60 && subt == 0)
                     checks_with_dda++;
@@ -2120,7 +2140,7 @@ void checkpoint_stats_util(char *fpath)
     }
 
     // arab/lava alt masks (done thru args so its just added artificially)
-    if (check_level_name(fpath, "S0000013.NSF") || check_level_name(fpath, "S000000E.NSF"))
+    if (check_fpath_contains(fpath, "S0000013.NSF") || check_fpath_contains(fpath, "S000000E.NSF"))
         masks_non_dda++;
 
     if (checks_non_dda || checks_with_dda)
@@ -2139,6 +2159,7 @@ void checkpoint_stats_util(char *fpath)
     build_cleanup_elist(elist, entry_count);
 }
 
+// function for recursively iterating over folders and calling callback
 void recursive_folder_iter(const char *dpath, void(callback)(char *))
 {
     char fpath[MAX + 300] = "", moretemp[MAX] = "";
@@ -2174,6 +2195,7 @@ void recursive_folder_iter(const char *dpath, void(callback)(char *))
     closedir(df);
 }
 
+// command for listing modpack/rebuild special load lists from folder
 void special_load_lists_list()
 {
     printf("Input the path to the folder\n");
@@ -2185,6 +2207,7 @@ void special_load_lists_list()
     printf("\nDone.\n\n");
 }
 
+// command for listing checkpoint and mask info from folder
 void checkpoint_stats()
 {
     printf("Input the path to the folder\n");
@@ -2198,6 +2221,7 @@ void checkpoint_stats()
     printf("\nDone.\n\n");
 }
 
+// command for listing fov values from folder
 void fov_stats()
 {
     printf("Input the path to the folder\n");
@@ -2210,6 +2234,7 @@ void fov_stats()
     printf("\nDone.\n\n");
 }
 
+// command for listing gool types from folder
 void nsd_util()
 {
     printf("Input the path to the folder\n");
@@ -2222,6 +2247,7 @@ void nsd_util()
     printf("\nDone.\n\n");
 }
 
+// command for listing draw info from nsf
 void draw_util()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -2289,6 +2315,7 @@ void draw_util()
     printf("\nDone.\n\n");
 }
 
+// util for printing file texture pages
 void tpage_util_util(char *fpath)
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -2324,6 +2351,7 @@ void tpage_util_util(char *fpath)
     build_cleanup_elist(elist, entry_count);
 }
 
+// prints tpage list for files from a folder
 void tpage_util()
 {
     printf("Input the path to the folder\n");
@@ -2336,6 +2364,7 @@ void tpage_util()
     printf("\nDone.\n\n");
 }
 
+// for gool_util command, prints gool entries of a file plus their checksum
 void gool_util_util(char *fpath)
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
@@ -2353,13 +2382,14 @@ void gool_util_util(char *fpath)
         int off1 = build_get_nth_item_offset(elist[i].data, 0);
         int tpe = from_u32(elist[i].data + off1);
 
-        printf("\t gool %5s-%02d \t%08X\n", eid_conv2(elist[i].eid), tpe, nsfChecksumA(elist[i].data, elist[i].esize));
+        printf("\t gool %5s-%02d \t%08X\n", eid_conv2(elist[i].eid), tpe, crcChecksum(elist[i].data, elist[i].esize));
     }
 
     printf("\n");
     build_cleanup_elist(elist, entry_count);
 }
 
+// command for printing gool entries list from folder
 void gool_util()
 {
     printf("Input the path to the folder\n");

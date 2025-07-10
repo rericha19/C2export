@@ -132,6 +132,16 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
     fclose(file);
 }
 
+// initialise dependency struct
+DEPENDENCIES build_init_dep()
+{
+    DEPENDENCIES dep;
+    dep.array = NULL;
+    dep.count = 0;
+
+    return dep;
+}
+
 /** \brief
  *  Reads the info from file the user has to provide, first part has permaloaded entries,
  *  second has a list of type/subtype dependencies
@@ -895,10 +905,11 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
     }
 }
 
+// parsing input info for rebuilding using files from folder (not really supported)
 int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int *chunk_border_texture, unsigned int *gool_table,
                                ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS *spawns)
 {
-    char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
+    char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20];
     printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
     scanf(" %[^\n]", nsfpath);
     path_fix(nsfpath);
@@ -937,11 +948,12 @@ int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
     return 0;
 }
 
+// parsing input info for rebuilding from a nsf file
 int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *chunk_border_texture, unsigned int *gool_table,
                                ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS *spawns, int stats_only, char *fpath)
 {
     FILE *nsf = NULL;
-    char nsfpath[MAX], lcltemp[MAX + 20]; // + 20 to get rid of a warning
+    char nsfpath[MAX], lcltemp[MAX + 20];
 
     if (fpath)
     {

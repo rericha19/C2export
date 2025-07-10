@@ -3,21 +3,21 @@
 // convoluted, but does the thing (i think)
 // absolutely fucking awful never look at it again
 
-void export_printstatus(int zonetype, int gamemode, int portmode)
 // prints current settings
+void export_printstatus(int zonetype, int gamemode, int portmode)
 {
     printf("Selected game: Crash %d, porting: %d, zone neighbours (if C2->C3): %d\n\n", gamemode, portmode, zonetype);
 }
 
-void export_countwipe(DEPRECATE_INFO_STRUCT *status)
 // wipes the stats
+void export_countwipe(DEPRECATE_INFO_STRUCT *status)
 {
     for (int i = 0; i < 22; i++)
         status->counter[i] = 0;
 }
 
-void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
 // creates a string thats a save path for the currently processed file
+void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
 {
     char eidstr[6] = "";
     eid_conv(eid, eidstr);
@@ -39,8 +39,8 @@ void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *d
         sprintf(finalpath, "C%d_to_C%d\\\\%s\\\\S00000%s\\\\%s %s %d.nsentry", status.gamemode, port, date, lvlid, type, eidstr, status.counter[0]);
 }
 
-void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status)
 // gets the info about the game and what to do with it
+void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     char c;
     int help;
@@ -113,8 +113,8 @@ void export_askprint(DEPRECATE_INFO_STRUCT *status)
     printf("Printing %s.\n\n", dest[3 - status->print_en]);
 }
 
-void export_countprint(DEPRECATE_INFO_STRUCT status)
 // prints the stats
+void export_countprint(DEPRECATE_INFO_STRUCT status)
 {
     int i;
     char lcltemp[] = "(fixed)";
@@ -144,8 +144,8 @@ void export_countprint(DEPRECATE_INFO_STRUCT status)
     export_condprint(status);
 }
 
-void export_condprint(DEPRECATE_INFO_STRUCT status)
 // conditional print controlled by print_en (print state) - both(3) file(2) here(1) or nowhere(0)
+void export_condprint(DEPRECATE_INFO_STRUCT status)
 {
     switch (status.print_en)
     {
@@ -164,8 +164,8 @@ void export_condprint(DEPRECATE_INFO_STRUCT status)
     }
 }
 
-int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status)
 // does the thing yea
+int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     char sid[3] = "";
     export_countwipe(status);
@@ -264,9 +264,9 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status
     return 1;
 }
 
-int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
 // receives the current chunk, its id (not ingame id, indexed by 1)
 // and lvlid that just gets sent further
+int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     char ctypes[7][20] = {"Normal", "Texture", "Proto sound", "Sound", "Wavebank", "Speech", "Unknown"};
     sprintf(status->temp, "%s chunk \t%03d\n", ctypes[buffer[2]], chunkid * 2 + 1);
@@ -288,8 +288,8 @@ int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *
     return 0;
 }
 
-int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
 // breaks the normal chunk into entries and saves them one by one
+int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     int i;
     int offset_start;
@@ -349,8 +349,8 @@ int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zone
     return 0;
 }
 
-int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 // creates a file with the texture chunk, lvlid for file name, st is save type
+int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     unsigned int eidint = 0;
@@ -373,6 +373,7 @@ int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECA
     return 0;
 }
 
+// converts camera mode from c3 to c2 values
 int export_camera_fix(unsigned char *cam, int length)
 {
     int i, curr_off;
@@ -403,8 +404,8 @@ int export_camera_fix(unsigned char *cam, int length)
     return 0;
 }
 
+// fixes entity coords (from c3 to c2)
 void export_entity_coord_fix(unsigned char *item, int itemlength)
-// fixes entity coords
 {
     int i;
     int off0x4B = 0, off0x30E = 0;
@@ -463,14 +464,15 @@ void export_entity_coord_fix(unsigned char *item, int itemlength)
     }
 }
 
-void export_scenery(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 // does stuff to scenery
+// exports scenery
+void export_scenery(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
     int eidint = 0;
     char eid[6] = "";
-    char path[MAX - 20] = ""; // stfu
+    char path[MAX - 20] = "";
     int curr_off, next_off, i, j, item1off;
     int vert, rest, group;
     unsigned int origin;
@@ -525,14 +527,14 @@ void export_scenery(unsigned char *buffer, int entrysize, char *lvlid, char *dat
     status->counter[3]++;
 }
 
+// exports entries that dont receive any change
 void export_generic_entry(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
-// exports entries that need nor receive no change
 {
     FILE *f;
     char cur_type[MAX / 10] = "";
     int eidint = 0;
     char eid[6];
-    char path[MAX - 20] = ""; // stfu
+    char path[MAX - 20] = "";
 
     switch (buffer[8]) // this is really ugly but it works, so im not touching it
     {
@@ -582,15 +584,15 @@ void export_generic_entry(unsigned char *buffer, int entrysize, char *lvlid, cha
     status->counter[buffer[8]]++;
 }
 
+// exports gool, no changes right now ?
 void export_gool(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
-// exports gool, no changes right now
 {
     FILE *f;
     char cur_type[10];
     int eidint = 0;
     char eid[6];
     unsigned char *cpy;
-    char path[MAX - 20] = ""; // stfu
+    char path[MAX - 20] = "";
     int curr_off = 0;
     int i, j;
     int help1, help2;
@@ -671,14 +673,14 @@ void export_gool(unsigned char *buffer, int entrysize, char *lvlid, char *date, 
     status->counter[11]++;
 }
 
-void export_zone(unsigned char *buffer, int entrysize, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
 // exports zones
+void export_zone(unsigned char *buffer, int entrysize, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
     int eidint = 0;
     char eid[6] = "";
-    char path[MAX - 20] = ""; //  stfu
+    char path[MAX - 20] = "";
     unsigned char *cpy;
     int lcl_entrysize = entrysize;
     int i, j;
@@ -783,8 +785,8 @@ void export_zone(unsigned char *buffer, int entrysize, char *lvlid, char *date, 
     status->counter[7]++;
 }
 
-void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 // exports models, changes already
+void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     int i;
@@ -792,7 +794,7 @@ void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date,
     char cur_type[10];
     int eidint = 0;
     char eid[6] = "";
-    char path[MAX - 20] = ""; // stfu
+    char path[MAX - 20] = ""; 
     int msize = 0;
 
     // scale change in case its porting
@@ -828,13 +830,13 @@ void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date,
     status->counter[2]++;
 }
 
-void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 // will do stuff to animations and save
+void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char eid[6];
     int eidint = 0;
-    char path[MAX - 20] = ""; // stfu
+    char path[MAX - 20] = ""; 
     char cur_type[10] = "";
     char *cpy;
     //    int curr_off;

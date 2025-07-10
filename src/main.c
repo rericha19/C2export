@@ -4,7 +4,7 @@
 // half the stuff barely works so dont touch it much
 // imo the only part thats in a reasonable shape is the level build related code
 
-// actual main
+// main, polls input and runs commands based on it
 int main()
 {
     DEPRECATE_INFO_STRUCT status;
