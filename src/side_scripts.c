@@ -531,7 +531,7 @@ void prop_remove_script()
 }
 
 // command for retrieving full property data
-PROPERTY *get_prop(unsigned char *item, int prop_code)
+PROPERTY *build_get_prop_full(unsigned char *item, int prop_code)
 {
 
     PROPERTY *prop = malloc(sizeof(PROPERTY));
@@ -613,7 +613,7 @@ void prop_replace_script()
     printf("\nWhat prop do you wanna replace/insert? (hex)\n");
     scanf("%x", &prop_code);
 
-    PROPERTY *prop = get_prop(item, prop_code);
+    PROPERTY *prop = build_get_prop_full(item, prop_code);
     if (prop == NULL)
     {
         printf("Property wasnt found in the source file\n\n");
