@@ -460,6 +460,7 @@ void flip_camera_angle_x(unsigned char *item2)
     }
 }
 
+// fixes elevator destinations for elevators when doing level flip x
 void flip_fix_elev_coords_x(unsigned char *item)
 {
     int type = build_get_entity_prop(item, ENTITY_PROP_TYPE);
@@ -470,13 +471,15 @@ void flip_fix_elev_coords_x(unsigned char *item)
         return;
 
     int count = from_u32(item + offset);
-    // most common elev
-    if (count == 8 && type == 9 && subtype == 6)
+    // basic elev, then bonus return elev
+    if ((count == 8 && type == 9 && subtype == 6) ||
+        (count == 8 && type == 9 && subtype == 31))
     {
         *(int *)(item + offset + 6 * 4) *= -1;
     }
 }
 
+// fixes warp in coordinates property when doing level flip x
 void flip_fix_prop_198_x(unsigned char *item)
 {
     int offset = build_get_prop_offset(item, ENTITY_PROP_WARPIN_COORDS);
@@ -485,6 +488,44 @@ void flip_fix_prop_198_x(unsigned char *item)
 
     if (from_s32(item + offset) == 5)
         *(int *)(item + offset + 0xC) *= -1;
+}
+
+// fixes sidescrolling camera distances, if possible
+void flip_camera_dist_2D_x(unsigned char *item0, unsigned char *item1)
+{
+    int mode = build_get_entity_prop(item0, ENTITY_PROP_CAMERA_MODE);
+    if (mode != C2_CAM_MODE_2D)
+        return;
+
+    PROPERTY *prop = build_get_prop_full(item1, ENTITY_PROP_CAM_DISTANCE);
+    int offset = build_get_prop_offset(item1, ENTITY_PROP_CAM_DISTANCE);
+
+    int row_c = from_u16(prop->header + 6);
+    // printf("%d row count\n", row_c);
+
+    int meta_length = 0;
+    if (row_c == 1)
+        meta_length = 4;
+    else if (row_c == 2 || row_c == 3)
+        meta_length = 8;
+    else
+    {
+        printf("unhandled sidescrolling camera distance, row count %d\n", row_c);
+        return;
+    }
+
+    for (int i = 0; i < row_c; i++)
+    {
+        short int value1 = *(short int *)(item1 + offset + meta_length + i * 8 + 0);
+        short int value2 = *(short int *)(item1 + offset + meta_length + i * 8 + 2);
+        short int value3 = *(short int *)(item1 + offset + meta_length + i * 8 + 4);
+        short int value4 = *(short int *)(item1 + offset + meta_length + i * 8 + 6);
+
+        *(short int *)(item1 + offset + meta_length + i * 8 + 0) = -value4;
+        *(short int *)(item1 + offset + meta_length + i * 8 + 2) = -value3;
+        *(short int *)(item1 + offset + meta_length + i * 8 + 4) = -value2;
+        *(short int *)(item1 + offset + meta_length + i * 8 + 6) = -value1;
+    }
 }
 
 // level alter utility - level flip x
@@ -537,13 +578,13 @@ void flip_level_x(ENTRY *elist, int entry_count, int *chunk_count)
 
             for (int j = 0; j < cam_item_count / 3; j++)
             {
-                unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j);
-                flip_entity_x(item, from_s32(item1 + 0xC));
-                flip_fix_prop_198_x(item);
+                unsigned char *cam_item0 = build_get_nth_item(elist[i].data, 2 + 3 * j);
+                flip_entity_x(cam_item0, from_s32(item1 + 0xC));
+                flip_fix_prop_198_x(cam_item0);
 
-                unsigned char *item2 = build_get_nth_item(elist[i].data, 2 + 3 * j + 1);
-                flip_camera_angle_x(item2);
-                // todo camera distance fix (2D)
+                unsigned char *cam_item1 = build_get_nth_item(elist[i].data, 2 + 3 * j + 1);
+                flip_camera_angle_x(cam_item1);
+                flip_camera_dist_2D_x(cam_item0, cam_item1);
                 // todo camera switching property fix?
             }
 

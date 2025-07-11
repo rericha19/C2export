@@ -314,8 +314,9 @@ int build_get_entity_prop(unsigned char *entity, int prop_code)
 // gets offset to data of a property within an item
 int build_get_prop_offset(unsigned char *item, int prop_code)
 {
-    int i, offset = 0;
-    for (i = 0; i < build_prop_count(item); i++)
+    int offset = 0;
+    int prop_count = build_prop_count(item);
+    for (int i = 0; i < prop_count; i++)
         if ((from_u16(item + 0x10 + 8 * i)) == prop_code)
             offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
