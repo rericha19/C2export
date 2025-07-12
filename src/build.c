@@ -7,21 +7,21 @@
  *  Does not consider anything else.
  *
  * \param elist ENTRY*                  entry list
- * \param chunk_index_start int         start of the range
- * \param chunk_index_end int*          end of the range
- * \param entry_count int               entry count
+ * \param chunk_index_start int32_t         start of the range
+ * \param chunk_index_end int32_t*          end of the range
+ * \param entry_count int32_t               entry count
  * \return void
  */
-void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
+void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count)
 {
-    int i, j, k;
+    int32_t i, j, k;
     while (1)
     {
-        int merge_happened = 0;
+        int32_t merge_happened = 0;
         for (i = chunk_index_start; i < *chunk_index_end; i++)
         {
-            int size1 = 0;
-            int count1 = 0;
+            int32_t size1 = 0;
+            int32_t count1 = 0;
 
             for (j = 0; j < entry_count; j++)
                 if (elist[j].chunk == i)
@@ -30,13 +30,13 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
                     count1++;
                 }
 
-            int maxsize = 0;
-            int maxentry_count = 0;
+            int32_t maxsize = 0;
+            int32_t maxentry_count = 0;
 
             for (j = i + 1; j < *chunk_index_end; j++)
             {
-                int size2 = 0;
-                int count2 = 0;
+                int32_t size2 = 0;
+                int32_t count2 = 0;
                 for (k = 0; k < entry_count; k++)
                     if (elist[k].chunk == j)
                     {
@@ -72,33 +72,33 @@ void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end,
  *  Only looks at the first frame of the animation.
  *
  * \param anim unsigned char*           pointer to the data of the searched animation
- * \return unsigned int                 eid of the animation's model reference (as unsigned int)
+ * \return uint32_t                 eid of the animation's model reference (as uint32_t)
  */
 
 LIST build_get_models(unsigned char *animation)
 {
     LIST models = init_list();
 
-    int item_count = build_item_count(animation);
-    for (int i = 0; i < item_count; i++)
+    int32_t item_count = build_item_count(animation);
+    for (int32_t i = 0; i < item_count; i++)
         list_add(&models, build_get_model(animation, i));
 
     return models;
 }
 
-unsigned int build_get_model(unsigned char *anim, int item)
+uint32_t build_get_model(unsigned char *anim, int32_t item)
 {
-    int item_off = build_get_nth_item_offset(anim, item);
+    int32_t item_off = build_get_nth_item_offset(anim, item);
     return from_u32(anim + item_off + 0x10);
 }
 
-unsigned int build_get_zone_track(unsigned char *entry)
+uint32_t build_get_zone_track(unsigned char *entry)
 {
-    int item1off = build_get_nth_item_offset(entry, 0);
-    int item2off = build_get_nth_item_offset(entry, 1);
-    int item1len = item2off - item1off;
+    int32_t item1off = build_get_nth_item_offset(entry, 0);
+    int32_t item2off = build_get_nth_item_offset(entry, 1);
+    int32_t item1len = item2off - item1off;
 
-    unsigned int music_entry = from_u32(entry + item1off + C2_MUSIC_REF + item1len - 0x318);
+    uint32_t music_entry = from_u32(entry + item1off + C2_MUSIC_REF + item1len - 0x318);
     return music_entry;
 }
 
@@ -107,14 +107,14 @@ unsigned int build_get_zone_track(unsigned char *entry)
  *  Searches existing chunks (base level's chunks) and if the texture eid matches
  *  it returns the index of the matching chunk, else returns -1
  *
- * \param textr unsigned int            searched texture chunk eid
+ * \param textr uint32_t            searched texture chunk eid
  * \param chunks unsigned char**        array of chunks to be searched, chunk is a 64kB array
- * \param index_end int                 end index of the chunk array, aka current chunk count
- * \return int                          index of a chunk that matches search, or -1
+ * \param index_end int32_t                 end index of the chunk array, aka current chunk count
+ * \return int32_t                          index of a chunk that matches search, or -1
  */
-int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end)
+int32_t build_get_base_chunk_border(uint32_t textr, unsigned char **chunks, int32_t index_end)
 {
-    int i, retrn = -1;
+    int32_t i, retrn = -1;
 
     for (i = 0; i < index_end; i++)
         if (from_u32(chunks[i] + 4) == textr)
@@ -127,16 +127,16 @@ int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int 
  *  Searches the entry list looking for the specified eid.
  *  Binary search, entry list should be sorted by eid (ascending).
  *
- * \param eid unsigned int              searched eid
+ * \param eid uint32_t              searched eid
  * \param elist ENTRY*                  list of entries
- * \param entry_count int               amount of entries
- * \return int                          index of the searched eid or -1
+ * \param entry_count int32_t               amount of entries
+ * \return int32_t                          index of the searched eid or -1
  */
-int build_get_index(unsigned int eid, ENTRY *elist, int entry_count)
+int32_t build_get_index(uint32_t eid, ENTRY *elist, int32_t entry_count)
 {
-    int first = 0;
-    int last = entry_count - 1;
-    int middle = (first + last) / 2;
+    int32_t first = 0;
+    int32_t last = entry_count - 1;
+    int32_t middle = (first + last) / 2;
 
     while (first <= last)
     {
@@ -158,11 +158,11 @@ int build_get_index(unsigned int eid, ENTRY *elist, int entry_count)
  *  returns eid of the slst.
  *
  * \param item unsigned char*           camera entity data
- * \return unsigned int                 slst reference or 0 if theres no slst reference property
+ * \return uint32_t                 slst reference or 0 if theres no slst reference property
  */
-unsigned int build_get_slst(unsigned char *item)
+uint32_t build_get_slst(unsigned char *item)
 {
-    int offset = build_get_prop_offset(item, ENTITY_PROP_CAM_SLST);
+    int32_t offset = build_get_prop_offset(item, ENTITY_PROP_CAM_SLST);
 
     if (offset)
         return from_u32(item + offset + 4);
@@ -174,11 +174,11 @@ unsigned int build_get_slst(unsigned char *item)
  *  Returns path length of the input item.
  *
  * \param item unsigned char*           item whose length it returns
- * \return unsigned int                 path length
+ * \return uint32_t                 path length
  */
-unsigned int build_get_path_length(unsigned char *item)
+uint32_t build_get_path_length(unsigned char *item)
 {
-    int offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
+    int32_t offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
     if (offset)
         return from_u32(item + offset);
@@ -190,11 +190,11 @@ unsigned int build_get_path_length(unsigned char *item)
  *  Gets zone's neighbour count.
  *
  * \param entry unsigned char*          entry data
- * \return int                          neighbour count
+ * \return int32_t                          neighbour count
  */
-int build_get_neighbour_count(unsigned char *entry)
+int32_t build_get_neighbour_count(unsigned char *entry)
 {
-    int item1off = build_get_nth_item_offset(entry, 0);
+    int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + C2_NEIGHBOURS_START];
 }
 
@@ -206,13 +206,13 @@ int build_get_neighbour_count(unsigned char *entry)
  */
 LIST build_get_neighbours(unsigned char *entry)
 {
-    int item1off = build_get_nth_item_offset(entry, 0);
-    int count = entry[item1off + C2_NEIGHBOURS_START];
+    int32_t item1off = build_get_nth_item_offset(entry, 0);
+    int32_t count = entry[item1off + C2_NEIGHBOURS_START];
     LIST neighbours = init_list();
 
-    for (int k = 0; k < count; k++)
+    for (int32_t k = 0; k < count; k++)
     {
-        int neighbour_eid = from_u32(entry + item1off + C2_NEIGHBOURS_START + 4 + 4 * k);
+        int32_t neighbour_eid = from_u32(entry + item1off + C2_NEIGHBOURS_START + 4 + 4 * k);
         list_add(&neighbours, neighbour_eid);
     }
 
@@ -222,11 +222,11 @@ LIST build_get_neighbours(unsigned char *entry)
  *  Gets zone's camera entity count.
  *
  * \param entry unsigned char*          entry data
- * \return int                          camera entity count (total count, not camera path count)
+ * \return int32_t                          camera entity count (total count, not camera path count)
  */
-int build_get_cam_item_count(unsigned char *entry)
+int32_t build_get_cam_item_count(unsigned char *entry)
 {
-    int item1off = build_get_nth_item_offset(entry, 0);
+    int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x188];
 }
 
@@ -234,20 +234,20 @@ int build_get_cam_item_count(unsigned char *entry)
  *  Gets zone's regular entity count.
  *
  * \param entry unsigned char*          entry data
- * \return int                          entity count (not including camera entities)
+ * \return int32_t                          entity count (not including camera entities)
  */
-int build_get_entity_count(unsigned char *entry)
+int32_t build_get_entity_count(unsigned char *entry)
 {
-    int item1off = build_get_nth_item_offset(entry, 0);
+    int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x18C];
 }
 
-int build_item_count(unsigned char *entry)
+int32_t build_item_count(unsigned char *entry)
 {
     return from_u32(entry + 0xC);
 }
 
-int build_prop_count(unsigned char *item)
+int32_t build_prop_count(unsigned char *item)
 {
     return from_u32(item + 0xC);
 }
@@ -256,16 +256,16 @@ int build_prop_count(unsigned char *item)
  *  Returns type of an entry.
  *
  * \param entry ENTRY                   entry struct
- * \return int                          -1 if entry does not have data allocated, else real entry type
+ * \return int32_t                          -1 if entry does not have data allocated, else real entry type
  */
-int build_entry_type(ENTRY entry)
+int32_t build_entry_type(ENTRY entry)
 {
     if (entry.data == NULL)
         return -1;
-    return *(int *)(entry.data + 8);
+    return *(int32_t *)(entry.data + 8);
 }
 
-int build_chunk_type(unsigned char *chunk)
+int32_t build_chunk_type(unsigned char *chunk)
 {
     if (chunk == NULL)
         return -1;
@@ -273,11 +273,11 @@ int build_chunk_type(unsigned char *chunk)
     return from_u16(chunk + 0x2);
 }
 
-void build_check_item_count(unsigned char *zone, int eid)
+void build_check_item_count(unsigned char *zone, int32_t eid)
 {
-    int item_count = build_item_count(zone);
-    int cam_count = build_get_cam_item_count(zone);
-    int entity_count = build_get_entity_count(zone);
+    int32_t item_count = build_item_count(zone);
+    int32_t cam_count = build_get_cam_item_count(zone);
+    int32_t entity_count = build_get_entity_count(zone);
 
     char temp[100] = "";
     if (item_count != (2 + cam_count + entity_count))
@@ -285,7 +285,7 @@ void build_check_item_count(unsigned char *zone, int eid)
                eid_conv(eid, temp), item_count, cam_count, entity_count);
 }
 
-DRAW_ITEM build_decode_draw_item(unsigned int value)
+DRAW_ITEM build_decode_draw_item(uint32_t value)
 {
     DRAW_ITEM temp;
 
@@ -299,12 +299,12 @@ DRAW_ITEM build_decode_draw_item(unsigned int value)
  *  Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
  *
  * \param entity unsigned char*         entity data
- * \param prop_code int                 property to return
- * \return int                          property value
+ * \param prop_code int32_t                 property to return
+ * \return int32_t                          property value
  */
-int build_get_entity_prop(unsigned char *entity, int prop_code)
+int32_t build_get_entity_prop(unsigned char *entity, int32_t prop_code)
 {
-    int offset = build_get_prop_offset(entity, prop_code);
+    int32_t offset = build_get_prop_offset(entity, prop_code);
     if (offset == 0)
         return -1;
 
@@ -312,11 +312,11 @@ int build_get_entity_prop(unsigned char *entity, int prop_code)
 }
 
 // gets offset to data of a property within an item
-int build_get_prop_offset(unsigned char *item, int prop_code)
+int32_t build_get_prop_offset(unsigned char *item, int32_t prop_code)
 {
-    int offset = 0;
-    int prop_count = build_prop_count(item);
-    for (int i = 0; i < prop_count; i++)
+    int32_t offset = 0;
+    int32_t prop_count = build_prop_count(item);
+    for (int32_t i = 0; i < prop_count; i++)
         if ((from_u16(item + 0x10 + 8 * i)) == prop_code)
             offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
@@ -327,12 +327,12 @@ int build_get_prop_offset(unsigned char *item, int prop_code)
  *  Just calculates the amount of chunks in the provided nsf file.
  *
  * \param nsf FILE*                     provided nsf
- * \return int                          amount of chunks
+ * \return int32_t                          amount of chunks
  */
-int build_get_chunk_count_base(FILE *nsf)
+int32_t build_get_chunk_count_base(FILE *nsf)
 {
     fseek(nsf, 0, SEEK_END);
-    int result = ftell(nsf) / CHUNKSIZE;
+    int32_t result = ftell(nsf) / CHUNKSIZE;
     rewind(nsf);
 
     return result;
@@ -342,11 +342,11 @@ int build_get_chunk_count_base(FILE *nsf)
  *  Checks whether the entry is meant to be placed into a normal chunk.
  *
  * \param entry ENTRY                   entry to be tested
- * \return int                          1 if it belongs to a normal chunk, else 0
+ * \return int32_t                          1 if it belongs to a normal chunk, else 0
  */
-int build_is_normal_chunk_entry(ENTRY entry)
+int32_t build_is_normal_chunk_entry(ENTRY entry)
 {
-    int type = build_entry_type(entry);
+    int32_t type = build_entry_type(entry);
     if (type == ENTRY_TYPE_ANIM ||
         type == ENTRY_TYPE_DEMO ||
         type == ENTRY_TYPE_ZONE ||
@@ -363,9 +363,9 @@ int build_is_normal_chunk_entry(ENTRY entry)
     return 0;
 }
 
-void build_cleanup_elist(ENTRY *elist, int entry_count)
+void build_cleanup_elist(ENTRY *elist, int32_t entry_count)
 {
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (elist[i].data != NULL)
             free(elist[i].data);
@@ -385,17 +385,17 @@ void build_cleanup_elist(ENTRY *elist, int entry_count)
  *  Gets rid of some dynamically allocated stuff and closes files.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
+ * \param entry_count int32_t               entry count
  * \param chunks unsigned char**        built chunks
- * \param chunk_count int               chunk count
+ * \param chunk_count int32_t               chunk count
  * \return void
  */
-void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2)
+void build_final_cleanup(ENTRY *elist, int32_t entry_count, unsigned char **chunks, int32_t chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2)
 {
 
     build_cleanup_elist(elist, entry_count);
 
-    for (int i = 0; i < chunk_count; i++)
+    for (int32_t i = 0; i < chunk_count; i++)
         free(chunks[i]);
 
     if (nsfnew != NULL)
@@ -413,23 +413,23 @@ void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, 
 
 // dumb thing for snow no or whatever convoluted level its configured for rn
 // actually unused at the time
-void build_get_box_count(ENTRY *elist, int entry_count)
+void build_get_box_count(ENTRY *elist, int32_t entry_count)
 {
-    int box_counter = 0;
-    int nitro_counter = 0;
-    int entity_counter = 0;
-    for (int i = 0; i < entry_count; i++)
+    int32_t box_counter = 0;
+    int32_t nitro_counter = 0;
+    int32_t entity_counter = 0;
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            int entity_count = build_get_entity_count(elist[i].data);
-            int camera_count = build_get_cam_item_count(elist[i].data);
-            for (int j = 0; j < entity_count; j++)
+            int32_t entity_count = build_get_entity_count(elist[i].data);
+            int32_t camera_count = build_get_cam_item_count(elist[i].data);
+            for (int32_t j = 0; j < entity_count; j++)
             {
                 unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
-                int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-                int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-                int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+                int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+                int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+                int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
                 if (id == -1)
                     continue;
@@ -458,7 +458,7 @@ void build_get_box_count(ENTRY *elist, int entry_count)
 }
 
 // used to sort load lists and to avoid stuff getting removed before its been added
-int cmp_func_load(const void *a, const void *b)
+int32_t cmp_func_load(const void *a, const void *b)
 {
     LOAD x = *(LOAD *)a;
     LOAD y = *(LOAD *)b;
@@ -470,7 +470,7 @@ int cmp_func_load(const void *a, const void *b)
 }
 
 // used to sort draw list to avoid stuff getting removed before its been added
-int cmp_func_load2(const void *a, const void *b)
+int32_t cmp_func_load2(const void *a, const void *b)
 {
     LOAD x = *(LOAD *)a;
     LOAD y = *(LOAD *)b;
@@ -481,7 +481,7 @@ int cmp_func_load2(const void *a, const void *b)
         return (y.type - x.type);
 }
 
-LOAD_LIST build_get_draw_lists(unsigned char *entry, int cam_index)
+LOAD_LIST build_get_draw_lists(unsigned char *entry, int32_t cam_index)
 {
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
@@ -489,7 +489,7 @@ LOAD_LIST build_get_draw_lists(unsigned char *entry, int cam_index)
     return temp;
 }
 
-LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index)
+LOAD_LIST build_get_load_lists(unsigned char *entry, int32_t cam_index)
 {
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
@@ -500,46 +500,46 @@ LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index)
 /** \brief
  *  Deconstructs the load or draw lists and saves into a convenient struct.
  *
- * \param prop_code int                 first of the two list properties (either 0x13B or 0x208)
+ * \param prop_code int32_t                 first of the two list properties (either 0x13B or 0x208)
  * \param entry unsigned char*          entry data
- * \param cam_offset int                offset of the camera item
+ * \param cam_offset int32_t                offset of the camera item
  * \return LOAD_LIST                    load or draw list struct
  */
-LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index)
+LOAD_LIST build_get_lists(int32_t prop_code, unsigned char *entry, int32_t cam_index)
 {
-    int k, l;
+    int32_t k, l;
     LOAD_LIST load_list = init_load_list();
 
-    int cam_offset = build_get_nth_item_offset(entry, cam_index);
-    int prop_count = from_u32(entry + cam_offset + OFFSET);
+    int32_t cam_offset = build_get_nth_item_offset(entry, cam_index);
+    int32_t prop_count = from_u32(entry + cam_offset + OFFSET);
 
     for (k = 0; (unsigned)k < prop_count; k++)
     {
-        int code = from_u16(entry + cam_offset + 0x10 + 8 * k);
-        int offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-        int list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
+        int32_t code = from_u16(entry + cam_offset + 0x10 + 8 * k);
+        int32_t offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+        int32_t list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
 
-        int next_offset = (k + 1 < prop_count)
+        int32_t next_offset = (k + 1 < prop_count)
                               ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
                               : (from_u16(entry + cam_offset) + cam_offset);
-        int prop_length = next_offset - offset;
+        int32_t prop_length = next_offset - offset;
 
         if (code == prop_code || code == prop_code + 1)
         {
-            int sub_list_offset;
-            int load_list_item_count;
-            int condensed_check1 = 0;
-            int condensed_check2 = 0;
+            int32_t sub_list_offset;
+            int32_t load_list_item_count;
+            int32_t condensed_check1 = 0;
+            int32_t condensed_check2 = 0;
 
             // i should use 0x40 flag in prop header[4] but my spaghetti doesnt work with it so this thing stays here
-            int potentially_condensed_length = from_u16(entry + offset) * 4 * list_count;
+            int32_t potentially_condensed_length = from_u16(entry + offset) * 4 * list_count;
             potentially_condensed_length += 2 + 2 * list_count;
             if (from_u16(entry + offset + 2 + 2 * list_count) == 0)
                 potentially_condensed_length += 2;
             if (potentially_condensed_length == prop_length && list_count > 1)
                 condensed_check1 = 1;
 
-            int len = 4 * list_count;
+            int32_t len = 4 * list_count;
             for (l = 0; l < list_count; l++)
                 len += from_u16(entry + offset + l * 2) * 4;
             if (len != prop_length)
@@ -549,7 +549,7 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index)
             {
 
                 load_list_item_count = from_u16(entry + offset);
-                unsigned short int *indices = (unsigned short int *)malloc(list_count * sizeof(unsigned short int));
+                uint16_t *indices = (uint16_t *)malloc(list_count * sizeof(uint16_t));
                 memcpy(indices, entry + offset + 2, list_count * 2);
                 sub_list_offset = offset + 2 + 2 * list_count;
                 if (sub_list_offset % 4)
@@ -557,9 +557,9 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index)
                 for (l = 0; l < list_count; l++)
                 {
                     load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (unsigned int *)
-                        malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
-                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
+                    load_list.array[load_list.count].list = (uint32_t *)
+                        malloc(load_list_item_count * sizeof(uint32_t)); // freed by caller using delete_load_list
+                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
                     if (code == prop_code)
                         load_list.array[load_list.count].type = 'A';
                     else
@@ -576,12 +576,12 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index)
                 for (l = 0; l < list_count; l++)
                 {
                     load_list_item_count = from_u16(entry + offset + l * 2);
-                    int index = from_u16(entry + offset + l * 2 + list_count * 2);
+                    int32_t index = from_u16(entry + offset + l * 2 + list_count * 2);
 
                     load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (unsigned int *)
-                        malloc(load_list_item_count * sizeof(unsigned int)); // freed by caller using delete_load_list
-                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(unsigned int));
+                    load_list.array[load_list.count].list = (uint32_t *)
+                        malloc(load_list_item_count * sizeof(uint32_t)); // freed by caller using delete_load_list
+                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
                     if (code == prop_code)
                         load_list.array[load_list.count].type = 'A';
                     else
@@ -597,14 +597,14 @@ LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index)
     return load_list;
 }
 
-void build_normal_check_loaded(ENTRY *elist, int entry_count)
+void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
 {
 
-    int omit = 0;
+    int32_t omit = 0;
     printf("\nOmit normal chunk entries that are never loaded? [0 - include, 1 - omit]\n");
     scanf("%d", &omit);
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
         elist[i].norm_chunk_ent_is_loaded = 1;
 
     if (!omit)
@@ -615,26 +615,26 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count)
 
     printf("Checking for normal chunk entries that are never loaded\n");
     LIST ever_loaded = init_list();
-    int entries_skipped = 0;
+    int32_t entries_skipped = 0;
     char temp[6] = "";
 
     // reads all load lists and bluntly adds all items into the list of all loaded entries
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
         {
-            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (int j = 0; j < cam_count; j++)
+            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            for (int32_t j = 0; j < cam_count; j++)
             {
                 LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
-                for (int k = 0; k < ll.count; k++)
-                    for (int l = 0; l < ll.array[k].list_length; l++)
+                for (int32_t k = 0; k < ll.count; k++)
+                    for (int32_t l = 0; l < ll.array[k].list_length; l++)
                         list_add(&ever_loaded, ll.array[k].list[l]);
             }
         }
     }
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_is_normal_chunk_entry(elist[i]))
         {
@@ -653,28 +653,28 @@ void build_normal_check_loaded(ENTRY *elist, int entry_count)
         free(ever_loaded.eids);
 }
 
-int cmp_spawns(const void *a, const void *b)
+int32_t cmp_spawns(const void *a, const void *b)
 {
     return ((*(SPAWN *)a).zone - (*(SPAWN *)b).zone);
 }
 
-void build_print_transitions(ENTRY *elist, int entry_count)
+void build_print_transitions(ENTRY *elist, int32_t entry_count)
 {
     printf("\nTransitions in the level: \n");
     char temp[6] = "";
     char temp2[6] = "";
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
             continue;
 
         LIST neighbours = build_get_neighbours(elist[i].data);
-        int item1off = build_get_nth_item_offset(elist[i].data, 0);
-        for (int j = 0; j < neighbours.count; j++)
+        int32_t item1off = build_get_nth_item_offset(elist[i].data, 0);
+        for (int32_t j = 0; j < neighbours.count; j++)
         {
-            unsigned int neighbour_eid = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
-            unsigned int neighbour_flg = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j + 0x20);
+            uint32_t neighbour_eid = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
+            uint32_t neighbour_flg = from_u32(elist[i].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j + 0x20);
 
             if (neighbour_flg == 0xF || neighbour_flg == 0x1F)
             {
@@ -690,7 +690,7 @@ void build_print_transitions(ENTRY *elist, int entry_count)
  * \param build_type            build or rebuild
  * \return void
  */
-void build_main(int build_type)
+void build_main(int32_t build_type)
 {
 
     clock_t time_build_start = clock();
@@ -704,22 +704,22 @@ void build_main(int build_type)
     DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types
     DEPENDENCIES mus_dep = build_init_dep();
-    int level_ID = 0; // level ID, used for naming output files and needed in output nsd
+    int32_t level_ID = 0; // level ID, used for naming output files and needed in output nsd
 
     // used to keep track of counts and to separate groups of chunks
-    // int chunk_border_base       = 0;
-    int chunk_border_texture = 0,
+    // int32_t chunk_border_base       = 0;
+    int32_t chunk_border_texture = 0,
         chunk_border_sounds = 0,
         chunk_count = 0,
         entry_count_base = 0,
         entry_count = 0;
 
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
-    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
+    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     // config:
-    int config[] = {
+    int32_t config[] = {
         0, // 0 - gool initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         0, // 1 - zone initial merge flag      0 - group       |   1 - one by one                          set here, used by deprecate merges
         1, // 2 - merge type value             0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
@@ -728,7 +728,7 @@ void build_main(int build_type)
         0, // 4 - neighbour distance value         set by user in function build_ask_distances(config); affects load lists
         0, // 5 - draw list distance value         set by user in function build_ask_distances(config); affects load lists
         0, // 6 - transition pre-load flag         set by user in function build_ask_distances(config); affects load lists
-        0, // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int, range 0 - 0.5
+        0, // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int32_t, range 0 - 0.5
 
         0, // 8 - relation array sort flag     0 - regular     |   1 - also sort by total occurence count; set here, used by matrix merge (1 is kinda meh)
         0, // 9 - sound entry load list flag   0 - all sounds  |   1 - one sound per sound chunk           set here, affects load lists
@@ -745,7 +745,7 @@ void build_main(int build_type)
         0, // 17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
     };
 
-    int input_parse_rtrn_value = 1;
+    int32_t input_parse_rtrn_value = 1;
     // reading contents of the nsf/folder and collecting metadata
     if (build_type == BuildType_Build)
         input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
@@ -768,8 +768,8 @@ void build_main(int build_type)
 
     // user picks whether to remake load lists or not, also merge method
     build_ask_build_flags(config);
-    int load_list_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
-    int merge_tech_flag = config[CNFG_IDX_MERGE_METHOD_VALUE];
+    int32_t load_list_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
+    int32_t merge_tech_flag = config[CNFG_IDX_MERGE_METHOD_VALUE];
 
     qsort(spawns.spawns, spawns.spawn_count, sizeof(SPAWN), cmp_spawns);
     // let the user pick the spawn, according to the spawn determine for each cam path its distance from spawn in terms of path links,
@@ -816,7 +816,7 @@ void build_main(int build_type)
     }
 
     // debug
-    /*for (int i = 0; i < entry_count; i++)
+    /*for (int32_t i = 0; i < entry_count; i++)
         list_add(&permaloaded, elist[i].eid);*/
 
     if (build_type == BuildType_Rebuild_DL)

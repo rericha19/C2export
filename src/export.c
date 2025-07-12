@@ -4,7 +4,7 @@
 // absolutely fucking awful never look at it again
 
 // prints current settings
-void export_printstatus(int zonetype, int gamemode, int portmode)
+void export_printstatus(int32_t zonetype, int32_t gamemode, int32_t portmode)
 {
     printf("Selected game: Crash %d, porting: %d, zone neighbours (if C2->C3): %d\n\n", gamemode, portmode, zonetype);
 }
@@ -12,16 +12,16 @@ void export_printstatus(int zonetype, int gamemode, int portmode)
 // wipes the stats
 void export_countwipe(DEPRECATE_INFO_STRUCT *status)
 {
-    for (int i = 0; i < 22; i++)
+    for (int32_t i = 0; i < 22; i++)
         status->counter[i] = 0;
 }
 
 // creates a string thats a save path for the currently processed file
-void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
+void export_make_path(char *finalpath, char *type, int32_t eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status)
 {
     char eidstr[6] = "";
     eid_conv(eid, eidstr);
-    int port;
+    int32_t port;
 
     if (status.portmode == 1)
     {
@@ -40,10 +40,10 @@ void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *d
 }
 
 // gets the info about the game and what to do with it
-void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status)
+void export_askmode(int32_t *zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     char c;
-    int help;
+    int32_t help;
     printf("Which game are the files from? [2/3]\n");
     printf("Change to other game's format? [Y/N]\n");
     scanf("%d %c", &help, &c);
@@ -116,7 +116,7 @@ void export_askprint(DEPRECATE_INFO_STRUCT *status)
 // prints the stats
 void export_countprint(DEPRECATE_INFO_STRUCT status)
 {
-    int i;
+    int32_t i;
     char lcltemp[] = "(fixed)";
     char lcltemp2[10] = "";
     char prefix[22][30] = {"Entries: \t", "Animations: \t", "Models:\t\t", "Sceneries: \t", "SLSTs: \t\t", "Textures: \t", "",
@@ -132,7 +132,7 @@ void export_countprint(DEPRECATE_INFO_STRUCT status)
                 strcpy(lcltemp2, "\t");
             sprintf(status.temp, "%s %s%3d\t", prefix[i], lcltemp2, status.counter[i]);
             export_condprint(status);
-            for (int j = 0; j < (double)status.counter[i] / 6; j++)
+            for (int32_t j = 0; j < (double)status.counter[i] / 6; j++)
             {
                 sprintf(status.temp, "|");
                 export_condprint(status);
@@ -165,15 +165,15 @@ void export_condprint(DEPRECATE_INFO_STRUCT status)
 }
 
 // does the thing yea
-int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status)
+int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     char sid[3] = "";
     export_countwipe(status);
     FILE *file;                     // the NSF thats to be exported
-    unsigned int numbytes, i;       // zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
+    uint32_t numbytes, i;       // zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
     char temp[MAX] = "";            //, nsfcheck[4];
     unsigned char chunk[CHUNKSIZE]; // array where the level data is stored
-    int port;
+    int32_t port;
     char lcltemp[3][6] = {"", "", ""};
 
     /*strncpy(nsfcheck,strchr(fpath,'\0')-3,3);
@@ -230,7 +230,7 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status
     export_condprint(*status);
 
     // hands the chunks to chunk_handler one by one
-    for (i = 0; (unsigned int)i < (numbytes / CHUNKSIZE); i++)
+    for (i = 0; (uint32_t)i < (numbytes / CHUNKSIZE); i++)
     {
         fread(chunk, sizeof(char), CHUNKSIZE, file);
         export_chunk_handler(chunk, i, sid, date, zone, status);
@@ -251,7 +251,7 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status
     sprintf(status->temp, "\n");
     export_condprint(*status);
 
-    for (i = 0; (unsigned int)i < status->animrefcount; i++)
+    for (i = 0; (uint32_t)i < status->animrefcount; i++)
     {
         eid_conv(status->anim[i][0], lcltemp[0]);
         eid_conv(status->anim[i][1], lcltemp[1]);
@@ -266,7 +266,7 @@ int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status
 
 // receives the current chunk, its id (not ingame id, indexed by 1)
 // and lvlid that just gets sent further
-int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
+int32_t export_chunk_handler(unsigned char *buffer, int32_t chunkid, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     char ctypes[7][20] = {"Normal", "Texture", "Proto sound", "Sound", "Wavebank", "Speech", "Unknown"};
     sprintf(status->temp, "%s chunk \t%03d\n", ctypes[buffer[2]], chunkid * 2 + 1);
@@ -289,14 +289,14 @@ int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *
 }
 
 // breaks the normal chunk into entries and saves them one by one
-int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
+int32_t export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
 {
-    int i;
-    int offset_start;
-    int offset_end;
+    int32_t i;
+    int32_t offset_start;
+    int32_t offset_end;
     unsigned char *entry;
     char eid[6];
-    unsigned int eidnum = 0;
+    uint32_t eidnum = 0;
 
     for (i = 0; i < buffer[8]; i++)
     {
@@ -337,7 +337,7 @@ int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zone
             break;
         default:
             eidnum = 0;
-            for (int j = 0; j < 4; j++)
+            for (int32_t j = 0; j < 4; j++)
                 eidnum = (eidnum * BYTE) + entry[7 - j];
             eid_conv(eidnum, eid);
             sprintf(status->temp, "\t T%2d, unknown entry\t%s\n", entry[8], eid);
@@ -350,14 +350,14 @@ int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zone
 }
 
 // creates a file with the texture chunk, lvlid for file name, st is save type
-int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+int32_t export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
-    unsigned int eidint = 0;
+    uint32_t eidint = 0;
     char path[MAX - 20] = ""; // -20 to get rid of a warning
     char cur_type[] = "texture";
 
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
 
     export_make_path(path, cur_type, eidint, lvlid, date, *status);
@@ -374,9 +374,9 @@ int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECA
 }
 
 // converts camera mode from c3 to c2 values
-int export_camera_fix(unsigned char *cam, int length)
+int32_t export_camera_fix(unsigned char *cam, int32_t length)
 {
-    int i, curr_off;
+    int32_t i, curr_off;
 
     for (i = 0; i < cam[0xC]; i++)
     {
@@ -405,12 +405,12 @@ int export_camera_fix(unsigned char *cam, int length)
 }
 
 // fixes entity coords (from c3 to c2)
-void export_entity_coord_fix(unsigned char *item, int itemlength)
+void export_entity_coord_fix(unsigned char *item, int32_t itemlength)
 {
-    int i;
-    int off0x4B = 0, off0x30E = 0;
+    int32_t i;
+    int32_t off0x4B = 0, off0x30E = 0;
     double scale;
-    short int coord;
+    int16_t coord;
 
     // printf("%d\n", itemlength);
     for (i = 0; i < item[0xC]; i++)
@@ -447,14 +447,14 @@ void export_entity_coord_fix(unsigned char *item, int itemlength)
             if (item[off0x4B + 0x5 + i] < 0x80)
             {
                 coord = BYTE * (signed)item[off0x4B + 0x5 + i] + (signed)item[off0x4B + 0x4 + i];
-                coord = (short int)coord * scale;
+                coord = (int16_t)coord * scale;
                 item[off0x4B + 0x5 + i] = coord / 256;
                 item[off0x4B + 0x4 + i] = coord % 256;
             }
             else
             {
                 coord = 65536 - BYTE * (signed)item[off0x4B + 0x5 + i] - (signed)item[off0x4B + 0x4 + i];
-                coord = (short int)coord * scale;
+                coord = (int16_t)coord * scale;
                 item[off0x4B + 0x5 + i] = 255 - coord / 256;
                 item[off0x4B + 0x4 + i] = 256 - coord % 256;
                 if (item[off0x4B + 0x4 + i] == 0)
@@ -466,16 +466,16 @@ void export_entity_coord_fix(unsigned char *item, int itemlength)
 
 // does stuff to scenery
 // exports scenery
-void export_scenery(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_scenery(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
-    int eidint = 0;
+    int32_t eidint = 0;
     char eid[6] = "";
     char path[MAX - 20] = "";
-    int curr_off, next_off, i, j, item1off;
-    int vert, rest, group;
-    unsigned int origin;
+    int32_t curr_off, next_off, i, j, item1off;
+    int32_t vert, rest, group;
+    uint32_t origin;
 
     strncpy(cur_type, "scenery", 10);
     for (i = 0; i < 4; i++)
@@ -528,11 +528,11 @@ void export_scenery(unsigned char *buffer, int entrysize, char *lvlid, char *dat
 }
 
 // exports entries that dont receive any change
-void export_generic_entry(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_generic_entry(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[MAX / 10] = "";
-    int eidint = 0;
+    int32_t eidint = 0;
     char eid[6];
     char path[MAX - 20] = "";
 
@@ -569,7 +569,7 @@ void export_generic_entry(unsigned char *buffer, int entrysize, char *lvlid, cha
         break;
     }
 
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
     eid_conv(eidint, eid);
 
@@ -585,17 +585,17 @@ void export_generic_entry(unsigned char *buffer, int entrysize, char *lvlid, cha
 }
 
 // exports gool, no changes right now ?
-void export_gool(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_gool(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
-    int eidint = 0;
+    int32_t eidint = 0;
     char eid[6];
     unsigned char *cpy;
     char path[MAX - 20] = "";
-    int curr_off = 0;
-    int i, j;
-    int help1, help2;
+    int32_t curr_off = 0;
+    int32_t i, j;
+    int32_t help1, help2;
     char eidhelp1[6], eidhelp2[6];
 
     cpy = (unsigned char *)calloc(entrysize, sizeof(char)); // freed here
@@ -674,19 +674,19 @@ void export_gool(unsigned char *buffer, int entrysize, char *lvlid, char *date, 
 }
 
 // exports zones
-void export_zone(unsigned char *buffer, int entrysize, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status)
+void export_zone(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
-    int eidint = 0;
+    int32_t eidint = 0;
     char eid[6] = "";
     char path[MAX - 20] = "";
     unsigned char *cpy;
-    int lcl_entrysize = entrysize;
-    int i, j;
-    int curr_off, lcl_temp, irrelitems, next_off;
+    int32_t lcl_entrysize = entrysize;
+    int32_t i, j;
+    int32_t curr_off, lcl_temp, irrelitems, next_off;
 
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
     eid_conv(eidint, eid);
 
@@ -786,16 +786,16 @@ void export_zone(unsigned char *buffer, int entrysize, char *lvlid, char *date, 
 }
 
 // exports models, changes already
-void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_model(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
-    int i;
+    int32_t i;
     float scaling = 0;
     char cur_type[10];
-    int eidint = 0;
+    int32_t eidint = 0;
     char eid[6] = "";
     char path[MAX - 20] = ""; 
-    int msize = 0;
+    int32_t msize = 0;
 
     // scale change in case its porting
     if (status->gamemode == 2)
@@ -807,7 +807,7 @@ void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date,
         for (i = 0; i < 3; i++)
         {
             msize = BYTE * buffer[buffer[0x10] + 1 + i * 4] + buffer[buffer[0x10] + i * 4];
-            msize = (int)msize * scaling;
+            msize = (int32_t)msize * scaling;
             buffer[buffer[0x10] + 1 + i * 4] = msize / BYTE;
             buffer[buffer[0x10] + i * 4] = msize % BYTE;
         }
@@ -831,18 +831,18 @@ void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date,
 }
 
 // will do stuff to animations and save
-void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_animation(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char eid[6];
-    int eidint = 0;
+    int32_t eidint = 0;
     char path[MAX - 20] = ""; 
     char cur_type[10] = "";
     char *cpy;
-    //    int curr_off;
-    int lcltemp;
+    //    int32_t curr_off;
+    int32_t lcltemp;
 
-    for (int i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
 
     strncpy(cur_type, "animation\0", 10);
@@ -857,7 +857,7 @@ void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *d
         {
             // offset fix
             cpy = (char *)realloc(cpy, entrysize + cpy[0xC] * 4);
-            for (int j = 1; j <= cpy[0xC]; j++)
+            for (int32_t j = 1; j <= cpy[0xC]; j++)
             {
                 lcltemp = BYTE * cpy[0x11 + 4 * j] + cpy[0x10 + 4 * j];
                 lcltemp += 4 * j;
@@ -866,14 +866,14 @@ void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *d
             }
 
             // autism
-            for (int j = 0; j < cpy[0xC]; j++)
+            for (int32_t j = 0; j < cpy[0xC]; j++)
             {
                 // curr_off = BYTE * cpy[0x11 + 4*j] + cpy[0x10 + 4*j];
             }
         }
         else // c3 to c2
         {
-            for (int j = 0; j < cpy[0xC]; j++)
+            for (int32_t j = 0; j < cpy[0xC]; j++)
             {
                 ;
             }

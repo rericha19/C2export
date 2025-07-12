@@ -229,7 +229,7 @@ extern "C"
         size_t d_namlen;
 
         /* File type */
-        int d_type;
+        int32_t d_type;
 
         /* File name */
         wchar_t d_name[PATH_MAX];
@@ -245,7 +245,7 @@ extern "C"
         WIN32_FIND_DATAW data;
 
         /* True if data is valid */
-        int cached;
+        int32_t cached;
 
         /* Win32 search handle */
         HANDLE handle;
@@ -257,7 +257,7 @@ extern "C"
 
     static _WDIR *_wopendir(const wchar_t *dirname);
     static struct _wdirent *_wreaddir(_WDIR *dirp);
-    static int _wclosedir(_WDIR *dirp);
+    static int32_t _wclosedir(_WDIR *dirp);
     static void _wrewinddir(_WDIR *dirp);
 
 /* For compatibility with Symbian */
@@ -281,7 +281,7 @@ extern "C"
         size_t d_namlen;
 
         /* File type */
-        int d_type;
+        int32_t d_type;
 
         /* File name */
         char d_name[PATH_MAX];
@@ -297,28 +297,28 @@ extern "C"
 
     static DIR *opendir(const char *dirname);
     static struct dirent *readdir(DIR *dirp);
-    static int closedir(DIR *dirp);
+    static int32_t closedir(DIR *dirp);
     static void rewinddir(DIR *dirp);
 
     /* Internal utility functions */
     static WIN32_FIND_DATAW *dirent_first(_WDIR *dirp);
     static WIN32_FIND_DATAW *dirent_next(_WDIR *dirp);
 
-    static int dirent_mbstowcs_s(
+    static int32_t dirent_mbstowcs_s(
         size_t *pReturnValue,
         wchar_t *wcstr,
         size_t sizeInWords,
         const char *mbstr,
         size_t count);
 
-    static int dirent_wcstombs_s(
+    static int32_t dirent_wcstombs_s(
         size_t *pReturnValue,
         char *mbstr,
         size_t sizeInBytes,
         const wchar_t *wcstr,
         size_t count);
 
-    static void dirent_set_errno(int error);
+    static void dirent_set_errno(int32_t error);
 
     /*
      * Open directory stream DIRNAME for read and return a pointer to the
@@ -330,7 +330,7 @@ extern "C"
         const wchar_t *dirname)
     {
         _WDIR *dirp = NULL;
-        int error;
+        int32_t error;
 
         /* Must have directory name */
         if (dirname == NULL || dirname[0] == '\0')
@@ -504,11 +504,11 @@ extern "C"
      * DIR structure as well as any directory entry read previously by
      * _wreaddir().
      */
-    static int
+    static int32_t
     _wclosedir(
         _WDIR *dirp)
     {
-        int ok;
+        int32_t ok;
         if (dirp)
         {
 
@@ -636,7 +636,7 @@ extern "C"
         const char *dirname)
     {
         struct DIR *dirp;
-        int error;
+        int32_t error;
 
         /* Must have directory name */
         if (dirname == NULL || dirname[0] == '\0')
@@ -722,7 +722,7 @@ extern "C"
         if (datap)
         {
             size_t n;
-            int error;
+            int32_t error;
 
             /* Attempt to convert file name to multi-byte string */
             error = dirent_wcstombs_s(
@@ -803,11 +803,11 @@ extern "C"
     /*
      * Close directory stream.
      */
-    static int
+    static int32_t
     closedir(
         DIR *dirp)
     {
-        int ok;
+        int32_t ok;
         if (dirp)
         {
 
@@ -840,7 +840,7 @@ extern "C"
     }
 
     /* Convert multi-byte string to wide character string */
-    static int
+    static int32_t
     dirent_mbstowcs_s(
         size_t *pReturnValue,
         wchar_t *wcstr,
@@ -848,7 +848,7 @@ extern "C"
         const char *mbstr,
         size_t count)
     {
-        int error;
+        int32_t error;
 
 #if defined(_MSC_VER) && _MSC_VER >= 1400
 
@@ -897,7 +897,7 @@ extern "C"
     }
 
     /* Convert wide-character string to multi-byte string */
-    static int
+    static int32_t
     dirent_wcstombs_s(
         size_t *pReturnValue,
         char *mbstr,
@@ -905,7 +905,7 @@ extern "C"
         const wchar_t *wcstr,
         size_t count)
     {
-        int error;
+        int32_t error;
 
 #if defined(_MSC_VER) && _MSC_VER >= 1400
 
@@ -956,7 +956,7 @@ extern "C"
     /* Set errno variable */
     static void
     dirent_set_errno(
-        int error)
+        int32_t error)
     {
 #if defined(_MSC_VER) && _MSC_VER >= 1400
 

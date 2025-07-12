@@ -1,7 +1,7 @@
 #include "macros.h"
 
 // one of old texture recoloring utils
-int texture_recolor_stupid()
+int32_t texture_recolor_stupid()
 {
     char fpath[1000];
     printf("Path to color item:\n");
@@ -15,38 +15,38 @@ int texture_recolor_stupid()
         return 0;
     }
 
-    int r_wanted, g_wanted, b_wanted;
+    int32_t r_wanted, g_wanted, b_wanted;
     printf("R G B? [hex]\n");
     scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
 
     fseek(file1, 0, SEEK_END);
-    int file_len = ftell(file1);
+    int32_t file_len = ftell(file1);
     unsigned char *buffer = (unsigned char *)malloc(file_len * sizeof(unsigned char *));
     rewind(file1);
     fread(buffer, 1, file_len, file1);
 
     // pseudograyscale of the wanted color
-    int sum_wanted = r_wanted + g_wanted + b_wanted;
+    int32_t sum_wanted = r_wanted + g_wanted + b_wanted;
 
-    for (int i = 0; i < file_len; i += 2)
+    for (int32_t i = 0; i < file_len; i += 2)
     {
-        unsigned short int temp = *(unsigned short int *)(buffer + i);
-        int r = temp & 0x1F;
-        int g = (temp >> 5) & 0x1F;
-        int b = (temp >> 10) & 0x1F;
-        int a = (temp >> 15) & 1;
+        uint16_t temp = *(uint16_t *)(buffer + i);
+        int32_t r = temp & 0x1F;
+        int32_t g = (temp >> 5) & 0x1F;
+        int32_t b = (temp >> 10) & 0x1F;
+        int32_t a = (temp >> 15) & 1;
 
         r *= 8;
         g *= 8;
         b *= 8;
 
         // get pseudograyscale of the current color
-        int sum = r + g + b;
+        int32_t sum = r + g + b;
 
         // get new color
-        int r_new = (sum * r_wanted) / sum_wanted;
-        int g_new = (sum * g_wanted) / sum_wanted;
-        int b_new = (sum * b_wanted) / sum_wanted;
+        int32_t r_new = (sum * r_wanted) / sum_wanted;
+        int32_t g_new = (sum * g_wanted) / sum_wanted;
+        int32_t b_new = (sum * b_wanted) / sum_wanted;
 
         // clip it at 0xFF
         r_new = min(r_new, 0xFF);
@@ -62,8 +62,8 @@ int texture_recolor_stupid()
         b_new /= 8;
 
         // write back
-        unsigned short int temp2 = (a << 15) + (b_new << 10) + (g_new << 5) + (r_new);
-        *(unsigned short int *)(buffer + i) = temp2;
+        uint16_t temp2 = (a << 15) + (b_new << 10) + (g_new << 5) + (r_new);
+        *(uint16_t *)(buffer + i) = temp2;
     }
 
     rewind(file1);
@@ -74,7 +74,7 @@ int texture_recolor_stupid()
 }
 
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
-int scenery_recolor_main()
+int32_t scenery_recolor_main()
 {
     char fpath[1000];
     printf("Path to color item:\n");
@@ -89,18 +89,18 @@ int scenery_recolor_main()
     }
 
     fseek(file1, 0, SEEK_END);
-    int color_count = ftell(file1) / 4;
+    int32_t color_count = ftell(file1) / 4;
     unsigned char *buffer = (unsigned char *)malloc((color_count * 4) * sizeof(unsigned char *));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
-    int r_wanted = 0x85;
-    int g_wanted = 0x28;
-    int b_wanted = 0x6A;
+    int32_t r_wanted = 0x85;
+    int32_t g_wanted = 0x28;
+    int32_t b_wanted = 0x6A;
 
-    int sum_wanted = r_wanted + g_wanted + b_wanted;
+    int32_t sum_wanted = r_wanted + g_wanted + b_wanted;
 
-    for (int i = 0; i < color_count; i++)
+    for (int32_t i = 0; i < color_count; i++)
     {
         // read current color
         unsigned char r = buffer[4 * i + 0];
@@ -108,13 +108,13 @@ int scenery_recolor_main()
         unsigned char b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
-        int sum = r + g + b;
-        int avg = sum / 3;
+        int32_t sum = r + g + b;
+        int32_t avg = sum / 3;
 
         // get new color
-        int r_new = (sum * r_wanted) / sum_wanted;
-        int g_new = (sum * g_wanted) / sum_wanted;
-        int b_new = (sum * b_wanted) / sum_wanted;
+        int32_t r_new = (sum * r_wanted) / sum_wanted;
+        int32_t g_new = (sum * g_wanted) / sum_wanted;
+        int32_t b_new = (sum * b_wanted) / sum_wanted;
 
         r_new = (r_new + 2 * avg) / 3;
         g_new = (g_new + 2 * avg) / 3;
@@ -159,7 +159,7 @@ void rotate_main(char *time)
     char path[MAX];
     FILE *file;
     unsigned char *entry;
-    int filesize;
+    int32_t filesize;
 
     scanf("%lf", &rotation);
     if (rotation < 0 || rotation >= 360)
@@ -195,18 +195,18 @@ void rotate_main(char *time)
 }
 
 // rotates scenery
-void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize)
+void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int32_t filesize)
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
-    int curr_off, next_off, i;
-    unsigned int group, rest, vert;
+    int32_t curr_off, next_off, i;
+    uint32_t group, rest, vert;
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
-    int vertcount = (next_off - curr_off) / 6;
-    unsigned int **verts = (unsigned int **)malloc(vertcount * sizeof(unsigned int *)); // freed here
+    int32_t vertcount = (next_off - curr_off) / 6;
+    uint32_t **verts = (uint32_t **)malloc(vertcount * sizeof(uint32_t *)); // freed here
     for (i = 0; i < vertcount; i++)
-        verts[i] = (unsigned int *)malloc(2 * sizeof(unsigned int *)); // freed here
+        verts[i] = (uint32_t *)malloc(2 * sizeof(uint32_t *)); // freed here
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
@@ -258,23 +258,23 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
 }
 
 // rotates xy coord by some angle
-void rotate_rotate(unsigned int *y, unsigned int *x, double rotation)
+void rotate_rotate(uint32_t *y, uint32_t *x, double rotation)
 {
-    int temp1, temp2;
-    int x_t = *x, y_t = *y;
+    int32_t temp1, temp2;
+    int32_t x_t = *x, y_t = *y;
 
     temp1 = x_t;
     temp2 = y_t;
 
-    temp1 = (int)(x_t * cos(rotation) - y_t * sin(rotation));
-    temp2 = (int)(x_t * sin(rotation) + y_t * cos(rotation));
+    temp1 = (int32_t)(x_t * cos(rotation) - y_t * sin(rotation));
+    temp2 = (int32_t)(x_t * sin(rotation) + y_t * cos(rotation));
 
     *x = temp1;
     *y = temp2;
 }
 
 //  Copies texture from one texture chunk to another, doesnt include cluts.
-int texture_copy_main()
+int32_t texture_copy_main()
 {
     char fpath[1000];
     printf("Path to source texture:\n");
@@ -306,8 +306,8 @@ int texture_copy_main()
 
     while (1)
     {
-        int i;
-        int bpp, src_x, src_y, width, height, dest_x, dest_y;
+        int32_t i;
+        int32_t bpp, src_x, src_y, width, height, dest_x, dest_y;
         printf("bpp src_x src_y width height dest-x dest-y? [set bpp to 0 to end]\n");
         scanf("%d", &bpp);
         if (bpp == 0)
@@ -319,8 +319,8 @@ int texture_copy_main()
         case 4:
             for (i = 0; i < height; i++)
             {
-                int offset1 = (i + src_y) * 0x200 + src_x / 2;
-                int offset2 = (i + dest_y) * 0x200 + dest_x / 2;
+                int32_t offset1 = (i + src_y) * 0x200 + src_x / 2;
+                int32_t offset2 = (i + dest_y) * 0x200 + dest_x / 2;
                 printf("i: %2d offset1: %5d, offset2: %5d\n", i, offset1, offset2);
                 memcpy(texture2 + offset2, texture1 + offset1, (width * 4) / 8);
             }
@@ -328,8 +328,8 @@ int texture_copy_main()
         case 8:
             for (i = 0; i < height; i++)
             {
-                int offset1 = (i + src_y) * 0x200 + src_x;
-                int offset2 = (i + dest_y) * 0x200 + dest_x;
+                int32_t offset1 = (i + src_y) * 0x200 + src_x;
+                int32_t offset2 = (i + dest_y) * 0x200 + dest_x;
                 printf("i: %2d offset1: %5d, offset2: %5d\n", i, offset1, offset2);
                 memcpy(texture2 + offset2, texture1 + offset1, width);
             }
@@ -352,10 +352,10 @@ int texture_copy_main()
 }
 
 // property printing util
-void print_prop_header(unsigned char *arr, int off)
+void print_prop_header(unsigned char *arr, int32_t off)
 {
     printf("\nheader\t");
-    for (int j = 0; j < 8; j++)
+    for (int32_t j = 0; j < 8; j++)
     {
         printf("%02X", arr[off + j]);
         if (j % 4 == 3)
@@ -364,11 +364,11 @@ void print_prop_header(unsigned char *arr, int off)
 }
 
 // property printing util
-void print_prop_body(unsigned char *arr, int offset, int offset_next)
+void print_prop_body(unsigned char *arr, int32_t offset, int32_t offset_next)
 {
     printf("\ndata\t");
 
-    for (int j = 0; j < offset_next - offset; j++)
+    for (int32_t j = 0; j < offset_next - offset; j++)
     {
         printf("%02X", arr[offset + j]);
         if (j % 4 == 3)
@@ -389,7 +389,7 @@ void print_prop_body(unsigned char *arr, int offset, int offset_next)
 void prop_main(char *path)
 {
     FILE *file = NULL;
-    unsigned int fsize, i, code, offset, offset_next;
+    uint32_t fsize, i, code, offset, offset_next;
     unsigned char *arr;
 
     if ((file = fopen(path, "rb")) == NULL)
@@ -502,17 +502,17 @@ void prop_remove_script()
     }
 
     fseek(file1, 0, SEEK_END);
-    int fsize = ftell(file1);
+    int32_t fsize = ftell(file1);
     rewind(file1);
 
     unsigned char *item = malloc(fsize * sizeof(unsigned char));
     fread(item, 1, fsize, file1);
     fclose(file1);
 
-    int prop_code;
+    int32_t prop_code;
     printf("\nWhat prop do you wanna remove? (hex)\n");
     scanf("%x", &prop_code);
-    int fsize2 = fsize;
+    int32_t fsize2 = fsize;
     item = build_rem_property(prop_code, item, &fsize2, NULL);
 
     char fpath2[1004];
@@ -531,26 +531,26 @@ void prop_remove_script()
 }
 
 // command for retrieving full property data
-PROPERTY *build_get_prop_full(unsigned char *item, int prop_code)
+PROPERTY *build_get_prop_full(unsigned char *item, int32_t prop_code)
 {
 
     PROPERTY *prop = malloc(sizeof(PROPERTY));
     prop->length = 0;
-    int property_count = build_prop_count(item);
+    int32_t property_count = build_prop_count(item);
     unsigned char property_header[8];
 
-    for (int i = 0; i < property_count; i++)
+    for (int32_t i = 0; i < property_count; i++)
     {
         memcpy(property_header, item + 0x10 + 8 * i, 8);
         if (from_u16(property_header) == prop_code)
         {
             memcpy(prop->header, property_header, 8);
-            int next_offset = 0;
+            int32_t next_offset = 0;
             if (i == property_count - 1)
-                next_offset = *(unsigned short int *)(item);
+                next_offset = *(uint16_t *)(item);
             else
-                next_offset = *(unsigned short int *)(item + 0x12 + (i * 8) + 8) + OFFSET;
-            int curr_offset = *(unsigned short int *)(item + 0x12 + 8 * i) + OFFSET;
+                next_offset = *(uint16_t *)(item + 0x12 + (i * 8) + 8) + OFFSET;
+            int32_t curr_offset = *(uint16_t *)(item + 0x12 + 8 * i) + OFFSET;
             prop->length = next_offset - curr_offset;
             prop->data = malloc(prop->length);
             memcpy(prop->data, item + curr_offset, prop->length);
@@ -580,7 +580,7 @@ void prop_replace_script()
     }
 
     fseek(file1, 0, SEEK_END);
-    int fsize = ftell(file1);
+    int32_t fsize = ftell(file1);
     rewind(file1);
 
     unsigned char *item = malloc(fsize * sizeof(unsigned char));
@@ -601,15 +601,15 @@ void prop_replace_script()
     }
 
     fseek(file2, 0, SEEK_END);
-    int fsize2 = ftell(file2);
+    int32_t fsize2 = ftell(file2);
     rewind(file2);
 
     unsigned char *item2 = malloc(fsize2 * sizeof(unsigned char));
     fread(item2, 1, fsize2, file2);
 
-    int fsize2_before;
-    int fsize2_after;
-    int prop_code;
+    int32_t fsize2_before;
+    int32_t fsize2_after;
+    int32_t prop_code;
     printf("\nWhat prop do you wanna replace/insert? (hex)\n");
     scanf("%x", &prop_code);
 
@@ -646,7 +646,7 @@ void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
     FILE *level = NULL;
     char path[MAX] = "";
     double scale[3];
-    int check = 1;
+    int32_t check = 1;
     DIR *df = NULL;
 
     scanf("%d %lf %lf %lf", &status.gamemode, &scale[0], &scale[1], &scale[2]);
@@ -682,7 +682,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
     FILE *filenew;
     char *help, lcltemp[MAX];
     unsigned char buffer[CHUNKSIZE];
-    int i, chunkcount;
+    int32_t i, chunkcount;
 
     help = strrchr(filepath, '\\');
     *help = '\0';
@@ -704,17 +704,17 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
 }
 
 // yep resizes model
-void resize_model(int fsize, unsigned char *buffer, double scale[3])
+void resize_model(int32_t fsize, unsigned char *buffer, double scale[3])
 {
-    int eid = from_u32(buffer + 4);
-    int pb10g = eid_to_int("Pb10G");
-    int bd10g = eid_to_int("Bd10G");
-    int cry1g = eid_to_int("Cry1G");
-    int cry2g = eid_to_int("Cry2G");
-    int rel1g = eid_to_int("Rel1G");
-    int ge10g = eid_to_int("Ge10G");
-    int ge30g = eid_to_int("Ge30G");
-    int ge40g = eid_to_int("Ge40G");
+    int32_t eid = from_u32(buffer + 4);
+    int32_t pb10g = eid_to_int("Pb10G");
+    int32_t bd10g = eid_to_int("Bd10G");
+    int32_t cry1g = eid_to_int("Cry1G");
+    int32_t cry2g = eid_to_int("Cry2G");
+    int32_t rel1g = eid_to_int("Rel1G");
+    int32_t ge10g = eid_to_int("Ge10G");
+    int32_t ge30g = eid_to_int("Ge30G");
+    int32_t ge40g = eid_to_int("Ge40G");
 
     if (eid == pb10g || eid == bd10g || eid == cry1g || eid == cry2g || eid == rel1g || eid == ge10g || eid == ge30g || eid == ge40g)
     {
@@ -722,39 +722,39 @@ void resize_model(int fsize, unsigned char *buffer, double scale[3])
         return;
     }
 
-    int o = build_get_nth_item_offset(buffer, 0);
+    int32_t o = build_get_nth_item_offset(buffer, 0);
 
-    int sx = *(int *)(buffer + o);
-    int sy = *(int *)(buffer + o + 4);
-    int sz = *(int *)(buffer + o + 8);
+    int32_t sx = *(int32_t *)(buffer + o);
+    int32_t sy = *(int32_t *)(buffer + o + 4);
+    int32_t sz = *(int32_t *)(buffer + o + 8);
 
-    sx = (int)(sx * scale[0]);
-    sy = (int)(sy * scale[1]);
-    sz = (int)(sz * scale[2]);
+    sx = (int32_t)(sx * scale[0]);
+    sy = (int32_t)(sy * scale[1]);
+    sz = (int32_t)(sz * scale[2]);
 
-    *(int *)(buffer + o) = sx;
-    *(int *)(buffer + o + 4) = sy;
-    *(int *)(buffer + o + 8) = sz;
+    *(int32_t *)(buffer + o) = sx;
+    *(int32_t *)(buffer + o + 4) = sy;
+    *(int32_t *)(buffer + o + 8) = sz;
 }
 
 // yep resizes animation
-void resize_animation(int fsize, unsigned char *buffer, double scale[3])
+void resize_animation(int32_t fsize, unsigned char *buffer, double scale[3])
 {
-    int itemc = build_item_count(buffer);
+    int32_t itemc = build_item_count(buffer);
 
-    for (int i = 0; i < itemc; i++)
+    for (int32_t i = 0; i < itemc; i++)
     {
-        int o = build_get_nth_item_offset(buffer, i);
+        int32_t o = build_get_nth_item_offset(buffer, i);
 
-        if (*(int *)(buffer + o + 0xC))
+        if (*(int32_t *)(buffer + o + 0xC))
         {
-            int xyz_iter = 0;
-            int end = *(int *)(buffer + o + 0x14);
-            for (int j = 0x1C; j < end; j += 4)
+            int32_t xyz_iter = 0;
+            int32_t end = *(int32_t *)(buffer + o + 0x14);
+            for (int32_t j = 0x1C; j < end; j += 4)
             {
-                int val = *(int *)(buffer + o + j);
-                val = (int)(val * scale[xyz_iter]);
-                *(int *)(buffer + o + j) = val;
+                int32_t val = *(int32_t *)(buffer + o + j);
+                val = (int32_t)(val * scale[xyz_iter]);
+                *(int32_t *)(buffer + o + j) = val;
                 xyz_iter = (xyz_iter + 1) % 3;
             }
         }
@@ -762,34 +762,34 @@ void resize_animation(int fsize, unsigned char *buffer, double scale[3])
 }
 
 // yep fixes camera distance
-void resize_zone_camera_distance(int fsize, unsigned char *buffer, double scale[3])
+void resize_zone_camera_distance(int32_t fsize, unsigned char *buffer, double scale[3])
 {
-    int cam_c = build_get_cam_item_count(buffer);
+    int32_t cam_c = build_get_cam_item_count(buffer);
 
-    for (int i = 0; i < cam_c; i += 3)
+    for (int32_t i = 0; i < cam_c; i += 3)
     {
-        int o = build_get_nth_item_offset(buffer, 2 + i + 1);
+        int32_t o = build_get_nth_item_offset(buffer, 2 + i + 1);
 
         unsigned char *entity = buffer + o;
-        for (int j = 0; j < build_prop_count(entity); j++)
+        for (int32_t j = 0; j < build_prop_count(entity); j++)
         {
-            int code = from_u16(entity + 0x10 + 8 * j);
-            int offset = from_u16(entity + 0x12 + 8 * j) + OFFSET;
-            int val_c = from_u16(entity + 0x16 + 8 * j);
+            int32_t code = from_u16(entity + 0x10 + 8 * j);
+            int32_t offset = from_u16(entity + 0x12 + 8 * j) + OFFSET;
+            int32_t val_c = from_u16(entity + 0x16 + 8 * j);
 
             if (code == ENTITY_PROP_CAM_DISTANCE)
             {
-                int prop_meta_len = 4;
+                int32_t prop_meta_len = 4;
                 if (val_c == 2 || val_c == 3)
                     prop_meta_len = 8;
 
-                for (int k = 0; k < val_c * 4; k++)
+                for (int32_t k = 0; k < val_c * 4; k++)
                 {
-                    int real_off = o + offset + prop_meta_len + (k * 2);
+                    int32_t real_off = o + offset + prop_meta_len + (k * 2);
 
-                    int val = *(short int *)(buffer + real_off);
-                    val = (short int)(val * scale[0]);
-                    *(short int *)(buffer + real_off) = val;
+                    int32_t val = *(int16_t *)(buffer + real_off);
+                    val = (int16_t)(val * scale[0]);
+                    *(int16_t *)(buffer + real_off) = val;
                 }
             }
         }
@@ -799,8 +799,8 @@ void resize_zone_camera_distance(int fsize, unsigned char *buffer, double scale[
 // yep resizes chunk
 void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
 {
-    int offset_start, offset_end, i;
-    unsigned int checksum;
+    int32_t offset_start, offset_end, i;
+    uint32_t checksum;
     unsigned char *entry = NULL;
     if (chunk[2] != 0)
         return;
@@ -815,7 +815,7 @@ void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, do
 
         ENTRY curr_entry;
         curr_entry.data = entry;
-        int etype = build_entry_type(curr_entry);
+        int32_t etype = build_entry_type(curr_entry);
 
         if (etype == ENTRY_TYPE_ZONE)
             resize_zone(offset_end - offset_start, entry, scale, status);
@@ -846,7 +846,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
     char lcltemp[6] = "", help[MAX] = "";
     unsigned char *buffer = NULL;
     FILE *file, *filenew;
-    int filesize;
+    int32_t filesize;
 
     sprintf(help, "%s\\%s", path, time);
     mkdir(help);
@@ -903,12 +903,12 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
 }
 
 // yep resizes zone
-void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_zone(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    int i, itemcount;
-    unsigned int coord;
+    int32_t i, itemcount;
+    uint32_t coord;
     itemcount = build_item_count(buffer);
-    int *itemoffs = (int *)malloc(itemcount * sizeof(int)); // freed here
+    int32_t *itemoffs = (int32_t *)malloc(itemcount * sizeof(int32_t)); // freed here
 
     for (i = 0; i < itemcount; i++)
         itemoffs[i] = 256 * buffer[0x11 + i * 4] + buffer[0x10 + i * 4];
@@ -918,10 +918,10 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
         coord = from_u32(buffer + itemoffs[1] + i * 4);
         if (coord >= (1LL << 31))
         {
-            coord = (unsigned int)((1LL << 32) - coord);
-            coord = (unsigned int)coord * scale[i % 3];
-            coord = (unsigned int)(1LL << 32) - coord;
-            for (int j = 0; j < 4; j++)
+            coord = (uint32_t)((1LL << 32) - coord);
+            coord = (uint32_t)coord * scale[i % 3];
+            coord = (uint32_t)(1LL << 32) - coord;
+            for (int32_t j = 0; j < 4; j++)
             {
                 buffer[itemoffs[1] + i * 4 + j] = coord % 256;
                 coord = coord / 256;
@@ -929,8 +929,8 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
         }
         else
         {
-            coord = (unsigned int)coord * scale[i % 3];
-            for (int j = 0; j < 4; j++)
+            coord = (uint32_t)coord * scale[i % 3];
+            for (int32_t j = 0; j < 4; j++)
             {
                 buffer[itemoffs[1] + i * 4 + j] = coord % 256;
                 coord = coord / 256;
@@ -946,35 +946,35 @@ void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_IN
 }
 
 // yep resizes entity
-void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_entity(unsigned char *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    int i;
+    int32_t i;
 
     for (i = 0; i < build_item_count(item); i++)
     {
-        int code = from_u16(item + 0x10 + 8 * i);
-        int offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
+        int32_t code = from_u16(item + 0x10 + 8 * i);
+        int32_t offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
 
         if (code == 0x4B)
         {
-            int pathlen = from_u32(item + offset);
-            for (int j = 0; j < pathlen * 3; j++)
+            int32_t pathlen = from_u32(item + offset);
+            for (int32_t j = 0; j < pathlen * 3; j++)
             {
                 double sc = scale[j % 3];
-                int val = *(short int *)(item + offset + 4 + j * 2);
-                val = (short int)(val * sc);
-                *(short int *)(item + offset + 4 + j * 2) = val;
+                int32_t val = *(int16_t *)(item + offset + 4 + j * 2);
+                val = (int16_t)(val * sc);
+                *(int16_t *)(item + offset + 4 + j * 2) = val;
             }
         }
     }
 }
 
 // yep resizes scenery
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_scenery(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    int i, item1off, j, curr_off, next_off, group, rest, vert;
-    long long int origin;
-    int vertcount;
+    int32_t i, item1off, j, curr_off, next_off, group, rest, vert;
+    int64_t origin;
+    int32_t vertcount;
 
     item1off = buffer[0x10];
     for (i = 0; i < 3; i++)
@@ -1051,15 +1051,15 @@ void resize_scenery(int fsize, unsigned char *buffer, double scale[3], DEPRECATE
  */
 void crate_rotation_angle()
 {
-    int angle;
+    int32_t angle;
     scanf("%d", &angle);
     while (angle < 0)
         angle += 360;
     while (angle > 360)
         angle -= 360;
 
-    int game_angle = (0x1000 * angle) / 360;
-    int b_value = game_angle >> 8;
+    int32_t game_angle = (0x1000 * angle) / 360;
+    int32_t b_value = game_angle >> 8;
     printf("A: %3d\n", game_angle & 0xFF);
     printf("B: %3d", game_angle >> 8);
     while (1)
@@ -1083,16 +1083,16 @@ void nsd_gool_table_print(char *fpath)
     }
 
     fseek(file, 0, SEEK_END);
-    int filesize = ftell(file);
+    int32_t filesize = ftell(file);
     rewind(file);
 
     unsigned char *buffer = (unsigned char *)malloc(filesize * sizeof(unsigned char *)); // freed here
     fread(buffer, sizeof(unsigned char), filesize, file);
 
-    int entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
-    for (int i = 0; i < 64; i++)
+    int32_t entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
+    for (int32_t i = 0; i < 64; i++)
     {
-        int eid = from_u32(buffer + C2_NSD_ENTRY_TABLE_OFFSET + 0x10 + 8 * entry_count + 4 * i);
+        int32_t eid = from_u32(buffer + C2_NSD_ENTRY_TABLE_OFFSET + 0x10 + 8 * entry_count + 4 * i);
         printf("%2d: %s  ", i, eid_conv2(eid));
         if (i % 4 == 3)
             putchar('\n');
@@ -1106,7 +1106,7 @@ void nsd_gool_table_print(char *fpath)
 void generate_spawn()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
@@ -1115,12 +1115,12 @@ void generate_spawn()
     printf("\nWhat zone do you wanna spawn in?\n");
     scanf("%s", zone);
 
-    int pathlen;
-    int entity_id;
-    int path_to_spawn_on = 0;
-    int entity_index = -1;
-    unsigned int zone_eid = eid_to_int(zone);
-    int elist_index = build_get_index(zone_eid, elist, entry_count);
+    int32_t pathlen;
+    int32_t entity_id;
+    int32_t path_to_spawn_on = 0;
+    int32_t entity_index = -1;
+    uint32_t zone_eid = eid_to_int(zone);
+    int32_t elist_index = build_get_index(zone_eid, elist, entry_count);
 
     if (elist_index == -1)
     {
@@ -1129,7 +1129,7 @@ void generate_spawn()
         return;
     }
 
-    int cam_count = build_get_cam_item_count(elist[elist_index].data) / 3;
+    int32_t cam_count = build_get_cam_item_count(elist[elist_index].data) / 3;
     if (cam_count == 0)
     {
         printf("Zone %5s does not have a camera path\n\n", zone);
@@ -1145,10 +1145,10 @@ void generate_spawn()
     printf("\nWhat entity's coordinates do you wanna spawn on? (entity has to be in the zone)\n");
     scanf("%d", &entity_id);
 
-    for (int i = 0; i < build_get_entity_count(elist[elist_index].data); i++)
+    for (int32_t i = 0; i < build_get_entity_count(elist[elist_index].data); i++)
     {
         unsigned char *entity = build_get_nth_item(elist[elist_index].data, 2 + 3 * cam_count + i);
-        int ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
+        int32_t ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
         if (ID == entity_id)
             entity_index = i;
@@ -1161,7 +1161,7 @@ void generate_spawn()
         return;
     }
 
-    short int *path = build_get_path(elist, elist_index, 2 + 3 * cam_count + entity_index, &pathlen);
+    int16_t *path = build_get_path(elist, elist_index, 2 + 3 * cam_count + entity_index, &pathlen);
     if (pathlen == 0)
     {
         free(path);
@@ -1171,24 +1171,24 @@ void generate_spawn()
     }
 
     unsigned char *coll_item = build_get_nth_item(elist[elist_index].data, 1);
-    unsigned int zone_x = from_u32(coll_item);
-    unsigned int zone_y = from_u32(coll_item + 4);
-    unsigned int zone_z = from_u32(coll_item + 8);
+    uint32_t zone_x = from_u32(coll_item);
+    uint32_t zone_y = from_u32(coll_item + 4);
+    uint32_t zone_z = from_u32(coll_item + 8);
 
-    unsigned int x = (zone_x + 4 * path[0]) << 8;
-    unsigned int y = (zone_y + 4 * path[1]) << 8;
-    unsigned int z = (zone_z + 4 * path[2]) << 8;
+    uint32_t x = (zone_x + 4 * path[0]) << 8;
+    uint32_t y = (zone_y + 4 * path[1]) << 8;
+    uint32_t z = (zone_z + 4 * path[2]) << 8;
 
     unsigned char arr[0x18] = {0};
-    *(unsigned int *)arr = zone_eid;
-    *(unsigned int *)(arr + 0x4) = path_to_spawn_on;
-    *(unsigned int *)(arr + 0x8) = 0;
-    *(unsigned int *)(arr + 0xC) = x;
-    *(unsigned int *)(arr + 0x10) = y;
-    *(unsigned int *)(arr + 0x14) = z;
+    *(uint32_t *)arr = zone_eid;
+    *(uint32_t *)(arr + 0x4) = path_to_spawn_on;
+    *(uint32_t *)(arr + 0x8) = 0;
+    *(uint32_t *)(arr + 0xC) = x;
+    *(uint32_t *)(arr + 0x10) = y;
+    *(uint32_t *)(arr + 0x14) = z;
 
     printf("\n");
-    for (int j = 0; j < 0x18; j++)
+    for (int32_t j = 0; j < 0x18; j++)
     {
         printf("%02X", arr[j]);
         if (j % 4 == 3)
@@ -1203,7 +1203,7 @@ void generate_spawn()
 }
 
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
-int scenery_recolor_main2()
+int32_t scenery_recolor_main2()
 {
     char fpath[1000];
     printf("Path to color item:\n");
@@ -1218,7 +1218,7 @@ int scenery_recolor_main2()
         return 0;
     }
 
-    int r_wanted, g_wanted, b_wanted;
+    int32_t r_wanted, g_wanted, b_wanted;
     printf("R G B? [hex]\n");
     scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
 
@@ -1226,15 +1226,15 @@ int scenery_recolor_main2()
     scanf("%f", &mult);
 
     fseek(file1, 0, SEEK_END);
-    int color_count = ftell(file1) / 4;
+    int32_t color_count = ftell(file1) / 4;
     unsigned char *buffer = (unsigned char *)malloc((color_count * 4) * sizeof(unsigned char *));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
     // pseudograyscale of the wanted color
-    int sum_wanted = r_wanted + g_wanted + b_wanted;
+    int32_t sum_wanted = r_wanted + g_wanted + b_wanted;
 
-    for (int i = 0; i < color_count; i++)
+    for (int32_t i = 0; i < color_count; i++)
     {
         // read current color
         unsigned char r = buffer[4 * i + 0];
@@ -1242,12 +1242,12 @@ int scenery_recolor_main2()
         unsigned char b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
-        int sum = r + g + b;
+        int32_t sum = r + g + b;
 
         // get new color
-        int r_new = (sum * r_wanted) / sum_wanted;
-        int g_new = (sum * g_wanted) / sum_wanted;
-        int b_new = (sum * b_wanted) / sum_wanted;
+        int32_t r_new = (sum * r_wanted) / sum_wanted;
+        int32_t g_new = (sum * g_wanted) / sum_wanted;
+        int32_t b_new = (sum * b_wanted) / sum_wanted;
 
         r_new *= mult;
         g_new *= mult;
@@ -1279,12 +1279,12 @@ int scenery_recolor_main2()
 // converts time from nice format to hex/data value
 void time_convert()
 {
-    int m, s, ms;
+    int32_t m, s, ms;
     printf("time: (eg 00:51:40)\n");
     scanf("%d:%02d:%02d", &m, &s, &ms);
     if (ms % 4)
         printf("hundredths should be a multiple of 4\n");
-    int relictime = 1500 * m + 25 * s + ms / 4;
+    int32_t relictime = 1500 * m + 25 * s + ms / 4;
     printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
 }
 
@@ -1304,16 +1304,16 @@ void c3_ent_resize()
     }
 
     fseek(file1, 0, SEEK_END);
-    int fsize = ftell(file1);
+    int32_t fsize = ftell(file1);
     double scale = 1;
     rewind(file1);
 
     unsigned char *buffer = (unsigned char *)malloc(fsize);
     fread(buffer, fsize, 1, file1);
 
-    unsigned int offset = 0;
+    uint32_t offset = 0;
 
-    for (int i = 0; i < build_prop_count(buffer); i++)
+    for (int32_t i = 0; i < build_prop_count(buffer); i++)
     {
 
         if ((from_u16(buffer + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
@@ -1321,7 +1321,7 @@ void c3_ent_resize()
 
         if ((from_u16(buffer + 0x10 + 8 * i)) == 0x30E)
         {
-            int off_scale = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
+            int32_t off_scale = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
 
             switch (from_u32(buffer + off_scale + 4))
             {
@@ -1348,12 +1348,12 @@ void c3_ent_resize()
 
     if (offset)
     {
-        int path_len = from_u32(buffer + offset);
+        int32_t path_len = from_u32(buffer + offset);
         printf("path len: %d\n", path_len);
-        for (int i = 0; i < path_len * 3; i++)
+        for (int32_t i = 0; i < path_len * 3; i++)
         {
-            int off_curr = offset + 4 + i * 2;
-            *(short int *)(buffer + off_curr) = (*(short int *)(buffer + off_curr)) * scale;
+            int32_t off_curr = offset + 4 + i * 2;
+            *(int16_t *)(buffer + off_curr) = (*(int16_t *)(buffer + off_curr)) * scale;
         }
     }
     else
@@ -1384,19 +1384,19 @@ void entity_move_scr()
     }
 
     printf("xyz move? (%%d %%d %%d)\n");
-    int xm, ym, zm;
+    int32_t xm, ym, zm;
     scanf("%d %d %d", &xm, &ym, &zm);
 
     fseek(file1, 0, SEEK_END);
-    int fsize = ftell(file1);
+    int32_t fsize = ftell(file1);
     rewind(file1);
 
     unsigned char *buffer = (unsigned char *)malloc(fsize);
     fread(buffer, fsize, 1, file1);
 
-    unsigned int offset = 0;
+    uint32_t offset = 0;
 
-    for (int i = 0; i < build_prop_count(buffer); i++)
+    for (int32_t i = 0; i < build_prop_count(buffer); i++)
     {
 
         if ((from_u16(buffer + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
@@ -1405,19 +1405,19 @@ void entity_move_scr()
 
     if (offset)
     {
-        int path_len = from_u32(buffer + offset);
+        int32_t path_len = from_u32(buffer + offset);
         printf("path len: %d\n", path_len);
-        for (int i = 0; i < path_len * 3; i++)
+        for (int32_t i = 0; i < path_len * 3; i++)
         {
-            int off_curr = offset + 4 + i * 2;
-            int add;
+            int32_t off_curr = offset + 4 + i * 2;
+            int32_t add;
             if (i % 3 == 0)
                 add = xm;
             else if (i % 3 == 1)
                 add = ym;
             else
                 add = zm;
-            *(short int *)(buffer + off_curr) = (*(short int *)(buffer + off_curr)) + add;
+            *(int16_t *)(buffer + off_curr) = (*(int16_t *)(buffer + off_curr)) + add;
         }
     }
     else
@@ -1436,45 +1436,45 @@ void entity_move_scr()
 void print_model_refs_util(unsigned char *model)
 {
     char *strs[200];
-    int str_cnt = 0;
-    for (int i = 0; i < 200; i++)
+    int32_t str_cnt = 0;
+    for (int32_t i = 0; i < 200; i++)
         strs[i] = (char *)malloc(50);
     char curr_str[50] = "";
 
-    int item1off = build_get_nth_item_offset(model, 0);
-    int item4off = build_get_nth_item_offset(model, 3);
-    int item5off = build_get_nth_item_offset(model, 4);
-    int tex_ref_item_size = item5off - item4off;
+    int32_t item1off = build_get_nth_item_offset(model, 0);
+    int32_t item4off = build_get_nth_item_offset(model, 3);
+    int32_t item5off = build_get_nth_item_offset(model, 4);
+    int32_t tex_ref_item_size = item5off - item4off;
 
     printf("\nTexture references: \n");
     printf("TEXTURE CLUT B S-X  Y  W  H\n");
-    for (int i = 0; i < tex_ref_item_size; i += 12)
+    for (int32_t i = 0; i < tex_ref_item_size; i += 12)
     {
         unsigned char *curr_off = model + item4off + i;
-        int seg = from_u8(curr_off + 6) & 0xF;
-        int bit = from_u8(curr_off + 6) & 0x80;
+        int32_t seg = from_u8(curr_off + 6) & 0xF;
+        int32_t bit = from_u8(curr_off + 6) & 0x80;
 
         if (bit)
             bit = 8;
         else
             bit = 4;
 
-        int clut = from_u16(curr_off + 2);
-        int tex = from_u8(curr_off + 7);
+        int32_t clut = from_u16(curr_off + 2);
+        int32_t tex = from_u8(curr_off + 7);
 
-        int startx = min(min(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
-        int starty = min(min(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
+        int32_t startx = min(min(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
+        int32_t starty = min(min(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
 
-        int endx = max(max(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
-        int endy = max(max(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
+        int32_t endx = max(max(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
+        int32_t endy = max(max(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
 
-        int width = endx - startx + 1;
-        int height = endy - starty + 1;
+        int32_t width = endx - startx + 1;
+        int32_t height = endy - starty + 1;
 
         sprintf(curr_str, " %5s: %04X %d %d-%02X %02X %02X %02X",
                 eid_conv2(from_u32(model + item1off + 0xC + tex)), clut, bit, seg, startx, starty, width, height);
-        int str_listed = 0;
-        for (int j = 0; j < str_cnt; j++)
+        int32_t str_listed = 0;
+        for (int32_t j = 0; j < str_cnt; j++)
         {
             if (strcmp(curr_str, strs[j]) == 0)
             {
@@ -1490,7 +1490,7 @@ void print_model_refs_util(unsigned char *model)
         }
     }
 
-    for (int i = 0; i < str_cnt; i++)
+    for (int32_t i = 0; i < str_cnt; i++)
     {
         printf("%s\n", strs[i]);
         free(strs[i]);
@@ -1501,21 +1501,21 @@ void print_model_refs_util(unsigned char *model)
 void print_model_tex_refs_nsf()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
-    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    int32_t entry_count = 0;
+    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    int printed_something = 0;
+    int32_t printed_something = 0;
     char temp[6] = "";
     printf("Model name? (type \"all\" to print all models' tex refs)\n");
     char ename[6] = "";
     scanf("%5s", ename);
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_MODEL)
         {
@@ -1550,7 +1550,7 @@ void print_model_tex_refs()
     }
 
     fseek(file1, 0, SEEK_END);
-    int fsize = ftell(file1);
+    int32_t fsize = ftell(file1);
     rewind(file1);
     unsigned char *model = (unsigned char *)malloc(fsize);
     fread(model, fsize, 1, file1);
@@ -1565,15 +1565,15 @@ void print_model_tex_refs()
 void print_all_entries_perma()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
-    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    int32_t entry_count = 0;
+    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_INST)
             printf("%5s\n", eid_conv2(elist[i].eid));
@@ -1584,37 +1584,37 @@ void print_all_entries_perma()
 }
 
 // collects entity usage info from a single nsf
-void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, unsigned int *gool_table)
+void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, uint32_t *gool_table)
 {
     printf("Checking %s\n", fpath);
 
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
-    int total_entity_count = 0;
+    int32_t total_entity_count = 0;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            int camera_count = build_get_cam_item_count(elist[i].data);
-            int entity_count = build_get_entity_count(elist[i].data);
+            int32_t camera_count = build_get_cam_item_count(elist[i].data);
+            int32_t entity_count = build_get_entity_count(elist[i].data);
 
-            for (int j = 0; j < entity_count; j++)
+            for (int32_t j = 0; j < entity_count; j++)
             {
                 unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
-                int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-                int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-                int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+                int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+                int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+                int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
                 if (id == -1)
                     continue;
                 total_entity_count++;
 
-                int found_before = 0;
-                for (int k = 0; k < deps->count; k++)
+                int32_t found_before = 0;
+                for (int32_t k = 0; k < deps->count; k++)
                     if (deps->array[k].type == type && deps->array[k].subtype == subt)
                     {
                         list_add(&deps->array[k].dependencies, total_entity_count);
@@ -1635,7 +1635,7 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, unsigned int *gool
     build_cleanup_elist(elist, entry_count);
 }
 
-int cmp_func_dep2(const void *a, const void *b)
+int32_t cmp_func_dep2(const void *a, const void *b)
 {
     DEPENDENCY x = *(DEPENDENCY *)a;
     DEPENDENCY y = *(DEPENDENCY *)b;
@@ -1644,7 +1644,7 @@ int cmp_func_dep2(const void *a, const void *b)
 }
 
 // folder iterator for getting entity usage
-void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, unsigned int *gool_table)
+void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, uint32_t *gool_table)
 {
     char fpath[MAX + 300] = "", moretemp[MAX] = "";
     DIR *df = opendir(dpath);
@@ -1686,8 +1686,8 @@ void entity_usage_folder()
     char dpath[MAX] = "";
     DEPENDENCIES deps = build_init_dep();
 
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
-    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     scanf(" %[^\n]", dpath);
@@ -1696,15 +1696,15 @@ void entity_usage_folder()
     entity_usage_folder_util(dpath, &deps, gool_table);
     qsort(deps.array, deps.count, sizeof(DEPENDENCY), cmp_func_dep2);
 
-    int entity_sum = 0;
-    for (int i = 0; i < deps.count; i++)
+    int32_t entity_sum = 0;
+    for (int32_t i = 0; i < deps.count; i++)
         entity_sum += deps.array[i].dependencies.count;
 
     printf("\nTotal entity count:\n");
     printf(" %5d entities\n", entity_sum);
 
     printf("\nEntity type/subtype usage:\n");
-    for (int i = 0; i < deps.count; i++)
+    for (int32_t i = 0; i < deps.count; i++)
         printf(" %2d(%5s)-%2d: %4d entities\n", deps.array[i].type, eid_conv2(gool_table[deps.array[i].type]), deps.array[i].subtype, deps.array[i].dependencies.count);
 
     printf("\nDone.\n\n");
@@ -1714,38 +1714,38 @@ void entity_usage_folder()
 void nsf_props_scr()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
-    unsigned int gool_table[C2_GOOL_TABLE_SIZE];
-    for (int i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    int32_t entry_count = 0;
+    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    int printed_something = 0;
-    int prop_code;
+    int32_t printed_something = 0;
+    int32_t prop_code;
 
     printf("\nProp code? (hex)\n");
     scanf("%x", &prop_code);
 
     printf("\n");
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (int j = 0; j < cam_count; j++)
+            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            for (int32_t j = 0; j < cam_count; j++)
             {
-                for (int k = 0; k < 3; k++)
+                for (int32_t k = 0; k < 3; k++)
                 {
                     unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j + k);
-                    int prop_count = build_prop_count(item);
+                    int32_t prop_count = build_prop_count(item);
 
-                    for (int l = 0; l < build_prop_count(item); l++)
+                    for (int32_t l = 0; l < build_prop_count(item); l++)
                     {
-                        int code = from_u16(item + 0x10 + 8 * l);
-                        int offset = from_u16(item + 0x12 + 8 * l) + OFFSET;
-                        int offset_next = from_u16(item + 0x1A + 8 * l) + OFFSET;
+                        int32_t code = from_u16(item + 0x10 + 8 * l);
+                        int32_t offset = from_u16(item + 0x12 + 8 * l) + OFFSET;
+                        int32_t offset_next = from_u16(item + 0x1A + 8 * l) + OFFSET;
                         if (l == (prop_count - 1))
                             offset_next = from_u16(item);
 
@@ -1771,11 +1771,11 @@ void nsf_props_scr()
 // makes an empty slst entry for a camera with specified length
 void generate_slst()
 {
-    int cam_len = 0;
+    int32_t cam_len = 0;
     char name[100] = "ABCDE";
     static unsigned char empty_source[] = {0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
     static unsigned char empty_delta[] = {0x2, 0x0, 0x1, 0x0, 0x2, 0x0, 0x2, 0x0};
-    unsigned int real_len = 0x10;
+    uint32_t real_len = 0x10;
     unsigned char buffer[0x20000];
     char fpath[500] = "";
 
@@ -1798,29 +1798,29 @@ void generate_slst()
         return;
     }
 
-    *(unsigned int *)(buffer) = MAGIC_ENTRY;
-    *(unsigned int *)(buffer + 0x4) = eid_to_int(name);
-    *(unsigned int *)(buffer + 0x8) = ENTRY_TYPE_SLST;
-    *(unsigned int *)(buffer + 0xC) = cam_len + 1;
+    *(uint32_t *)(buffer) = MAGIC_ENTRY;
+    *(uint32_t *)(buffer + 0x4) = eid_to_int(name);
+    *(uint32_t *)(buffer + 0x8) = ENTRY_TYPE_SLST;
+    *(uint32_t *)(buffer + 0xC) = cam_len + 1;
 
-    for (int i = 0; i < cam_len + 2; i++)
+    for (int32_t i = 0; i < cam_len + 2; i++)
     {
-        *(unsigned int *)(buffer + 0x10 + 4 * i) = (4 * (cam_len + 2)) + 0x10 + (8 * i);
+        *(uint32_t *)(buffer + 0x10 + 4 * i) = (4 * (cam_len + 2)) + 0x10 + (8 * i);
         real_len += 4;
     }
 
-    for (int i = 0; i < 8; i++)
+    for (int32_t i = 0; i < 8; i++)
         *(unsigned char *)(buffer + real_len + i) = empty_source[i];
     real_len += 8;
 
-    for (int j = 0; j < (cam_len - 1); j++)
+    for (int32_t j = 0; j < (cam_len - 1); j++)
     {
-        for (int i = 0; i < 8; i++)
+        for (int32_t i = 0; i < 8; i++)
             *(unsigned char *)(buffer + real_len + i) = empty_delta[i];
         real_len += 8;
     }
 
-    for (int i = 0; i < 8; i++)
+    for (int32_t i = 0; i < 8; i++)
         *(unsigned char *)(buffer + real_len + i) = empty_source[i];
     real_len += 8;
 
@@ -1834,13 +1834,13 @@ void generate_slst()
 void warp_spawns_generate()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
     /* older, hardcoded spawns
-    int spawn_ids[] = {
+    int32_t spawn_ids[] = {
         27, 34, 40, 27, df, 40, 36,
         32, 41, 32, 32, 35,
         40, 31, 37, 33, 39,
@@ -1863,8 +1863,8 @@ void warp_spawns_generate()
     }
 
     char buffer[1 << 16];
-    int count = 0;
-    int spawn_ids[WARP_SPAWN_COUNT] = {0};
+    int32_t count = 0;
+    int32_t spawn_ids[WARP_SPAWN_COUNT] = {0};
 
     size_t len = fread(buffer, 1, sizeof(buffer) - 1, file);
     fclose(file);
@@ -1877,50 +1877,50 @@ void warp_spawns_generate()
         token = strtok(NULL, ",\n\r");
     }
 
-    for (int i = 0; i < WARP_SPAWN_COUNT; i++)
+    for (int32_t i = 0; i < WARP_SPAWN_COUNT; i++)
     {
         if (spawn_ids[i] == 0)
             spawn_ids[i] = 26; // default to ID 26
     }
 
-    for (int i = 0; i < WARP_SPAWN_COUNT; i++)
+    for (int32_t i = 0; i < WARP_SPAWN_COUNT; i++)
     {
-        for (int j = 0; j < entry_count; j++)
+        for (int32_t j = 0; j < entry_count; j++)
         {
             if (build_entry_type(elist[j]) != ENTRY_TYPE_ZONE)
                 continue;
 
             unsigned char *curr_zone = elist[j].data;
-            int camc = build_get_cam_item_count(curr_zone);
+            int32_t camc = build_get_cam_item_count(curr_zone);
 
-            for (int k = 0; k < build_get_entity_count(curr_zone); k++)
+            for (int32_t k = 0; k < build_get_entity_count(curr_zone); k++)
             {
-                int offset = build_get_nth_item_offset(curr_zone, 2 + camc + k);
-                int ent_id = build_get_entity_prop(curr_zone + offset, ENTITY_PROP_ID);
+                int32_t offset = build_get_nth_item_offset(curr_zone, 2 + camc + k);
+                int32_t ent_id = build_get_entity_prop(curr_zone + offset, ENTITY_PROP_ID);
                 if (ent_id == spawn_ids[i])
                 {
-                    int pathlen;
-                    short int *path = build_get_path(elist, j, 2 + camc + k, &pathlen);
+                    int32_t pathlen;
+                    int16_t *path = build_get_path(elist, j, 2 + camc + k, &pathlen);
 
                     unsigned char *coll_item = build_get_nth_item(elist[j].data, 1);
-                    unsigned int zone_x = from_u32(coll_item);
-                    unsigned int zone_y = from_u32(coll_item + 4);
-                    unsigned int zone_z = from_u32(coll_item + 8);
+                    uint32_t zone_x = from_u32(coll_item);
+                    uint32_t zone_y = from_u32(coll_item + 4);
+                    uint32_t zone_z = from_u32(coll_item + 8);
 
-                    unsigned int x = (zone_x + 4 * path[0]) << 8;
-                    unsigned int y = (zone_y + 4 * path[1]) << 8;
-                    unsigned int z = (zone_z + 4 * path[2]) << 8;
+                    uint32_t x = (zone_x + 4 * path[0]) << 8;
+                    uint32_t y = (zone_y + 4 * path[1]) << 8;
+                    uint32_t z = (zone_z + 4 * path[2]) << 8;
 
                     unsigned char arr[0x18] = {0};
-                    *(unsigned int *)arr = elist[j].eid;
-                    *(unsigned int *)(arr + 0x4) = 0;
-                    *(unsigned int *)(arr + 0x8) = 0;
-                    *(unsigned int *)(arr + 0xC) = x;
-                    *(unsigned int *)(arr + 0x10) = y;
-                    *(unsigned int *)(arr + 0x14) = z;
+                    *(uint32_t *)arr = elist[j].eid;
+                    *(uint32_t *)(arr + 0x4) = 0;
+                    *(uint32_t *)(arr + 0x8) = 0;
+                    *(uint32_t *)(arr + 0xC) = x;
+                    *(uint32_t *)(arr + 0x10) = y;
+                    *(uint32_t *)(arr + 0x14) = z;
 
                     printf("\n");
-                    for (int j = 0; j < 0x18; j++)
+                    for (int32_t j = 0; j < 0x18; j++)
                     {
                         printf("%02X", arr[j]);
                         if (j % 4 == 3)
@@ -1939,15 +1939,15 @@ void warp_spawns_generate()
 void special_load_lists_util(char *fpath)
 {
     printf("Checking %s\n", fpath);
-    int printed_something = 0;
+    int32_t printed_something = 0;
 
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         ENTRY curr = elist[i];
         if (build_entry_type(curr) != ENTRY_TYPE_ZONE)
@@ -1958,7 +1958,7 @@ void special_load_lists_util(char *fpath)
         {
             printed_something = 1;
             printf("Zone %5s:\t", eid_conv2(curr.eid));
-            for (int j = 0; j < special_entries.count; j++)
+            for (int32_t j = 0; j < special_entries.count; j++)
             {
                 printf("%5s ", eid_conv2(special_entries.eids[j]));
                 if (j && j % 8 == 7 && (j + 1) != special_entries.count)
@@ -1974,7 +1974,7 @@ void special_load_lists_util(char *fpath)
         printf("\n");
 }
 
-int check_fpath_contains(char *fpath, char *name)
+int32_t check_fpath_contains(char *fpath, char *name)
 {
     if (strstr(fpath, name))
         return 1;
@@ -1986,7 +1986,7 @@ int check_fpath_contains(char *fpath, char *name)
 void nsd_util_util(char *fpath)
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     char *filename = strrchr(fpath, '\\');
     if (filename != NULL)
@@ -2001,15 +2001,15 @@ void nsd_util_util(char *fpath)
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_GOOL)
             continue;
 
-        int off1 = build_get_nth_item_offset(elist[i].data, 0);
+        int32_t off1 = build_get_nth_item_offset(elist[i].data, 0);
 
-        int tpe = from_u32(elist[i].data + off1);
-        int cat = from_u32(elist[i].data + off1 + 4) >> 8;
+        int32_t tpe = from_u32(elist[i].data + off1);
+        int32_t cat = from_u32(elist[i].data + off1 + 4) >> 8;
 
         printf("%s %5s, type %d category %d\n", filename, eid_conv2(elist[i].eid), tpe, cat);
     }
@@ -2022,21 +2022,21 @@ void fov_stats_util(char *fpath)
 {
     printf("Level: %s\n", fpath);
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
             continue;
 
-        int c_count = build_get_cam_item_count(elist[i].data) / 3;
-        for (int j = 0; j < c_count; j++)
+        int32_t c_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < c_count; j++)
         {
             unsigned char *entity = build_get_nth_item(elist[i].data, 2 + 3 * j);
-            int fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
+            int32_t fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
             printf("Zone %5s : fov %d\n", eid_conv2(elist[i].eid), fov);
         }
     }
@@ -2052,33 +2052,33 @@ void checkpoint_stats_util(char *fpath)
     // char temp[6] = "";
 
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
-    int cam_count = 0;
-    int checks_non_dda = 0;
-    int checks_with_dda = 0;
-    int masks_non_dda = 0;
-    int masks_with_dda = 0;
+    int32_t cam_count = 0;
+    int32_t checks_non_dda = 0;
+    int32_t checks_with_dda = 0;
+    int32_t masks_non_dda = 0;
+    int32_t masks_with_dda = 0;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
             continue;
 
-        int c_count = build_get_cam_item_count(elist[i].data);
-        int e_count = build_get_entity_count(elist[i].data);
+        int32_t c_count = build_get_cam_item_count(elist[i].data);
+        int32_t e_count = build_get_entity_count(elist[i].data);
         cam_count += (c_count / 3);
 
-        for (int j = 0; j < e_count; j++)
+        for (int32_t j = 0; j < e_count; j++)
         {
             unsigned char *entity = build_get_nth_item(elist[i].data, 2 + c_count + j);
-            int type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-            int subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-            // int id = build_get_entity_prop(entity, ENTITY_PROP_ID);
-            int dda_deaths = build_get_entity_prop(entity, ENTITY_PROP_DDA_DEATHS) / 256;
+            int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+            int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+            // int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+            int32_t dda_deaths = build_get_entity_prop(entity, ENTITY_PROP_DDA_DEATHS) / 256;
 
             if (type == 34 && subt == 4)
             {
@@ -2251,28 +2251,28 @@ void nsd_util()
 void draw_util()
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    int total = 0;
-    int point_count = 0;
+    int32_t total = 0;
+    int32_t point_count = 0;
 
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
             continue;
 
-        int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-        for (int j = 0; j < cam_count; j++)
+        int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < cam_count; j++)
         {
-            int path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
+            int32_t path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
             LIST *draw_list = build_get_complete_draw_list(elist, i, 2 + 3 * j, path_len);
 
-            for (int k = 0; k < path_len - 1; k++)
+            for (int32_t k = 0; k < path_len - 1; k++)
             {
-                int drawn = draw_list[k].count;
+                int32_t drawn = draw_list[k].count;
                 printf("%s-%d, point %2d/%2d - drawing %d entities\n", eid_conv2(elist[i].eid), j, k, path_len, drawn);
 
                 total += drawn;
@@ -2284,23 +2284,23 @@ void draw_util()
     printf("\n");
 
     // copypaste, cba to optimise
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
             continue;
 
-        int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-        for (int j = 0; j < cam_count; j++)
+        int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < cam_count; j++)
         {
-            int path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
+            int32_t path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
             LIST *draw_list = build_get_complete_draw_list(elist, i, 2 + 3 * j, path_len);
 
-            int zone_total = 0;
-            int zone_points = 0;
+            int32_t zone_total = 0;
+            int32_t zone_points = 0;
 
-            for (int k = 0; k < path_len - 1; k++)
+            for (int32_t k = 0; k < path_len - 1; k++)
             {
-                int drawn = draw_list[k].count;
+                int32_t drawn = draw_list[k].count;
                 zone_total += drawn;
                 zone_points += 1;
             }
@@ -2319,7 +2319,7 @@ void draw_util()
 void tpage_util_util(char *fpath)
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     char *filename = strrchr(fpath, '\\');
     if (filename != NULL)
@@ -2332,19 +2332,19 @@ void tpage_util_util(char *fpath)
     }
 
     unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
-    int chunk_border_texture = 0;
+    int32_t chunk_border_texture = 0;
     if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_border_texture, NULL, elist, &entry_count, chunks, NULL, 1, fpath))
         return;
 
     printf("File %s:\n", fpath);
-    for (int i = 0; i < chunk_border_texture; i++)
+    for (int32_t i = 0; i < chunk_border_texture; i++)
     {
         if (chunks[i] == NULL)
             continue;
         if (from_u16(chunks[i] + 0x2) != CHUNK_TYPE_TEXTURE)
             continue;
 
-        int checksum = from_u32(chunks[i] + CHUNK_CHECKSUM_OFFSET);
+        int32_t checksum = from_u32(chunks[i] + CHUNK_CHECKSUM_OFFSET);
         printf("\t tpage %s \t%08X\n", eid_conv2(from_u32(chunks[i] + 0x4)), checksum);
     }
     printf("\n");
@@ -2368,19 +2368,19 @@ void tpage_util()
 void gool_util_util(char *fpath)
 {
     ENTRY elist[ELIST_DEFAULT_SIZE];
-    int entry_count = 0;
+    int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
         return;
 
     printf("File %s:\n", fpath);
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) != ENTRY_TYPE_GOOL)
             continue;
 
-        int off1 = build_get_nth_item_offset(elist[i].data, 0);
-        int tpe = from_u32(elist[i].data + off1);
+        int32_t off1 = build_get_nth_item_offset(elist[i].data, 0);
+        int32_t tpe = from_u32(elist[i].data + off1);
 
         printf("\t gool %5s-%02d \t%08X\n", eid_conv2(elist[i].eid), tpe, crcChecksum(elist[i].data, elist[i].esize));
     }

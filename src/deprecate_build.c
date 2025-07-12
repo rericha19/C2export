@@ -2,21 +2,21 @@
 // contains deprecate but not entirely unused implementation of the chunk merging/building algorithm
 // mainly payload based decisions and some other older stuff
 
-int build_get_max_draw(LOAD_LIST draw_list)
+int32_t build_get_max_draw(LOAD_LIST draw_list)
 {
     LIST list = init_list();
-    int ecount = 0;
+    int32_t ecount = 0;
 
-    for (int i = 0; i < draw_list.count; i++)
+    for (int32_t i = 0; i < draw_list.count; i++)
     {
         if (draw_list.array[i].type == 'B')
         {
-            for (int m = 0; m < draw_list.array[i].list_length; m++)
+            for (int32_t m = 0; m < draw_list.array[i].list_length; m++)
                 list_add(&list, draw_list.array[i].list[m]);
         }
         if (draw_list.array[i].type == 'A')
         {
-            for (int m = 0; m < draw_list.array[i].list_length; m++)
+            for (int32_t m = 0; m < draw_list.array[i].list_length; m++)
                 list_remove(&list, draw_list.array[i].list[m]);
         }
 
@@ -30,26 +30,26 @@ int build_get_max_draw(LOAD_LIST draw_list)
  *  Creates a payloads object that contains each zone and chunks that zone loads.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_min int                 used to get rid of invalid chunks/entries
+ * \param entry_count int32_t               entry count
+ * \param chunk_min int32_t                 used to get rid of invalid chunks/entries
  * \return PAYLOADS                     payloads struct
  */
-PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min)
+PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chunk_min)
 {
     // todo find out where it crashes
     PAYLOADS payloads;
     payloads.count = 0;
     payloads.arr = NULL;
-    int i, j, l, m;
+    int32_t i, j, l, m;
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
         {
-            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (j = 0; j < cam_count; j++)
             {
                 LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
                 LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
-                int max_draw = build_get_max_draw(draw_list);
+                int32_t max_draw = build_get_max_draw(draw_list);
 
                 LIST list = init_list();
                 PAYLOAD payload;
@@ -83,7 +83,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int c
 }
 
 // main function for payload merge (calls needed merge functions for this method)
-void deprecate_build_payload_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded)
+void deprecate_build_payload_merge_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded)
 {
 
     build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // good
@@ -103,12 +103,12 @@ void deprecate_build_payload_merge_main(ENTRY *elist, int entry_count, int chunk
  *  the zone with highest payload, one at a time.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_min int                 start of normal chunk range
- * \param chunk_count int*              end of normal chunk range
+ * \param entry_count int32_t               entry count
+ * \param chunk_min int32_t                 start of normal chunk range
+ * \param chunk_count int32_t*              end of normal chunk range
  * \return void
  */
-void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count, int stats_only_flag)
+void deprecate_build_payload_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t *chunk_count, int32_t stats_only_flag)
 {
     while (1)
     {
@@ -116,7 +116,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         printf("\n\"Heaviest\" zones:\n");
-        for (int k = 0; k < min(10, payloads.count); k++)
+        for (int32_t k = 0; k < min(10, payloads.count); k++)
         {
             printf("%d\t", k + 1);
             deprecate_build_print_payload(payloads.arr[k], 0);
@@ -128,42 +128,42 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
 
         if (payloads.arr[0].count < 19)
         {
-            for (int i = 0; i < payloads.count; i++)
+            for (int32_t i = 0; i < payloads.count; i++)
                 free(payloads.arr[i].chunks);
             break;
         }
 
-        qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int), cmp_func_int);
+        qsort(payloads.arr[0].chunks, payloads.arr[0].count, sizeof(int32_t), cmp_func_int);
 
-        int chunks[1024];
-        int count;
-        int check = 0;
+        int32_t chunks[1024];
+        int32_t count;
+        int32_t check = 0;
 
-        for (int i = 0; i < payloads.count && check != 1; i++)
+        for (int32_t i = 0; i < payloads.count && check != 1; i++)
         {
             count = 0;
 
-            for (int j = 0; j < payloads.arr[i].count; j++)
+            for (int32_t j = 0; j < payloads.arr[i].count; j++)
             {
-                int curr_chunk = payloads.arr[i].chunks[j];
+                int32_t curr_chunk = payloads.arr[i].chunks[j];
                 if (curr_chunk >= chunk_min)
                     chunks[count++] = curr_chunk;
             }
-            qsort(chunks, count, sizeof(int), cmp_func_int);
+            qsort(chunks, count, sizeof(int32_t), cmp_func_int);
             if (deprecate_build_merge_thing(elist, entry_count, chunks, count))
                 check = 1;
 
             if (check)
-                for (int j = chunk_min; j < *chunk_count; j++)
+                for (int32_t j = chunk_min; j < *chunk_count; j++)
                 {
-                    int empty = 1;
-                    for (int k = 0; k < entry_count; k++)
+                    int32_t empty = 1;
+                    for (int32_t k = 0; k < entry_count; k++)
                         if (elist[k].chunk == j)
                             empty = 0;
 
                     if (empty)
                     {
-                        for (int k = 0; k < entry_count; k++)
+                        for (int32_t k = 0; k < entry_count; k++)
                             if (elist[k].chunk == (*chunk_count - 1))
                                 elist[k].chunk = j;
                         (*chunk_count)--;
@@ -171,7 +171,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
                 }
         }
 
-        for (int i = 0; i < payloads.count; i++)
+        for (int32_t i = 0; i < payloads.count; i++)
             free(payloads.arr[i].chunks);
         if (check == 0)
             break;
@@ -187,7 +187,7 @@ void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min,
  */
 void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
 {
-    for (int i = 0; i < payloads->count; i++)
+    for (int32_t i = 0; i < payloads->count; i++)
         if (payloads->arr[i].zone == insertee.zone && payloads->arr[i].cam_path == insertee.cam_path)
         {
 
@@ -223,10 +223,10 @@ void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
  *  Prints payload.
  *
  * \param payload PAYLOAD               payload struct
- * \param stopper int                   something dumb
+ * \param stopper int32_t                   something dumb
  * \return void
  */
-void deprecate_build_print_payload(PAYLOAD payload, int stopper)
+void deprecate_build_print_payload(PAYLOAD payload, int32_t stopper)
 {
     char temp[100] = "";
     printf("Zone: %s cam path %d: payload: %3d, textures %2d, entities %2d",
@@ -241,24 +241,24 @@ void deprecate_build_print_payload(PAYLOAD payload, int stopper)
  *  Deprecate, used by payload ladder method.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunks int*                   chunks array
- * \param chunk_count int               chunk count
- * \return int                          1 if a merge occured, else 0
+ * \param entry_count int32_t               entry count
+ * \param chunks int32_t*                   chunks array
+ * \param chunk_count int32_t               chunk count
+ * \return int32_t                          1 if a merge occured, else 0
  */
-int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
+int32_t deprecate_build_merge_thing(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count)
 {
-    int i, j, k;
-    int best[2] = {-1, -1};
-    int relatives1[1024], relatives2[1024];
-    int relative_count1, relative_count2;
+    int32_t i, j, k;
+    int32_t best[2] = {-1, -1};
+    int32_t relatives1[1024], relatives2[1024];
+    int32_t relative_count1, relative_count2;
 
-    int max = 0;
+    int32_t max = 0;
 
     for (i = 0; i < chunk_count; i++)
     {
-        int size1 = 0;
-        int count1 = 0;
+        int32_t size1 = 0;
+        int32_t count1 = 0;
         relative_count1 = 0;
 
         for (j = 0; j < entry_count; j++)
@@ -274,8 +274,8 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
 
         for (j = i + 1; j < chunk_count; j++)
         {
-            int size2 = 0;
-            int count2 = 0;
+            int32_t size2 = 0;
+            int32_t count2 = 0;
             relative_count2 = 0;
             for (k = 0; k < entry_count; k++)
                 if (elist[k].chunk == chunks[j])
@@ -287,7 +287,7 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
 
             if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
             {
-                int common_count = deprecate_build_get_common(relatives1, relative_count1, relatives2, relative_count2);
+                int32_t common_count = deprecate_build_get_common(relatives1, relative_count1, relatives2, relative_count2);
                 if (common_count > max)
                 {
                     max = common_count;
@@ -310,19 +310,19 @@ int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int 
 /** \brief
  *  Used by some payload merge method (deprecate).
  *
- * \param listA int*                    list of relatives A
- * \param countA int                    count of relatives A
- * \param listB int*                    list of relatives B
- * \param countB int                    count of relatives B
- * \return int                          amount of common items
+ * \param listA int32_t*                    list of relatives A
+ * \param countA int32_t                    count of relatives A
+ * \param listB int32_t*                    list of relatives B
+ * \param countB int32_t                    count of relatives B
+ * \return int32_t                          amount of common items
  */
-int deprecate_build_get_common(int *listA, int countA, int *listB, int countB)
+int32_t deprecate_build_get_common(int32_t *listA, int32_t countA, int32_t *listB, int32_t countB)
 {
-    int i, j, copy_countA = 0, copy_countB = 0;
-    int copyA[100];
-    int copyB[100];
-    qsort(listA, countA, sizeof(int), cmp_func_int);
-    qsort(listB, countB, sizeof(int), cmp_func_int);
+    int32_t i, j, copy_countA = 0, copy_countB = 0;
+    int32_t copyA[100];
+    int32_t copyB[100];
+    qsort(listA, countA, sizeof(int32_t), cmp_func_int);
+    qsort(listB, countB, sizeof(int32_t), cmp_func_int);
 
     for (i = 0; i < countA; i++)
         if (i)
@@ -342,7 +342,7 @@ int deprecate_build_get_common(int *listA, int countA, int *listB, int countB)
         else
             copyB[copy_countB++] = listA[i];
 
-    int counter = 0;
+    int32_t counter = 0;
     for (i = 0; i < copy_countA; i++)
         for (j = 0; j < copy_countB; j++)
             if (copyA[i] == copyB[j])
@@ -355,15 +355,15 @@ int deprecate_build_get_common(int *listA, int countA, int *listB, int countB)
  *  Merges the chunks, usually 2.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunks int*                   array of chunks to be considered by the merge thing
- * \param chunk_count int               amount of those chunks
+ * \param entry_count int32_t               entry count
+ * \param chunks int32_t*                   array of chunks to be considered by the merge thing
+ * \param chunk_count int32_t               amount of those chunks
  * \return void
  */
-void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count)
+void deprecate_build_chunk_merge(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count)
 {
-    for (int i = 0; i < entry_count; i++)
-        for (int j = 0; j < chunk_count; j++)
+    for (int32_t i = 0; i < entry_count; i++)
+        for (int32_t j = 0; j < chunk_count; j++)
             if (elist[i].chunk == chunks[j])
                 elist[i].chunk = chunks[0];
 }
@@ -373,26 +373,26 @@ void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int
  *  Used by a deprecate merge method.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
+ * \param entry_count int32_t               entry count
  * \param list LIST                     current load list
- * \param zone unsigned int             current zone
- * \param chunk_min int                 used to weed out sound and instrument entries (nsf structure this program produces is texture - wavebank - sound - normal)
+ * \param zone uint32_t             current zone
+ * \param chunk_min int32_t                 used to weed out sound and instrument entries (nsf structure this program produces is texture - wavebank - sound - normal)
  * \return PAYLOAD                      payload object that contains a list of chunks that are loaded in this zone, their count and the current zone eid
  */
-PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min)
+PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min)
 {
-    int chunks[1024];
-    int count = 0;
-    int curr_chunk;
-    int is_there;
+    int32_t chunks[1024];
+    int32_t count = 0;
+    int32_t curr_chunk;
+    int32_t is_there;
 
-    for (int i = 0; i < list.count; i++)
+    for (int32_t i = 0; i < list.count; i++)
     {
-        int elist_index = build_get_index(list.eids[i], elist, entry_count);
+        int32_t elist_index = build_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].chunk;
 
         is_there = 0;
-        for (int j = 0; j < count; j++)
+        for (int32_t j = 0; j < count; j++)
             if (chunks[j] == curr_chunk)
                 is_there = 1;
 
@@ -404,16 +404,16 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
         }
     }
 
-    int tchunks[1024];
-    int tcount = 0;
+    int32_t tchunks[1024];
+    int32_t tcount = 0;
 
-    for (int i = 0; i < list.count; i++)
+    for (int32_t i = 0; i < list.count; i++)
     {
-        int elist_index = build_get_index(list.eids[i], elist, entry_count);
+        int32_t elist_index = build_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].eid;
 
         is_there = 0;
-        for (int j = 0; j < tcount; j++)
+        for (int32_t j = 0; j < tcount; j++)
             if (tchunks[j] == curr_chunk)
                 is_there = 1;
 
@@ -428,11 +428,11 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
     PAYLOAD temp;
     temp.zone = zone;
     temp.count = count;
-    temp.chunks = (int *)malloc(count * sizeof(int)); // freed by payload ladder function, caller 3 layers up iirc
-    memcpy(temp.chunks, chunks, sizeof(int) * count);
+    temp.chunks = (int32_t *)malloc(count * sizeof(int32_t)); // freed by payload ladder function, caller 3 layers up iirc
+    memcpy(temp.chunks, chunks, sizeof(int32_t) * count);
     temp.tcount = tcount;
-    temp.tchunks = (int *)malloc(tcount * sizeof(int));
-    memcpy(temp.tchunks, tchunks, sizeof(int) * tcount);
+    temp.tchunks = (int32_t *)malloc(tcount * sizeof(int32_t));
+    memcpy(temp.tchunks, tchunks, sizeof(int32_t) * tcount);
     return temp;
 }
 
@@ -441,23 +441,23 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, un
  *  Do not use.
  *
  * \param elist ENTRY*                  entry list
- * \param chunk_index_start int         start of the range
- * \param chunk_index_end int*          end of the range (excl.)
- * \param entry_count int               entry count
+ * \param chunk_index_start int32_t         start of the range
+ * \param chunk_index_end int32_t*          end of the range (excl.)
+ * \param entry_count int32_t               entry count
  * \return void
  */
-void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count)
+void deprecate_build_gool_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count)
 {
-    int i, j, k;
+    int32_t i, j, k;
     while (1)
     {
-        int merge_happened = 0;
+        int32_t merge_happened = 0;
         for (i = chunk_index_start; i < *chunk_index_end; i++)
         {
-            int size1 = 0, count1 = 0, max_rating = 0, max_entry_count = 0;
+            int32_t size1 = 0, count1 = 0, max_rating = 0, max_entry_count = 0;
             ;
-            unsigned int relatives[250];
-            int relative_counter = 0;
+            uint32_t relatives[250];
+            int32_t relative_counter = 0;
 
             for (j = 0; j < entry_count; j++)
                 if (elist[j].chunk == i)
@@ -474,9 +474,9 @@ void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_
 
             for (j = i + 1; j < *chunk_index_end; j++)
             {
-                int size2 = 0;
-                int count2 = 0;
-                int has_relative = 0;
+                int32_t size2 = 0;
+                int32_t count2 = 0;
+                int32_t has_relative = 0;
 
                 for (k = 0; k < entry_count; k++)
                     if (elist[k].chunk == j)
@@ -488,7 +488,7 @@ void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_
 
                 if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
                 {
-                    int rating = has_relative;
+                    int32_t rating = has_relative;
                     if (rating > max_rating)
                     {
                         max_rating = rating;
@@ -517,14 +517,14 @@ void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_
  *  Deprecate, was used in a bad merge method.
  *  Checks whether a searched eid is a relative.
  *
- * \param searched unsigned int         searched eid
- * \param array unsigned int*           relatives array
- * \param count int                     length of relatives array
- * \return int                          1 if its a relative, else 0
+ * \param searched uint32_t         searched eid
+ * \param array uint32_t*           relatives array
+ * \param count int32_t                     length of relatives array
+ * \return int32_t                          1 if its a relative, else 0
  */
-int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int count)
+int32_t deprecate_build_is_relative(uint32_t searched, uint32_t *array, int32_t count)
 {
-    for (int i = 0; i < count; i++)
+    for (int32_t i = 0; i < count; i++)
         if (searched == array[i])
             return 1; //(count - i)*(count - i)/2;
 
@@ -535,18 +535,18 @@ int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int 
  *  Inserts all stuff loaded by a zone (scenery dependencies, entity dependencies, its own relatives) to the list.
  *  DEPRECATE.
  *
- * \param eid unsigned int              entry whose children are to be added
+ * \param eid uint32_t              entry whose children are to be added
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
+ * \param entry_count int32_t               entry count
  * \param list LIST*                    current load list
- * \param gool_table unsigned int*      gool table
+ * \param gool_table uint32_t*      gool table
  * \param dependencies DEPENDENCIES     stuff loaded when a certain type/subtype is used
  * \return void
  */
-void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies)
+void deprecate_deprecate_build_ll_add_children(uint32_t eid, ENTRY *elist, int32_t entry_count, LIST *list, uint32_t *gool_table, DEPENDENCIES dependencies)
 {
-    int i, j, k, l;
-    int index = build_get_index(eid, elist, entry_count);
+    int32_t i, j, k, l;
+    int32_t index = build_get_index(eid, elist, entry_count);
     if (index == -1)
         return;
 
@@ -558,25 +558,25 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
 
     if (build_entry_type(elist[index]) == ENTRY_TYPE_ZONE)
     {
-        int item1off = from_u32(elist[index].data + 0x10);
+        int32_t item1off = from_u32(elist[index].data + 0x10);
         LIST neighbours = build_get_neighbours(elist[index].data);
 
         for (i = 0; i < neighbours.count; i++)
         {
-            int neighbour_index = build_get_index(neighbours.eids[i], elist, entry_count);
+            int32_t neighbour_index = build_get_index(neighbours.eids[i], elist, entry_count);
             if (neighbour_index == -1)
                 continue;
 
-            int entity_count = build_get_entity_count(elist[neighbour_index].data);
-            int cam_count = build_get_cam_item_count(elist[neighbour_index].data);
+            int32_t entity_count = build_get_entity_count(elist[neighbour_index].data);
+            int32_t cam_count = build_get_cam_item_count(elist[neighbour_index].data);
 
             for (j = 0; j < entity_count; j++)
             {
-                int entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
-                int entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
+                int32_t entity_offset = from_u32(elist[neighbour_index].data + 0x18 + 4 * cam_count + 4 * j);
+                int32_t entity_type = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_TYPE);
                 list_add(list, gool_table[entity_type]);
-                int entity_subt = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
-                int match_found = 0;
+                int32_t entity_subt = build_get_entity_prop(elist[neighbour_index].data + entity_offset, ENTITY_PROP_SUBTYPE);
+                int32_t match_found = 0;
 
                 for (k = 0; k < dependencies.count; k++)
                     if (dependencies.array[k].type == entity_type && dependencies.array[k].subtype == entity_subt)
@@ -584,17 +584,17 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
                         for (l = 0; l < dependencies.array[k].dependencies.count; l++)
                         {
                             list_add(list, dependencies.array[k].dependencies.eids[l]);
-                            int index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
+                            int32_t index2 = build_get_index(dependencies.array[k].dependencies.eids[l], elist, entry_count);
                             if (index2 == -1)
                                 continue;
                             if (build_entry_type(elist[index2]) == ENTRY_TYPE_ANIM)
                             {
                                 LIST models = build_get_models(elist[index2].data);
-                                for (int m = 0; m < models.count; m++)
+                                for (int32_t m = 0; m < models.count; m++)
                                 {
-                                    unsigned int model = models.eids[m];
+                                    uint32_t model = models.eids[m];
 
-                                    int model_index = build_get_index(model, elist, entry_count);
+                                    int32_t model_index = build_get_index(model, elist, entry_count);
                                     if (model_index == -1)
                                         continue;
 
@@ -611,10 +611,10 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
             }
         }
 
-        int scenery_count = build_get_scen_count(elist[index].data);
+        int32_t scenery_count = build_get_scen_count(elist[index].data);
         for (i = 0; i < scenery_count; i++)
         {
-            int scenery_index = build_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
+            int32_t scenery_index = build_get_index(from_u32(elist[index].data + item1off + 0x4 + 0x30 * i), elist, entry_count);
             build_add_scen_textures_to_list(elist[scenery_index].data, list);
         }
     }
@@ -624,18 +624,18 @@ void deprecate_deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, i
  *  Assigns gool entries and their relatives initial chunks.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param real_chunk_count int*         chunk count
- * \param grouping_flag int             1 if one by one, 0 if pre-grouping
+ * \param entry_count int32_t               entry count
+ * \param real_chunk_count int32_t*         chunk count
+ * \param grouping_flag int32_t             1 if one by one, 0 if pre-grouping
  * \return void
  */
-void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
+void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int32_t entry_count, int32_t *real_chunk_count, int32_t grouping_flag)
 {
-    int i, j;
-    int size;
-    int counter;
-    int relative_index;
-    int chunk_count = *real_chunk_count;
+    int32_t i, j;
+    int32_t size;
+    int32_t counter;
+    int32_t relative_index;
+    int32_t chunk_count = *real_chunk_count;
 
     switch (grouping_flag)
     {
@@ -702,13 +702,13 @@ void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, i
  *  Just assigns the rest of the entries initial chunks, which is  necessary for the merges.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_count int*              chunk count
+ * \param entry_count int32_t               entry count
+ * \param chunk_count int32_t*              chunk count
  * \return void
  */
-void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count)
+void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 {
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_DEMO || build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
             elist[i].chunk = (*chunk_count)++;
 }
@@ -717,17 +717,17 @@ void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, i
  *  Initial chunk assignment for zones and their relatives, either one-by-one or pre-grouped.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param real_chunk_count int*         chunk count
- * \param grouping_flag int             one-by-one if 1, pre-groups if 0
+ * \param entry_count int32_t               entry count
+ * \param real_chunk_count int32_t*         chunk count
+ * \param grouping_flag int32_t             one-by-one if 1, pre-groups if 0
  * \return void
  */
-void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag)
+void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int32_t entry_count, int32_t *real_chunk_count, int32_t grouping_flag)
 {
-    int i, j;
-    int chunk_count = *real_chunk_count;
-    int size;
-    int counter;
+    int32_t i, j;
+    int32_t chunk_count = *real_chunk_count;
+    int32_t size;
+    int32_t counter;
 
     switch (grouping_flag)
     {
@@ -744,7 +744,7 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
                 if (elist[i].related != NULL)
                     for (j = 0; (unsigned)j < elist[i].related[0]; j++)
                     {
-                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        int32_t relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
                         if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL)
                             continue;
                         if ((elist[relative_index].esize + size + 0x10 + 4 * (counter + 2)) > CHUNKSIZE)
@@ -772,7 +772,7 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
                 if (elist[i].related != NULL)
                     for (j = 0; (unsigned)j < elist[i].related[0]; j++)
                     {
-                        int relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
+                        int32_t relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count);
                         if (elist[relative_index].chunk != -1 || elist[relative_index].related != NULL)
                             continue;
                         elist[relative_index].chunk = chunk_count++;
@@ -792,13 +792,13 @@ void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, 
  *  Actually unused i think.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
+ * \param entry_count int32_t               entry count
  * \return void
  */
-void deprecate_build_print_relatives(ENTRY *elist, int entry_count)
+void deprecate_build_print_relatives(ENTRY *elist, int32_t entry_count)
 {
     char temp[100] = "";
-    int i, j;
+    int32_t i, j;
     for (i = 0; i < entry_count; i++)
     {
         printf("%04d %s %02d %d\n", i, eid_conv(elist[i].eid, temp), elist[i].chunk, elist[i].esize);
@@ -807,7 +807,7 @@ void deprecate_build_print_relatives(ENTRY *elist, int entry_count)
             printf("------ %5d\n", elist[i].related[0]);
             for (j = 0; j < (signed)elist[i].related[0]; j++)
             {
-                int relative = elist[i].related[j + 1];
+                int32_t relative = elist[i].related[j + 1];
                 printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, temp),
                        elist[build_get_index(relative, elist, entry_count)].chunk, elist[build_get_index(relative, elist, entry_count)].esize);
             }

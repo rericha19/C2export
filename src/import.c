@@ -2,7 +2,7 @@
 
 // this entire thing is just awful, probably never use
 
-int import_main(char *time, DEPRECATE_INFO_STRUCT status)
+int32_t import_main(char *time, DEPRECATE_INFO_STRUCT status)
 // brute imports entries from a selected folder into a selected level
 {
     FILE *base, *importee;
@@ -10,7 +10,7 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
     char path[MAX] = "";
     char lcltemp[MAX + 2] = "", nsfpath[MAX] = "", nsfcheck[4] = ""; // + 2 to get rid of a warning
     unsigned char *basebase;
-    int baselength;
+    int32_t baselength;
 
     printf("Input the path to the .NSF you want the files to be imported into\n");
     printf("(it won't be overwritten, a new file will be created in the same folder)\n");
@@ -52,7 +52,7 @@ int import_main(char *time, DEPRECATE_INFO_STRUCT status)
     return 1;
 }
 
-int import_file_lister(char *path, FILE *fnew)
+int32_t import_file_lister(char *path, FILE *fnew)
 // opens all files in a directory one by one and appends them onto a nsf crudely
 {
     // i have the arrays bigger than usual so i can do some dumb stuff with memcpy to make it easier for myself
@@ -63,10 +63,10 @@ int import_file_lister(char *path, FILE *fnew)
     unsigned char textu[CHUNKSIZE + 1024];
     FILE *file;
     char temp1[MAX] = "", temp2[6] = "", eid[6] = "";
-    int entrysize, i, curr_chunk, curr_off = 0, eidint, index = 0, offsets[256];
-    //    unsigned int checksum;
+    int32_t entrysize, i, curr_chunk, curr_off = 0, eidint, index = 0, offsets[256];
+    //    uint32_t checksum;
 
-    curr_chunk = 2 * (int)ftell(fnew) / CHUNKSIZE + 1;
+    curr_chunk = 2 * (int32_t)ftell(fnew) / CHUNKSIZE + 1;
 
     for (i = 0; i < CHUNKSIZE + 1024; i++)
     {
@@ -150,12 +150,12 @@ int import_file_lister(char *path, FILE *fnew)
     return 0;
 }
 
-void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[])
+void import_chunksave(unsigned char *chunk, int32_t *index, int32_t *curr_off, int32_t *curr_chunk, FILE *fnew, int32_t offsets[])
 // saves the current chunk
 {
     char help[1024];
-    int i;
-    unsigned int checksum;
+    int32_t i;
+    uint32_t checksum;
 
     for (i = 0; i < 1024; i++)
         help[i] = 0;

@@ -3,7 +3,7 @@
 // text at the start when you open the program or wipe
 void intro_text()
 {
-    for (int i = 0; i < 100; i++)
+    for (int32_t i = 0; i < 100; i++)
         printf("*");
     printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
     printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
@@ -11,7 +11,7 @@ void intro_text()
     printf("It is recommended to provide valid data as there may be edge cases that are unaccounted for.\n");
     printf("You can drag & drop the files and folders to this window instead of copying in the paths\n");
     printf("Most stuff works only for Crash 2 !!!!\n");
-    for (int i = 0; i < 100; i++)
+    for (int32_t i = 0; i < 100; i++)
         printf("*");
     printf("\n\n");
 }
@@ -19,7 +19,7 @@ void intro_text()
 // help for miscellaneous, modpack-specific and obsolete commands
 void print_help2()
 {
-    for (int i = 0; i < 100; i++)
+    for (int32_t i = 0; i < 100; i++)
         printf("-");
     printf("\nMisc/obsolete/modpack command list:\n");
 
@@ -99,10 +99,10 @@ void print_help2()
     printf("CHANGEPRINT & IMPORT (obsolete)\n");
     printf("\t print selection, entry->NSF import (pretty much useless)\n");
 
-    printf("LEVEL_FLIP_Y & LEVEL_FLIP_X\n");
+    printf("FLIP_Y & FLIP_X\n");
     printf("\t flips the level horizontally or vertically\n");
 
-    for (int i = 0; i < 100; i++)
+    for (int32_t i = 0; i < 100; i++)
         printf("-");
     printf("\n");
 }
@@ -110,7 +110,7 @@ void print_help2()
 // main help
 void print_help()
 {
-    for (int i = 0; i < 100; i++)
+    for (int32_t i = 0; i < 100; i++)
         printf("-");
     printf("\nCommand list:\n");
     printf("HELP & HELP2\n");
@@ -158,7 +158,7 @@ void print_help()
 
     printf("[warning] warning text\n");
     printf("\tjust a warning, something may or may not be wrong\n");
-    for (int i = 0; i < 100; i++)
+    for (int32_t i = 0; i < 100; i++)
         printf("-");
     printf("\n");
 }
@@ -170,70 +170,70 @@ void clrscr()
 }
 
 // helper for reading signed 32b
-int from_s32(unsigned char *data)
+int32_t from_s32(unsigned char *data)
 {
     /*
     const unsigned char *p = data;
-    int result = p[0];
+    int32_t result = p[0];
     result |= p[1] << 8;
     result |= p[2] << 16;
     result |= p[3] << 24;
     return result;*/
-    return *(int *)data;
+    return *(int32_t *)data;
 }
 
 // helper for reading unsigned 32b
-unsigned int from_u32(unsigned char *data)
+uint32_t from_u32(unsigned char *data)
 {
     /*const unsigned char *p = data;
-    unsigned int result = p[0];
+    uint32_t result = p[0];
     result |= p[1] << 8;
     result |= p[2] << 16;
     result |= p[3] << 24;
     return result;*/
-    return *(unsigned int *)data;
+    return *(uint32_t *)data;
 }
 
 // helper for reading signed 16b
-int from_s16(unsigned char *data)
+int32_t from_s16(unsigned char *data)
 {
-    return *(short int *)(data);
+    return *(int16_t *)(data);
 }
 
 // helper for reading unsigned 16b
-unsigned int from_u16(unsigned char *data)
+uint32_t from_u16(unsigned char *data)
 {
-    return *(unsigned short int *)data;
+    return *(uint16_t *)data;
 }
 
 // helper for reading unsigned 8b
-unsigned int from_u8(unsigned char *data)
+uint32_t from_u8(unsigned char *data)
 {
     const unsigned char *p = data;
-    unsigned int result = p[0];
+    uint32_t result = p[0];
     return result;
 }
 
 // hashes the input string into a number
-unsigned long comm_str_hash(const char *str)
+uint32_t comm_str_hash(const char *str)
 {
-    unsigned long comm_str_hash = 5381;
-    int c;
+    uint32_t comm_str_hash = 5381;
+    int32_t c;
 
     while ((c = *str++))
         comm_str_hash = ((comm_str_hash << 5) + comm_str_hash) + c;
     return comm_str_hash;
 }
 
-// converts int eid to string eid
+// converts int32_t eid to string eid
 // doesnt copy
-const char *eid_conv2(unsigned int value)
+const char *eid_conv2(uint32_t value)
 {
     return eid_conv(value, NULL);
 }
 
-// converts int eid to string eid
-const char *eid_conv(unsigned int value, char *eid)
+// converts int32_t eid to string eid
+const char *eid_conv(uint32_t value, char *eid)
 {
     const char charset[] =
         "0123456789"
@@ -257,17 +257,17 @@ const char *eid_conv(unsigned int value, char *eid)
 }
 
 // conversion of eid from string form to u32int form
-unsigned int eid_to_int(char *eid)
+uint32_t eid_to_int(char *eid)
 {
-    unsigned int result = 0;
+    uint32_t result = 0;
     const char charset[] =
         "0123456789"
         "abcdefghijklmnopqrstuvwxyz"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "_!";
 
-    for (int i = 0; i < 5; i++)
-        for (int j = 0; j < 0x40; j++)
+    for (int32_t i = 0; i < 5; i++)
+        for (int32_t j = 0; j < 0x40; j++)
             if (charset[j] == eid[i])
                 result = (result << 6) + j;
 
@@ -276,10 +276,10 @@ unsigned int eid_to_int(char *eid)
 }
 
 // calculates chunk checksum (CRC)
-unsigned int crcChecksum(const unsigned char *data, int size)
+uint32_t crcChecksum(const unsigned char *data, int32_t size)
 {
-    unsigned int checksum = 0x12345678;
-    for (int i = 0; i < size; i++)
+    uint32_t checksum = 0x12345678;
+    for (int32_t i = 0; i < size; i++)
     {
         if (i < CHUNK_CHECKSUM_OFFSET || i >= CHUNK_CHECKSUM_OFFSET + 4)
             checksum += data[i];
@@ -289,19 +289,19 @@ unsigned int crcChecksum(const unsigned char *data, int size)
 }
 
 // calculates chunk checksum
-unsigned int nsfChecksum(const unsigned char *data)
+uint32_t nsfChecksum(const unsigned char *data)
 {
     return crcChecksum(data, CHUNKSIZE);
 }
 
 // integer comparison func for qsort
-int cmp_func_int(const void *a, const void *b)
+int32_t cmp_func_int(const void *a, const void *b)
 {
-    return (*(int *)a - *(int *)b);
+    return (*(int32_t *)a - *(int32_t *)b);
 }
 
 // used to sort payload ladder in descending order
-int cmp_func_payload(const void *a, const void *b)
+int32_t cmp_func_payload(const void *a, const void *b)
 {
     PAYLOAD x = *(PAYLOAD *)a;
     PAYLOAD y = *(PAYLOAD *)b;
@@ -313,22 +313,22 @@ int cmp_func_payload(const void *a, const void *b)
 }
 
 // used in LIST struct
-int cmp_func_uint(const void *a, const void *b)
+int32_t cmp_func_uint(const void *a, const void *b)
 {
-    unsigned int x = *(unsigned int *)a;
-    unsigned int y = *(unsigned int *)b;
+    uint32_t x = *(uint32_t *)a;
+    uint32_t y = *(uint32_t *)b;
 
     return (x - y);
 }
 
 // for sorting by entry eid
-int cmp_func_eid(const void *a, const void *b)
+int32_t cmp_func_eid(const void *a, const void *b)
 {
     return ((*(ENTRY *)a).eid - (*(ENTRY *)b).eid);
 }
 
 // used to sort entries by size
-int cmp_func_esize(const void *a, const void *b)
+int32_t cmp_func_esize(const void *a, const void *b)
 {
     return ((*(ENTRY *)b).esize - (*(ENTRY *)a).esize);
 }
@@ -365,14 +365,14 @@ SPAWNS init_spawns()
  *  Binary search in a sorted list.
  *
  * \param list LIST                     list to be searched
- * \param searched unsigned int         searched item
- * \return int                          index the item has or -1 if item wasnt found
+ * \param searched uint32_t         searched item
+ * \return int32_t                          index the item has or -1 if item wasnt found
  */
-int list_find(LIST list, unsigned int searched)
+int32_t list_find(LIST list, uint32_t searched)
 {
-    int first = 0;
-    int last = list.count - 1;
-    int middle = (first + last) / 2;
+    int32_t first = 0;
+    int32_t last = list.count - 1;
+    int32_t middle = (first + last) / 2;
 
     while (first <= last)
     {
@@ -393,27 +393,27 @@ int list_find(LIST list, unsigned int searched)
  *  Adds an item to the list.
  *
  * \param list LIST*                    list to be added into
- * \param eid unsigned int              item to be added
+ * \param eid uint32_t              item to be added
  * \return void
  */
-void list_add(LIST *list, unsigned int eid)
+void list_add(LIST *list, uint32_t eid)
 {
     if (list_find(*list, eid) != -1)
         return;
 
     if (list->count)
-        list->eids = (unsigned int *)realloc(list->eids, (list->count + 1) * sizeof(unsigned int)); // realloc is slow
+        list->eids = (uint32_t *)realloc(list->eids, (list->count + 1) * sizeof(uint32_t)); // realloc is slow
     else
-        list->eids = (unsigned int *)malloc(sizeof(unsigned int)); // not freed, big issue
+        list->eids = (uint32_t *)malloc(sizeof(uint32_t)); // not freed, big issue
     list->eids[list->count] = eid;
     list->count++;
-    qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
+    qsort(list->eids, list->count, sizeof(uint32_t), cmp_func_uint);
 }
 
 // Returns 1 if list_a is a subset of list_b, 0 otherwise
-int list_is_subset(LIST list_a, LIST list_b)
+int32_t list_is_subset(LIST list_a, LIST list_b)
 {
-    for (int i = 0; i < list_a.count; i++)
+    for (int32_t i = 0; i < list_a.count; i++)
     {
         if (list_find(list_b, list_a.eids[i]) == -1)
             return 0;
@@ -425,19 +425,19 @@ int list_is_subset(LIST list_a, LIST list_b)
  *  Removes given item from the list if it exists.
  *
  * \param list LIST*                    list to be removed from
- * \param eid unsigned int              item to be removed
+ * \param eid uint32_t              item to be removed
  * \return void
  */
-void list_remove(LIST *list, unsigned int eid)
+void list_remove(LIST *list, uint32_t eid)
 {
-    int index = list_find(*list, eid);
+    int32_t index = list_find(*list, eid);
     if (index == -1)
         return;
 
     list->eids[index] = list->eids[list->count - 1];
-    list->eids = (unsigned int *)realloc(list->eids, (list->count - 1) * sizeof(unsigned int)); // realloc is slow
+    list->eids = (uint32_t *)realloc(list->eids, (list->count - 1) * sizeof(uint32_t)); // realloc is slow
     list->count--;
-    qsort(list->eids, list->count, sizeof(unsigned int), cmp_func_uint);
+    qsort(list->eids, list->count, sizeof(uint32_t), cmp_func_uint);
 }
 
 /*
@@ -455,7 +455,7 @@ void list_free(LIST list) {
  */
 void list_copy_in(LIST *destination, LIST source)
 {
-    for (int i = 0; i < source.count; i++)
+    for (int32_t i = 0; i < source.count; i++)
         list_add(destination, source.eids[i]);
 }
 
@@ -473,13 +473,13 @@ LOAD_LIST init_load_list()
 }
 
 // calculates distance of two 3D points
-int point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2)
+int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2)
 {
-    return (int)sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
+    return (int32_t)sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
 }
 
 // misc convertion thing
-CAMERA_LINK int_to_link(unsigned int link)
+CAMERA_LINK int_to_link(uint32_t link)
 {
     CAMERA_LINK result;
     result.type = (link & 0xFF000000) >> 24;
@@ -493,7 +493,7 @@ CAMERA_LINK int_to_link(unsigned int link)
 // misc cleanup thing
 void delete_load_list(LOAD_LIST load_list)
 {
-    for (int i = 0; i < load_list.count; i++)
+    for (int32_t i = 0; i < load_list.count; i++)
         free(load_list.array[i].list);
 }
 
@@ -513,7 +513,7 @@ DIST_GRAPH_Q graph_init()
     DIST_GRAPH_Q queue;
     queue.add_index = 0;
     queue.pop_index = 0;
-    for (int i = 0; i < QUEUE_ITEM_COUNT; i++)
+    for (int32_t i = 0; i < QUEUE_ITEM_COUNT; i++)
     {
         queue.zone_indices[i] = -1;
         queue.camera_indices[i] = -1;
@@ -523,9 +523,9 @@ DIST_GRAPH_Q graph_init()
 }
 
 // graph add new (for checking what zone comes 'first' in the level)
-void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index)
+void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int32_t zone_index, int32_t camera_index)
 {
-    int n = graph->add_index;
+    int32_t n = graph->add_index;
     graph->zone_indices[n] = zone_index;
     graph->camera_indices[n] = camera_index;
     (graph->add_index)++;
@@ -535,32 +535,32 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_ind
 }
 
 // graph pop out (for checking what zone comes 'first' in the level)
-void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index)
+void graph_pop(DIST_GRAPH_Q *graph, int32_t *zone_index, int32_t *cam_index)
 {
-    int n = graph->pop_index;
+    int32_t n = graph->pop_index;
     *zone_index = graph->zone_indices[n];
     *cam_index = graph->camera_indices[n];
     (graph->pop_index)++;
 }
 
 // gets offset of the nth item in an entry
-int build_get_nth_item_offset(unsigned char *entry, int n)
+int32_t build_get_nth_item_offset(unsigned char *entry, int32_t n)
 {
     return from_u32(entry + 0x10 + 4 * n);
 }
 
 // gets pointer to the nth item in an entry
-unsigned char *build_get_nth_item(unsigned char *entry, int n)
+unsigned char *build_get_nth_item(unsigned char *entry, int32_t n)
 {
     return entry + build_get_nth_item_offset(entry, n);
 }
 
 // for reading txt files
 // copied from stackoverflow
-int getdelim(char **linep, int *n, int delim, FILE *fp)
+int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp)
 {
-    int ch;
-    int i = 0;
+    int32_t ch;
+    int32_t i = 0;
     if (!linep || !n || !fp)
     {
         errno = EINVAL;
@@ -597,7 +597,7 @@ int getdelim(char **linep, int *n, int delim, FILE *fp)
 }
 
 // for reading text files
-int getline(char **linep, int *n, FILE *fp)
+int32_t getline(char **linep, int32_t *n, FILE *fp)
 {
     return getdelim(linep, n, '\n', fp);
 }

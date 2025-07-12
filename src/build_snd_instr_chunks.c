@@ -7,30 +7,30 @@
  *  Also creates actual game format output chunks.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_count int*              chunk count
+ * \param entry_count int32_t               entry count
+ * \param chunk_count int32_t*              chunk count
  * \param chunks unsigned char**        chunks, array of ptrs to data, allocated here
  * \return void
  */
-void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char **chunks)
+void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, unsigned char **chunks)
 {
-    int chunk_index = *chunk_count;
+    int32_t chunk_index = *chunk_count;
     // wavebank chunks are one entry per chunk, not much to it
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
         {
             elist[i].chunk = chunk_index;
             chunks[chunk_index] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
-            *(unsigned short int *)(chunks[chunk_index]) = MAGIC_CHUNK;
-            *(unsigned short int *)(chunks[chunk_index] + 2) = CHUNK_TYPE_INSTRUMENT;
-            *(unsigned short int *)(chunks[chunk_index] + 4) = 2 * chunk_index + 1;
+            *(uint16_t *)(chunks[chunk_index]) = MAGIC_CHUNK;
+            *(uint16_t *)(chunks[chunk_index] + 2) = CHUNK_TYPE_INSTRUMENT;
+            *(uint16_t *)(chunks[chunk_index] + 4) = 2 * chunk_index + 1;
 
-            *(unsigned int *)(chunks[chunk_index] + 8) = 1;
-            *(unsigned int *)(chunks[chunk_index] + 0x10) = 0x24;
-            *(unsigned int *)(chunks[chunk_index] + 0x14) = 0x24 + elist[i].esize;
+            *(uint32_t *)(chunks[chunk_index] + 8) = 1;
+            *(uint32_t *)(chunks[chunk_index] + 0x10) = 0x24;
+            *(uint32_t *)(chunks[chunk_index] + 0x14) = 0x24 + elist[i].esize;
 
             memcpy(chunks[chunk_index] + 0x24, elist[i].data, elist[i].esize);
-            *((unsigned int *)(chunks[chunk_index] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[chunk_index]);
+            *((uint32_t *)(chunks[chunk_index] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[chunk_index]);
             chunk_index++;
         }
 
@@ -42,15 +42,15 @@ void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, un
  *  Also creates actual game format output chunks.
  *
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \param chunk_count int*              chunk count
+ * \param entry_count int32_t               entry count
+ * \param chunk_count int32_t*              chunk count
  * \param chunks unsigned char**        chunks, array of ptrs to data, allocated here
  * \return void
  */
-void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char **chunks)
+void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, unsigned char **chunks)
 {
-    int i, j, temp_chunk_count = *chunk_count;
-    int sound_entry_count = 0;
+    int32_t i, j, temp_chunk_count = *chunk_count;
+    int32_t sound_entry_count = 0;
 
     // count sound entries, create an array of entries for them (temporary)
     for (i = 0; i < entry_count; i++)
@@ -59,7 +59,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     ENTRY *sound_list = (ENTRY *)malloc(sound_entry_count * sizeof(ENTRY)); // freed here
 
     // add actual entries to the array
-    int indexer = 0;
+    int32_t indexer = 0;
     for (i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_list[indexer++] = elist[i];
@@ -69,7 +69,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 
     // assumes 8 sound chunks, i dont think theres anywhere the vanilla game uses more than 8 soooo
     // default header is 0x14B
-    int sizes[8];
+    int32_t sizes[8];
     for (i = 0; i < 8; i++)
         sizes[i] = 0x14;
 
@@ -85,7 +85,7 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
             }
 
     // find out how many actual sound chunks got made
-    int snd_chunk_count = 0;
+    int32_t snd_chunk_count = 0;
     for (i = 0; i < 8; i++)
         if (sizes[i] > 0x14)
             snd_chunk_count = i + 1;
@@ -96,19 +96,19 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
     // build the actual chunks, almost identical to the build_normal_chunks function
     for (i = 0; i < snd_chunk_count; i++)
     {
-        int local_entry_count = 0;
-        int chunk_no = 2 * (temp_chunk_count + i) + 1;
+        int32_t local_entry_count = 0;
+        int32_t chunk_no = 2 * (temp_chunk_count + i) + 1;
         chunks[temp_chunk_count + i] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
 
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)
                 local_entry_count++;
 
-        unsigned int *offsets = (unsigned int *)malloc((local_entry_count + 2) * sizeof(unsigned int)); // idk why its +2, freed here
-        *(unsigned short int *)chunks[temp_chunk_count + i] = MAGIC_CHUNK;
-        *(unsigned short int *)(chunks[temp_chunk_count + i] + 2) = CHUNK_TYPE_SOUND;
-        *(unsigned short int *)(chunks[temp_chunk_count + i] + 4) = chunk_no;
-        *(unsigned short int *)(chunks[temp_chunk_count + i] + 8) = local_entry_count;
+        uint32_t *offsets = (uint32_t *)malloc((local_entry_count + 2) * sizeof(uint32_t)); // idk why its +2, freed here
+        *(uint16_t *)chunks[temp_chunk_count + i] = MAGIC_CHUNK;
+        *(uint16_t *)(chunks[temp_chunk_count + i] + 2) = CHUNK_TYPE_SOUND;
+        *(uint16_t *)(chunks[temp_chunk_count + i] + 4) = chunk_no;
+        *(uint16_t *)(chunks[temp_chunk_count + i] + 8) = local_entry_count;
 
         indexer = 0;
         offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
@@ -121,14 +121,14 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
             }
 
         for (j = 0; j < local_entry_count + 1; j++)
-            *(unsigned int *)(chunks[temp_chunk_count + i] + 0x10 + j * 4) = offsets[j];
+            *(uint32_t *)(chunks[temp_chunk_count + i] + 0x10 + j * 4) = offsets[j];
 
         indexer = 0;
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)
                 memcpy(chunks[temp_chunk_count + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
 
-        *(unsigned int *)(chunks[temp_chunk_count + i] + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[temp_chunk_count + i]);
+        *(uint32_t *)(chunks[temp_chunk_count + i] + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[temp_chunk_count + i]);
         free(offsets);
     }
 
@@ -145,12 +145,12 @@ void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigne
 /** \brief
  *  Returns a value that makes sound entries aligned as they should be (hopefully).
  *
- * \param input int                     input offset
- * \return int                          aligned offset
+ * \param input int32_t                     input offset
+ * \return int32_t                          aligned offset
  */
-int build_align_sound(int input)
+int32_t build_align_sound(int32_t input)
 {
-    for (int i = 0; i < 16; i++)
+    for (int32_t i = 0; i < 16; i++)
         if ((input + i) % 16 == 8)
             return (input + i);
 

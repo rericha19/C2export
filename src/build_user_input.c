@@ -4,11 +4,11 @@
 /** \brief
  *  Asks the user for built level's ID.
  *
- * \return int                          picked level ID
+ * \return int32_t                          picked level ID
  */
-int build_ask_ID()
+int32_t build_ask_ID()
 {
-    int level_ID;
+    int32_t level_ID;
     printf("\nWhat ID do you want your level to have? (hex 0 - 3F) [CAN OVERWRITE EXISTING FILES!]\n");
     scanf("%x", &level_ID);
     if (level_ID < 0 || level_ID > 0x3F)
@@ -27,9 +27,9 @@ int build_ask_ID()
  * \param fpath char*                   path to the file
  * \return void
  */
-void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config)
+void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config)
 {
-    int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
+    int32_t remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
 
     printf("\nInput path to file with permaloaded entries:\n");
     scanf(" %[^\n]", fpaths[0]);
@@ -64,12 +64,12 @@ void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config)
  */
 void build_ask_spawn(SPAWNS spawns)
 {
-    int input = 0;
+    int32_t input = 0;
     char temp[100] = "";
 
     // lets u pick a spawn point
     printf("Pick a spawn:\n");
-    for (int i = 0; i < spawns.spawn_count; i++)
+    for (int32_t i = 0; i < spawns.spawn_count; i++)
         printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
     scanf("%d", &input);
@@ -84,9 +84,9 @@ void build_ask_spawn(SPAWNS spawns)
     printf("Using spawn %d: Zone: %s\n", input + 1, eid_conv(spawns.spawns[0].zone, temp));
 }
 
-void build_ask_draw_distances(int *config)
+void build_ask_draw_distances(int32_t *config)
 {
-    int temp;
+    int32_t temp;
 
     printf("\nDraw distance 2D horizontal (x-dist) (set 0 to make infinite)\n");
     scanf("%d", &temp);
@@ -112,13 +112,13 @@ void build_ask_draw_distances(int *config)
 /** \brief
  *  Asks the user what distances to use for load list building.
  *
- * \param config int*                   config array
+ * \param config int32_t*                   config array
  * \return void
  */
-void build_ask_distances(int *config)
+void build_ask_distances(int32_t *config)
 {
-    int temp;
-    int ans;
+    int32_t temp;
+    int32_t ans;
     printf("\nSLST distance?      (recommended is approx 7250)\n");
     scanf("%d", &temp);
     config[CNFG_IDX_LL_SLST_DIST_VALUE] = temp;
@@ -166,7 +166,7 @@ void build_ask_distances(int *config)
         printf("Invalid, defaulting to 0\n");
         backw = 0;
     }
-    config[CNFG_IDX_LL_BACKWARDS_PENALTY] = (int)(PENALTY_MULT_CONSTANT * backw);
+    config[CNFG_IDX_LL_BACKWARDS_PENALTY] = (int32_t)(PENALTY_MULT_CONSTANT * backw);
     printf("Selected %.2f for backwards loading penalty\n", backw);
 }
 
@@ -174,21 +174,21 @@ void build_ask_distances(int *config)
  *  Swaps spawns.
  *
  * \param spawns SPAWNS                 struct that contains all spanwns
- * \param spawnA int                    index1
- * \param spawnB int                    index2
+ * \param spawnA int32_t                    index1
+ * \param spawnB int32_t                    index2
  * \return void
  */
-void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB)
+void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB)
 {
     SPAWN temp = spawns.spawns[spawnA];
     spawns.spawns[spawnA] = spawns.spawns[spawnB];
     spawns.spawns[spawnB] = temp;
 }
 
-void build_ask_build_flags(int *config)
+void build_ask_build_flags(int32_t *config)
 {
     printf("\nRemake load lists? [0/1]\n");
-    int ans;
+    int32_t ans;
     scanf("%d", &ans);
     if (ans)
     {
@@ -207,7 +207,7 @@ void build_ask_build_flags(int *config)
     printf("[2] - relatives & payload merge [deprecate, bad]\n");
     printf("[3] - state set graph search based merge (A*/DFS) [slow, no guaranteed result]\n");
     printf("[4] - occurence count matrix merge (absolute) with randomness\n");
-    int max_ans = 4;
+    int32_t max_ans = 4;
 #if COMPILE_WITH_THREADS
     printf("[5] - occurence count matrix merge (absolute) with randomness multithreaded\n");
     max_ans = 5;
@@ -224,9 +224,9 @@ void build_ask_build_flags(int *config)
     printf("\n");
 }
 
-void build_ask_premerge(int *premerge_type, double *merge_ratio)
+void build_ask_premerge(int32_t *premerge_type, double *merge_ratio)
 {
-    int ans;
+    int32_t ans;
     printf("\nWhich premerge method do you want to use? (Can speed the process up, but premerging too much might prevent complex levels from building properly)\n");
     printf("[0] - no premerge\n");
     printf("[1] - partial occurence count matrix merge (absolute)\n");
@@ -253,7 +253,7 @@ void build_ask_premerge(int *premerge_type, double *merge_ratio)
     printf("\n");
 }
 
-void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int levelID)
+void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int32_t levelID)
 {
     char temp[80] = "";
     char path[100] = "";

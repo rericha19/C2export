@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define HAVE_STRUCT_TIMESPEC
 
+#include <stdint.h>
 #include "dirent.h"
 #include <time.h>
 #include <math.h>
@@ -9,7 +10,6 @@
 // various constants
 #define HASH_TABLE_SIZE 100000000
 #define HEAP_SIZE_INCREMENT 200000
-#define ELAPSED_INCREMENT 0 // clowny as fuck
 
 #define PAYLOAD_MERGE_STATS_ONLY 1
 #define PAYLOAD_MERGE_FULL_USE 0
@@ -207,98 +207,98 @@ enum
 // in export script used to keep track of status stuff
 typedef struct info
 {
-    int counter[22];            // counts entry types, counter[0] is total entry count
-    int print_en;               // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
-    FILE *flog;                 // file where the logs are exported if file print is enabled
-    char temp[MAX];             // strings are written into this before being printed by condprint
-    int gamemode;               // 2 for C2, 3 for C3
-    int portmode;               // 0 for normal export, 1 for porting
-    unsigned int anim[1024][3]; // field one is model, field 3 is animation, field 2 is original animation when c3->c2
-    unsigned int animrefcount;  // count of animation references when porting c3 to c2
+    int32_t counter[22];    // counts entry types, counter[0] is total entry count
+    int32_t print_en;       // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
+    FILE *flog;             // file where the logs are exported if file print is enabled
+    char temp[MAX];         // strings are written into this before being printed by condprint
+    int32_t gamemode;       // 2 for C2, 3 for C3
+    int32_t portmode;       // 0 for normal export, 1 for porting
+    uint32_t anim[1024][3]; // field one is model, field 3 is animation, field 2 is original animation when c3->c2
+    uint32_t animrefcount;  // count of animation references when porting c3 to c2
 } DEPRECATE_INFO_STRUCT;
 
 // in build scripts, used to store spawns
 typedef struct spawn
 {
-    int x;
-    int y;
-    int z;
-    unsigned int zone;
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    uint32_t zone;
 } SPAWN;
 
 // spawns struct used in build to store spawns
 typedef struct spawns
 {
-    int spawn_count;
+    int32_t spawn_count;
     SPAWN *spawns;
 } SPAWNS;
 
 // list struct, used to store various values and eids
 typedef struct list
 {
-    int count;
-    // int real_count;
-    unsigned int *eids;
+    int32_t count;
+    // int32_t real_count;
+    uint32_t *eids;
 } LIST;
 
 // used to store entry information in the build script
 typedef struct entry
 {
-    unsigned int eid;
-    int esize;
-    int chunk;
-    // int og_chunk;
+    uint32_t eid;
+    int32_t esize;
+    int32_t chunk;
+    // int32_t og_chunk;
     unsigned char *data;
-    unsigned int *related;
-    unsigned int *distances;
-    unsigned int *visited;
+    uint32_t *related;
+    uint32_t *distances;
+    uint32_t *visited;
     unsigned char norm_chunk_ent_is_loaded;
 } ENTRY;
 
 typedef struct draw_item
 {
     unsigned char neighbour_zone_index;
-    unsigned short int ID;
+    uint16_t ID;
     unsigned char neighbour_item_index;
 } DRAW_ITEM;
 
 // used to sort load lists
 typedef struct item
 {
-    int eid;
-    int index;
+    int32_t eid;
+    int32_t index;
 } LOAD_LIST_ITEM_UTIL;
 
 // used to store payload information
 typedef struct payload
 {
-    int *chunks;
-    int count;
-    int *tchunks;
-    int tcount;
-    int entcount;
-    unsigned int zone;
-    int cam_path;
+    int32_t *chunks;
+    int32_t count;
+    int32_t *tchunks;
+    int32_t tcount;
+    int32_t entcount;
+    uint32_t zone;
+    int32_t cam_path;
 } PAYLOAD;
 
 // load list data stored for matrix merge, so payload doesnt need to read them every iter
 typedef struct load_matrix
 {
-    unsigned int zone;
-    int cam_path;
+    uint32_t zone;
+    int32_t cam_path;
     LIST full_load;
 } MATRIX_STORED_LL;
 
 typedef struct loads_matrix
 {
-    int count;
+    int32_t count;
     MATRIX_STORED_LL *stored_lls;
 } MATRIX_STORED_LLS;
 
 // used to store payload ladder
 typedef struct payloads
 {
-    int count;
+    int32_t count;
     PAYLOAD *arr;
 } PAYLOADS;
 
@@ -306,46 +306,46 @@ typedef struct payloads
 typedef struct load
 {
     char type;
-    int list_length;
-    unsigned int *list;
-    int index;
+    int32_t list_length;
+    uint32_t *list;
+    int32_t index;
 } LOAD;
 
 // used to keep the entire non-delta load/draw list
 typedef struct load_list
 {
-    int count;
+    int32_t count;
     LOAD array[1000]; // yep
 } LOAD_LIST;
 
 // used in matrix merge to store what entries are loaded simultaneously and how much/often
 typedef struct relation
 {
-    int value;
-    int total_occurences;
-    int index1;
-    int index2;
+    int32_t value;
+    int32_t total_occurences;
+    int32_t index1;
+    int32_t index2;
 } RELATION;
 
 // used to keep all relations
 typedef struct relations
 {
-    int count;
+    int32_t count;
     RELATION *relations;
 } RELATIONS;
 
 // used to store type & subtype dependencies in the build script (and collision dependencies too)
 typedef struct inf
 {
-    int type;
-    int subtype;
+    int32_t type;
+    int32_t subtype;
     LIST dependencies;
 } DEPENDENCY;
 
 // all dependencies
 typedef struct
 {
-    int count;
+    int32_t count;
     DEPENDENCY *array;
 } DEPENDENCIES;
 
@@ -363,31 +363,31 @@ typedef struct property
 {
     unsigned char header[8];
     unsigned char *data;
-    int length;
+    int32_t length;
 } PROPERTY;
 
 // used when figuring out cam paths' distance to spawn
 typedef struct entry_queue
 {
-    int add_index;
-    int pop_index;
-    int zone_indices[QUEUE_ITEM_COUNT];
-    int camera_indices[QUEUE_ITEM_COUNT];
+    int32_t add_index;
+    int32_t pop_index;
+    int32_t zone_indices[QUEUE_ITEM_COUNT];
+    int32_t camera_indices[QUEUE_ITEM_COUNT];
 } DIST_GRAPH_Q;
 
 // used to represent states in a* alg
 typedef struct state_set_search_struct
 {
-    unsigned short int *entry_chunk_array;
-    unsigned int estimated;
-    unsigned int elapsed;
+    uint16_t *entry_chunk_array;
+    uint32_t estimated;
+    uint32_t elapsed;
 } STATE_SEARCH_STR;
 
 // stores queue of states in a* alg
 typedef struct state_set_search_heap
 {
-    unsigned int length;
-    unsigned int real_size;
+    uint32_t length;
+    uint32_t real_size;
     STATE_SEARCH_STR **heap_array;
 } STATE_SEARCH_HEAP;
 
@@ -395,284 +395,284 @@ typedef struct state_set_search_heap
 typedef struct hash_item
 {
     struct hash_item *next;
-    unsigned short int *entry_chunk_array;
+    uint16_t *entry_chunk_array;
 } HASH_ITEM;
 
 // master hash table that contains hash items
 typedef struct hash_table
 {
-    int table_length;
-    int key_length;
-    int item_count; // not really necessary
+    int32_t table_length;
+    int32_t key_length;
+    int32_t item_count; // not really necessary
     HASH_ITEM **items;
-    int (*hash_function)(struct hash_table *table, unsigned short int *entry_chunk_array);
+    int32_t (*hash_function)(struct hash_table *table, uint16_t *entry_chunk_array);
 } HASH_TABLE;
 
 // used to sort chunks in states in state search to get rid of as many permutations as possible
 typedef struct chunk_str
 {
-    int chunk_index;
-    unsigned short int chunk_size;
-    unsigned short int entry_count;
+    int32_t chunk_index;
+    uint16_t chunk_size;
+    uint16_t entry_count;
 } CHUNK_STR;
 
 // misc.c
 
-void export_printstatus(int zonetype, int gamemode, int portmode);
+void export_printstatus(int32_t zonetype, int32_t gamemode, int32_t portmode);
 void intro_text();
 void print_help();
 void print_help2();
 void export_countprint(DEPRECATE_INFO_STRUCT status);
 void export_condprint(DEPRECATE_INFO_STRUCT status);
 void clrscr();
-int from_s32(unsigned char *data);
-unsigned int from_u32(unsigned char *data);
-int from_s16(unsigned char *data);
-unsigned int from_u16(unsigned char *data);
-unsigned int from_u8(unsigned char *data);
+int32_t from_s32(unsigned char *data);
+uint32_t from_u32(unsigned char *data);
+int32_t from_s16(unsigned char *data);
+uint32_t from_u16(unsigned char *data);
+uint32_t from_u8(unsigned char *data);
 void export_countwipe(DEPRECATE_INFO_STRUCT *status);
 void export_askprint(DEPRECATE_INFO_STRUCT *status);
-unsigned long comm_str_hash(const char *str);
-const char *eid_conv2(unsigned int value);
-const char *eid_conv(unsigned int value, char *eid);
-unsigned int eid_to_int(char *eid);
-unsigned int crcChecksum(const unsigned char *data, int size);
-unsigned int nsfChecksum(const unsigned char *data);
-void export_make_path(char *finalpath, char *type, int eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
-void export_askmode(int *zonetype, DEPRECATE_INFO_STRUCT *status);
-int cmp_func_int(const void *a, const void *b);
-int cmp_func_load(const void *a, const void *b);
-int cmp_func_load2(const void *a, const void *b);
-int cmp_func_payload(const void *a, const void *b);
-int cmp_func_uint(const void *a, const void *b);
-int load_list_sort(const void *a, const void *b);
-int cmp_func_eid(const void *a, const void *b);
-int cmp_func_esize(const void *a, const void *b);
-int relations_cmp(const void *a, const void *b);
-int relations_cmp2(const void *a, const void *b);
+uint32_t comm_str_hash(const char *str);
+const char *eid_conv2(uint32_t value);
+const char *eid_conv(uint32_t value, char *eid);
+uint32_t eid_to_int(char *eid);
+uint32_t crcChecksum(const unsigned char *data, int32_t size);
+uint32_t nsfChecksum(const unsigned char *data);
+void export_make_path(char *finalpath, char *type, int32_t eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
+void export_askmode(int32_t *zonetype, DEPRECATE_INFO_STRUCT *status);
+int32_t cmp_func_int(const void *a, const void *b);
+int32_t cmp_func_load(const void *a, const void *b);
+int32_t cmp_func_load2(const void *a, const void *b);
+int32_t cmp_func_payload(const void *a, const void *b);
+int32_t cmp_func_uint(const void *a, const void *b);
+int32_t load_list_sort(const void *a, const void *b);
+int32_t cmp_func_eid(const void *a, const void *b);
+int32_t cmp_func_esize(const void *a, const void *b);
+int32_t relations_cmp(const void *a, const void *b);
+int32_t relations_cmp2(const void *a, const void *b);
 LIST init_list();
 SPAWNS init_spawns();
-int list_find(LIST list, unsigned int searched);
-void list_add(LIST *list, unsigned int eid);
-int list_is_subset(LIST list_a, LIST list_b);
-void list_remove(LIST *list, unsigned int eid);
+int32_t list_find(LIST list, uint32_t searched);
+void list_add(LIST *list, uint32_t eid);
+int32_t list_is_subset(LIST list_a, LIST list_b);
+void list_remove(LIST *list, uint32_t eid);
 void list_copy_in(LIST *destination, LIST source);
 LOAD_LIST init_load_list();
-int point_distance_3D(short int x1, short int x2, short int y1, short int y2, short int z1, short int z2);
-CAMERA_LINK int_to_link(unsigned int link);
+int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
+CAMERA_LINK int_to_link(uint32_t link);
 void delete_load_list(LOAD_LIST load_list);
 void path_fix(char *fpath);
 DIST_GRAPH_Q graph_init();
-void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int zone_index, int camera_index);
-void graph_pop(DIST_GRAPH_Q *graph, int *zone_index, int *cam_index);
-int build_get_nth_item_offset(unsigned char *entry, int n);
-unsigned char *build_get_nth_item(unsigned char *entry, int n);
-int getline(char **linep, int *n, FILE *fp);
-int getdelim(char **linep, int *n, int delim, FILE *fp);
+void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int32_t zone_index, int32_t camera_index);
+void graph_pop(DIST_GRAPH_Q *graph, int32_t *zone_index, int32_t *cam_index);
+int32_t build_get_nth_item_offset(unsigned char *entry, int32_t n);
+unsigned char *build_get_nth_item(unsigned char *entry, int32_t n);
+int32_t getline(char **linep, int32_t *n, FILE *fp);
+int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp);
 DEPENDENCIES build_init_dep();
 
 // export.c
 
-int export_main(int zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status);
-int export_chunk_handler(unsigned char *buffer, int chunkid, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
-int export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
-int export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-int export_camera_fix(unsigned char *cam, int length);
-void export_entity_coord_fix(unsigned char *item, int itemlength);
-void export_scenery(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_generic_entry(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_gool(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_zone(unsigned char *buffer, int entrysize, char *lvlid, char *date, int zonetype, DEPRECATE_INFO_STRUCT *status);
-void export_model(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_animation(unsigned char *buffer, int entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status);
+int32_t export_chunk_handler(unsigned char *buffer, int32_t chunkid, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status);
+int32_t export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status);
+int32_t export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+int32_t export_camera_fix(unsigned char *cam, int32_t length);
+void export_entity_coord_fix(unsigned char *item, int32_t itemlength);
+void export_scenery(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void export_generic_entry(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void export_gool(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void export_zone(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status);
+void export_model(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
+void export_animation(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
 
 // import.c
 
-int import_main(char *time, DEPRECATE_INFO_STRUCT status);
-int import_file_lister(char *path, FILE *fnew);
-void import_chunksave(unsigned char *chunk, int *index, int *curr_off, int *curr_chunk, FILE *fnew, int offsets[]);
+int32_t import_main(char *time, DEPRECATE_INFO_STRUCT status);
+int32_t import_file_lister(char *path, FILE *fnew);
+void import_chunksave(unsigned char *chunk, int32_t *index, int32_t *curr_off, int32_t *curr_chunk, FILE *fnew, int32_t offsets[]);
 
 // build files in no particular order
 
-void build_get_box_count(ENTRY *elist, int entry_count);
-int build_item_count(unsigned char *entry);
-int build_prop_count(unsigned char *item);
-LOAD_LIST build_get_draw_lists(unsigned char *entry, int cam_index);
-LOAD_LIST build_get_load_lists(unsigned char *entry, int cam_index);
-LOAD_LIST build_get_lists(int prop_code, unsigned char *entry, int cam_index);
-DRAW_ITEM build_decode_draw_item(unsigned int value);
+void build_get_box_count(ENTRY *elist, int32_t entry_count);
+int32_t build_item_count(unsigned char *entry);
+int32_t build_prop_count(unsigned char *item);
+LOAD_LIST build_get_draw_lists(unsigned char *entry, int32_t cam_index);
+LOAD_LIST build_get_load_lists(unsigned char *entry, int32_t cam_index);
+LOAD_LIST build_get_lists(int32_t prop_code, unsigned char *entry, int32_t cam_index);
+DRAW_ITEM build_decode_draw_item(uint32_t value);
 void build_ll_analyze();
-int build_align_sound(int input);
-unsigned int build_get_zone_track(unsigned char *entry);
+int32_t build_align_sound(int32_t input);
+uint32_t build_get_zone_track(unsigned char *entry);
 LIST build_get_models(unsigned char *animation);
-unsigned int build_get_model(unsigned char *anim, int item);
-int build_remove_empty_chunks(int index_start, int index_end, int entry_count, ENTRY *entry_list);
-void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base);
-int build_get_base_chunk_border(unsigned int textr, unsigned char **chunks, int index_end);
-void build_get_model_references(ENTRY *elist, int entry_count);
-int build_get_index(unsigned int eid, ENTRY *elist, int entry_count);
-unsigned int build_get_slst(unsigned char *item);
-unsigned int build_get_path_length(unsigned char *item);
-short int *build_get_path(ENTRY *elist, int zone_index, int item_index, int *path_len);
-int *build_seek_spawn(unsigned char *item);
-int build_get_neighbour_count(unsigned char *entry);
+uint32_t build_get_model(unsigned char *anim, int32_t item);
+int32_t build_remove_empty_chunks(int32_t index_start, int32_t index_end, int32_t entry_count, ENTRY *entry_list);
+void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t entry_count_base);
+int32_t build_get_base_chunk_border(uint32_t textr, unsigned char **chunks, int32_t index_end);
+void build_get_model_references(ENTRY *elist, int32_t entry_count);
+int32_t build_get_index(uint32_t eid, ENTRY *elist, int32_t entry_count);
+uint32_t build_get_slst(unsigned char *item);
+uint32_t build_get_path_length(unsigned char *item);
+int16_t *build_get_path(ENTRY *elist, int32_t zone_index, int32_t item_index, int32_t *path_len);
+int32_t *build_seek_spawn(unsigned char *item);
+int32_t build_get_neighbour_count(unsigned char *entry);
 LIST build_get_neighbours(unsigned char *entry);
-int build_get_cam_item_count(unsigned char *entry);
-int build_get_scen_count(unsigned char *entry);
-int build_get_entity_count(unsigned char *entry);
-unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns);
-int build_entry_type(ENTRY entry);
-int build_chunk_type(unsigned char *chunk);
-unsigned int *build_get_gool_relatives(unsigned char *entry, int entrysize);
-void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture,
-                    int *entry_count, FILE *nsf, unsigned int *gool_table);
-void build_dumb_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count);
-void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture,
-                       int *entry_count, SPAWNS *spawns, unsigned int *gool_table);
-void deprecate_build_print_relatives(ENTRY *elist, int entry_count);
-void build_swap_spawns(SPAWNS spawns, int spawnA, int spawnB);
-void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int entry_count, int chunk_count, SPAWNS spawns, unsigned int *gool_table, int level_ID);
-void build_increment_common(LIST list, LIST entries, int **entry_matrix, int rating);
-void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int entry_count, LIST entries, double merge_ratio);
-RELATIONS build_transform_matrix(LIST entries, int **entry_matrix, int *config, ENTRY *elist, int entry_count);
-void build_matrix_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded, double merge_ratio, double mult);
-void build_normal_chunks(ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks, int do_end_print);
-int build_get_prop_offset(unsigned char* item, int prop_code);
-int build_get_entity_prop(unsigned char *entity, int prop_code);
+int32_t build_get_cam_item_count(unsigned char *entry);
+int32_t build_get_scen_count(unsigned char *entry);
+int32_t build_get_entity_count(unsigned char *entry);
+uint32_t *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns);
+int32_t build_entry_type(ENTRY entry);
+int32_t build_chunk_type(unsigned char *chunk);
+uint32_t *build_get_gool_relatives(unsigned char *entry, int32_t entrysize);
+void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, unsigned char **chunks, int32_t *chunk_border_texture,
+                    int32_t *entry_count, FILE *nsf, uint32_t *gool_table);
+void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count);
+void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int32_t *chunk_border_texture,
+                       int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table);
+void deprecate_build_print_relatives(ENTRY *elist, int32_t entry_count);
+void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB);
+void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, int32_t chunk_count, SPAWNS spawns, uint32_t *gool_table, int32_t level_ID);
+void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
+void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, LIST entries, double merge_ratio);
+RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *config, ENTRY *elist, int32_t entry_count);
+void build_matrix_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, double merge_ratio, double mult);
+void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, unsigned char **chunks, int32_t do_end_print);
+int32_t build_get_prop_offset(unsigned char *item, int32_t prop_code);
+int32_t build_get_entity_prop(unsigned char *entity, int32_t prop_code);
 void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list);
 void build_add_model_textures_to_list(unsigned char *model, LIST *list);
-unsigned char *build_add_property(unsigned int code, unsigned char *item, int *item_size, PROPERTY *prop);
-unsigned char *build_rem_property(unsigned int code, unsigned char *item, int *item_size, PROPERTY *prop);
-void build_replace_item(ENTRY *zone, int item_index, unsigned char *new_item, int new_size);
-void build_entity_alter(ENTRY *zone, int item_index, unsigned char *(func_arg)(unsigned int, unsigned char *, int *, PROPERTY *),
-                        int property_code, PROPERTY *prop);
-void build_remove_nth_item(ENTRY *zone, int n);
-LIST build_get_links(unsigned char *entry, int cam_index);
-void build_load_list_util_util_back(int cam_length, LIST *full_list, int distance, int final_distance, short int *coords, int path_length, LIST additions);
-void build_load_list_util_util_forw(int cam_length, LIST *full_list, int distance, int final_distance, short int *coords, int path_length, LIST additions);
-void build_add_collision_dependencies(LIST *full_list, int start_index, int end_index, unsigned char *entry,
-                                      DEPENDENCIES collisions, ENTRY *elist, int entry_count);
-int build_dist_w_penalty(int distance, int backwards_penalty);
-void build_load_list_util_util(int zone_index, int cam_index, int link_int, LIST *full_list,
-                               int cam_length, ENTRY *elist, int entry_count, int *config, DEPENDENCIES collisisons);
-LIST *build_get_complete_draw_list(ENTRY *elist, int zone_index, int cam_index, int cam_length);
-LIST build_get_types_subtypes(ENTRY *elist, int entry_count, LIST entity_list, LIST neighbour_list);
-int build_get_distance(short int *coords, int start_index, int end_index, int cap, int *final_index);
-LIST build_get_entity_list(int point_index, int zone_index, int camera_index, int cam_length, ENTRY *elist,
-                           int entry_count, LIST *neighbours, int *config);
-void build_load_list_util(int zone_index, int camera_index, LIST *full_list, int cam_length, ENTRY *elist,
-                          int entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int *config);
-PROPERTY build_make_load_list_prop(LIST *list_array, int cam_length, int code);
-void build_find_unspecified_entities(ENTRY *elist, int entry_count, DEPENDENCIES sub_info);
-void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int cam_length, ENTRY *elist, int entry_count, int is_draw);
+unsigned char *build_add_property(uint32_t code, unsigned char *item, int32_t *item_size, PROPERTY *prop);
+unsigned char *build_rem_property(uint32_t code, unsigned char *item, int32_t *item_size, PROPERTY *prop);
+void build_replace_item(ENTRY *zone, int32_t item_index, unsigned char *new_item, int32_t new_size);
+void build_entity_alter(ENTRY *zone, int32_t item_index, unsigned char *(func_arg)(uint32_t, unsigned char *, int32_t *, PROPERTY *),
+                        int32_t property_code, PROPERTY *prop);
+void build_remove_nth_item(ENTRY *zone, int32_t n);
+LIST build_get_links(unsigned char *entry, int32_t cam_index);
+void build_load_list_util_util_back(int32_t cam_length, LIST *full_list, int32_t distance, int32_t final_distance, int16_t *coords, int32_t path_length, LIST additions);
+void build_load_list_util_util_forw(int32_t cam_length, LIST *full_list, int32_t distance, int32_t final_distance, int16_t *coords, int32_t path_length, LIST additions);
+void build_add_collision_dependencies(LIST *full_list, int32_t start_index, int32_t end_index, unsigned char *entry,
+                                      DEPENDENCIES collisions, ENTRY *elist, int32_t entry_count);
+int32_t build_dist_w_penalty(int32_t distance, int32_t backwards_penalty);
+void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t link_int, LIST *full_list,
+                               int32_t cam_length, ENTRY *elist, int32_t entry_count, int32_t *config, DEPENDENCIES collisisons);
+LIST *build_get_complete_draw_list(ENTRY *elist, int32_t zone_index, int32_t cam_index, int32_t cam_length);
+LIST build_get_types_subtypes(ENTRY *elist, int32_t entry_count, LIST entity_list, LIST neighbour_list);
+int32_t build_get_distance(int16_t *coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t *final_index);
+LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t camera_index, int32_t cam_length, ENTRY *elist,
+                           int32_t entry_count, LIST *neighbours, int32_t *config);
+void build_load_list_util(int32_t zone_index, int32_t camera_index, LIST *full_list, int32_t cam_length, ENTRY *elist,
+                          int32_t entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int32_t *config);
+PROPERTY build_make_load_list_prop(LIST *list_array, int32_t cam_length, int32_t code);
+void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDENCIES sub_info);
+void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int32_t cam_length, ENTRY *elist, int32_t entry_count, int32_t is_draw);
 LIST build_read_special_entries(unsigned char *zone);
-LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count);
-void build_remake_draw_lists(ENTRY *elist, int entry_count, int *config);
-void build_remake_load_lists(ENTRY *elist, int entry_count, unsigned int *gool_table, LIST permaloaded,
-                             DEPENDENCIES subtype_info, DEPENDENCIES collision, DEPENDENCIES mus_deps, int *config);
-int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps,
-                            ENTRY *elist, int entry_count, unsigned int *gool_table, int *config);
-int build_get_chunk_count_base(FILE *nsf);
-int build_ask_ID();
-void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int *config);
-void build_instrument_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char **chunks);
-void build_sound_chunks(ENTRY *elist, int entry_count, int *chunk_count, unsigned char **chunks);
-int build_assign_primary_chunks_all(ENTRY *elist, int entry_count, int *chunk_count);
-LIST build_get_normal_entry_list(ENTRY *elist, int entry_count);
-int **build_get_occurence_matrix(ENTRY *elist, int entry_count, LIST entries, int *config);
-int build_is_normal_chunk_entry(ENTRY entry);
-void build_matrix_merge_relative_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
-void build_matrix_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
-void build_matrix_merge_relative(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded,
+LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count);
+void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config);
+void build_remake_load_lists(ENTRY *elist, int32_t entry_count, uint32_t *gool_table, LIST permaloaded,
+                             DEPENDENCIES subtype_info, DEPENDENCIES collision, DEPENDENCIES mus_deps, int32_t *config);
+int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps,
+                                ENTRY *elist, int32_t entry_count, uint32_t *gool_table, int32_t *config);
+int32_t build_get_chunk_count_base(FILE *nsf);
+int32_t build_ask_ID();
+void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config);
+void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, unsigned char **chunks);
+void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, unsigned char **chunks);
+int32_t build_assign_primary_chunks_all(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
+LIST build_get_normal_entry_list(ENTRY *elist, int32_t entry_count);
+int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST entries, int32_t *config);
+int32_t build_is_normal_chunk_entry(ENTRY entry);
+void build_matrix_merge_relative_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+void build_matrix_merge_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+void build_matrix_merge_relative(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded,
                                  double merge_ratio);
-void build_cleanup_elist(ENTRY *elist, int entry_count);
-void build_final_cleanup(ENTRY *elist, int entry_count, unsigned char **chunks, int chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
+void build_cleanup_elist(ENTRY *elist, int32_t entry_count);
+void build_final_cleanup(ENTRY *elist, int32_t entry_count, unsigned char **chunks, int32_t chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
 void build_ask_spawn(SPAWNS spawns);
-void build_main(int build_rebuild_flag);
-void build_write_nsf(FILE *nsfnew, ENTRY *elist, int entry_count, int chunk_border_sounds, int chunk_count, unsigned char **chunks, FILE *nsfnew2);
+void build_main(int32_t build_rebuild_flag);
+void build_write_nsf(FILE *nsfnew, ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, unsigned char **chunks, FILE *nsfnew2);
 LIST build_get_sceneries(unsigned char *entry);
-void build_check_item_count(unsigned char *zone, int eid);
-void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns);
-void build_ask_draw_distances(int *config);
-void build_ask_distances(int *config);
-int build_is_before(ENTRY *elist, int zone_index, int camera_index, int neighbour_index, int neighbour_cam_index);
-int build_permaloaded_merge(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, LIST permaloaded);
-void build_texture_count_check(ENTRY *elist, int entry_count, LIST *full_load, int cam_length, int i, int j);
-int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int *chunk_border_texture, unsigned int *gool_table,
-                               ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS *spawns);
-int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *chunk_border_texture, unsigned int *gool_table,
-                               ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS *spawns, int stats_only, char *fpath);
-void build_sort_load_lists(ENTRY *elist, int entry_count);
-void build_ask_build_flags(int *config);
-void build_ask_premerge(int *premerge_type, double *merge_ratio);
-void build_matrix_merge_random_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
-void build_matrix_merge_random_thr_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
-void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int levelID);
-int abs(int val);
-int normalize_angle(int angle);
-int c2yaw_to_deg(int yaw);
-int deg_to_c2yaw(int deg);
-int angle_distance(int angle1, int angle2);
-int average_angles(int angle1, int angle2);
-void build_draw_list_util(ENTRY *elist, int entry_count, LIST *full_draw, int *config, int curr_idx, int neighbour_idx, int cam_idx, int neighbour_ref_idx);
-void build_remake_draw_lists(ENTRY *elist, int entry_count, int *config);
+void build_check_item_count(unsigned char *zone, int32_t eid);
+void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns);
+void build_ask_draw_distances(int32_t *config);
+void build_ask_distances(int32_t *config);
+int32_t build_is_before(ENTRY *elist, int32_t zone_index, int32_t camera_index, int32_t neighbour_index, int32_t neighbour_cam_index);
+int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, LIST permaloaded);
+void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_load, int32_t cam_length, int32_t i, int32_t j);
+int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
+                                   ENTRY *elist, int32_t *entry_count, unsigned char **chunks, SPAWNS *spawns);
+int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
+                                   ENTRY *elist, int32_t *entry_count, unsigned char **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath);
+void build_sort_load_lists(ENTRY *elist, int32_t entry_count);
+void build_ask_build_flags(int32_t *config);
+void build_ask_premerge(int32_t *premerge_type, double *merge_ratio);
+void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int32_t levelID);
+int32_t abs(int32_t val);
+int32_t normalize_angle(int32_t angle);
+int32_t c2yaw_to_deg(int32_t yaw);
+int32_t deg_to_c2yaw(int32_t deg);
+int32_t angle_distance(int32_t angle1, int32_t angle2);
+int32_t average_angles(int32_t angle1, int32_t angle2);
+void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neighbour_idx, int32_t cam_idx, int32_t neighbour_ref_idx);
+void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config);
 
 // state thing
 
-void build_merge_state_search_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
-STATE_SEARCH_STR *build_state_search_str_init(int length);
+void build_merge_state_search_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+STATE_SEARCH_STR *build_state_search_str_init(int32_t length);
 void build_state_search_str_destroy(STATE_SEARCH_STR *state);
-unsigned int build_state_search_eval_state(LIST *stored_load_lists, int load_list_snapshot_count, STATE_SEARCH_STR *state, int key_length,
-                                           int first_nonperma_chunk, int perma_count, int max_payload_limit, int *max_pay);
-int build_state_search_str_chunk_max(STATE_SEARCH_STR *state, int key_length);
-STATE_SEARCH_STR *build_state_search_merge_chunks(STATE_SEARCH_STR *state, unsigned int chunk1, unsigned int chunk2, int key_length, int first_nonperma_chunk, ENTRY *temp_elist);
-STATE_SEARCH_STR *build_state_search_init_state_convert(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int key_length);
-int build_state_search_is_empty_chunk(STATE_SEARCH_STR *state, unsigned int chunk_index, int key_length);
-unsigned int *build_state_search_init_elist_convert(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int *key_length);
-void build_state_search_solve(ENTRY *elist, int entry_count, int first_nonperma_chunk_index, int perma_chunk_count);
+uint32_t build_state_search_eval_state(LIST *stored_load_lists, int32_t load_list_snapshot_count, STATE_SEARCH_STR *state, int32_t key_length,
+                                       int32_t first_nonperma_chunk, int32_t perma_count, int32_t max_payload_limit, int32_t *max_pay);
+int32_t build_state_search_str_chunk_max(STATE_SEARCH_STR *state, int32_t key_length);
+STATE_SEARCH_STR *build_state_search_merge_chunks(STATE_SEARCH_STR *state, uint32_t chunk1, uint32_t chunk2, int32_t key_length, int32_t first_nonperma_chunk, ENTRY *temp_elist);
+STATE_SEARCH_STR *build_state_search_init_state_convert(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t key_length);
+int32_t build_state_search_is_empty_chunk(STATE_SEARCH_STR *state, uint32_t chunk_index, int32_t key_length);
+uint32_t *build_state_search_init_elist_convert(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t *key_length);
+void build_state_search_solve(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t perma_chunk_count);
 MATRIX_STORED_LLS
-build_matrix_store_lls(ENTRY *elist, int entry_count);
-PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int entry_count, int chunk_min);
+build_matrix_store_lls(ENTRY *elist, int32_t entry_count);
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min);
 
 // deprecate_build.c
 
-PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int entry_count, int chunk_min);
-void deprecate_build_payload_merge(ENTRY *elist, int entry_count, int chunk_min, int *chunk_count, int stats_only_flag);
+PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chunk_min);
+void deprecate_build_payload_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t *chunk_count, int32_t stats_only_flag);
 void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
-void deprecate_build_print_payload(PAYLOAD payload, int stopper);
-int deprecate_build_merge_thing(ENTRY *elist, int entry_count, int *chunks, int chunk_count);
-int deprecate_build_get_common(int *listA, int countA, int *listB, int countB);
-void deprecate_build_chunk_merge(ENTRY *elist, int entry_count, int *chunks, int chunk_count);
-PAYLOAD deprecate_build_get_payload(ENTRY *elist, int entry_count, LIST list, unsigned int zone, int chunk_min);
-void deprecate_build_gool_merge(ENTRY *elist, int chunk_index_start, int *chunk_index_end, int entry_count);
-int deprecate_build_is_relative(unsigned int searched, unsigned int *array, int count);
-void deprecate_build_ll_add_children(unsigned int eid, ENTRY *elist, int entry_count, LIST *list, unsigned int *gool_table, DEPENDENCIES dependencies);
-void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
-void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int entry_count, int *chunk_count);
-void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int entry_count, int *real_chunk_count, int grouping_flag);
-void deprecate_build_payload_merge_main(ENTRY *elist, int entry_count, int chunk_border_sounds, int *chunk_count, int *config, LIST permaloaded);
+void deprecate_build_print_payload(PAYLOAD payload, int32_t stopper);
+int32_t deprecate_build_merge_thing(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count);
+int32_t deprecate_build_get_common(int32_t *listA, int32_t countA, int32_t *listB, int32_t countB);
+void deprecate_build_chunk_merge(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count);
+PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min);
+void deprecate_build_gool_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count);
+int32_t deprecate_build_is_relative(uint32_t searched, uint32_t *array, int32_t count);
+void deprecate_build_ll_add_children(uint32_t eid, ENTRY *elist, int32_t entry_count, LIST *list, uint32_t *gool_table, DEPENDENCIES dependencies);
+void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int32_t entry_count, int32_t *real_chunk_count, int32_t grouping_flag);
+void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
+void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int32_t entry_count, int32_t *real_chunk_count, int32_t grouping_flag);
+void deprecate_build_payload_merge_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
 
 // side_scripts.c
 
-int texture_recolor_stupid();
-int scenery_recolor_main();
-int scenery_recolor_main2();
-int texture_copy_main();
+int32_t texture_recolor_stupid();
+int32_t scenery_recolor_main();
+int32_t scenery_recolor_main2();
+int32_t texture_copy_main();
 void prop_main(char *path);
 void resize_main(char *time, DEPRECATE_INFO_STRUCT status);
 void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
 void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3]);
 void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
-void resize_zone(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
-void resize_entity(unsigned char *item, int itemsize, double scale[3], DEPRECATE_INFO_STRUCT status);
-void resize_scenery(int fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
+void resize_zone(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
+void resize_entity(unsigned char *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status);
+void resize_scenery(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
 void rotate_main(char *time);
-void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int filesize);
+void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int32_t filesize);
 void rotate_zone(unsigned char *buffer, char *filepath, double rotation);
-void rotate_rotate(unsigned int *y, unsigned int *x, double rotation);
+void rotate_rotate(uint32_t *y, uint32_t *x, double rotation);
 void crate_rotation_angle();
 void nsd_gool_table_print(char *fpath);
-PROPERTY *build_get_prop_full(unsigned char *item, int prop_code);
+PROPERTY *build_get_prop_full(unsigned char *item, int32_t prop_code);
 void prop_remove_script();
 void prop_replace_script();
 void generate_spawn();
@@ -697,9 +697,9 @@ void gool_util();
 
 // level_alter.c
 
-void level_alter_pseudorebuild(int wipe_entities);
-void wipe_draw_lists(ENTRY *elist, int entry_count);
-void wipe_entities(ENTRY *elist, int entry_count);
-void convert_old_dl_override(ENTRY *elist, int entry_count);
-void flip_level_y(ENTRY* elist, int entry_count, int* chunk_count);
-void flip_level_x(ENTRY* elist, int entry_count, int* chunk_count);
+void level_alter_pseudorebuild(int32_t wipe_entities);
+void wipe_draw_lists(ENTRY *elist, int32_t entry_count);
+void wipe_entities(ENTRY *elist, int32_t entry_count);
+void convert_old_dl_override(ENTRY *elist, int32_t entry_count);
+void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
+void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);

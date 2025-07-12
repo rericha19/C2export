@@ -5,12 +5,12 @@
 // imo the only part thats in a reasonable shape is the level build related code
 
 // main, polls input and runs commands based on it
-int main()
+int32_t main()
 {
     DEPRECATE_INFO_STRUCT status;
     status.print_en = 2;
     status.flog = NULL;
-    int zonetype = 8;
+    int32_t zonetype = 8;
     time_t rawtime;
     struct tm *timeinfo;
     char dpath[MAX] = "", fpath[MAX + 300] = "", moretemp[MAX] = ""; // + 300 to make it shut up
@@ -30,10 +30,10 @@ int main()
         sprintf(lcltemp, "%02d_%02d_%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
         scanf("%s", p_command);
-        for (unsigned int i = 0; i < strlen(lcltemp); i++)
+        for (uint32_t i = 0; i < strlen(lcltemp); i++)
             if (!isalnum(lcltemp[i]))
                 lcltemp[i] = '_';
-        for (unsigned int i = 0; i < strlen(p_command); i++)
+        for (uint32_t i = 0; i < strlen(p_command); i++)
             p_comm_cpy[i] = toupper(p_command[i]);
         switch (comm_str_hash(p_comm_cpy))
         {
@@ -91,7 +91,7 @@ int main()
             break;
         case HASH:
             scanf("%s", fpath);
-            printf("%lu\n", comm_str_hash(fpath));
+            printf("%u\n", comm_str_hash(fpath));
             break;
         case WIPE:
             clrscr();
@@ -142,7 +142,7 @@ int main()
         case EID:
             // printf("EID string:\n");
             scanf(" %[^\n]", fpath);
-            unsigned int eid = eid_to_int(fpath);
+            uint32_t eid = eid_to_int(fpath);
             printf("%02X %02X %02X %02X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
             break;
         case PROP_REMOVE:

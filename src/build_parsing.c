@@ -6,17 +6,17 @@
  *  Collects relatives. Likely slightly deprecate.
  *
  * \param elist ENTRY*                  list of entries
- * \param chunk_border_base int         chunk count of the base nsf
+ * \param chunk_border_base int32_t         chunk count of the base nsf
  * \param chunks unsigned char**        chunk array, base level gets put straight into them
- * \param chunk_border_texture int*     index of the last texture chunk
- * \param entry_count int*              entry count
+ * \param chunk_border_texture int32_t*     index of the last texture chunk
+ * \param entry_count int32_t*              entry count
  * \param nsf FILE*                     nsf file
- * \param gool_table unsigned int*      gool table gets created, contains GOOL entries associated with the type/index they are on
+ * \param gool_table uint32_t*      gool table gets created, contains GOOL entries associated with the type/index they are on
  * \return void
  */
-void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks, int *chunk_border_texture, int *entry_count, FILE *nsf, unsigned int *gool_table)
+void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, unsigned char **chunks, int32_t *chunk_border_texture, int32_t *entry_count, FILE *nsf, uint32_t *gool_table)
 {
-    int i, j, offset;
+    int32_t i, j, offset;
     unsigned char chunk[CHUNKSIZE];
 
     for (i = 0; i < chunk_border_base; i++)
@@ -28,14 +28,14 @@ void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks,
         if (chunk[2] != 1)
             for (j = 0; j < chunk[8]; j++)
             {
-                offset = *(int *)(chunk + 0x10 + j * 4);
+                offset = *(int32_t *)(chunk + 0x10 + j * 4);
                 elist[*entry_count].eid = from_u32(chunk + offset + 4);
                 elist[*entry_count].chunk = i;
                 elist[*entry_count].esize = -1;
-                if (*(int *)(chunk + offset + 8) == ENTRY_TYPE_GOOL && build_item_count(chunk + offset) == 6)
+                if (*(int32_t *)(chunk + offset + 8) == ENTRY_TYPE_GOOL && build_item_count(chunk + offset) == 6)
                 {
-                    int item1_offset = *(int *)(chunk + offset + 0x10);
-                    gool_table[*(int *)(chunk + offset + item1_offset)] = elist[*entry_count].eid;
+                    int32_t item1_offset = *(int32_t *)(chunk + offset + 0x10);
+                    gool_table[*(int32_t *)(chunk + offset + item1_offset)] = elist[*entry_count].eid;
                 }
                 (*entry_count)++;
             }
@@ -50,18 +50,18 @@ void build_read_nsf(ENTRY *elist, int chunk_border_base, unsigned char **chunks,
  * \param dirpath char*                 path to the directory/folder
  * \param chunks unsigned char**        array of 64kB chunks
  * \param elist ENTRY*                  entry list
- * \param chunk_border_texture int*     max index of a texture chunk
- * \param entry_count int*              entry count
+ * \param chunk_border_texture int32_t*     max index of a texture chunk
+ * \param entry_count int32_t*              entry count
  * \param spawns SPAWNS*                spawns, spawns get updated here
- * \param gool_table unsigned int*      table that contains GOOL entries on indexes that correspond to their types
+ * \param gool_table uint32_t*      table that contains GOOL entries on indexes that correspond to their types
  * \return void
  */
-void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int *chunk_border_texture, int *entry_count, SPAWNS *spawns, unsigned int *gool_table)
+void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int32_t *chunk_border_texture, int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table)
 {
     struct dirent *de;
     char temp[500];
     FILE *file = NULL;
-    int fsize;
+    int32_t fsize;
     unsigned char entry[CHUNKSIZE];
 
     while ((de = readdir(df)) != NULL)
@@ -116,8 +116,8 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             memcpy(elist[*entry_count].data, entry, fsize);
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && *(elist[*entry_count].data + 8) > 3)
             {
-                int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
-                int gool_type = *(int *)(elist[*entry_count].data + item1_offset);
+                int32_t item1_offset = *(int32_t *)(elist[*entry_count].data + 0x10);
+                int32_t gool_type = *(int32_t *)(elist[*entry_count].data + item1_offset);
                 if (/*gool_type >= C2_GOOL_TABLE_SIZE || */ gool_type < 0)
                 {
                     printf("[warning] GOOL entry %s has invalid type specified in the first item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
@@ -150,18 +150,18 @@ DEPENDENCIES build_init_dep()
  * \param subtype_info DEPENDENCIES*    list of type/subtype dependencies (created here)
  * \param file_path char*               path of the input file
  * \param elist ENTRY*                  entry list
- * \param entry_count int               entry count
- * \return int                          1 if all went good, 0 if something is wrong
+ * \param entry_count int32_t               entry count
+ * \return int32_t                          1 if all went good, 0 if something is wrong
  */
-int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps, ENTRY *elist, int entry_count, unsigned int *gool_table, int *config)
+int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps, ENTRY *elist, int32_t entry_count, uint32_t *gool_table, int32_t *config)
 {
 
-    int remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
-    int valid = 1;
+    int32_t remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
+    int32_t valid = 1;
 
     char *line = NULL;
-    int line_r_off = 0;
-    int line_len, read;
+    int32_t line_r_off = 0;
+    int32_t line_len, read;
     char temp[6];
 
     char fpaths[BUILD_FPATH_COUNT][MAX] = {0}; // paths to files, fpaths contains user-input metadata like perma list file
@@ -194,7 +194,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             continue;
 
         sscanf(line, "%5s", temp);
-        int index = build_get_index(eid_to_int(temp), elist, entry_count);
+        int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
         if (index == -1)
         {
             printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", temp);
@@ -209,10 +209,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             LIST models = build_get_models(elist[index].data);
             list_copy_in(&perma, models);
 
-            for (int l = 0; l < models.count; l++)
+            for (int32_t l = 0; l < models.count; l++)
             {
-                unsigned int model = models.eids[l];
-                int model_index = build_get_index(model, elist, entry_count);
+                uint32_t model = models.eids[l];
+                int32_t model_index = build_get_index(model, elist, entry_count);
                 if (model_index == -1)
                 {
                     printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, temp));
@@ -235,9 +235,9 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
             return 0;
         }
 
-        int i = 0;
-        int subcount = 0;
-        int type, subtype;
+        int32_t i = 0;
+        int32_t subcount = 0;
+        int32_t type, subtype;
 
         while (1)
         {
@@ -272,7 +272,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 if (sscanf(line + line_r_off, ", %5[^\n]", temp) < 1)
                     break;
                 line_r_off += 7;
-                int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
                 if (index == -1)
                 {
                     printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
@@ -284,10 +284,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                 {
                     LIST models = build_get_models(elist[index].data);
 
-                    for (int l = 0; l < models.count; l++)
+                    for (int32_t l = 0; l < models.count; l++)
                     {
-                        unsigned int model = models.eids[l];
-                        int model_index = build_get_index(model, elist, entry_count);
+                        uint32_t model = models.eids[l];
+                        int32_t model_index = build_get_index(model, elist, entry_count);
                         if (model_index == -1)
                         {
                             printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, temp));
@@ -311,8 +311,8 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         }
         else
         {
-            int coll_count = 0;
-            int code;
+            int32_t coll_count = 0;
+            int32_t code;
 
             while (1)
             {
@@ -344,7 +344,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                     if (sscanf(line + line_r_off, ", %5[^\n]", temp) < 1)
                         break;
                     line_r_off += 7;
-                    int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                    int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
                     if (index == -1)
                     {
                         printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
@@ -357,10 +357,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                     {
                         LIST models = build_get_models(elist[index].data);
 
-                        for (int l = 0; l < models.count; l++)
+                        for (int32_t l = 0; l < models.count; l++)
                         {
-                            unsigned int model = models.eids[l];
-                            int model_index = build_get_index(model, elist, entry_count);
+                            uint32_t model = models.eids[l];
+                            int32_t model_index = build_get_index(model, elist, entry_count);
                             if (model_index == -1)
                             {
                                 printf("[warning] unknown entry reference in collision dependency list, will be skipped: %5s\n",
@@ -386,7 +386,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
         }
         else
         {
-            int mus_d_count = 0;
+            int32_t mus_d_count = 0;
             char temp[6] = "";
             while (1)
             {
@@ -420,7 +420,7 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                         break;
                     line_r_off += 7;
 
-                    int index = build_get_index(eid_to_int(temp), elist, entry_count);
+                    int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
                     if (index == -1)
                     {
                         printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %s\n", temp);
@@ -433,10 +433,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
                     {
                         LIST models = build_get_models(elist[index].data);
 
-                        for (int l = 0; l < models.count; l++)
+                        for (int32_t l = 0; l < models.count; l++)
                         {
-                            unsigned int model = models.eids[l];
-                            int model_index = build_get_index(model, elist, entry_count);
+                            uint32_t model = models.eids[l];
+                            int32_t model_index = build_get_index(model, elist, entry_count);
                             if (model_index == -1)
                             {
                                 printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %5s\n",
@@ -457,10 +457,10 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
     }
 
     /*printf("mus_d_count: %d\n", mus_d.count);
-    for (int i = 0; i < mus_d.count; i++) {
+    for (int32_t i = 0; i < mus_d.count; i++) {
         char temp[100] = "";
         printf("\nType %s subtype %2d\n", eid_conv(mus_d.array[i].type, temp), mus_d.array[i].subtype);
-        for (int j = 0; j < mus_d.array[i].dependencies.count; j++) {
+        for (int32_t j = 0; j < mus_d.array[i].dependencies.count; j++) {
             char temp[100] = "";
             printf("\t%s\n", eid_conv(mus_d.array[i].dependencies.eids[j], temp));
         }
@@ -487,18 +487,18 @@ int build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPEN
 LIST build_read_special_entries(unsigned char *zone)
 {
     LIST special_entries = init_list();
-    int item1off = from_u32(zone + 0x10);
+    int32_t item1off = from_u32(zone + 0x10);
     unsigned char *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
-    int special_entry_count = from_u32(metadata_ptr);
+    int32_t special_entry_count = from_u32(metadata_ptr);
 
-    for (int i = 1; i <= special_entry_count; i++)
+    for (int32_t i = 1; i <= special_entry_count; i++)
     {
-        unsigned int entry = from_u32(metadata_ptr + i * 4);
-        // *(unsigned int *)(metadata_ptr + i * 4) = 0;
+        uint32_t entry = from_u32(metadata_ptr + i * 4);
+        // *(uint32_t *)(metadata_ptr + i * 4) = 0;
         list_add(&special_entries, entry);
     }
 
-    //*(unsigned int *)metadata_ptr = 0;
+    //*(uint32_t *)metadata_ptr = 0;
     return special_entries;
 }
 
@@ -508,23 +508,23 @@ LIST build_read_special_entries(unsigned char *zone)
  *  and the model's texture to the list.
  *
  * \param full_load LIST*               non-delta load lists
- * \param cam_length int                length of the camera path and load list array
+ * \param cam_length int32_t                length of the camera path and load list array
  * \param zone ENTRY                    zone to get the stuff from
  * \return void
  */
-LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count)
+LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count)
 {
     LIST special_entries = build_read_special_entries(zone.data);
     LIST iteration_clone = init_list();
     list_copy_in(&iteration_clone, special_entries);
 
-    for (int i = 0; i < iteration_clone.count; i++)
+    for (int32_t i = 0; i < iteration_clone.count; i++)
     {
         char temp[100] = "";
         char temp2[100] = "";
         char temp3[100] = "";
-        int item = iteration_clone.eids[i];
-        int index = build_get_index(item, elist, entry_count);
+        int32_t item = iteration_clone.eids[i];
+        int32_t index = build_get_index(item, elist, entry_count);
         if (index == -1)
         {
             printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.eid, temp), eid_conv(item, temp2));
@@ -534,8 +534,8 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count)
 
         if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
         {
-            unsigned int model = build_get_model(elist[index].data, 0);
-            int model_index = build_get_index(model, elist, entry_count);
+            uint32_t model = build_get_model(elist[index].data, 0);
+            int32_t model_index = build_get_index(model, elist, entry_count);
             if (model_index == -1 || build_entry_type(elist[model_index]) != ENTRY_TYPE_MODEL)
             {
                 printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
@@ -556,15 +556,15 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int entry_count)
  *
  * \param entry unsigned char*          entry data
  * \param spawns SPAWNS*                during relative collection it searches for possible spawns
- * \return unsigned int*                array of relatives relatives[count + 1], relatives[0] contains count or NULL
+ * \return uint32_t*                array of relatives relatives[count + 1], relatives[0] contains count or NULL
  */
-unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
+uint32_t *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
 {
-    int entity_count, item1len, relcount, camcount, neighbourcount, scencount, i, entry_count = 0;
-    unsigned int *relatives;
+    int32_t entity_count, item1len, relcount, camcount, neighbourcount, scencount, i, entry_count = 0;
+    uint32_t *relatives;
 
-    int item1off = build_get_nth_item_offset(entry, 0);
-    int item2off = build_get_nth_item_offset(entry, 1);
+    int32_t item1off = build_get_nth_item_offset(entry, 0);
+    int32_t item2off = build_get_nth_item_offset(entry, 1);
     item1len = item2off - item1off;
     if (!(item1len == 0x358 || item1len == 0x318))
         return NULL;
@@ -580,16 +580,16 @@ unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
     if (relcount == 0)
         return NULL;
 
-    unsigned int music_ref = build_get_zone_track(entry);
+    uint32_t music_ref = build_get_zone_track(entry);
     if (music_ref != EID_NONE)
         relcount++;
-    relatives = (unsigned int *)malloc(relcount * sizeof(unsigned int)); // freed by build_main
+    relatives = (uint32_t *)malloc(relcount * sizeof(uint32_t)); // freed by build_main
 
     relatives[entry_count++] = relcount - 1;
 
     for (i = 0; i < (camcount / 3); i++)
     {
-        int offset = build_get_nth_item_offset(entry, 2 + 3 * i);
+        int32_t offset = build_get_nth_item_offset(entry, 2 + 3 * i);
         relatives[entry_count++] = build_get_slst(entry + offset);
     }
 
@@ -605,16 +605,16 @@ unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
 
     for (i = 0; i < entity_count; i++)
     {
-        int *coords_ptr;
+        int32_t *coords_ptr;
         coords_ptr = build_seek_spawn(entry + from_u32(entry + 0x18 + 4 * camcount + 4 * i));
         if (coords_ptr != NULL && spawns != NULL)
         {
             spawns->spawn_count += 1;
-            int cnt = spawns->spawn_count;
+            int32_t cnt = spawns->spawn_count;
             spawns->spawns = (SPAWN *)realloc(spawns->spawns, cnt * sizeof(SPAWN));
-            spawns->spawns[cnt - 1].x = coords_ptr[0] + *(int *)(entry + item2off);
-            spawns->spawns[cnt - 1].y = coords_ptr[1] + *(int *)(entry + item2off + 4);
-            spawns->spawns[cnt - 1].z = coords_ptr[2] + *(int *)(entry + item2off + 8);
+            spawns->spawns[cnt - 1].x = coords_ptr[0] + *(int32_t *)(entry + item2off);
+            spawns->spawns[cnt - 1].y = coords_ptr[1] + *(int32_t *)(entry + item2off + 4);
+            spawns->spawns[cnt - 1].z = coords_ptr[2] + *(int32_t *)(entry + item2off + 8);
             spawns->spawns[cnt - 1].zone = from_u32(entry + 0x4);
             free(coords_ptr);
         }
@@ -626,17 +626,17 @@ unsigned int *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
  *  Gets gool relatives excluding models.
  *
  * \param entry unsigned char*          entry data
- * \param entrysize int                 entry size
- * \return unsigned int*                array of relatives relatives[count + 1], relatives[0] == count
+ * \param entrysize int32_t                 entry size
+ * \return uint32_t*                array of relatives relatives[count + 1], relatives[0] == count
  */
-unsigned int *build_get_gool_relatives(unsigned char *entry, int entrysize)
+uint32_t *build_get_gool_relatives(unsigned char *entry, int32_t entrysize)
 {
-    int curr_off, type = 0, help;
-    int i, counter = 0;
+    int32_t curr_off, type = 0, help;
+    int32_t i, counter = 0;
     char temp[6];
-    int curr_eid;
-    unsigned int local[256];
-    unsigned int *relatives = NULL;
+    int32_t curr_eid;
+    uint32_t local[256];
+    uint32_t *relatives = NULL;
 
     curr_off = build_get_nth_item_offset(entry, 5);
 
@@ -690,7 +690,7 @@ unsigned int *build_get_gool_relatives(unsigned char *entry, int entrysize)
     if (!counter)
         return NULL;
 
-    relatives = (unsigned int *)malloc((counter + 1) * sizeof(unsigned int)); // freed by build_main
+    relatives = (uint32_t *)malloc((counter + 1) * sizeof(uint32_t)); // freed by build_main
     relatives[0] = counter;
     for (i = 0; i < counter; i++)
         relatives[i + 1] = local[i];
@@ -700,14 +700,14 @@ unsigned int *build_get_gool_relatives(unsigned char *entry, int entrysize)
 
 /** \brief
  *  Searches the entity, if it has (correct) type and subtype and coords property,
- *  returns them as int[3]. Usually set to accept willy and checkpoint entities.
+ *  returns them as int32_t[3]. Usually set to accept willy and checkpoint entities.
  *
  * \param item unsigned char*           entity data
- * \return int*                         int[3] with xyz coords the entity if it meets criteria or NULL
+ * \return int32_t*                         int32_t[3] with xyz coords the entity if it meets criteria or NULL
  */
-int *build_seek_spawn(unsigned char *item)
+int32_t *build_seek_spawn(unsigned char *item)
 {
-    int i, code, offset, type = -1, subtype = -1, coords_offset = -1;
+    int32_t i, code, offset, type = -1, subtype = -1, coords_offset = -1;
     for (i = 0; (unsigned)i < from_u32(item + 0xC); i++)
     {
         code = from_u16(item + 0x10 + 8 * i);
@@ -723,9 +723,9 @@ int *build_seek_spawn(unsigned char *item)
     if (coords_offset != -1)
         if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4))
         {
-            int *coords = (int *)malloc(3 * sizeof(int)); // freed by caller
+            int32_t *coords = (int32_t *)malloc(3 * sizeof(int32_t)); // freed by caller
             for (i = 0; i < 3; i++)
-                coords[i] = (*(short int *)(item + coords_offset + 2 * i)) * 4;
+                coords[i] = (*(int16_t *)(item + coords_offset + 2 * i)) * 4;
             return coords;
         }
 
@@ -737,19 +737,19 @@ int *build_seek_spawn(unsigned char *item)
  *  referenced by the animations to the gool entry's relatives.
  *
  * \param elist ENTRY*                  current entry list
- * \param entry_count int               current amount of entries
+ * \param entry_count int32_t               current amount of entries
  * \return void
  */
-void build_get_model_references(ENTRY *elist, int entry_count)
+void build_get_model_references(ENTRY *elist, int32_t entry_count)
 {
-    int i, j;
-    unsigned int new_relatives[250];
+    int32_t i, j;
+    uint32_t new_relatives[250];
     for (i = 0; i < entry_count; i++)
     {
         if ((elist[i].related != NULL) && (from_u32(elist[i].data + 8) == ENTRY_TYPE_GOOL))
         {
-            int relative_index;
-            int new_counter = 0;
+            int32_t relative_index;
+            int32_t new_counter = 0;
             for (j = 0; (unsigned)j < elist[i].related[0]; j++)
                 if ((relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count)) >= 0)
                     if (elist[relative_index].data != NULL && (from_u32(elist[relative_index].data + 8) == 1))
@@ -757,9 +757,9 @@ void build_get_model_references(ENTRY *elist, int entry_count)
 
             if (new_counter)
             {
-                int relative_count;
+                int32_t relative_count;
                 relative_count = elist[i].related[0];
-                elist[i].related = (unsigned int *)realloc(elist[i].related, (relative_count + new_counter + 1) * sizeof(unsigned int));
+                elist[i].related = (uint32_t *)realloc(elist[i].related, (relative_count + new_counter + 1) * sizeof(uint32_t));
                 for (j = 0; j < new_counter; j++)
                     elist[i].related[j + relative_count + 1] = new_relatives[j];
                 elist[i].related[0] += new_counter;
@@ -774,21 +774,21 @@ void build_get_model_references(ENTRY *elist, int entry_count)
  *  Heuristic for determining whether a path is before or after another path relative to current spawn.
  *
  * \param elist ENTRY*                  list of entries
- * \param entry_count int               entry count
+ * \param entry_count int32_t               entry count
  * \param spawns SPAWNS                 struct with found/potential spawns
  * \return void
  */
-void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns)
+void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
 {
-    for (int i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            int cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            elist[i].distances = (unsigned int *)malloc(cam_count * sizeof(unsigned int)); // freed by build_main
-            elist[i].visited = (unsigned int *)malloc(cam_count * sizeof(unsigned int));   // freed by build_main
+            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+            elist[i].distances = (uint32_t *)malloc(cam_count * sizeof(uint32_t)); // freed by build_main
+            elist[i].visited = (uint32_t *)malloc(cam_count * sizeof(uint32_t));   // freed by build_main
 
-            for (int j = 0; j < cam_count; j++)
+            for (int32_t j = 0; j < cam_count; j++)
             {
                 elist[i].distances[j] = INT_MAX;
                 elist[i].visited[j] = 0;
@@ -802,27 +802,27 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns)
     }
 
     DIST_GRAPH_Q graph = graph_init();
-    int start_index = build_get_index(spawns.spawns[0].zone, elist, entry_count);
+    int32_t start_index = build_get_index(spawns.spawns[0].zone, elist, entry_count);
     graph_add(&graph, elist, start_index, 0);
 
     while (1)
     {
-        int top_zone;
-        int top_cam;
+        int32_t top_zone;
+        int32_t top_cam;
         graph_pop(&graph, &top_zone, &top_cam);
         if (top_zone == -1 && top_cam == -1)
             break;
 
         LIST links = build_get_links(elist[top_zone].data, 2 + 3 * top_cam);
-        for (int i = 0; i < links.count; i++)
+        for (int32_t i = 0; i < links.count; i++)
         {
             CAMERA_LINK link = int_to_link(links.eids[i]);
-            int neighbour_count = build_get_neighbour_count(elist[top_zone].data);
-            unsigned int *neighbours = (unsigned int *)malloc(neighbour_count * sizeof(unsigned int)); // freed here
-            int item1off = from_u32(elist[top_zone].data + 0x10);
-            for (int j = 0; j < neighbour_count; j++)
+            int32_t neighbour_count = build_get_neighbour_count(elist[top_zone].data);
+            uint32_t *neighbours = (uint32_t *)malloc(neighbour_count * sizeof(uint32_t)); // freed here
+            int32_t item1off = from_u32(elist[top_zone].data + 0x10);
+            for (int32_t j = 0; j < neighbour_count; j++)
                 neighbours[j] = from_u32(elist[top_zone].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
-            int neighbour_index = build_get_index(neighbours[link.zone_index], elist, entry_count);
+            int32_t neighbour_index = build_get_index(neighbours[link.zone_index], elist, entry_count);
             if (neighbour_index == -1)
             {
                 char temp1[100] = "";
@@ -831,7 +831,7 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns)
                        eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2));
                 continue;
             }
-            int path_count = build_get_cam_item_count(elist[neighbour_index].data) / 3;
+            int32_t path_count = build_get_cam_item_count(elist[neighbour_index].data) / 3;
             if (link.cam_index >= path_count)
             {
                 char temp1[100] = "";
@@ -847,11 +847,11 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns)
         }
     }
 
-    /*for (int i = 0; i < entry_count; i++)
+    /*for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            int cam_count = build_get_cam_count(elist[i].data)/3;
-            for (int j = 0; j < cam_count; j++)
+            int32_t cam_count = build_get_cam_count(elist[i].data)/3;
+            for (int32_t j = 0; j < cam_count; j++)
                 printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].eid, temp), j, elist[i].distances[j]);
         }*/
 }
@@ -860,14 +860,14 @@ void build_get_distance_graph(ENTRY *elist, int entry_count, SPAWNS spawns)
  *  Removes references to entries that are only in the base level.
  *
  * \param elist ENTRY*                  list of entries
- * \param entry_count int               current amount of entries
- * \param entry_count_base int
+ * \param entry_count int32_t               current amount of entries
+ * \param entry_count_base int32_t
  * \return void
  */
-void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_count_base)
+void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t entry_count_base)
 {
-    int i, j, k;
-    unsigned int new_relatives[250];
+    int32_t i, j, k;
+    uint32_t new_relatives[250];
 
     for (i = 0; i < entry_count; i++)
     {
@@ -875,7 +875,7 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
             continue;
         for (j = 1; (unsigned)j < elist[i].related[0] + 1; j++)
         {
-            int relative_index;
+            int32_t relative_index;
             relative_index = build_get_index(elist[i].related[j], elist, entry_count);
             if (relative_index < entry_count_base)
                 elist[i].related[j] = 0;
@@ -887,18 +887,18 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
                     elist[i].related[k] = 0;
         }
 
-        int counter = 0;
+        int32_t counter = 0;
         for (j = 1; (unsigned)j < elist[i].related[0] + 1; j++)
             if (elist[i].related[j] != 0)
                 new_relatives[counter++] = elist[i].related[j];
 
         if (counter == 0)
         {
-            elist[i].related = (unsigned int *)realloc(elist[i].related, 0);
+            elist[i].related = (uint32_t *)realloc(elist[i].related, 0);
             continue;
         }
 
-        elist[i].related = (unsigned int *)realloc(elist[i].related, (counter + 1) * sizeof(unsigned int));
+        elist[i].related = (uint32_t *)realloc(elist[i].related, (counter + 1) * sizeof(uint32_t));
         elist[i].related[0] = counter;
         for (j = 0; j < counter; j++)
             elist[i].related[j + 1] = new_relatives[j];
@@ -906,8 +906,8 @@ void build_remove_invalid_references(ENTRY *elist, int entry_count, int entry_co
 }
 
 // parsing input info for rebuilding using files from folder (not really supported)
-int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int *chunk_border_texture, unsigned int *gool_table,
-                               ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS *spawns)
+int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
+                               ENTRY *elist, int32_t *entry_count, unsigned char **chunks, SPAWNS *spawns)
 {
     char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20];
     printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
@@ -949,8 +949,8 @@ int build_read_and_parse_build(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
 }
 
 // parsing input info for rebuilding from a nsf file
-int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *chunk_border_texture, unsigned int *gool_table,
-                               ENTRY *elist, int *entry_count, unsigned char **chunks, SPAWNS *spawns, int stats_only, char *fpath)
+int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
+                               ENTRY *elist, int32_t *entry_count, unsigned char **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath)
 {
     FILE *nsf = NULL;
     char nsfpath[MAX], lcltemp[MAX + 20];
@@ -1000,18 +1000,18 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
         }
     }
 
-    int nsf_chunk_count = build_get_chunk_count_base(nsf);
-    int lcl_chunk_border_texture = 0;
+    int32_t nsf_chunk_count = build_get_chunk_count_base(nsf);
+    int32_t lcl_chunk_border_texture = 0;
 
     unsigned char buffer[CHUNKSIZE];
-    for (int i = 0; i < nsf_chunk_count; i++)
+    for (int32_t i = 0; i < nsf_chunk_count; i++)
     {
         fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf);
-        unsigned int checksum_calc = nsfChecksum(buffer);
-        unsigned int checksum_used = *(unsigned int *)(buffer + CHUNK_CHECKSUM_OFFSET);
+        uint32_t checksum_calc = nsfChecksum(buffer);
+        uint32_t checksum_used = *(uint32_t *)(buffer + CHUNK_CHECKSUM_OFFSET);
         if (checksum_calc != checksum_used)
             printf("Chunk %3d has invalid checksum\n", 2 * i + 1);
-        int chunk_entry_count = from_u32(buffer + 0x8);
+        int32_t chunk_entry_count = from_u32(buffer + 0x8);
         if (build_chunk_type(buffer) == CHUNK_TYPE_TEXTURE)
         {
             if (chunks != NULL)
@@ -1031,11 +1031,11 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
             qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
         }
         else
-            for (int j = 0; j < chunk_entry_count; j++)
+            for (int32_t j = 0; j < chunk_entry_count; j++)
             {
-                int start_offset = build_get_nth_item_offset(buffer, j);
-                int end_offset = build_get_nth_item_offset(buffer, j + 1);
-                int entry_size = end_offset - start_offset;
+                int32_t start_offset = build_get_nth_item_offset(buffer, j);
+                int32_t end_offset = build_get_nth_item_offset(buffer, j + 1);
+                int32_t entry_size = end_offset - start_offset;
 
                 elist[*entry_count].eid = from_u32(buffer + start_offset + 0x4);
                 elist[*entry_count].esize = entry_size;
@@ -1062,8 +1062,8 @@ int build_read_and_parse_rebld(int *level_ID, FILE **nsfnew, FILE **nsd, int *ch
 
                 if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && build_item_count(elist[*entry_count].data) == 6)
                 {
-                    int item1_offset = *(int *)(elist[*entry_count].data + 0x10);
-                    int gool_type = *(int *)(elist[*entry_count].data + item1_offset);
+                    int32_t item1_offset = *(int32_t *)(elist[*entry_count].data + 0x10);
+                    int32_t gool_type = *(int32_t *)(elist[*entry_count].data + item1_offset);
                     if (/*gool_type >= C2_GOOL_TABLE_SIZE || */ gool_type < 0)
                     {
                         char temp[100] = "";
