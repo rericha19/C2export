@@ -53,7 +53,7 @@ void convert_old_dl_override(ENTRY *elist, int32_t entry_count)
         for (int32_t j = 0; j < entity_count; j++)
         {
             int32_t entity_n = 2 + cam_item_count + j;
-            unsigned char *nth_entity = build_get_nth_item(elist[i].data, entity_n);
+            uint8_t *nth_entity = build_get_nth_item(elist[i].data, entity_n);
             int32_t id = build_get_entity_prop(nth_entity, ENTITY_PROP_ID);
             int32_t type = build_get_entity_prop(nth_entity, ENTITY_PROP_TYPE);
             int32_t subt = build_get_entity_prop(nth_entity, ENTITY_PROP_SUBTYPE);
@@ -106,7 +106,7 @@ typedef struct col_info
 } CollisionNodeInfo;
 
 // recursively retrieves list of collision nodes found in a collision item
-void collflip_list_nodes(unsigned char *item, int32_t offset, int32_t depth, int32_t maxx, int32_t maxy, int32_t maxz, CollisionNodeInfo *node_info, int32_t parent_offset)
+void collflip_list_nodes(uint8_t *item, int32_t offset, int32_t depth, int32_t maxx, int32_t maxy, int32_t maxz, CollisionNodeInfo *node_info, int32_t parent_offset)
 {
     if (offset < 0x1C)
     {
@@ -176,7 +176,7 @@ void dbg_print_node_info_single(CollisionNodeInfoSingle *node)
 
 // function for getting rid of problematic data overlaps in collision items
 // required for collision flipping, as overlapping data flip would otherwise get scrambled
-int32_t collfip_unwrap_overlaps(unsigned char *item, CollisionNodeInfo *node_info, int32_t *new_size)
+int32_t collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int32_t *new_size)
 {
     for (int32_t i = 0; i < node_info->count; i++)
     {
@@ -242,10 +242,10 @@ int32_t collfip_unwrap_overlaps(unsigned char *item, CollisionNodeInfo *node_inf
 }
 
 // expands supplied collision item into a form that doesnt have data/node overlaps
-unsigned char *coll_get_expanded(unsigned char *item1, int32_t *new_size, int32_t maxx, int32_t maxy, int32_t maxz)
+uint8_t *coll_get_expanded(uint8_t *item1, int32_t *new_size, int32_t maxx, int32_t maxy, int32_t maxz)
 {
     int32_t found_overlap = 1;
-    unsigned char *item1_edited = (unsigned char *)calloc(CHUNKSIZE, 1);
+    uint8_t *item1_edited = (uint8_t *)calloc(CHUNKSIZE, 1);
     memcpy(item1_edited, item1, *new_size);
     while (found_overlap)
     {
@@ -259,7 +259,7 @@ unsigned char *coll_get_expanded(unsigned char *item1, int32_t *new_size, int32_
 }
 
 // flips/mirrors the (expanded) collision item either on x or y
-void collision_flip(unsigned char *item, int32_t offset, int32_t depth, int32_t maxx, int32_t maxy, int32_t maxz, LIST *flipped, int32_t is_x)
+void collision_flip(uint8_t *item, int32_t offset, int32_t depth, int32_t maxx, int32_t maxy, int32_t maxz, LIST *flipped, int32_t is_x)
 {
     if (offset < 0x1C)
     {
@@ -346,7 +346,7 @@ void collision_flip(unsigned char *item, int32_t offset, int32_t depth, int32_t 
 }
 
 // for flipping entity/camera path when doing flip_y
-void flip_entity_y(unsigned char *item, int32_t offset_y)
+void flip_entity_y(uint8_t *item, int32_t offset_y)
 {
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
     if (!offset)
@@ -368,13 +368,13 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SCENERY)
         {
             // vertices
-            unsigned char *item0 = build_get_nth_item(elist[i].data, 0);
-            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+            uint8_t *item0 = build_get_nth_item(elist[i].data, 0);
+            uint8_t *item1 = build_get_nth_item(elist[i].data, 1);
 
             int32_t vert_count = from_u32(item0 + 0x10);
             for (int32_t j = 0; j < vert_count; j++)
             {
-                unsigned char *vert = item1 + j * 4;
+                uint8_t *vert = item1 + j * 4;
                 int16_t y = from_s16(vert + 2) / 16;
                 int16_t rest = from_s16(vert + 2) % 16;
 
@@ -387,7 +387,7 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+            uint8_t *item1 = build_get_nth_item(elist[i].data, 1);
             int32_t new_size = build_get_nth_item_offset(elist[i].data, 2) - build_get_nth_item_offset(elist[i].data, 1);
 
             // zone position
@@ -399,7 +399,7 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
             int32_t maxy = from_u16(item1 + 0x20);
             int32_t maxz = from_u16(item1 + 0x22);
             printf("y flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
-            unsigned char *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
+            uint8_t *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
             LIST flipped = init_list();
             collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 0);
             build_replace_item(&elist[i], 1, item1_edited, new_size);
@@ -410,13 +410,13 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
             for (int32_t j = 0; j < cam_item_count / 3; j++)
             {
-                unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j);
+                uint8_t *item = build_get_nth_item(elist[i].data, 2 + 3 * j);
                 flip_entity_y(item, from_s32(item1 + 0x10));
             }
 
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
+                uint8_t *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
                 flip_entity_y(item, from_s32(item1 + 0x10) / 4);
             }
 
@@ -427,12 +427,22 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 }
 
 // for flipping entity/camera path when doing flip_x
-void flip_entity_x(unsigned char *item, int32_t offset_x)
+void flip_entity_x(uint8_t *item, int32_t offset_x)
 {
+    int32_t id = build_get_entity_prop(item, ENTITY_PROP_ID);
+    int32_t type = build_get_entity_prop(item, ENTITY_PROP_TYPE);
+    int32_t subtype = build_get_entity_prop(item, ENTITY_PROP_SUBTYPE);
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
     if (!offset)
         return;
+
+    // fish dont flip
+    if (type == 47 && subtype == 5)
+    {
+        printf("\t fish 47-5 (id %3d), skipping\n", id);
+        return;
+    }
 
     int32_t length = from_u32(item + offset);
     for (int32_t k = 0; k < length; k++)
@@ -443,7 +453,7 @@ void flip_entity_x(unsigned char *item, int32_t offset_x)
 }
 
 // for flipping camera
-void flip_camera_angle_x(unsigned char *item2)
+void flip_camera_angle_x(uint8_t *item2)
 {
     int32_t offset = build_get_prop_offset(item2, ENTITY_PROP_PATH);
     if (!offset)
@@ -461,8 +471,9 @@ void flip_camera_angle_x(unsigned char *item2)
 }
 
 // fixes elevator destinations for elevators when doing level flip x
-void flip_fix_elev_coords_x(unsigned char *item)
+void flip_fix_misc_entity_props(uint8_t *item)
 {
+    int32_t id = build_get_entity_prop(item, ENTITY_PROP_ID);
     int32_t type = build_get_entity_prop(item, ENTITY_PROP_TYPE);
     int32_t subtype = build_get_entity_prop(item, ENTITY_PROP_SUBTYPE);
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_ARGUMENTS);
@@ -475,12 +486,19 @@ void flip_fix_elev_coords_x(unsigned char *item)
     if ((count == 8 && type == 9 && subtype == 6) ||
         (count == 8 && type == 9 && subtype == 31))
     {
+        printf("\tpatched elevator entity %3d (type %2d subtype %2d)\n", id, type, subtype);
         *(int32_t *)(item + offset + 6 * 4) *= -1;
+    }
+
+    if (count == 4 && type == 32 && subtype == 4)
+    {
+        printf("\tpatched ice slide entity %3d (type %2d subtype %2d)\n", id, type, subtype);
+        *(int32_t *)(item + offset + 4) *= -1;
     }
 }
 
 // fixes warp in coordinates property when doing level flip x
-void flip_fix_prop_198_x(unsigned char *item)
+void flip_fix_prop_198_x(uint8_t *item)
 {
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_WARPIN_COORDS);
     if (!offset)
@@ -491,7 +509,7 @@ void flip_fix_prop_198_x(unsigned char *item)
 }
 
 // fixes sidescrolling camera distances, if possible
-void flip_camera_dist_2D_x(unsigned char *item0, unsigned char *item1)
+void flip_camera_dist_2D_x(uint8_t *item0, uint8_t *item1)
 {
     int32_t mode = build_get_entity_prop(item0, ENTITY_PROP_CAMERA_MODE);
     if (mode != C2_CAM_MODE_2D)
@@ -501,7 +519,6 @@ void flip_camera_dist_2D_x(unsigned char *item0, unsigned char *item1)
     int32_t offset = build_get_prop_offset(item1, ENTITY_PROP_CAM_DISTANCE);
 
     int32_t row_c = from_u16(prop->header + 6);
-    // printf("%d row count\n", row_c);
 
     int32_t meta_length = 0;
     if (row_c == 1)
@@ -510,7 +527,7 @@ void flip_camera_dist_2D_x(unsigned char *item0, unsigned char *item1)
         meta_length = 8;
     else
     {
-        printf("unhandled sidescrolling camera distance, row count %d\n", row_c);
+        printf("\t !!! unhandled sidescrolling camera distance, row count %d\n", row_c);
         return;
     }
 
@@ -541,13 +558,13 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SCENERY)
         {
             // vertices
-            unsigned char *item0 = build_get_nth_item(elist[i].data, 0);
-            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+            uint8_t *item0 = build_get_nth_item(elist[i].data, 0);
+            uint8_t *item1 = build_get_nth_item(elist[i].data, 1);
 
             int32_t vert_count = from_u32(item0 + 0x10);
             for (int32_t j = 0; j < vert_count; j++)
             {
-                unsigned char *vert = item1 + j * 4;
+                uint8_t *vert = item1 + j * 4;
                 int16_t y = from_s16(vert + 0) & 0xFFF0;
                 int16_t rest = from_s16(vert + 0) & 0xF;
                 y = -y;
@@ -561,7 +578,7 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
-            unsigned char *item1 = build_get_nth_item(elist[i].data, 1);
+            uint8_t *item1 = build_get_nth_item(elist[i].data, 1);
             int32_t new_size = build_get_nth_item_offset(elist[i].data, 2) - build_get_nth_item_offset(elist[i].data, 1);
 
             // zone position
@@ -574,7 +591,7 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
             int32_t maxy = from_u16(item1 + 0x20);
             int32_t maxz = from_u16(item1 + 0x22);
             printf("x flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
-            unsigned char *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
+            uint8_t *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
             LIST flipped = init_list();
             collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 1);
             build_replace_item(&elist[i], 1, item1_edited, new_size);
@@ -585,11 +602,11 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
             for (int32_t j = 0; j < cam_item_count / 3; j++)
             {
-                unsigned char *cam_item0 = build_get_nth_item(elist[i].data, 2 + 3 * j);
+                uint8_t *cam_item0 = build_get_nth_item(elist[i].data, 2 + 3 * j);
                 flip_entity_x(cam_item0, from_s32(item1 + 0xC));
                 flip_fix_prop_198_x(cam_item0);
 
-                unsigned char *cam_item1 = build_get_nth_item(elist[i].data, 2 + 3 * j + 1);
+                uint8_t *cam_item1 = build_get_nth_item(elist[i].data, 2 + 3 * j + 1);
                 flip_camera_angle_x(cam_item1);
                 flip_camera_dist_2D_x(cam_item0, cam_item1);
                 // todo camera switching property fix?
@@ -597,9 +614,9 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
+                uint8_t *item = build_get_nth_item(elist[i].data, 2 + cam_item_count + j);
                 flip_entity_x(item, from_s32(item1 + 0xC) / 4);
-                flip_fix_elev_coords_x(item);
+                flip_fix_misc_entity_props(item);
             }
 
             elist[i].chunk = *chunk_count;
@@ -608,37 +625,24 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
         if (build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
         {
-            printf("found t15 vcol collision entry %s\n", eid_conv2(elist[i].eid));
+            printf("x flipping t15 vcol collision entry %s\n", eid_conv2(elist[i].eid));
             int32_t data_start = 0x1C + build_get_nth_item_offset(elist[i].data, 0);
             int32_t data_size = elist[i].esize - data_start;
 
-            int32_t actual_count = 0;
-            uint32_t sum = 0;
             for (int32_t off = 0; off < data_size; off += 4)
             {
-                unsigned char val1 = from_u8(elist[i].data + data_start + off);
-                unsigned char val2 = from_u8(elist[i].data + data_start + off + 2);
-
+                uint8_t val1 = from_u8(elist[i].data + data_start + off);
+                uint8_t val2 = from_u8(elist[i].data + data_start + off + 2);
                 if (val1 == 0xFF || val2 == 0xFF)
                     continue;
 
-                sum += val1;
-                sum += val2;
-                actual_count += 2;
-            }
+                uint8_t flags1 = from_u8(elist[i].data + data_start + off + 1);
+                uint8_t flags2 = from_u8(elist[i].data + data_start + off + 3);
+                //*(uint8_t *)(elist[i].data + data_start + off + 1) = flags2;
+                //*(uint8_t *)(elist[i].data + data_start + off + 3) = flags1;
 
-            int32_t avg_middle = sum / actual_count;
-            printf("avg middle: %x (count: %x)\n", avg_middle, actual_count);
-            for (int32_t off = 0; off < data_size; off += 4)
-            {
-                unsigned char val1 = from_u8(elist[i].data + data_start + off);
-                unsigned char val2 = from_u8(elist[i].data + data_start + off + 2);
-
-                if (val1 == 0xFF || val2 == 0xFF)
-                    continue;
-
-                *(unsigned char *)(elist[i].data + data_start + off) = avg_middle + abs(avg_middle - val2);
-                *(unsigned char *)(elist[i].data + data_start + off + 2) = avg_middle - abs(avg_middle - val1);
+                *(uint8_t *)(elist[i].data + data_start + off) = 0xFF - val2;
+                *(uint8_t *)(elist[i].data + data_start + off + 2) = 0xFF - val1;
             }
         }
     }
@@ -669,13 +673,13 @@ void level_alter_pseudorebuild(int32_t alter_type)
     strcpy(nsdpathout, nsfpathout);
     nsdpathout[strlen(nsdpathout) - 1] = 'D';
 
-    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE] = {NULL};  // array of pointers to potentially built chunks, fixed length cuz lazy
-    unsigned char *chunks2[CHUNK_LIST_DEFAULT_SIZE] = {NULL}; // keeping original non-normal chunks to keep level order
+    uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE] = {NULL};  // array of pointers to potentially built chunks, fixed length cuz lazy
+    uint8_t *chunks2[CHUNK_LIST_DEFAULT_SIZE] = {NULL}; // keeping original non-normal chunks to keep level order
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int32_t entry_count = 0;
     int32_t chunk_count = 0;
 
-    SPAWNS spawns = init_spawns();               // struct with spawns found during reading and parsing of the level data
+    SPAWNS spawns = init_spawns();           // struct with spawns found during reading and parsing of the level data
     uint32_t gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
@@ -692,14 +696,14 @@ void level_alter_pseudorebuild(int32_t alter_type)
         return;
     }
     int32_t nsf_chunk_count = build_get_chunk_count_base(nsf_og);
-    unsigned char buffer[CHUNKSIZE];
+    uint8_t buffer[CHUNKSIZE];
     for (int32_t i = 0; i < nsf_chunk_count; i++)
     {
-        fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf_og);
+        fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf_og);
         int32_t ct = build_chunk_type(buffer);
         if (ct == CHUNK_TYPE_TEXTURE || ct == CHUNK_TYPE_SOUND || ct == CHUNK_TYPE_INSTRUMENT)
         {
-            chunks2[i] = (unsigned char *)malloc(CHUNKSIZE);
+            chunks2[i] = (uint8_t *)malloc(CHUNKSIZE);
             memcpy(chunks2[i], buffer, CHUNKSIZE);
         }
     }
@@ -710,7 +714,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
     FILE *nsd_og = fopen(nsdpath, "rb");
     if (nsd_og)
     {
-        unsigned char nsd_buf[CHUNKSIZE];
+        uint8_t nsd_buf[CHUNKSIZE];
         fseek(nsd_og, 0, SEEK_END);
         int32_t nsd_size = ftell(nsd_og);
         rewind(nsd_og);
@@ -792,7 +796,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
     {
         if (chunks2[i] != NULL)
         {
-            chunks[i] = (unsigned char *)malloc(CHUNKSIZE);
+            chunks[i] = (uint8_t *)malloc(CHUNKSIZE);
             memcpy(chunks[i], chunks2[i], CHUNKSIZE);
         }
     }

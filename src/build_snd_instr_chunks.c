@@ -9,10 +9,10 @@
  * \param elist ENTRY*                  entry list
  * \param entry_count int32_t               entry count
  * \param chunk_count int32_t*              chunk count
- * \param chunks unsigned char**        chunks, array of ptrs to data, allocated here
+ * \param chunks uint8_t**        chunks, array of ptrs to data, allocated here
  * \return void
  */
-void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, unsigned char **chunks)
+void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, uint8_t **chunks)
 {
     int32_t chunk_index = *chunk_count;
     // wavebank chunks are one entry per chunk, not much to it
@@ -20,7 +20,7 @@ void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_c
         if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
         {
             elist[i].chunk = chunk_index;
-            chunks[chunk_index] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
+            chunks[chunk_index] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
             *(uint16_t *)(chunks[chunk_index]) = MAGIC_CHUNK;
             *(uint16_t *)(chunks[chunk_index] + 2) = CHUNK_TYPE_INSTRUMENT;
             *(uint16_t *)(chunks[chunk_index] + 4) = 2 * chunk_index + 1;
@@ -44,10 +44,10 @@ void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_c
  * \param elist ENTRY*                  entry list
  * \param entry_count int32_t               entry count
  * \param chunk_count int32_t*              chunk count
- * \param chunks unsigned char**        chunks, array of ptrs to data, allocated here
+ * \param chunks uint8_t**        chunks, array of ptrs to data, allocated here
  * \return void
  */
-void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, unsigned char **chunks)
+void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, uint8_t **chunks)
 {
     int32_t i, j, temp_chunk_count = *chunk_count;
     int32_t sound_entry_count = 0;
@@ -98,7 +98,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     {
         int32_t local_entry_count = 0;
         int32_t chunk_no = 2 * (temp_chunk_count + i) + 1;
-        chunks[temp_chunk_count + i] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
+        chunks[temp_chunk_count + i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
 
         for (j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)

@@ -105,7 +105,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
         // check all neighbour entities
         for (int32_t n = 0; n < neigh_ents; n++)
         {
-            unsigned char *entity = build_get_nth_item(neighbour.data, 2 + neigh_cams + n);
+            uint8_t *entity = build_get_nth_item(neighbour.data, 2 + neigh_cams + n);
             int32_t ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
             int32_t ent_override_mult = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_MULT);
             int32_t pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_ID);

@@ -170,10 +170,10 @@ void clrscr()
 }
 
 // helper for reading signed 32b
-int32_t from_s32(unsigned char *data)
+int32_t from_s32(uint8_t *data)
 {
     /*
-    const unsigned char *p = data;
+    const uint8_t *p = data;
     int32_t result = p[0];
     result |= p[1] << 8;
     result |= p[2] << 16;
@@ -183,9 +183,9 @@ int32_t from_s32(unsigned char *data)
 }
 
 // helper for reading unsigned 32b
-uint32_t from_u32(unsigned char *data)
+uint32_t from_u32(uint8_t *data)
 {
-    /*const unsigned char *p = data;
+    /*const uint8_t *p = data;
     uint32_t result = p[0];
     result |= p[1] << 8;
     result |= p[2] << 16;
@@ -195,21 +195,21 @@ uint32_t from_u32(unsigned char *data)
 }
 
 // helper for reading signed 16b
-int32_t from_s16(unsigned char *data)
+int32_t from_s16(uint8_t *data)
 {
     return *(int16_t *)(data);
 }
 
 // helper for reading unsigned 16b
-uint32_t from_u16(unsigned char *data)
+uint32_t from_u16(uint8_t *data)
 {
     return *(uint16_t *)data;
 }
 
 // helper for reading unsigned 8b
-uint32_t from_u8(unsigned char *data)
+uint32_t from_u8(uint8_t *data)
 {
-    const unsigned char *p = data;
+    const uint8_t *p = data;
     uint32_t result = p[0];
     return result;
 }
@@ -276,7 +276,7 @@ uint32_t eid_to_int(char *eid)
 }
 
 // calculates chunk checksum (CRC)
-uint32_t crcChecksum(const unsigned char *data, int32_t size)
+uint32_t crcChecksum(const uint8_t *data, int32_t size)
 {
     uint32_t checksum = 0x12345678;
     for (int32_t i = 0; i < size; i++)
@@ -289,7 +289,7 @@ uint32_t crcChecksum(const unsigned char *data, int32_t size)
 }
 
 // calculates chunk checksum
-uint32_t nsfChecksum(const unsigned char *data)
+uint32_t nsfChecksum(const uint8_t *data)
 {
     return crcChecksum(data, CHUNKSIZE);
 }
@@ -544,13 +544,13 @@ void graph_pop(DIST_GRAPH_Q *graph, int32_t *zone_index, int32_t *cam_index)
 }
 
 // gets offset of the nth item in an entry
-int32_t build_get_nth_item_offset(unsigned char *entry, int32_t n)
+int32_t build_get_nth_item_offset(uint8_t *entry, int32_t n)
 {
     return from_u32(entry + 0x10 + 4 * n);
 }
 
 // gets pointer to the nth item in an entry
-unsigned char *build_get_nth_item(unsigned char *entry, int32_t n)
+uint8_t *build_get_nth_item(uint8_t *entry, int32_t n)
 {
     return entry + build_get_nth_item_offset(entry, n);
 }

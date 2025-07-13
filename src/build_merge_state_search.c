@@ -259,8 +259,8 @@ uint32_t build_state_search_eval_state(LIST *stored_load_lists, int32_t load_lis
     int32_t i, j;
     int32_t index, chunk, counter, maxp = 0, eval = 0;
 
-    unsigned char *chunks = (unsigned char *)malloc(chunk_count * sizeof(unsigned char));
-    unsigned char step = 0;
+    uint8_t *chunks = (uint8_t *)malloc(chunk_count * sizeof(uint8_t));
+    uint8_t step = 0;
 
     for (i = 0; i < load_list_snapshot_count; i++)
     {

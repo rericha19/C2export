@@ -351,7 +351,7 @@ void build_ll_various_stats(ENTRY *elist, int32_t entry_count)
 
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
+                uint8_t *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -450,7 +450,7 @@ void build_ll_check_zone_references(ENTRY *elist, int32_t entry_count)
 
             for (int32_t j = 0; j < cam_item_count / 3; j++)
             {
-                unsigned char *item = build_get_nth_item_offset(elist[i].data, 2 + 3 * j) + elist[i].data;
+                uint8_t *item = build_get_nth_item_offset(elist[i].data, 2 + 3 * j) + elist[i].data;
                 uint32_t slst = build_get_slst(item);
                 int32_t slst_index = build_get_index(slst, elist, entry_count);
                 if (slst_index == -1)
@@ -501,7 +501,7 @@ void build_ll_check_gool_references(ENTRY *elist, int32_t entry_count, uint32_t 
 
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
+                uint8_t *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
@@ -600,7 +600,7 @@ void build_ll_id_usage(ENTRY *elist, int32_t entry_count)
             int32_t camera_count = build_get_cam_item_count(elist[i].data);
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
+                uint8_t *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
                 if (id == -1 || id >= 1024)

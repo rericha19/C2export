@@ -172,7 +172,7 @@ int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT
     FILE *file;                     // the NSF thats to be exported
     uint32_t numbytes, i;       // zonetype - what type the zones will be once exported, 8 or 16 neighbour ones, numbytes - size of file, i - iteration
     char temp[MAX] = "";            //, nsfcheck[4];
-    unsigned char chunk[CHUNKSIZE]; // array where the level data is stored
+    uint8_t chunk[CHUNKSIZE]; // array where the level data is stored
     int32_t port;
     char lcltemp[3][6] = {"", "", ""};
 
@@ -266,7 +266,7 @@ int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT
 
 // receives the current chunk, its id (not ingame id, indexed by 1)
 // and lvlid that just gets sent further
-int32_t export_chunk_handler(unsigned char *buffer, int32_t chunkid, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
+int32_t export_chunk_handler(uint8_t *buffer, int32_t chunkid, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     char ctypes[7][20] = {"Normal", "Texture", "Proto sound", "Sound", "Wavebank", "Speech", "Unknown"};
     sprintf(status->temp, "%s chunk \t%03d\n", ctypes[buffer[2]], chunkid * 2 + 1);
@@ -289,12 +289,12 @@ int32_t export_chunk_handler(unsigned char *buffer, int32_t chunkid, char *lvlid
 }
 
 // breaks the normal chunk into entries and saves them one by one
-int32_t export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
+int32_t export_normal_chunk(uint8_t *buffer, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     int32_t i;
     int32_t offset_start;
     int32_t offset_end;
-    unsigned char *entry;
+    uint8_t *entry;
     char eid[6];
     uint32_t eidnum = 0;
 
@@ -305,7 +305,7 @@ int32_t export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int3
         offset_end = BYTE * buffer[0x15 + i * 4] + buffer[0x14 + i * 4];
         if (!offset_end)
             offset_end = CHUNKSIZE;
-        entry = (unsigned char *)calloc(offset_end - offset_start, sizeof(char)); // freed here
+        entry = (uint8_t *)calloc(offset_end - offset_start, sizeof(char)); // freed here
         memcpy(entry, buffer + offset_start, offset_end - offset_start);
         switch (entry[8])
         {
@@ -350,7 +350,7 @@ int32_t export_normal_chunk(unsigned char *buffer, char *lvlid, char *date, int3
 }
 
 // creates a file with the texture chunk, lvlid for file name, st is save type
-int32_t export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+int32_t export_texture_chunk(uint8_t *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     uint32_t eidint = 0;
@@ -374,7 +374,7 @@ int32_t export_texture_chunk(unsigned char *buffer, char *lvlid, char *date, DEP
 }
 
 // converts camera mode from c3 to c2 values
-int32_t export_camera_fix(unsigned char *cam, int32_t length)
+int32_t export_camera_fix(uint8_t *cam, int32_t length)
 {
     int32_t i, curr_off;
 
@@ -405,7 +405,7 @@ int32_t export_camera_fix(unsigned char *cam, int32_t length)
 }
 
 // fixes entity coords (from c3 to c2)
-void export_entity_coord_fix(unsigned char *item, int32_t itemlength)
+void export_entity_coord_fix(uint8_t *item, int32_t itemlength)
 {
     int32_t i;
     int32_t off0x4B = 0, off0x30E = 0;
@@ -466,7 +466,7 @@ void export_entity_coord_fix(unsigned char *item, int32_t itemlength)
 
 // does stuff to scenery
 // exports scenery
-void export_scenery(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_scenery(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
@@ -528,7 +528,7 @@ void export_scenery(unsigned char *buffer, int32_t entrysize, char *lvlid, char 
 }
 
 // exports entries that dont receive any change
-void export_generic_entry(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_generic_entry(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[MAX / 10] = "";
@@ -585,20 +585,20 @@ void export_generic_entry(unsigned char *buffer, int32_t entrysize, char *lvlid,
 }
 
 // exports gool, no changes right now ?
-void export_gool(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_gool(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
     int32_t eidint = 0;
     char eid[6];
-    unsigned char *cpy;
+    uint8_t *cpy;
     char path[MAX - 20] = "";
     int32_t curr_off = 0;
     int32_t i, j;
     int32_t help1, help2;
     char eidhelp1[6], eidhelp2[6];
 
-    cpy = (unsigned char *)calloc(entrysize, sizeof(char)); // freed here
+    cpy = (uint8_t *)calloc(entrysize, sizeof(char)); // freed here
     memcpy(cpy, buffer, entrysize);
 
     for (i = 0; i < 4; i++)
@@ -674,14 +674,14 @@ void export_gool(unsigned char *buffer, int32_t entrysize, char *lvlid, char *da
 }
 
 // exports zones
-void export_zone(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
+void export_zone(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char cur_type[10];
     int32_t eidint = 0;
     char eid[6] = "";
     char path[MAX - 20] = "";
-    unsigned char *cpy;
+    uint8_t *cpy;
     int32_t lcl_entrysize = entrysize;
     int32_t i, j;
     int32_t curr_off, lcl_temp, irrelitems, next_off;
@@ -690,7 +690,7 @@ void export_zone(unsigned char *buffer, int32_t entrysize, char *lvlid, char *da
         eidint = (BYTE * eidint) + buffer[7 - i];
     eid_conv(eidint, eid);
 
-    cpy = (unsigned char *)calloc(entrysize, sizeof(char)); // freed here
+    cpy = (uint8_t *)calloc(entrysize, sizeof(char)); // freed here
     memcpy(cpy, buffer, entrysize);
 
     if (status->portmode)
@@ -700,7 +700,7 @@ void export_zone(unsigned char *buffer, int32_t entrysize, char *lvlid, char *da
             if (zonetype == 16)
             {
                 lcl_entrysize += 0x40;
-                cpy = (unsigned char *)realloc(cpy, lcl_entrysize);
+                cpy = (uint8_t *)realloc(cpy, lcl_entrysize);
 
                 // offset fix
                 for (j = 0; j < cpy[0xC]; j++)
@@ -786,7 +786,7 @@ void export_zone(unsigned char *buffer, int32_t entrysize, char *lvlid, char *da
 }
 
 // exports models, changes already
-void export_model(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_model(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     int32_t i;
@@ -831,7 +831,7 @@ void export_model(unsigned char *buffer, int32_t entrysize, char *lvlid, char *d
 }
 
 // will do stuff to animations and save
-void export_animation(unsigned char *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
+void export_animation(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status)
 {
     FILE *f;
     char eid[6];

@@ -71,11 +71,11 @@ void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_in
  *  Just returns the model reference of an animation.
  *  Only looks at the first frame of the animation.
  *
- * \param anim unsigned char*           pointer to the data of the searched animation
+ * \param anim uint8_t*           pointer to the data of the searched animation
  * \return uint32_t                 eid of the animation's model reference (as uint32_t)
  */
 
-LIST build_get_models(unsigned char *animation)
+LIST build_get_models(uint8_t *animation)
 {
     LIST models = init_list();
 
@@ -86,13 +86,13 @@ LIST build_get_models(unsigned char *animation)
     return models;
 }
 
-uint32_t build_get_model(unsigned char *anim, int32_t item)
+uint32_t build_get_model(uint8_t *anim, int32_t item)
 {
     int32_t item_off = build_get_nth_item_offset(anim, item);
     return from_u32(anim + item_off + 0x10);
 }
 
-uint32_t build_get_zone_track(unsigned char *entry)
+uint32_t build_get_zone_track(uint8_t *entry)
 {
     int32_t item1off = build_get_nth_item_offset(entry, 0);
     int32_t item2off = build_get_nth_item_offset(entry, 1);
@@ -108,11 +108,11 @@ uint32_t build_get_zone_track(unsigned char *entry)
  *  it returns the index of the matching chunk, else returns -1
  *
  * \param textr uint32_t            searched texture chunk eid
- * \param chunks unsigned char**        array of chunks to be searched, chunk is a 64kB array
+ * \param chunks uint8_t**        array of chunks to be searched, chunk is a 64kB array
  * \param index_end int32_t                 end index of the chunk array, aka current chunk count
  * \return int32_t                          index of a chunk that matches search, or -1
  */
-int32_t build_get_base_chunk_border(uint32_t textr, unsigned char **chunks, int32_t index_end)
+int32_t build_get_base_chunk_border(uint32_t textr, uint8_t **chunks, int32_t index_end)
 {
     int32_t i, retrn = -1;
 
@@ -157,10 +157,10 @@ int32_t build_get_index(uint32_t eid, ENTRY *elist, int32_t entry_count)
  *  Searches the properties, finds the offset of the slst property,
  *  returns eid of the slst.
  *
- * \param item unsigned char*           camera entity data
+ * \param item uint8_t*           camera entity data
  * \return uint32_t                 slst reference or 0 if theres no slst reference property
  */
-uint32_t build_get_slst(unsigned char *item)
+uint32_t build_get_slst(uint8_t *item)
 {
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_CAM_SLST);
 
@@ -173,10 +173,10 @@ uint32_t build_get_slst(unsigned char *item)
 /** \brief
  *  Returns path length of the input item.
  *
- * \param item unsigned char*           item whose length it returns
+ * \param item uint8_t*           item whose length it returns
  * \return uint32_t                 path length
  */
-uint32_t build_get_path_length(unsigned char *item)
+uint32_t build_get_path_length(uint8_t *item)
 {
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
@@ -189,10 +189,10 @@ uint32_t build_get_path_length(unsigned char *item)
 /** \brief
  *  Gets zone's neighbour count.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \return int32_t                          neighbour count
  */
-int32_t build_get_neighbour_count(unsigned char *entry)
+int32_t build_get_neighbour_count(uint8_t *entry)
 {
     int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + C2_NEIGHBOURS_START];
@@ -201,10 +201,10 @@ int32_t build_get_neighbour_count(unsigned char *entry)
 /** \brief
  *  Returns a list of neighbours the entry (zone) has.
  *
- * \param entry unsigned char*         entry data
+ * \param entry uint8_t*         entry data
  * \return LIST                        list containing neighbour eids
  */
-LIST build_get_neighbours(unsigned char *entry)
+LIST build_get_neighbours(uint8_t *entry)
 {
     int32_t item1off = build_get_nth_item_offset(entry, 0);
     int32_t count = entry[item1off + C2_NEIGHBOURS_START];
@@ -221,10 +221,10 @@ LIST build_get_neighbours(unsigned char *entry)
 /** \brief
  *  Gets zone's camera entity count.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \return int32_t                          camera entity count (total count, not camera path count)
  */
-int32_t build_get_cam_item_count(unsigned char *entry)
+int32_t build_get_cam_item_count(uint8_t *entry)
 {
     int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x188];
@@ -233,21 +233,21 @@ int32_t build_get_cam_item_count(unsigned char *entry)
 /** \brief
  *  Gets zone's regular entity count.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \return int32_t                          entity count (not including camera entities)
  */
-int32_t build_get_entity_count(unsigned char *entry)
+int32_t build_get_entity_count(uint8_t *entry)
 {
     int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off + 0x18C];
 }
 
-int32_t build_item_count(unsigned char *entry)
+int32_t build_item_count(uint8_t *entry)
 {
     return from_u32(entry + 0xC);
 }
 
-int32_t build_prop_count(unsigned char *item)
+int32_t build_prop_count(uint8_t *item)
 {
     return from_u32(item + 0xC);
 }
@@ -265,7 +265,7 @@ int32_t build_entry_type(ENTRY entry)
     return *(int32_t *)(entry.data + 8);
 }
 
-int32_t build_chunk_type(unsigned char *chunk)
+int32_t build_chunk_type(uint8_t *chunk)
 {
     if (chunk == NULL)
         return -1;
@@ -273,7 +273,7 @@ int32_t build_chunk_type(unsigned char *chunk)
     return from_u16(chunk + 0x2);
 }
 
-void build_check_item_count(unsigned char *zone, int32_t eid)
+void build_check_item_count(uint8_t *zone, int32_t eid)
 {
     int32_t item_count = build_item_count(zone);
     int32_t cam_count = build_get_cam_item_count(zone);
@@ -298,11 +298,11 @@ DRAW_ITEM build_decode_draw_item(uint32_t value)
 /** \brief
  *  Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
  *
- * \param entity unsigned char*         entity data
+ * \param entity uint8_t*         entity data
  * \param prop_code int32_t                 property to return
  * \return int32_t                          property value
  */
-int32_t build_get_entity_prop(unsigned char *entity, int32_t prop_code)
+int32_t build_get_entity_prop(uint8_t *entity, int32_t prop_code)
 {
     int32_t offset = build_get_prop_offset(entity, prop_code);
     if (offset == 0)
@@ -312,7 +312,7 @@ int32_t build_get_entity_prop(unsigned char *entity, int32_t prop_code)
 }
 
 // gets offset to data of a property within an item
-int32_t build_get_prop_offset(unsigned char *item, int32_t prop_code)
+int32_t build_get_prop_offset(uint8_t *item, int32_t prop_code)
 {
     int32_t offset = 0;
     int32_t prop_count = build_prop_count(item);
@@ -386,11 +386,11 @@ void build_cleanup_elist(ENTRY *elist, int32_t entry_count)
  *
  * \param elist ENTRY*                  entry list
  * \param entry_count int32_t               entry count
- * \param chunks unsigned char**        built chunks
+ * \param chunks uint8_t**        built chunks
  * \param chunk_count int32_t               chunk count
  * \return void
  */
-void build_final_cleanup(ENTRY *elist, int32_t entry_count, unsigned char **chunks, int32_t chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2)
+void build_final_cleanup(ENTRY *elist, int32_t entry_count, uint8_t **chunks, int32_t chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2)
 {
 
     build_cleanup_elist(elist, entry_count);
@@ -426,7 +426,7 @@ void build_get_box_count(ENTRY *elist, int32_t entry_count)
             int32_t camera_count = build_get_cam_item_count(elist[i].data);
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
+                uint8_t *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -481,7 +481,7 @@ int32_t cmp_func_load2(const void *a, const void *b)
         return (y.type - x.type);
 }
 
-LOAD_LIST build_get_draw_lists(unsigned char *entry, int32_t cam_index)
+LOAD_LIST build_get_draw_lists(uint8_t *entry, int32_t cam_index)
 {
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
@@ -489,7 +489,7 @@ LOAD_LIST build_get_draw_lists(unsigned char *entry, int32_t cam_index)
     return temp;
 }
 
-LOAD_LIST build_get_load_lists(unsigned char *entry, int32_t cam_index)
+LOAD_LIST build_get_load_lists(uint8_t *entry, int32_t cam_index)
 {
 
     LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
@@ -501,11 +501,11 @@ LOAD_LIST build_get_load_lists(unsigned char *entry, int32_t cam_index)
  *  Deconstructs the load or draw lists and saves into a convenient struct.
  *
  * \param prop_code int32_t                 first of the two list properties (either 0x13B or 0x208)
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \param cam_offset int32_t                offset of the camera item
  * \return LOAD_LIST                    load or draw list struct
  */
-LOAD_LIST build_get_lists(int32_t prop_code, unsigned char *entry, int32_t cam_index)
+LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
 {
     int32_t k, l;
     LOAD_LIST load_list = init_load_list();
@@ -699,7 +699,7 @@ void build_main(int32_t build_type)
     FILE *nsfnew2 = NULL, *nsd2 = NULL;
     SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
     ENTRY elist[ELIST_DEFAULT_SIZE];                // array of structs used to store entries, fixed length cuz lazy & struct is small
-    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE]; // array of pointers to potentially built chunks, fixed length cuz lazy
+    uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE]; // array of pointers to potentially built chunks, fixed length cuz lazy
     LIST permaloaded;                               // list containing eids of permaloaded entries provided by the user
     DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
     DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types

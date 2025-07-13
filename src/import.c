@@ -9,7 +9,7 @@ int32_t import_main(char *time, DEPRECATE_INFO_STRUCT status)
     char *help, *help2;
     char path[MAX] = "";
     char lcltemp[MAX + 2] = "", nsfpath[MAX] = "", nsfcheck[4] = ""; // + 2 to get rid of a warning
-    unsigned char *basebase;
+    uint8_t *basebase;
     int32_t baselength;
 
     printf("Input the path to the .NSF you want the files to be imported into\n");
@@ -28,8 +28,8 @@ int32_t import_main(char *time, DEPRECATE_INFO_STRUCT status)
     baselength = ftell(base);
     rewind(base);
 
-    basebase = (unsigned char *)malloc(baselength); // freed here
-    fread(basebase, sizeof(unsigned char), baselength, base);
+    basebase = (uint8_t *)malloc(baselength); // freed here
+    fread(basebase, sizeof(uint8_t), baselength, base);
 
     help = strrchr(nsfpath, '\\');
     *help = '\0';
@@ -41,7 +41,7 @@ int32_t import_main(char *time, DEPRECATE_INFO_STRUCT status)
     path_fix(path);
 
     importee = fopen(lcltemp, "wb");
-    fwrite(basebase, sizeof(unsigned char), baselength, importee);
+    fwrite(basebase, sizeof(uint8_t), baselength, importee);
 
     import_file_lister(path, importee);
     fclose(base);
@@ -56,11 +56,11 @@ int32_t import_file_lister(char *path, FILE *fnew)
 // opens all files in a directory one by one and appends them onto a nsf crudely
 {
     // i have the arrays bigger than usual so i can do some dumb stuff with memcpy to make it easier for myself
-    unsigned char nrmal[CHUNKSIZE + 1024];
-    //   unsigned char sound[CHUNKSIZE+1024];
-    //   unsigned char spech[CHUNKSIZE+1024];
-    //    unsigned char instr[CHUNKSIZE+1024];
-    unsigned char textu[CHUNKSIZE + 1024];
+    uint8_t nrmal[CHUNKSIZE + 1024];
+    //   uint8_t sound[CHUNKSIZE+1024];
+    //   uint8_t spech[CHUNKSIZE+1024];
+    //    uint8_t instr[CHUNKSIZE+1024];
+    uint8_t textu[CHUNKSIZE + 1024];
     FILE *file;
     char temp1[MAX] = "", temp2[6] = "", eid[6] = "";
     int32_t entrysize, i, curr_chunk, curr_off = 0, eidint, index = 0, offsets[256];
@@ -101,7 +101,7 @@ int32_t import_file_lister(char *path, FILE *fnew)
                 if (!strcmp(temp2, "textu"))
                 // when its a texture file
                 {
-                    fread(textu, sizeof(unsigned char), CHUNKSIZE, file);
+                    fread(textu, sizeof(uint8_t), CHUNKSIZE, file);
                     eidint = 0;
                     for (i = 0; i < 4; i++)
                     {
@@ -114,7 +114,7 @@ int32_t import_file_lister(char *path, FILE *fnew)
                         textu[4] = 0xEF;
                         textu[5] += 0x1D;
                     }
-                    fwrite(textu, sizeof(unsigned char), CHUNKSIZE, fnew);
+                    fwrite(textu, sizeof(uint8_t), CHUNKSIZE, fnew);
                     curr_chunk += 2;
                 }
                 else if (!strcmp(temp2, "sound"))
@@ -138,7 +138,7 @@ int32_t import_file_lister(char *path, FILE *fnew)
                     if (entrysize + curr_off + 0x16 + (index + 2) * 4 >= 65536)
                         import_chunksave(nrmal, &index, &curr_off, &curr_chunk, fnew, offsets);
                     offsets[index + 1] = offsets[index] + entrysize;
-                    fread(nrmal + curr_off, sizeof(unsigned char), entrysize, file);
+                    fread(nrmal + curr_off, sizeof(uint8_t), entrysize, file);
                     curr_off = curr_off + entrysize;
                     index++;
                 }
@@ -150,7 +150,7 @@ int32_t import_file_lister(char *path, FILE *fnew)
     return 0;
 }
 
-void import_chunksave(unsigned char *chunk, int32_t *index, int32_t *curr_off, int32_t *curr_chunk, FILE *fnew, int32_t offsets[])
+void import_chunksave(uint8_t *chunk, int32_t *index, int32_t *curr_off, int32_t *curr_chunk, FILE *fnew, int32_t offsets[])
 // saves the current chunk
 {
     char help[1024];
@@ -184,7 +184,7 @@ void import_chunksave(unsigned char *chunk, int32_t *index, int32_t *curr_off, i
         checksum /= 256;
     }
 
-    fwrite(chunk, sizeof(unsigned char), CHUNKSIZE, fnew);
+    fwrite(chunk, sizeof(uint8_t), CHUNKSIZE, fnew);
     for (i = 0; i < CHUNKSIZE; i++)
         chunk[i] = 0;
     *index = 0;

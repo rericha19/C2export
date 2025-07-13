@@ -21,7 +21,7 @@ int32_t texture_recolor_stupid()
 
     fseek(file1, 0, SEEK_END);
     int32_t file_len = ftell(file1);
-    unsigned char *buffer = (unsigned char *)malloc(file_len * sizeof(unsigned char *));
+    uint8_t *buffer = (uint8_t *)malloc(file_len * sizeof(uint8_t *));
     rewind(file1);
     fread(buffer, 1, file_len, file1);
 
@@ -90,7 +90,7 @@ int32_t scenery_recolor_main()
 
     fseek(file1, 0, SEEK_END);
     int32_t color_count = ftell(file1) / 4;
-    unsigned char *buffer = (unsigned char *)malloc((color_count * 4) * sizeof(unsigned char *));
+    uint8_t *buffer = (uint8_t *)malloc((color_count * 4) * sizeof(uint8_t *));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
@@ -103,9 +103,9 @@ int32_t scenery_recolor_main()
     for (int32_t i = 0; i < color_count; i++)
     {
         // read current color
-        unsigned char r = buffer[4 * i + 0];
-        unsigned char g = buffer[4 * i + 1];
-        unsigned char b = buffer[4 * i + 2];
+        uint8_t r = buffer[4 * i + 0];
+        uint8_t g = buffer[4 * i + 1];
+        uint8_t b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
         int32_t sum = r + g + b;
@@ -158,7 +158,7 @@ void rotate_main(char *time)
     double rotation;
     char path[MAX];
     FILE *file;
-    unsigned char *entry;
+    uint8_t *entry;
     int32_t filesize;
 
     scanf("%lf", &rotation);
@@ -184,8 +184,8 @@ void rotate_main(char *time)
     fseek(file, 0, SEEK_END);
     filesize = ftell(file);
     rewind(file);
-    entry = (unsigned char *)malloc(filesize); // freed here
-    fread(entry, sizeof(unsigned char), filesize, file);
+    entry = (uint8_t *)malloc(filesize); // freed here
+    fread(entry, sizeof(uint8_t), filesize, file);
     // if (entry[8] == 7)
     // rotate_zone(entry, path, rotation);
     if (entry[8] == 3)
@@ -195,7 +195,7 @@ void rotate_main(char *time)
 }
 
 // rotates scenery
-void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char *time, int32_t filesize)
+void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time, int32_t filesize)
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
@@ -250,7 +250,7 @@ void rotate_scenery(unsigned char *buffer, char *filepath, double rotation, char
     sprintf(lcltemp, "%s\\%s_%s", filepath, time, help);
 
     filenew = fopen(lcltemp, "wb");
-    fwrite(buffer, sizeof(unsigned char), filesize, filenew);
+    fwrite(buffer, sizeof(uint8_t), filesize, filenew);
     fclose(filenew);
     for (i = 0; i < vertcount; i++)
         free(verts[i]);
@@ -281,13 +281,13 @@ int32_t texture_copy_main()
     scanf(" %[^\n]", fpath);
     path_fix(fpath);
     FILE *file1 = fopen(fpath, "rb");
-    unsigned char *texture1 = (unsigned char *)malloc(65536);
+    uint8_t *texture1 = (uint8_t *)malloc(65536);
 
     printf("Path to destination texture:\n");
     scanf(" %[^\n]", fpath);
     path_fix(fpath);
     FILE *file2 = fopen(fpath, "rb+");
-    unsigned char *texture2 = (unsigned char *)malloc(65536);
+    uint8_t *texture2 = (uint8_t *)malloc(65536);
 
     if (file1 == NULL)
     {
@@ -352,7 +352,7 @@ int32_t texture_copy_main()
 }
 
 // property printing util
-void print_prop_header(unsigned char *arr, int32_t off)
+void print_prop_header(uint8_t *arr, int32_t off)
 {
     printf("\nheader\t");
     for (int32_t j = 0; j < 8; j++)
@@ -364,7 +364,7 @@ void print_prop_header(unsigned char *arr, int32_t off)
 }
 
 // property printing util
-void print_prop_body(unsigned char *arr, int32_t offset, int32_t offset_next)
+void print_prop_body(uint8_t *arr, int32_t offset, int32_t offset_next)
 {
     printf("\ndata\t");
 
@@ -383,14 +383,14 @@ void print_prop_body(unsigned char *arr, int32_t offset, int32_t offset_next)
 /** \brief
  *  Prints out properties present in the file.
  *
- * \param path char*                    path to the property file
+ * \param path char *                    path to the property file
  * \return void
  */
 void prop_main(char *path)
 {
     FILE *file = NULL;
     uint32_t fsize, i, code, offset, offset_next;
-    unsigned char *arr;
+    uint8_t *arr;
 
     if ((file = fopen(path, "rb")) == NULL)
     {
@@ -402,8 +402,8 @@ void prop_main(char *path)
     fsize = ftell(file);
     rewind(file);
 
-    arr = (unsigned char *)malloc(fsize); // freed here
-    fread(arr, fsize, sizeof(unsigned char), file);
+    arr = (uint8_t *)malloc(fsize); // freed here
+    fread(arr, fsize, sizeof(uint8_t), file);
 
     printf("\n");
     for (i = 0; i < build_prop_count(arr); i++)
@@ -505,7 +505,7 @@ void prop_remove_script()
     int32_t fsize = ftell(file1);
     rewind(file1);
 
-    unsigned char *item = malloc(fsize * sizeof(unsigned char));
+    uint8_t *item = malloc(fsize * sizeof(uint8_t));
     fread(item, 1, fsize, file1);
     fclose(file1);
 
@@ -531,13 +531,13 @@ void prop_remove_script()
 }
 
 // command for retrieving full property data
-PROPERTY *build_get_prop_full(unsigned char *item, int32_t prop_code)
+PROPERTY *build_get_prop_full(uint8_t *item, int32_t prop_code)
 {
 
     PROPERTY *prop = malloc(sizeof(PROPERTY));
     prop->length = 0;
     int32_t property_count = build_prop_count(item);
-    unsigned char property_header[8];
+    uint8_t property_header[8];
 
     for (int32_t i = 0; i < property_count; i++)
     {
@@ -583,7 +583,7 @@ void prop_replace_script()
     int32_t fsize = ftell(file1);
     rewind(file1);
 
-    unsigned char *item = malloc(fsize * sizeof(unsigned char));
+    uint8_t *item = malloc(fsize * sizeof(uint8_t));
     fread(item, 1, fsize, file1);
     fclose(file1);
 
@@ -604,7 +604,7 @@ void prop_replace_script()
     int32_t fsize2 = ftell(file2);
     rewind(file2);
 
-    unsigned char *item2 = malloc(fsize2 * sizeof(unsigned char));
+    uint8_t *item2 = malloc(fsize2 * sizeof(uint8_t));
     fread(item2, 1, fsize2, file2);
 
     int32_t fsize2_before;
@@ -681,7 +681,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
-    unsigned char buffer[CHUNKSIZE];
+    uint8_t buffer[CHUNKSIZE];
     int32_t i, chunkcount;
 
     help = strrchr(filepath, '\\');
@@ -696,15 +696,15 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
 
     for (i = 0; i < chunkcount; i++)
     {
-        fread(buffer, sizeof(unsigned char), CHUNKSIZE, level);
+        fread(buffer, sizeof(uint8_t), CHUNKSIZE, level);
         resize_chunk_handler(buffer, status, scale);
-        fwrite(buffer, sizeof(unsigned char), CHUNKSIZE, filenew);
+        fwrite(buffer, sizeof(uint8_t), CHUNKSIZE, filenew);
     }
     fclose(filenew);
 }
 
 // yep resizes model
-void resize_model(int32_t fsize, unsigned char *buffer, double scale[3])
+void resize_model(int32_t fsize, uint8_t *buffer, double scale[3])
 {
     int32_t eid = from_u32(buffer + 4);
     int32_t pb10g = eid_to_int("Pb10G");
@@ -738,7 +738,7 @@ void resize_model(int32_t fsize, unsigned char *buffer, double scale[3])
 }
 
 // yep resizes animation
-void resize_animation(int32_t fsize, unsigned char *buffer, double scale[3])
+void resize_animation(int32_t fsize, uint8_t *buffer, double scale[3])
 {
     int32_t itemc = build_item_count(buffer);
 
@@ -762,7 +762,7 @@ void resize_animation(int32_t fsize, unsigned char *buffer, double scale[3])
 }
 
 // yep fixes camera distance
-void resize_zone_camera_distance(int32_t fsize, unsigned char *buffer, double scale[3])
+void resize_zone_camera_distance(int32_t fsize, uint8_t *buffer, double scale[3])
 {
     int32_t cam_c = build_get_cam_item_count(buffer);
 
@@ -770,7 +770,7 @@ void resize_zone_camera_distance(int32_t fsize, unsigned char *buffer, double sc
     {
         int32_t o = build_get_nth_item_offset(buffer, 2 + i + 1);
 
-        unsigned char *entity = buffer + o;
+        uint8_t *entity = buffer + o;
         for (int32_t j = 0; j < build_prop_count(entity); j++)
         {
             int32_t code = from_u16(entity + 0x10 + 8 * j);
@@ -797,11 +797,11 @@ void resize_zone_camera_distance(int32_t fsize, unsigned char *buffer, double sc
 }
 
 // yep resizes chunk
-void resize_chunk_handler(unsigned char *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
+void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
 {
     int32_t offset_start, offset_end, i;
     uint32_t checksum;
-    unsigned char *entry = NULL;
+    uint8_t *entry = NULL;
     if (chunk[2] != 0)
         return;
 
@@ -844,7 +844,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
 {
     struct dirent *de;
     char lcltemp[6] = "", help[MAX] = "";
-    unsigned char *buffer = NULL;
+    uint8_t *buffer = NULL;
     FILE *file, *filenew;
     int32_t filesize;
 
@@ -870,12 +870,12 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (unsigned char *)calloc(sizeof(unsigned char), filesize); // freed here
-                fread(buffer, sizeof(unsigned char), filesize, file);
+                buffer = (uint8_t *)calloc(sizeof(uint8_t), filesize); // freed here
+                fread(buffer, sizeof(uint8_t), filesize, file);
                 resize_scenery(filesize, buffer, scale, status);
                 sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
                 filenew = fopen(help, "wb");
-                fwrite(buffer, sizeof(unsigned char), filesize, filenew);
+                fwrite(buffer, sizeof(uint8_t), filesize, filenew);
                 free(buffer);
                 fclose(file);
                 fclose(filenew);
@@ -888,12 +888,12 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (unsigned char *)calloc(sizeof(unsigned char), filesize); // freed here
-                fread(buffer, sizeof(unsigned char), filesize, file);
+                buffer = (uint8_t *)calloc(sizeof(uint8_t), filesize); // freed here
+                fread(buffer, sizeof(uint8_t), filesize, file);
                 resize_zone(filesize, buffer, scale, status);
                 sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
                 filenew = fopen(help, "wb");
-                fwrite(buffer, sizeof(unsigned char), filesize, filenew);
+                fwrite(buffer, sizeof(uint8_t), filesize, filenew);
                 free(buffer);
                 fclose(file);
                 fclose(filenew);
@@ -903,7 +903,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
 }
 
 // yep resizes zone
-void resize_zone(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int32_t i, itemcount;
     uint32_t coord;
@@ -946,7 +946,7 @@ void resize_zone(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECAT
 }
 
 // yep resizes entity
-void resize_entity(unsigned char *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int32_t i;
 
@@ -970,7 +970,7 @@ void resize_entity(unsigned char *item, int32_t itemsize, double scale[3], DEPRE
 }
 
 // yep resizes scenery
-void resize_scenery(int32_t fsize, unsigned char *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
     int32_t i, item1off, j, curr_off, next_off, group, rest, vert;
     int64_t origin;
@@ -1086,8 +1086,8 @@ void nsd_gool_table_print(char *fpath)
     int32_t filesize = ftell(file);
     rewind(file);
 
-    unsigned char *buffer = (unsigned char *)malloc(filesize * sizeof(unsigned char *)); // freed here
-    fread(buffer, sizeof(unsigned char), filesize, file);
+    uint8_t *buffer = (uint8_t *)malloc(filesize * sizeof(uint8_t *)); // freed here
+    fread(buffer, sizeof(uint8_t), filesize, file);
 
     int32_t entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
     for (int32_t i = 0; i < 64; i++)
@@ -1147,7 +1147,7 @@ void generate_spawn()
 
     for (int32_t i = 0; i < build_get_entity_count(elist[elist_index].data); i++)
     {
-        unsigned char *entity = build_get_nth_item(elist[elist_index].data, 2 + 3 * cam_count + i);
+        uint8_t *entity = build_get_nth_item(elist[elist_index].data, 2 + 3 * cam_count + i);
         int32_t ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
         if (ID == entity_id)
@@ -1170,7 +1170,7 @@ void generate_spawn()
         return;
     }
 
-    unsigned char *coll_item = build_get_nth_item(elist[elist_index].data, 1);
+    uint8_t *coll_item = build_get_nth_item(elist[elist_index].data, 1);
     uint32_t zone_x = from_u32(coll_item);
     uint32_t zone_y = from_u32(coll_item + 4);
     uint32_t zone_z = from_u32(coll_item + 8);
@@ -1179,7 +1179,7 @@ void generate_spawn()
     uint32_t y = (zone_y + 4 * path[1]) << 8;
     uint32_t z = (zone_z + 4 * path[2]) << 8;
 
-    unsigned char arr[0x18] = {0};
+    uint8_t arr[0x18] = {0};
     *(uint32_t *)arr = zone_eid;
     *(uint32_t *)(arr + 0x4) = path_to_spawn_on;
     *(uint32_t *)(arr + 0x8) = 0;
@@ -1227,7 +1227,7 @@ int32_t scenery_recolor_main2()
 
     fseek(file1, 0, SEEK_END);
     int32_t color_count = ftell(file1) / 4;
-    unsigned char *buffer = (unsigned char *)malloc((color_count * 4) * sizeof(unsigned char *));
+    uint8_t *buffer = (uint8_t *)malloc((color_count * 4) * sizeof(uint8_t *));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
@@ -1237,9 +1237,9 @@ int32_t scenery_recolor_main2()
     for (int32_t i = 0; i < color_count; i++)
     {
         // read current color
-        unsigned char r = buffer[4 * i + 0];
-        unsigned char g = buffer[4 * i + 1];
-        unsigned char b = buffer[4 * i + 2];
+        uint8_t r = buffer[4 * i + 0];
+        uint8_t g = buffer[4 * i + 1];
+        uint8_t b = buffer[4 * i + 2];
 
         // get pseudograyscale of the current color
         int32_t sum = r + g + b;
@@ -1308,7 +1308,7 @@ void c3_ent_resize()
     double scale = 1;
     rewind(file1);
 
-    unsigned char *buffer = (unsigned char *)malloc(fsize);
+    uint8_t *buffer = (uint8_t *)malloc(fsize);
     fread(buffer, fsize, 1, file1);
 
     uint32_t offset = 0;
@@ -1391,7 +1391,7 @@ void entity_move_scr()
     int32_t fsize = ftell(file1);
     rewind(file1);
 
-    unsigned char *buffer = (unsigned char *)malloc(fsize);
+    uint8_t *buffer = (uint8_t *)malloc(fsize);
     fread(buffer, fsize, 1, file1);
 
     uint32_t offset = 0;
@@ -1433,7 +1433,7 @@ void entity_move_scr()
 }
 
 // prints a model's texture references
-void print_model_refs_util(unsigned char *model)
+void print_model_refs_util(uint8_t *model)
 {
     char *strs[200];
     int32_t str_cnt = 0;
@@ -1450,7 +1450,7 @@ void print_model_refs_util(unsigned char *model)
     printf("TEXTURE CLUT B S-X  Y  W  H\n");
     for (int32_t i = 0; i < tex_ref_item_size; i += 12)
     {
-        unsigned char *curr_off = model + item4off + i;
+        uint8_t *curr_off = model + item4off + i;
         int32_t seg = from_u8(curr_off + 6) & 0xF;
         int32_t bit = from_u8(curr_off + 6) & 0x80;
 
@@ -1552,7 +1552,7 @@ void print_model_tex_refs()
     fseek(file1, 0, SEEK_END);
     int32_t fsize = ftell(file1);
     rewind(file1);
-    unsigned char *model = (unsigned char *)malloc(fsize);
+    uint8_t *model = (uint8_t *)malloc(fsize);
     fread(model, fsize, 1, file1);
     fclose(file1);
 
@@ -1604,7 +1604,7 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, uint32_t *gool_tab
 
             for (int32_t j = 0; j < entity_count; j++)
             {
-                unsigned char *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
+                uint8_t *entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
                 int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -1738,7 +1738,7 @@ void nsf_props_scr()
             {
                 for (int32_t k = 0; k < 3; k++)
                 {
-                    unsigned char *item = build_get_nth_item(elist[i].data, 2 + 3 * j + k);
+                    uint8_t *item = build_get_nth_item(elist[i].data, 2 + 3 * j + k);
                     int32_t prop_count = build_prop_count(item);
 
                     for (int32_t l = 0; l < build_prop_count(item); l++)
@@ -1773,10 +1773,10 @@ void generate_slst()
 {
     int32_t cam_len = 0;
     char name[100] = "ABCDE";
-    static unsigned char empty_source[] = {0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-    static unsigned char empty_delta[] = {0x2, 0x0, 0x1, 0x0, 0x2, 0x0, 0x2, 0x0};
+    static uint8_t empty_source[] = {0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+    static uint8_t empty_delta[] = {0x2, 0x0, 0x1, 0x0, 0x2, 0x0, 0x2, 0x0};
     uint32_t real_len = 0x10;
-    unsigned char buffer[0x20000];
+    uint8_t buffer[0x20000];
     char fpath[500] = "";
 
     printf("Camera path length?\n");
@@ -1810,18 +1810,18 @@ void generate_slst()
     }
 
     for (int32_t i = 0; i < 8; i++)
-        *(unsigned char *)(buffer + real_len + i) = empty_source[i];
+        *(uint8_t *)(buffer + real_len + i) = empty_source[i];
     real_len += 8;
 
     for (int32_t j = 0; j < (cam_len - 1); j++)
     {
         for (int32_t i = 0; i < 8; i++)
-            *(unsigned char *)(buffer + real_len + i) = empty_delta[i];
+            *(uint8_t *)(buffer + real_len + i) = empty_delta[i];
         real_len += 8;
     }
 
     for (int32_t i = 0; i < 8; i++)
-        *(unsigned char *)(buffer + real_len + i) = empty_source[i];
+        *(uint8_t *)(buffer + real_len + i) = empty_source[i];
     real_len += 8;
 
     fwrite(buffer, real_len, 1, file);
@@ -1890,7 +1890,7 @@ void warp_spawns_generate()
             if (build_entry_type(elist[j]) != ENTRY_TYPE_ZONE)
                 continue;
 
-            unsigned char *curr_zone = elist[j].data;
+            uint8_t *curr_zone = elist[j].data;
             int32_t camc = build_get_cam_item_count(curr_zone);
 
             for (int32_t k = 0; k < build_get_entity_count(curr_zone); k++)
@@ -1902,7 +1902,7 @@ void warp_spawns_generate()
                     int32_t pathlen;
                     int16_t *path = build_get_path(elist, j, 2 + camc + k, &pathlen);
 
-                    unsigned char *coll_item = build_get_nth_item(elist[j].data, 1);
+                    uint8_t *coll_item = build_get_nth_item(elist[j].data, 1);
                     uint32_t zone_x = from_u32(coll_item);
                     uint32_t zone_y = from_u32(coll_item + 4);
                     uint32_t zone_z = from_u32(coll_item + 8);
@@ -1911,7 +1911,7 @@ void warp_spawns_generate()
                     uint32_t y = (zone_y + 4 * path[1]) << 8;
                     uint32_t z = (zone_z + 4 * path[2]) << 8;
 
-                    unsigned char arr[0x18] = {0};
+                    uint8_t arr[0x18] = {0};
                     *(uint32_t *)arr = elist[j].eid;
                     *(uint32_t *)(arr + 0x4) = 0;
                     *(uint32_t *)(arr + 0x8) = 0;
@@ -2035,7 +2035,7 @@ void fov_stats_util(char *fpath)
         int32_t c_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int32_t j = 0; j < c_count; j++)
         {
-            unsigned char *entity = build_get_nth_item(elist[i].data, 2 + 3 * j);
+            uint8_t *entity = build_get_nth_item(elist[i].data, 2 + 3 * j);
             int32_t fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
             printf("Zone %5s : fov %d\n", eid_conv2(elist[i].eid), fov);
         }
@@ -2074,7 +2074,7 @@ void checkpoint_stats_util(char *fpath)
 
         for (int32_t j = 0; j < e_count; j++)
         {
-            unsigned char *entity = build_get_nth_item(elist[i].data, 2 + c_count + j);
+            uint8_t *entity = build_get_nth_item(elist[i].data, 2 + c_count + j);
             int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
             int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
             // int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -2331,7 +2331,7 @@ void tpage_util_util(char *fpath)
         filename = fpath;
     }
 
-    unsigned char *chunks[CHUNK_LIST_DEFAULT_SIZE];
+    uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE];
     int32_t chunk_border_texture = 0;
     if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_border_texture, NULL, elist, &entry_count, chunks, NULL, 1, fpath))
         return;

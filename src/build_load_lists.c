@@ -387,7 +387,7 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int32_t cam_length, int32_t
     *(int16_t *)(prop.header + 6) = delta_counter;
 
     prop.length = total_length;
-    prop.data = (unsigned char *)malloc(total_length * sizeof(unsigned char)); // freed by caller
+    prop.data = (uint8_t *)malloc(total_length * sizeof(uint8_t)); // freed by caller
 
     int32_t indexer = 0;
     int32_t offset = 4 * delta_counter;
@@ -898,7 +898,7 @@ void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDEN
             int32_t entity_count = build_get_entity_count(elist[i].data);
             for (j = 0; j < entity_count; j++)
             {
-                unsigned char *entity = elist[i].data + from_u32(elist[i].data + 0x10 + (2 + cam_count + j) * 4);
+                uint8_t *entity = elist[i].data + from_u32(elist[i].data + 0x10 + (2 + cam_count + j) * 4);
                 int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
                 int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
                 int32_t enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -985,13 +985,13 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int32_t zone_index, int32_t cam
  * \param full_list LIST*               current load list
  * \param start_index int32_t               camera point index from which the additions are copied in
  * \param end_index int32_t                 camera point index until which the additions are copied in
- * \param entry unsigned char*          entry in which it searches collision types
+ * \param entry uint8_t*          entry in which it searches collision types
  * \param collisions DEPENDENCIES       list that contains list of entries tied to a specific collision type
  * \param elist ENTRY*                  entry_list
  * \param entry_count int32_t               entry_count
  * \return void
  */
-void build_add_collision_dependencies(LIST *full_list, int32_t start_index, int32_t end_index, unsigned char *entry, DEPENDENCIES collisions, ENTRY *elist, int32_t entry_count)
+void build_add_collision_dependencies(LIST *full_list, int32_t start_index, int32_t end_index, uint8_t *entry, DEPENDENCIES collisions, ENTRY *elist, int32_t entry_count)
 {
     int32_t x, i, j, k;
     LIST neighbours = build_get_neighbours(entry);
@@ -1003,7 +1003,7 @@ void build_add_collision_dependencies(LIST *full_list, int32_t start_index, int3
             continue;
 
         int32_t item2off = from_u32(elist[index].data + 0x14);
-        unsigned char *item = elist[index].data + item2off;
+        uint8_t *item = elist[index].data + item2off;
         int32_t count = from_u32(item + 0x18);
 
         for (i = 0; i < count + 2; i++)
@@ -1074,11 +1074,11 @@ void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_loa
 /** \brief
  *  Gets indexes of camera linked neighbours specified in the camera link property.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \param cam_index int32_t                 index of the camera item
  * \return void
  */
-LIST build_get_links(unsigned char *entry, int32_t cam_index)
+LIST build_get_links(uint8_t *entry, int32_t cam_index)
 {
     int32_t i, k, l, link_count = 0;
     int32_t *links = NULL;
@@ -1117,20 +1117,20 @@ LIST build_get_links(unsigned char *entry, int32_t cam_index)
 }
 
 // replaces nth item in a zone with an item with specified data and length
-void build_replace_item(ENTRY *zone, int32_t item_index, unsigned char *new_item, int32_t item_size)
+void build_replace_item(ENTRY *zone, int32_t item_index, uint8_t *new_item, int32_t item_size)
 {
     int32_t i, offset;
     int32_t item_count = build_item_count(zone->data);
     int32_t first_item_offset = 0x14 + 4 * item_count;
 
     int32_t *item_lengths = (int32_t *)malloc(item_count * sizeof(int32_t));
-    unsigned char **items = (unsigned char **)malloc(item_count * sizeof(unsigned char **));
+    uint8_t **items = (uint8_t **)malloc(item_count * sizeof(uint8_t **));
     for (i = 0; i < item_count; i++)
         item_lengths[i] = build_get_nth_item_offset(zone->data, i + 1) - build_get_nth_item_offset(zone->data, i);
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
-        items[i] = (unsigned char *)malloc(item_lengths[i]);
+        items[i] = (uint8_t *)malloc(item_lengths[i]);
         memcpy(items[i], zone->data + offset, item_lengths[i]);
     }
 
@@ -1141,7 +1141,7 @@ void build_replace_item(ENTRY *zone, int32_t item_index, unsigned char *new_item
     for (i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    unsigned char *new_data = (unsigned char *)malloc(new_size);
+    uint8_t *new_data = (uint8_t *)malloc(new_size);
     *(int32_t *)(new_data) = MAGIC_ENTRY;
     *(int32_t *)(new_data + 0x4) = zone->eid;
     *(int32_t *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
@@ -1168,25 +1168,25 @@ void build_replace_item(ENTRY *zone, int32_t item_index, unsigned char *new_item
  *
  * \param zone ENTRY*                   zone data
  * \param item_index int32_t                index of the item/entity to be altered
- * \param func_arg unsigned char*       function to be used, either remove or add property
+ * \param func_arg uint8_t*       function to be used, either remove or add property
  * \param list LIST*                    list to be added (might be unused)
  * \param property_code int32_t             property code
  * \return void
  */
-void build_entity_alter(ENTRY *zone, int32_t item_index, unsigned char *(func_arg)(uint32_t, unsigned char *, int32_t *, PROPERTY *), int32_t property_code, PROPERTY *prop)
+void build_entity_alter(ENTRY *zone, int32_t item_index, uint8_t *(func_arg)(uint32_t, uint8_t *, int32_t *, PROPERTY *), int32_t property_code, PROPERTY *prop)
 {
     int32_t i, offset;
     int32_t item_count = build_item_count(zone->data);
     int32_t first_item_offset = 0x14 + 4 * item_count;
 
     int32_t *item_lengths = (int32_t *)malloc(item_count * sizeof(int32_t));
-    unsigned char **items = (unsigned char **)malloc(item_count * sizeof(unsigned char **));
+    uint8_t **items = (uint8_t **)malloc(item_count * sizeof(uint8_t **));
     for (i = 0; i < item_count; i++)
         item_lengths[i] = build_get_nth_item_offset(zone->data, i + 1) - build_get_nth_item_offset(zone->data, i);
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
-        items[i] = (unsigned char *)malloc(item_lengths[i]);
+        items[i] = (uint8_t *)malloc(item_lengths[i]);
         memcpy(items[i], zone->data + offset, item_lengths[i]);
     }
 
@@ -1196,7 +1196,7 @@ void build_entity_alter(ENTRY *zone, int32_t item_index, unsigned char *(func_ar
     for (i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    unsigned char *new_data = (unsigned char *)malloc(new_size);
+    uint8_t *new_data = (uint8_t *)malloc(new_size);
     *(int32_t *)(new_data) = MAGIC_ENTRY;
     *(int32_t *)(new_data + 0x4) = zone->eid;
     *(int32_t *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
@@ -1222,22 +1222,22 @@ void build_entity_alter(ENTRY *zone, int32_t item_index, unsigned char *(func_ar
  *  Creates a load list and inserts it basically.
  *
  * \param code uint32_t             code of the property to be added
- * \param item unsigned char*           data of item where the property will be added
+ * \param item uint8_t*           data of item where the property will be added
  * \param item_size int32_t*                item size
  * \param list LIST *                   load list to be added
- * \return unsigned char*               new item data
+ * \return uint8_t*               new item data
  */
-unsigned char *build_add_property(uint32_t code, unsigned char *item, int32_t *item_size, PROPERTY *prop)
+uint8_t *build_add_property(uint32_t code, uint8_t *item, int32_t *item_size, PROPERTY *prop)
 {
     int32_t offset, i, property_count = build_prop_count(item);
 
     int32_t *property_sizes = (int32_t *)malloc((property_count + 1) * sizeof(int32_t));
-    unsigned char **properties = (unsigned char **)malloc((property_count + 1) * sizeof(unsigned char *));
-    unsigned char **property_headers = (unsigned char **)malloc((property_count + 1) * sizeof(unsigned char *));
+    uint8_t **properties = (uint8_t **)malloc((property_count + 1) * sizeof(uint8_t *));
+    uint8_t **property_headers = (uint8_t **)malloc((property_count + 1) * sizeof(uint8_t *));
 
     for (i = 0; i < property_count + 1; i++)
     {
-        property_headers[i] = (unsigned char *)malloc(8 * sizeof(unsigned char));
+        property_headers[i] = (uint8_t *)malloc(8 * sizeof(uint8_t));
         for (int32_t j = 0; j < 8; j++)
             property_headers[i][j] = 0;
     }
@@ -1289,7 +1289,7 @@ unsigned char *build_add_property(uint32_t code, unsigned char *item, int32_t *i
         if (i == insertion_index)
             continue;
 
-        properties[i] = (unsigned char *)malloc(property_sizes[i]);
+        properties[i] = (uint8_t *)malloc(property_sizes[i]);
         memcpy(properties[i], item + offset, property_sizes[i]);
         offset += property_sizes[i];
     }
@@ -1304,7 +1304,7 @@ unsigned char *build_add_property(uint32_t code, unsigned char *item, int32_t *i
     if (insertion_index == property_count)
         new_size += OFFSET;
 
-    unsigned char *new_item = (unsigned char *)malloc(new_size);
+    uint8_t *new_item = (uint8_t *)malloc(new_size);
     *(int32_t *)(new_item) = new_size - OFFSET;
 
     *(int32_t *)(new_item + 0x4) = 0;
@@ -1337,23 +1337,23 @@ unsigned char *build_add_property(uint32_t code, unsigned char *item, int32_t *i
  *  Removes the specified property.
  *
  * \param code uint32_t             code of the property to be removed
- * \param item unsigned char*           data of the item thats to be changed
+ * \param item uint8_t*           data of the item thats to be changed
  * \param item_size int32_t*                size of the item
  * \param prop PROPERTY                 unused
- * \return unsigned char*               new item data
+ * \return uint8_t*               new item data
  */
-unsigned char *build_rem_property(uint32_t code, unsigned char *item, int32_t *item_size, PROPERTY *prop)
+uint8_t *build_rem_property(uint32_t code, uint8_t *item, int32_t *item_size, PROPERTY *prop)
 {
     int32_t offset, i, property_count = build_prop_count(item);
 
     int32_t *property_sizes = (int32_t *)malloc(property_count * sizeof(int32_t));
-    unsigned char **properties = (unsigned char **)malloc(property_count * sizeof(unsigned char *));
-    unsigned char **property_headers = (unsigned char **)malloc(property_count * sizeof(unsigned char *));
+    uint8_t **properties = (uint8_t **)malloc(property_count * sizeof(uint8_t *));
+    uint8_t **property_headers = (uint8_t **)malloc(property_count * sizeof(uint8_t *));
 
     int32_t found = 0;
     for (i = 0; i < property_count; i++)
     {
-        property_headers[i] = (unsigned char *)malloc(8 * sizeof(unsigned char *));
+        property_headers[i] = (uint8_t *)malloc(8 * sizeof(uint8_t *));
         memcpy(property_headers[i], item + 0x10 + 8 * i, 8);
         if (from_u16(property_headers[i]) == code)
             found++;
@@ -1369,7 +1369,7 @@ unsigned char *build_rem_property(uint32_t code, unsigned char *item, int32_t *i
     offset = 0x10 + 8 * property_count;
     for (i = 0; i < property_count; offset += property_sizes[i], i++)
     {
-        properties[i] = (unsigned char *)malloc(property_sizes[i]);
+        properties[i] = (uint8_t *)malloc(property_sizes[i]);
         memcpy(properties[i], item + offset, property_sizes[i]);
     }
 
@@ -1381,7 +1381,7 @@ unsigned char *build_rem_property(uint32_t code, unsigned char *item, int32_t *i
         new_size += property_sizes[i];
     }
 
-    unsigned char *new_item = (unsigned char *)malloc(new_size);
+    uint8_t *new_item = (uint8_t *)malloc(new_size);
     *(int32_t *)(new_item) = new_size;
     *(int32_t *)(new_item + 4) = 0;
     *(int32_t *)(new_item + 8) = 0;
@@ -1428,7 +1428,7 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
     int32_t first_item_offset = 0x14 + 4 * item_count;
 
     int32_t *item_lengths = (int32_t *)malloc(item_count * sizeof(int32_t));
-    unsigned char **items = (unsigned char **)malloc(item_count * sizeof(unsigned char **));
+    uint8_t **items = (uint8_t **)malloc(item_count * sizeof(uint8_t **));
     for (i = 0; i < item_count; i++)
     {
         int32_t next_start = build_get_nth_item_offset(entry->data, i + 1);
@@ -1440,7 +1440,7 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
-        items[i] = (unsigned char *)malloc(item_lengths[i]);
+        items[i] = (uint8_t *)malloc(item_lengths[i]);
         memcpy(items[i], entry->data + offset, item_lengths[i]);
     }
 
@@ -1451,7 +1451,7 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
     for (i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    unsigned char *new_data = (unsigned char *)malloc(new_size);
+    uint8_t *new_data = (uint8_t *)malloc(new_size);
     *(int32_t *)(new_data) = MAGIC_ENTRY;
     *(int32_t *)(new_data + 0x4) = entry->eid;
     *(int32_t *)(new_data + 0x8) = *(int32_t *)(entry->data + 8);
@@ -1489,10 +1489,10 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
  *  Gets texture references from a model and adds them to the list.
  *
  * \param list LIST*                        list to be added to
- * \param model unsigned char*              model data
+ * \param model uint8_t*              model data
  * \return void
  */
-void build_add_model_textures_to_list(unsigned char *model, LIST *list)
+void build_add_model_textures_to_list(uint8_t *model, LIST *list)
 {
     int32_t item1off = from_u32(model + 0x10);
     int32_t tex_count = from_u32(model + item1off + 0x40);
@@ -1508,11 +1508,11 @@ void build_add_model_textures_to_list(unsigned char *model, LIST *list)
 /** \brief
  *  Gets texture references from a scenery entry and inserts them to the list.
  *
- * \param scenery unsigned char*            scenery data
+ * \param scenery uint8_t*            scenery data
  * \param list LIST*                        list to be added to
  * \return void
  */
-void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list)
+void build_add_scen_textures_to_list(uint8_t *scenery, LIST *list)
 {
     int32_t item1off = from_u32(scenery + 0x10);
     int32_t texture_count = from_u32(scenery + item1off + 0x28);
@@ -1534,7 +1534,7 @@ void build_add_scen_textures_to_list(unsigned char *scenery, LIST *list)
  */
 int16_t *build_get_path(ENTRY *elist, int32_t zone_index, int32_t item_index, int32_t *path_len)
 {
-    unsigned char *item = build_get_nth_item(elist[zone_index].data, item_index);
+    uint8_t *item = build_get_nth_item(elist[zone_index].data, item_index);
     int32_t offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
     if (offset)
@@ -1553,17 +1553,17 @@ int16_t *build_get_path(ENTRY *elist, int32_t zone_index, int32_t item_index, in
 /** \brief
  *  Gets zone's scenery reference count.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \return int32_t                          scenery reference count
  */
-int32_t build_get_scen_count(unsigned char *entry)
+int32_t build_get_scen_count(uint8_t *entry)
 {
     int32_t item1off = build_get_nth_item_offset(entry, 0);
     return entry[item1off];
 }
 
 // get scenery list from entry data
-LIST build_get_sceneries(unsigned char *entry)
+LIST build_get_sceneries(uint8_t *entry)
 {
     int32_t scen_count = build_get_scen_count(entry);
     int32_t item1off = build_get_nth_item_offset(entry, 0);

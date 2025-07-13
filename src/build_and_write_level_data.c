@@ -11,16 +11,16 @@
  * \param entry_count int32_t               entry count
  * \param chunk_border_sounds int32_t       index of the first normal chunk, only chunks afterwards get built (normal chunks)
  * \param chunk_count int32_t               chunk count
- * \param chunks unsigned char**        array with built chunks
+ * \param chunks uint8_t**        array with built chunks
  * \return void
  */
-void build_write_nsf(FILE *nsfnew, ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, unsigned char **chunks, FILE *nsfnew2)
+void build_write_nsf(FILE *nsfnew, ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t **chunks, FILE *nsfnew2)
 {
     for (int32_t i = 0; i < chunk_count; i++)
-        fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew);
+        fwrite(chunks[i], sizeof(uint8_t), CHUNKSIZE, nsfnew);
     if (nsfnew2 != NULL)
         for (int32_t i = 0; i < chunk_count; i++)
-            fwrite(chunks[i], sizeof(unsigned char), CHUNKSIZE, nsfnew2);
+            fwrite(chunks[i], sizeof(uint8_t), CHUNKSIZE, nsfnew2);
 }
 
 /** \brief
@@ -30,10 +30,10 @@ void build_write_nsf(FILE *nsfnew, ENTRY *elist, int32_t entry_count, int32_t ch
  * \param entry_count int32_t               entry count
  * \param chunk_border_sounds int32_t       index where sounds end
  * \param chunk_count int32_t               chunk count
- * \param chunks unsigned char**        array of chunks
+ * \param chunks uint8_t**        array of chunks
  * \return void
  */
-void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, unsigned char **chunks, int32_t do_end_print)
+void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t **chunks, int32_t do_end_print)
 {
     int32_t i, j, sum = 0;
     // texture, wavebank and sound chunks are already taken care of, thats why it starts after sounds
@@ -45,7 +45,7 @@ void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border
             if (elist[j].chunk == i)
                 local_entry_count++;
 
-        chunks[i] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
+        chunks[i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
         // header stuff
         *(uint16_t *)chunks[i] = MAGIC_CHUNK;
         *(uint16_t *)(chunks[i] + 4) = chunk_no;
@@ -78,7 +78,7 @@ void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border
             }
         }
 
-        sum += curr_offset;                                            // for avg
+        sum += curr_offset;                                                          // for avg
         *((uint32_t *)(chunks[i] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[i]); // chunk checksum
         free(offsets);
     }
@@ -109,7 +109,7 @@ uint32_t build_get_ldat_eid(int32_t level_ID)
  *  The rest should be ok. (its not)
  *  Lets you pick the main spawn.
  *
- * \param path char*                    path to the nsd
+ * \param path char *                    path to the nsd
  * \param elist ENTRY*                  entry list
  * \param entry_count int32_t               entry count
  * \param chunk_count int32_t               chunk count
@@ -123,7 +123,7 @@ void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, i
     int32_t real_entry_count = 0;
 
     // arbitrarily doing 64kB because convenience
-    unsigned char *nsddata = (unsigned char *)calloc(CHUNKSIZE, 1); // freed here
+    uint8_t *nsddata = (uint8_t *)calloc(CHUNKSIZE, 1); // freed here
 
     // count actual entries (some entries might not have been assigned a chunk for a reason, those are left out)
     for (int32_t i = 0; i < entry_count; i++)

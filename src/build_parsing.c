@@ -7,22 +7,22 @@
  *
  * \param elist ENTRY*                  list of entries
  * \param chunk_border_base int32_t         chunk count of the base nsf
- * \param chunks unsigned char**        chunk array, base level gets put straight into them
+ * \param chunks uint8_t**        chunk array, base level gets put straight into them
  * \param chunk_border_texture int32_t*     index of the last texture chunk
  * \param entry_count int32_t*              entry count
  * \param nsf FILE*                     nsf file
  * \param gool_table uint32_t*      gool table gets created, contains GOOL entries associated with the type/index they are on
  * \return void
  */
-void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, unsigned char **chunks, int32_t *chunk_border_texture, int32_t *entry_count, FILE *nsf, uint32_t *gool_table)
+void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, uint8_t **chunks, int32_t *chunk_border_texture, int32_t *entry_count, FILE *nsf, uint32_t *gool_table)
 {
     int32_t i, j, offset;
-    unsigned char chunk[CHUNKSIZE];
+    uint8_t chunk[CHUNKSIZE];
 
     for (i = 0; i < chunk_border_base; i++)
     {
-        fread(chunk, CHUNKSIZE, sizeof(unsigned char), nsf);
-        chunks[*chunk_border_texture] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
+        fread(chunk, CHUNKSIZE, sizeof(uint8_t), nsf);
+        chunks[*chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
         memcpy(chunks[*chunk_border_texture], chunk, CHUNKSIZE);
         (*chunk_border_texture)++;
         if (chunk[2] != 1)
@@ -47,8 +47,8 @@ void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, unsigned char **chu
  *  Collects relatives.
  *
  * \param df DIR*                       directory/folder
- * \param dirpath char*                 path to the directory/folder
- * \param chunks unsigned char**        array of 64kB chunks
+ * \param dirpath char *                 path to the directory/folder
+ * \param chunks uint8_t**        array of 64kB chunks
  * \param elist ENTRY*                  entry list
  * \param chunk_border_texture int32_t*     max index of a texture chunk
  * \param entry_count int32_t*              entry count
@@ -56,13 +56,13 @@ void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, unsigned char **chu
  * \param gool_table uint32_t*      table that contains GOOL entries on indexes that correspond to their types
  * \return void
  */
-void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *elist, int32_t *chunk_border_texture, int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table)
+void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, int32_t *chunk_border_texture, int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table)
 {
     struct dirent *de;
     char temp[500];
     FILE *file = NULL;
     int32_t fsize;
-    unsigned char entry[CHUNKSIZE];
+    uint8_t entry[CHUNKSIZE];
 
     while ((de = readdir(df)) != NULL)
         if ((de->d_name)[0] != '.')
@@ -78,12 +78,12 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             fseek(file, 0, SEEK_END);
             fsize = ftell(file);
             rewind(file);
-            fread(entry, fsize, sizeof(unsigned char), file);
+            fread(entry, fsize, sizeof(uint8_t), file);
             if (fsize == CHUNKSIZE && from_u16(entry + 0x2) == CHUNK_TYPE_TEXTURE)
             {
                 if (build_get_base_chunk_border(from_u32(entry + 4), chunks, *chunk_border_texture) > 0)
                     continue;
-                chunks[*chunk_border_texture] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
+                chunks[*chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
                 memcpy(chunks[*chunk_border_texture], entry, CHUNKSIZE);
                 elist[*entry_count].eid = from_u32(entry + 4);
                 elist[*entry_count].chunk = *chunk_border_texture;
@@ -112,7 +112,7 @@ void build_read_folder(DIR *df, char *dirpath, unsigned char **chunks, ENTRY *el
             if (entry[8] == ENTRY_TYPE_GOOL && build_item_count(entry) == 6)
                 elist[*entry_count].related = build_get_gool_relatives(entry, fsize);
 
-            elist[*entry_count].data = (unsigned char *)malloc(fsize * sizeof(unsigned char)); // freed by build_main at its end
+            elist[*entry_count].data = (uint8_t *)malloc(fsize * sizeof(uint8_t)); // freed by build_main at its end
             memcpy(elist[*entry_count].data, entry, fsize);
             if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && *(elist[*entry_count].data + 8) > 3)
             {
@@ -148,7 +148,7 @@ DEPENDENCIES build_init_dep()
  *
  * \param permaloaded LIST*             list of permaloaded entries (created here)
  * \param subtype_info DEPENDENCIES*    list of type/subtype dependencies (created here)
- * \param file_path char*               path of the input file
+ * \param file_path char *               path of the input file
  * \param elist ENTRY*                  entry list
  * \param entry_count int32_t               entry count
  * \return int32_t                          1 if all went good, 0 if something is wrong
@@ -481,14 +481,14 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
 /** \brief
  *  Gets list of special entries in the zone's first item. For more info see function below.
  *
- * \param zone unsigned char*           zone to get the stuff from
+ * \param zone uint8_t*           zone to get the stuff from
  * \return LIST                         list of special entries
  */
-LIST build_read_special_entries(unsigned char *zone)
+LIST build_read_special_entries(uint8_t *zone)
 {
     LIST special_entries = init_list();
     int32_t item1off = from_u32(zone + 0x10);
-    unsigned char *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
+    uint8_t *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
     int32_t special_entry_count = from_u32(metadata_ptr);
 
     for (int32_t i = 1; i <= special_entry_count; i++)
@@ -554,11 +554,11 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count)
 /** \brief
  *  Gets relatives of zones.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \param spawns SPAWNS*                during relative collection it searches for possible spawns
  * \return uint32_t*                array of relatives relatives[count + 1], relatives[0] contains count or NULL
  */
-uint32_t *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
+uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
 {
     int32_t entity_count, item1len, relcount, camcount, neighbourcount, scencount, i, entry_count = 0;
     uint32_t *relatives;
@@ -625,11 +625,11 @@ uint32_t *build_get_zone_relatives(unsigned char *entry, SPAWNS *spawns)
 /** \brief
  *  Gets gool relatives excluding models.
  *
- * \param entry unsigned char*          entry data
+ * \param entry uint8_t*          entry data
  * \param entrysize int32_t                 entry size
  * \return uint32_t*                array of relatives relatives[count + 1], relatives[0] == count
  */
-uint32_t *build_get_gool_relatives(unsigned char *entry, int32_t entrysize)
+uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
 {
     int32_t curr_off, type = 0, help;
     int32_t i, counter = 0;
@@ -702,10 +702,10 @@ uint32_t *build_get_gool_relatives(unsigned char *entry, int32_t entrysize)
  *  Searches the entity, if it has (correct) type and subtype and coords property,
  *  returns them as int32_t[3]. Usually set to accept willy and checkpoint entities.
  *
- * \param item unsigned char*           entity data
+ * \param item uint8_t*           entity data
  * \return int32_t*                         int32_t[3] with xyz coords the entity if it meets criteria or NULL
  */
-int32_t *build_seek_spawn(unsigned char *item)
+int32_t *build_seek_spawn(uint8_t *item)
 {
     int32_t i, code, offset, type = -1, subtype = -1, coords_offset = -1;
     for (i = 0; (unsigned)i < from_u32(item + 0xC); i++)
@@ -907,7 +907,7 @@ void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t 
 
 // parsing input info for rebuilding using files from folder (not really supported)
 int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                               ENTRY *elist, int32_t *entry_count, unsigned char **chunks, SPAWNS *spawns)
+                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns)
 {
     char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20];
     printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
@@ -950,7 +950,7 @@ int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
 
 // parsing input info for rebuilding from a nsf file
 int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                               ENTRY *elist, int32_t *entry_count, unsigned char **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath)
+                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath)
 {
     FILE *nsf = NULL;
     char nsfpath[MAX], lcltemp[MAX + 20];
@@ -1003,10 +1003,10 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
     int32_t nsf_chunk_count = build_get_chunk_count_base(nsf);
     int32_t lcl_chunk_border_texture = 0;
 
-    unsigned char buffer[CHUNKSIZE];
+    uint8_t buffer[CHUNKSIZE];
     for (int32_t i = 0; i < nsf_chunk_count; i++)
     {
-        fread(buffer, sizeof(unsigned char), CHUNKSIZE, nsf);
+        fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf);
         uint32_t checksum_calc = nsfChecksum(buffer);
         uint32_t checksum_used = *(uint32_t *)(buffer + CHUNK_CHECKSUM_OFFSET);
         if (checksum_calc != checksum_used)
@@ -1016,7 +1016,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
         {
             if (chunks != NULL)
             {
-                chunks[lcl_chunk_border_texture] = (unsigned char *)calloc(CHUNKSIZE, sizeof(unsigned char)); // freed by build_main
+                chunks[lcl_chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
                 memcpy(chunks[lcl_chunk_border_texture], buffer, CHUNKSIZE);
             }
             elist[*entry_count].eid = from_u32(buffer + 4);
@@ -1042,7 +1042,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                 elist[*entry_count].related = NULL;
                 elist[*entry_count].visited = NULL;
                 elist[*entry_count].distances = NULL;
-                elist[*entry_count].data = (unsigned char *)malloc(entry_size); // freed by build_main
+                elist[*entry_count].data = (uint8_t *)malloc(entry_size); // freed by build_main
                 memcpy(elist[*entry_count].data, buffer + start_offset, entry_size);
 
                 if (!stats_only || build_entry_type(elist[*entry_count]) == ENTRY_TYPE_SOUND)

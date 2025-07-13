@@ -24,7 +24,7 @@ int32_t build_ask_ID()
 /** \brief
  *  Asks for path to the list with the permaloaded stuff and type/subtype info.
  *
- * \param fpath char*                   path to the file
+ * \param fpath char *                   path to the file
  * \return void
  */
 void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config)
@@ -140,7 +140,7 @@ void build_ask_distances(int32_t *config)
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = ans;
     else
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
-    
+
     switch (config[CNFG_IDX_LL_TRNS_PRLD_FLAG])
     {
     default:
@@ -216,8 +216,9 @@ void build_ask_build_flags(int32_t *config)
     scanf("%d", &ans);
     config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
     printf("Selected merge method %d\n", ans);
-        
-    if (ans < 0 || ans > max_ans){
+
+    if (ans < 0 || ans > max_ans)
+    {
         printf(" unknown, defaulting to 4\n");
         config[CNFG_IDX_MERGE_METHOD_VALUE] = 4;
     }
