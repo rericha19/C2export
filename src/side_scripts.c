@@ -972,7 +972,7 @@ void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_I
 // yep resizes scenery
 void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    int32_t i, item1off, j, curr_off, next_off, group, rest, vert;
+    int32_t i, item1off, j, curr_off, next_off, group;
     int64_t origin;
     int32_t vertcount;
 
@@ -1008,9 +1008,18 @@ void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_I
 
     for (i = curr_off; i < next_off; i += 2)
     {
-        group = 256 * buffer[i + 1] + buffer[i];
-        vert = group / 16;
-        rest = group % 16;
+        group = from_s16(buffer + i);
+        int16_t vert = group & 0xFFF0;
+        int16_t rest = group & 0xF;
+        if (status.gamemode == 2)
+        {
+            if (i >= 4 * vertcount + curr_off)
+                vert *= scale[2];
+            else if (i % 4 == 2)
+                vert *= scale[1];
+            else
+                vert *= scale[0];
+        }
         if (status.gamemode == 2 && vert >= 2048)
         {
             vert = 4096 - vert;

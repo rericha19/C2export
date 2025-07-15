@@ -220,8 +220,14 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
             if (cam_count == 0)
                 continue;
 
-            char temp[100] = "";
-            printf("\nMaking draw lists for %s\n", eid_conv(elist[i].eid, temp));
+            uint32_t skipflag = from_u32(build_get_nth_item(elist[i].data, 0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_SKIPFLAG;
+            if (skipflag)
+            {
+                printf("\nSkipping draw list making for %s\n", eid_conv2(elist[i].eid));
+                continue;
+            }
+
+            printf("\nMaking draw lists for %s\n", eid_conv2(elist[i].eid));
 
             for (j = 0; j < cam_count; j++)
             {
@@ -243,7 +249,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                     int32_t idx = build_get_index(neighbour_eid, elist, entry_count);
                     if (idx == -1)
                     {
-                        printf("[warning] Invalid neighbour %s\n", eid_conv(neighbour_eid, temp));
+                        printf("[warning] Invalid neighbour %s\n", eid_conv2(neighbour_eid));
                         continue;
                     }
                     build_draw_list_util(elist, entry_count, full_draw, config, i, idx, j, l);

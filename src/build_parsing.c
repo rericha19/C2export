@@ -489,7 +489,7 @@ LIST build_read_special_entries(uint8_t *zone)
     LIST special_entries = init_list();
     int32_t item1off = from_u32(zone + 0x10);
     uint8_t *metadata_ptr = zone + item1off + C2_SPECIAL_METADATA_OFFSET;
-    int32_t special_entry_count = from_u32(metadata_ptr);
+    int32_t special_entry_count = from_u32(metadata_ptr) & SPECIAL_METADATA_MASK_LLCOUNT;
 
     for (int32_t i = 1; i <= special_entry_count; i++)
     {
