@@ -827,8 +827,8 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
             {
                 char temp1[100] = "";
                 char temp2[100] = "";
-                printf("[warning] %s references %s that does not seem to be present\n",
-                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2));
+                printf("[warning] %s references %s that does not seem to be present (link %d neighbour %d)\n",
+                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2), i, link.zone_index);
                 continue;
             }
             int32_t path_count = build_get_cam_item_count(elist[neighbour_index].data) / 3;
@@ -836,8 +836,8 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
             {
                 char temp1[100] = "";
                 char temp2[100] = "";
-                printf("[warning] %s links to %s's cam path %d which doesnt exist\n",
-                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2), link.cam_index);
+                printf("[warning] %s links to %s's cam path %d which doesnt exist (link %d neighbour %d)\n",
+                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2), link.cam_index, i, link.zone_index);
                 continue;
             }
 
