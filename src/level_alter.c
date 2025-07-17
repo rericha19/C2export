@@ -375,10 +375,11 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
             for (int32_t j = 0; j < vert_count; j++)
             {
                 uint8_t *vert = item1 + j * 4;
-                int16_t y = from_s16(vert + 2) / 16;
-                int16_t rest = from_s16(vert + 2) % 16;
-
-                *(int16_t *)(vert + 2) = -(y * 16) + rest;
+                int16_t y = from_s16(vert + 2) & 0xFFF0;
+                int16_t rest = from_s16(vert + 2) & 0xF;
+                y = -y;
+                y -= 0x10;
+                *(int16_t *)(vert + 2) = y | rest;
             }
 
             // position
@@ -565,10 +566,11 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
             for (int32_t j = 0; j < vert_count; j++)
             {
                 uint8_t *vert = item1 + j * 4;
-                int16_t y = from_s16(vert + 0) & 0xFFF0;
+                int16_t x = from_s16(vert + 0) & 0xFFF0;
                 int16_t rest = from_s16(vert + 0) & 0xF;
-                y = -y;
-                *(int16_t *)(vert + 0) = y | rest;
+                x = -x;
+                x -= 0x10;
+                *(int16_t *)(vert + 0) = x | rest;
             }
 
             // position
@@ -636,11 +638,12 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
                 if (val1 == 0xFF || val2 == 0xFF)
                     continue;
 
-                uint8_t flags1 = from_u8(elist[i].data + data_start + off + 1);
-                uint8_t flags2 = from_u8(elist[i].data + data_start + off + 3);
+                // uint8_t flags1 = from_u8(elist[i].data + data_start + off + 1);
+                // uint8_t flags2 = from_u8(elist[i].data + data_start + off + 3);
                 //*(uint8_t *)(elist[i].data + data_start + off + 1) = flags2;
                 //*(uint8_t *)(elist[i].data + data_start + off + 3) = flags1;
 
+                // todo fix
                 *(uint8_t *)(elist[i].data + data_start + off) = 0xFF - val2;
                 *(uint8_t *)(elist[i].data + data_start + off + 2) = 0xFF - val1;
             }
