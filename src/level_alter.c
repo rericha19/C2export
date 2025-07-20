@@ -626,8 +626,11 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
         }
 
         if (build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
-        {
-            printf("x flipping t15 vcol collision entry %s\n", eid_conv2(elist[i].eid));
+        {            
+            printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid_conv2(elist[i].eid));
+            
+            // todo fix/implement
+            /*
             int32_t data_start = 0x1C + build_get_nth_item_offset(elist[i].data, 0);
             int32_t data_size = elist[i].esize - data_start;
 
@@ -646,7 +649,7 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
                 // todo fix
                 *(uint8_t *)(elist[i].data + data_start + off) = 0xFF - val2;
                 *(uint8_t *)(elist[i].data + data_start + off + 2) = 0xFF - val1;
-            }
+            }*/
         }
     }
 }
@@ -758,6 +761,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
         break;
     case Alter_Type_FlipScenY:
         printf("!!!Zones are put into indidual chunks at the end\n\n");
+        printf("!!!Y flip does not (yet) patch camera distances/angles, t15col and warps/elevator links!");
         flip_level_y(elist, entry_count, &chunk_count);
         break;
     case Alter_Type_FlipScenX:

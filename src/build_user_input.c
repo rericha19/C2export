@@ -70,7 +70,7 @@ void build_ask_spawn(SPAWNS spawns)
     // lets u pick a spawn point
     printf("Pick a spawn:\n");
     for (int32_t i = 0; i < spawns.spawn_count; i++)
-        printf("Spawn %d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
+        printf("Spawn %2d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
 
     scanf("%d", &input);
     input--;
@@ -81,7 +81,7 @@ void build_ask_spawn(SPAWNS spawns)
     }
 
     build_swap_spawns(spawns, 0, input);
-    printf("Using spawn %d: Zone: %s\n", input + 1, eid_conv(spawns.spawns[0].zone, temp));
+    printf("Using spawn %2d: Zone: %s\n", input + 1, eid_conv(spawns.spawns[0].zone, temp));
 }
 
 void build_ask_draw_distances(int32_t *config)

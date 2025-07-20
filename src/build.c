@@ -873,7 +873,7 @@ void build_main(int32_t build_type)
         build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
         break;
     }
-    printf("Merge took %.3fs\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
+    printf("\nMerge took %.3fs\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
 
     // build and write nsf and nsd file
     build_write_nsd(nsd, nsd2, elist, entry_count, chunk_count, spawns, gool_table, level_ID);
