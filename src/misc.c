@@ -102,6 +102,9 @@ void print_help2()
     printf("FLIP_Y & FLIP_X\n");
     printf("\t flips the level horizontally or vertically\n");
 
+    printf("LEVEL_RECOLOR\n");
+    printf("\t recolors all level scenery to given rgb and brightness\n");
+
     for (int32_t i = 0; i < 100; i++)
         printf("-");
     printf("\n");
