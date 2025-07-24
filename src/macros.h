@@ -124,6 +124,7 @@
 #define CONV_OLD_DL_OVERRIDE 2382887815u
 #define FLIP_Y 2964377512u
 #define FLIP_X 2964377511u
+#define LEVEL_RECOLOR 2720813778u
 
 // #define INTRO                           223621809u
 // #define STATUS                          3482341513u
@@ -143,6 +144,7 @@ enum
     Alter_Type_Old_DL_Override,
     Alter_Type_FlipScenY,
     Alter_Type_FlipScenX,
+    Alter_Type_LevelRecolor,
 };
 
 #define ENTRY_TYPE_ANIM 0x1

@@ -70,7 +70,8 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
     char temp[6] = "";
     ENTRY curr = elist[curr_idx];
     ENTRY neighbour = elist[neighbour_idx];
-    LIST remember = init_list();
+    LIST remember_overrides = init_list();
+    LIST remember_nopath = init_list();
 
     int32_t cam_mode = build_get_entity_prop(build_get_nth_item(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
     int16_t *path = build_get_path(elist, curr_idx, 2 + cam_idx * 3, &cam_len);
@@ -126,10 +127,10 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
                     if (ent_id2 == pos_override_id)
                     {
                         ref_ent_idx = o;
-                        if (list_find(remember, ent_id) == -1)
+                        if (list_find(remember_overrides, ent_id) == -1)
                         {
                             printf("%d using position from another entity %d\n", ent_id, ent_id2);
-                            list_add(&remember, ent_id);
+                            list_add(&remember_overrides, ent_id);
                         }
                         break;
                     }
@@ -147,6 +148,15 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
             int32_t allowed_angledist = config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D];
 
             int16_t *ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);
+
+            if (ent_len == 0) {
+                int32_t id = build_get_entity_prop(build_get_nth_item(elist[neighbour_idx].data, 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
+                if (list_find(remember_nopath, id) == -1) 
+                {
+                    printf("[warning] entity %d in zone %s has no path\n", id, eid_conv2(elist[neighbour_idx].eid));
+                    list_add(&remember_nopath, id);
+                }
+            }
 
             // check all entity points to see whether its visible
             for (int32_t o = 0; o < ent_len; o++)

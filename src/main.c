@@ -226,6 +226,9 @@ int32_t main()
         case FLIP_X:
             level_alter_pseudorebuild(Alter_Type_FlipScenX);
             break;
+        case LEVEL_RECOLOR:
+            level_alter_pseudorebuild(Alter_Type_LevelRecolor);
+            break;
         default:
             printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
             break;

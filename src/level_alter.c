@@ -626,9 +626,9 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
         }
 
         if (build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
-        {            
+        {
             printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid_conv2(elist[i].eid));
-            
+
             // todo fix/implement
             /*
             int32_t data_start = 0x1C + build_get_nth_item_offset(elist[i].data, 0);
@@ -650,6 +650,59 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
                 *(uint8_t *)(elist[i].data + data_start + off) = 0xFF - val2;
                 *(uint8_t *)(elist[i].data + data_start + off + 2) = 0xFF - val1;
             }*/
+        }
+    }
+}
+
+void level_recolor(ENTRY *elist, int entry_count)
+{
+    int32_t r_wanted, g_wanted, b_wanted;
+    printf("R G B? [hex]\n");
+    scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
+    int32_t sum_wanted = r_wanted + g_wanted + b_wanted;
+
+    float mult = 1;
+    printf("brigtness mutliplicator? (float)\n");
+    scanf("%f", &mult);
+
+    for (int i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_SCENERY)
+            continue;
+
+        int32_t offset5 = build_get_nth_item_offset(elist[i].data, 5);
+        int32_t offset6 = build_get_nth_item_offset(elist[i].data, 6);
+        uint8_t *item5 = build_get_nth_item(elist[i].data, 5);
+
+        printf("%s colors: %d\n", eid_conv2(elist[i].eid), (offset6 - offset5)/4);
+        for (int32_t j = 0; j < (offset6 - offset5) / 4; j++)
+        {
+            // read current color
+            uint8_t r = from_u8(item5 + 4 * j + 0);
+            uint8_t g = from_u8(item5 + 4 * j + 1);
+            uint8_t b = from_u8(item5 + 4 * j + 2);
+
+            // get pseudograyscale of the current color
+            int32_t sum = r + g + b;
+
+            // get new color
+            int32_t r_new = (sum * r_wanted) / sum_wanted;
+            int32_t g_new = (sum * g_wanted) / sum_wanted;
+            int32_t b_new = (sum * b_wanted) / sum_wanted;
+
+            r_new *= mult;
+            g_new *= mult;
+            b_new *= mult;
+
+            // clip it at 0xFF
+            r_new = min(r_new, 0xFF);
+            g_new = min(g_new, 0xFF);
+            b_new = min(b_new, 0xFF);
+
+            // write back
+            *(item5 + 4 * j + 0) = r_new;
+            *(item5 + 4 * j + 1) = g_new;
+            *(item5 + 4 * j + 2) = b_new;
         }
     }
 }
@@ -767,6 +820,9 @@ void level_alter_pseudorebuild(int32_t alter_type)
     case Alter_Type_FlipScenX:
         printf("!!!Zones are put into indidual chunks at the end\n\n");
         flip_level_x(elist, entry_count, &chunk_count);
+        break;
+    case Alter_Type_LevelRecolor:
+        level_recolor(elist, entry_count);
         break;
     default:
         break;
