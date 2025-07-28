@@ -480,7 +480,7 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
     {
         char temp[100] = "";
         char temp2[100] = "";
-        printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
+        printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
                eid_conv(elist[zone_index].eid, temp), eid_conv(elist[neighbour_index].eid, temp2),
                link.cam_index, neighbour_cam_count);
         return;
@@ -531,7 +531,7 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
         {
             char temp[100] = "";
             char temp2[100] = "";
-            printf("Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths",
+            printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
                    eid_conv(elist[neighbour_index].eid, temp), eid_conv(elist[neighbour_index2].eid, temp2),
                    link2.cam_index, neighbour_cam_count2);
             continue;
