@@ -301,7 +301,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13B, NULL);
                 build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13C, NULL);
 
-                if (max_c)
+                if (max_c && prop_0x13B.length && prop_0x13C.length)
                 {
                     build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13B, &prop_0x13B);
                     build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
