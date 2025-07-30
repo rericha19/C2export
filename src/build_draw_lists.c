@@ -252,10 +252,17 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                     full_draw[k] = init_list();
 
                 int32_t neighbour_count = build_get_neighbour_count(elist[i].data);
+                LIST visited_neighbours = init_list();
                 for (l = 0; l < neighbour_count; l++)
                 {
                     ENTRY curr = elist[i];
                     uint32_t neighbour_eid = from_u32(build_get_nth_item(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
+                    if (list_find(visited_neighbours, neighbour_eid) != -1) {
+                        printf("[warning] Duplicate neighbour %s, skipping\n", eid_conv2(neighbour_eid));
+                        continue;
+                    }
+
+                    list_add(&visited_neighbours, neighbour_eid);
                     int32_t idx = build_get_index(neighbour_eid, elist, entry_count);
                     if (idx == -1)
                     {
