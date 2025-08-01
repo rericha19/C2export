@@ -619,7 +619,7 @@ int32_t c2yaw_to_deg(int32_t yaw);
 int32_t deg_to_c2yaw(int32_t deg);
 int32_t angle_distance(int32_t angle1, int32_t angle2);
 int32_t average_angles(int32_t angle1, int32_t angle2);
-void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neighbour_idx, int32_t cam_idx, int32_t neighbour_ref_idx);
+void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);
 void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config);
 
 // state thing

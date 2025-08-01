@@ -643,8 +643,8 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
 
                 // uint8_t flags1 = from_u8(elist[i].data + data_start + off + 1);
                 // uint8_t flags2 = from_u8(elist[i].data + data_start + off + 3);
-                //*(uint8_t *)(elist[i].data + data_start + off + 1) = flags2;
-                //*(uint8_t *)(elist[i].data + data_start + off + 3) = flags1;
+                // *(uint8_t *)(elist[i].data + data_start + off + 1) = flags2;
+                // *(uint8_t *)(elist[i].data + data_start + off + 3) = flags1;
 
                 // todo fix
                 *(uint8_t *)(elist[i].data + data_start + off) = 0xFF - val2;

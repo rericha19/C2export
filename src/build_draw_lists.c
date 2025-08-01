@@ -64,13 +64,12 @@ int32_t average_angles(int32_t angle1, int32_t angle2)
 }
 
 // gets full draw list for all points of a camera path according to config
-void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neighbour_idx, int32_t cam_idx, int32_t neighbour_ref_idx)
+void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides)
 {
     int32_t cam_len, ent_len, angles_len = 0;
     char temp[6] = "";
     ENTRY curr = elist[curr_idx];
-    ENTRY neighbour = elist[neighbour_idx];
-    LIST remember_overrides = init_list();
+    ENTRY neighbour = elist[neigh_idx];
     LIST remember_nopath = init_list();
 
     int32_t cam_mode = build_get_entity_prop(build_get_nth_item(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
@@ -127,10 +126,10 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
                     if (ent_id2 == pos_override_id)
                     {
                         ref_ent_idx = o;
-                        if (list_find(remember_overrides, ent_id) == -1)
+                        if (list_find(*pos_overrides, ent_id) == -1)
                         {
                             printf("%d using position from another entity %d\n", ent_id, ent_id2);
-                            list_add(&remember_overrides, ent_id);
+                            list_add(pos_overrides, ent_id);
                         }
                         break;
                     }
@@ -147,13 +146,13 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
             int32_t allowed_dist_xz = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ]) / 100);
             int32_t allowed_angledist = config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D];
 
-            int16_t *ent_path = build_get_path(elist, neighbour_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);
+            int16_t *ent_path = build_get_path(elist, neigh_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);
 
             if (ent_len == 0) {
-                int32_t id = build_get_entity_prop(build_get_nth_item(elist[neighbour_idx].data, 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
+                int32_t id = build_get_entity_prop(build_get_nth_item(elist[neigh_idx].data, 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
                 if (list_find(remember_nopath, id) == -1) 
                 {
-                    printf("[warning] entity %d in zone %s has no path\n", id, eid_conv2(elist[neighbour_idx].eid));
+                    printf("[warning] entity %d in zone %s has no path\n", id, eid_conv2(elist[neigh_idx].eid));
                     list_add(&remember_nopath, id);
                 }
             }
@@ -179,7 +178,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
 
                 if (cam_mode == C2_CAM_MODE_2D || cam_mode == C2_CAM_MODE_VERTICAL)
                 {
-                    list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                    list_add(&full_draw[m], neigh_ref_idx | (ent_id << 8) | (n << 24));
                     break;
                 }
                 else if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
@@ -187,7 +186,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
                     // in 3D, entities closer than 20% of the distance cap are drawn regardless of the check
                     if (dist_xz < (allowed_dist_xz / 5) || !allowed_dist_xz)
                     {
-                        list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                        list_add(&full_draw[m], neigh_ref_idx | (ent_id << 8) | (n << 24));
                         break;
                     }
 
@@ -200,7 +199,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
 
                     if (angle_dist < allowed_angledist && dist_xz < allowed_dist_xz)
                     {
-                        list_add(&full_draw[m], neighbour_ref_idx | (ent_id << 8) | (n << 24));
+                        list_add(&full_draw[m], neigh_ref_idx | (ent_id << 8) | (n << 24));
                         break;
                     }
                 }
@@ -221,6 +220,8 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
 {
     int32_t i, j, k, l;
     int32_t dbg_print = 0;
+
+    LIST pos_overrides = init_list();
 
     for (i = 0; i < entry_count; i++)
     {
@@ -269,7 +270,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                         printf("[warning] Invalid neighbour %s\n", eid_conv2(neighbour_eid));
                         continue;
                     }
-                    build_draw_list_util(elist, entry_count, full_draw, config, i, idx, j, l);
+                    build_draw_list_util(elist, entry_count, full_draw, config, i, idx, j, l, &pos_overrides);
                 }
 
                 int32_t max_c = 0;

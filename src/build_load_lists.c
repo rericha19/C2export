@@ -475,7 +475,7 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
             for (j = 0; j < cam_length; j++)
                 list_add(&full_list[j], elist[neighbour_index].related[i + 1]);
 
-    int32_t neighbour_cam_count = build_get_cam_item_count(elist[neighbour_index].data);
+    int32_t neighbour_cam_count = build_get_cam_item_count(elist[neighbour_index].data) / 3;
     if (link.cam_index >= neighbour_cam_count)
     {
         char temp[100] = "";
@@ -514,6 +514,17 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
         if ((preloading_flag == PRELOADING_NOTHING || preloading_flag == PRELOADING_TEXTURES_ONLY) && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
             continue;
 
+        int32_t neighbour_cam_count2 = build_get_cam_item_count(elist[neighbour_index2].data) / 3;
+        if (link2.cam_index >= neighbour_cam_count2)
+        {
+            char temp[100] = "";
+            char temp2[100] = "";
+            printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
+                   eid_conv(elist[neighbour_index].eid, temp), eid_conv(elist[neighbour_index2].eid, temp2),
+                   link2.cam_index, neighbour_cam_count2);
+            continue;
+        }
+
         int32_t offset2 = build_get_nth_item_offset(elist[neighbour_index2].data, 2 + 3 * link2.cam_index);
         uint32_t slst2 = build_get_slst(elist[neighbour_index2].data + offset2);
 
@@ -525,17 +536,6 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
 
         build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index2].data, collisisons, elist, entry_count);
         coords = build_get_path(elist, zone_index, cam_index, &path_length);
-
-        int32_t neighbour_cam_count2 = build_get_cam_item_count(elist[neighbour_index2].data);
-        if (link2.cam_index >= neighbour_cam_count2)
-        {
-            char temp[100] = "";
-            char temp2[100] = "";
-            printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
-                   eid_conv(elist[neighbour_index].eid, temp), eid_conv(elist[neighbour_index2].eid, temp2),
-                   link2.cam_index, neighbour_cam_count2);
-            continue;
-        }
 
         int32_t slst_dist_w_orientation = slst_distance;
         int32_t neig_dist_w_orientation = neig_distance;
@@ -730,6 +730,9 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
     printf("\n\n");*/
 
     int16_t *coords = build_get_path(elist, zone_index, camera_index, &coord_count);
+    if (!coords)
+        return entity_list;
+    
     LIST links = build_get_links(elist[zone_index].data, camera_index);
     for (i = 0; i < links.count; i++)
     {
@@ -756,6 +759,9 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
 
         int32_t neighbour_cam_length;
         int16_t *coords2 = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &neighbour_cam_length);
+        if (!coords2)
+            continue;
+        
         LIST *draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * link.cam_index, neighbour_cam_length);
 
         int32_t draw_dist_w_orientation = draw_dist;
@@ -803,6 +809,8 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
 
             int32_t neighbour_cam_length2;
             int16_t *coords3 = build_get_path(elist, neighbour_index2, 2 + 3 * link2.cam_index, &neighbour_cam_length2);
+            if (!coords3)
+                continue;
             LIST *draw_list_neighbour2 = build_get_complete_draw_list(elist, neighbour_index2, 2 + 3 * link2.cam_index, neighbour_cam_length2);
 
             int32_t point_index3;
