@@ -542,7 +542,7 @@ void deprecate_build_print_relatives(ENTRY *elist, int32_t entry_count);
 void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB);
 void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, int32_t chunk_count, SPAWNS spawns, uint32_t *gool_table, int32_t level_ID);
 void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
-void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, LIST entries, double merge_ratio);
+void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio);
 RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *config, ENTRY *elist, int32_t entry_count);
 void build_matrix_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, double merge_ratio, double mult);
 void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t **chunks, int32_t do_end_print);
@@ -641,7 +641,7 @@ uint32_t *build_state_search_init_elist_convert(ENTRY *elist, int32_t entry_coun
 void build_state_search_solve(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t perma_chunk_count);
 MATRIX_STORED_LLS
 build_matrix_store_lls(ENTRY *elist, int32_t entry_count);
-PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min);
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages);
 
 // deprecate_build.c
 
@@ -652,7 +652,7 @@ void deprecate_build_print_payload(PAYLOAD payload, int32_t stopper);
 int32_t deprecate_build_merge_thing(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count);
 int32_t deprecate_build_get_common(int32_t *listA, int32_t countA, int32_t *listB, int32_t countB);
 void deprecate_build_chunk_merge(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count);
-PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min);
+PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, int32_t get_tpages);
 void deprecate_build_gool_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count);
 int32_t deprecate_build_is_relative(uint32_t searched, uint32_t *array, int32_t count);
 void deprecate_build_ll_add_children(uint32_t eid, ENTRY *elist, int32_t entry_count, LIST *list, uint32_t *gool_table, DEPENDENCIES dependencies);

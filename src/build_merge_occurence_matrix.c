@@ -204,7 +204,7 @@ void build_matrix_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_
     }
 
     // do the merges according to the relation array, get rid of holes afterwards
-    build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);
+    build_matrix_merge_util(array_representation, elist, entry_count, merge_ratio);
 
     free(array_representation.relations);
     *chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist);
@@ -259,7 +259,7 @@ void build_matrix_merge_relative(ENTRY *elist, int32_t entry_count, int32_t chun
     free(entry_matrix_relative);
 
     // do the merges according to the relation array, get rid of holes afterwards
-    build_matrix_merge_util(array_representation, elist, entry_count, entries, merge_ratio);
+    build_matrix_merge_util(array_representation, elist, entry_count, merge_ratio);
 
     free(total_occurences);
     free(array_representation.relations);
@@ -310,7 +310,7 @@ void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int
  * \param merge_ratio double            what portion of entries is to be merged
  * \return void
  */
-void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, LIST entries, double merge_ratio)
+void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio)
 {
     // for each relation it calculates size of the chunk that would be created by the merge
     // if the size is ok it merges, there are empty chunks afterwards that get cleaned up by a function called

@@ -113,10 +113,10 @@ void *build_matrix_merge_random_util(void *args)
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
         // do the merges according to the slightly randomised relation array
-        build_matrix_merge_util(array_representation, clone_elist, entry_count, inp_args.entrs, 1.0);
+        build_matrix_merge_util(array_representation, clone_elist, entry_count, 1.0);
 
         // get payload ladder for current iteration
-        PAYLOADS payloads = build_matrix_get_payload_ladder(inp_args.stored_lls, clone_elist, entry_count, inp_args.chunk_border_sounds);
+        PAYLOADS payloads = build_matrix_get_payload_ladder(inp_args.stored_lls, clone_elist, entry_count, inp_args.chunk_border_sounds, 0);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         // how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
@@ -362,7 +362,7 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
     return stored_stuff;
 }
 
-PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min)
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages)
 {
     PAYLOADS payloads;
     payloads.arr = NULL;
@@ -370,7 +370,7 @@ PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *el
     for (int32_t i = 0; i < stored_lls.count; i++)
     {
         MATRIX_STORED_LL curr_ll = stored_lls.stored_lls[i];
-        PAYLOAD payload = deprecate_build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min);
+        PAYLOAD payload = deprecate_build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min, get_tpages);
         payload.cam_path = curr_ll.cam_path;
         deprecate_build_insert_payload(&payloads, payload);
     }
@@ -446,10 +446,10 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
         // do the merges according to the slightly randomised relation array
-        build_matrix_merge_util(array_representation, clone_elist, entry_count, entries, 1.0);
+        build_matrix_merge_util(array_representation, clone_elist, entry_count, 1.0);
 
         // get payload ladder for current iteration
-        PAYLOADS payloads = build_matrix_get_payload_ladder(stored_lls, clone_elist, entry_count, chunk_border_sounds);
+        PAYLOADS payloads = build_matrix_get_payload_ladder(stored_lls, clone_elist, entry_count, chunk_border_sounds, 0);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
 
         // how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number

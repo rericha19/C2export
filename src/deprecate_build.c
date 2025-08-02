@@ -69,7 +69,7 @@ PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int32_t entry_count, i
                             if (load_list.array[l].index == load_list.array[l + 1].index)
                                 continue;
 
-                    payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min);
+                    payload = deprecate_build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min, 1);
                     payload.cam_path = j;
                     payload.entcount = max_draw;
                     deprecate_build_insert_payload(&payloads, payload);
@@ -379,7 +379,7 @@ void deprecate_build_chunk_merge(ENTRY *elist, int32_t entry_count, int32_t *chu
  * \param chunk_min int32_t                 used to weed out sound and instrument entries (nsf structure this program produces is texture - wavebank - sound - normal)
  * \return PAYLOAD                      payload object that contains a list of chunks that are loaded in this zone, their count and the current zone eid
  */
-PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min)
+PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, int32_t get_tpages)
 {
     int32_t chunks[1024];
     int32_t count = 0;
@@ -404,7 +404,16 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list
         }
     }
 
-    int32_t tchunks[1024];
+    PAYLOAD payload;
+    payload.zone = zone;
+    payload.count = count;    
+    payload.chunks = (int32_t *)malloc(count * sizeof(int32_t)); // freed by payload ladder function, caller 3 layers up iirc
+    memcpy(payload.chunks, chunks, sizeof(int32_t) * count);
+
+    if (!get_tpages)
+        return payload;
+    
+    int32_t tchunks[128];
     int32_t tcount = 0;
 
     for (int32_t i = 0; i < list.count; i++)
@@ -425,15 +434,10 @@ PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list
         }
     }
 
-    PAYLOAD temp;
-    temp.zone = zone;
-    temp.count = count;
-    temp.chunks = (int32_t *)malloc(count * sizeof(int32_t)); // freed by payload ladder function, caller 3 layers up iirc
-    memcpy(temp.chunks, chunks, sizeof(int32_t) * count);
-    temp.tcount = tcount;
-    temp.tchunks = (int32_t *)malloc(tcount * sizeof(int32_t));
-    memcpy(temp.tchunks, tchunks, sizeof(int32_t) * tcount);
-    return temp;
+    payload.tcount = tcount;
+    payload.tchunks = (int32_t *)malloc(tcount * sizeof(int32_t));
+    memcpy(payload.tchunks, tchunks, sizeof(int32_t) * tcount);
+    return payload;
 }
 
 /** \brief
