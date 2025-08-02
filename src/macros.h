@@ -503,6 +503,7 @@ void import_chunksave(uint8_t *chunk, int32_t *index, int32_t *curr_off, int32_t
 
 // build files in no particular order
 
+double randfrom(double min, double max);
 void build_get_box_count(ENTRY *elist, int32_t entry_count);
 int32_t build_item_count(uint8_t *entry);
 int32_t build_prop_count(uint8_t *item);

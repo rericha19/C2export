@@ -36,7 +36,7 @@ void ask_params_matrix(double *mult, int32_t *iter_count, int32_t *seed, int32_t
     printf("\n");
 
     printf("Max iteration count? (0 for no limit)\n");
-    scanf("%d", iter_count);    
+    scanf("%d", iter_count);
     if (*iter_count < 0)
         *iter_count = 100;
     printf("Max iteration count used: %d\n", *iter_count);
@@ -163,7 +163,7 @@ void *build_matrix_merge_random_util(void *args)
             if (is_new_best)
                 printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, t_id, curr,
                        eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
-            else
+            else if (curr_i % 10 == 0)
                 printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, t_id, curr,
                        eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
         }
@@ -238,7 +238,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
     // clone elists that store the current iteration and the best iretation
     ENTRY best_elist[ELIST_DEFAULT_SIZE];
     // for keeping track of the best found
-    int64_t best_max = 9223372036854775807; // max signed 64b int32_t
+    int64_t best_max = 9223372036854775807; // max signed 64b int
     uint32_t best_zone = 0;
 
     MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
@@ -348,7 +348,12 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
                             stored_stuff.stored_lls = (MATRIX_STORED_LL *)malloc(sizeof(MATRIX_STORED_LL));
 
                         LIST new_l = init_list();
-                        list_copy_in(&new_l, list);
+                        for (int32_t z = 0; z < list.count; z++)
+                        {
+                            int32_t index = build_get_index(list.eids[z], elist, entry_count);
+                            if (index >= 0 && build_is_normal_chunk_entry(elist[index]))
+                                list_add(&new_l, list.eids[z]);
+                        }
                         stored_stuff.stored_lls[stored_c].full_load = new_l;
                         stored_stuff.stored_lls[stored_c].zone = elist[i].eid;
                         stored_stuff.stored_lls[stored_c].cam_path = j;

@@ -1,9 +1,11 @@
 #include "macros.h"
 
+#ifdef __GNUC__
 int32_t abs(int32_t val)
 {
     return (val >= 0) ? val : -val;
 }
+#endif
 
 // caps the angle to 0-360
 int32_t normalize_angle(int32_t angle)

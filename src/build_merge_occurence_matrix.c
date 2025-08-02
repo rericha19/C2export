@@ -313,8 +313,7 @@ void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio)
 {
     // for each relation it calculates size of the chunk that would be created by the merge
-    // if the size is ok it merges, there are empty chunks afterwards that get cleaned up by a function called
-    // after this function
+    // if the size is ok it merges, there are empty chunks afterwards that get cleaned up later
 
     int32_t iter_count = min((int32_t)(relations.count * merge_ratio), relations.count);
 
@@ -331,12 +330,15 @@ void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_co
 
         int32_t merged_chunk_size = 0x14;
         int32_t new_entry_count = 0;
-        for (int32_t i = 0; i < entry_count; i++)
+
+        for (int32_t i = 0; i < entry_count && merged_chunk_size <= CHUNKSIZE; i++)
+        {
             if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
             {
                 merged_chunk_size += elist[i].esize + 4;
                 new_entry_count++;
             }
+        }
 
         if (merged_chunk_size <= CHUNKSIZE && new_entry_count <= 125)
             for (int32_t i = 0; i < entry_count; i++)
@@ -437,7 +439,7 @@ int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk
     qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_func_esize);
 
     // keep putting them into existing chunks if they fit
-    int32_t perma_chunk_count = perma_normal_entry_count;            // idrc about optimising this
+    int32_t perma_chunk_count = perma_normal_entry_count;                    // idrc about optimising this
     int32_t *sizes = (int32_t *)malloc(perma_chunk_count * sizeof(int32_t)); // freed here
     for (i = 0; i < perma_chunk_count; i++)
         sizes[i] = 0x14;
