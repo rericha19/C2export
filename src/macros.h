@@ -7,6 +7,10 @@
 #include <math.h>
 #include <stdio.h>
 
+#if COMPILE_WITH_THREADS
+#include <pthread.h>
+#endif
+
 // various constants
 #define HASH_TABLE_SIZE 100000000
 #define HEAP_SIZE_INCREMENT 200000

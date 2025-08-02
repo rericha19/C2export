@@ -1,7 +1,6 @@
 #include "macros.h"
 
 #if COMPILE_WITH_THREADS
-#include <pthread.h>
 
 typedef struct matrix_merge_thread_input_struct
 {

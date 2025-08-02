@@ -235,9 +235,17 @@ const char *eid_conv2(uint32_t value)
     return eid_conv(value, NULL);
 }
 
+#if COMPILE_WITH_THREADS
+pthread_mutex_t g_eidconv_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 // converts int32_t eid to string eid
 const char *eid_conv(uint32_t value, char *eid)
 {
+    #if COMPILE_WITH_THREADS    
+    pthread_mutex_lock(&g_eidconv_mutex);
+    #endif
+
     const char charset[] =
         "0123456789"
         "abcdefghijklmnopqrstuvwxyz"
@@ -252,10 +260,18 @@ const char *eid_conv(uint32_t value, char *eid)
     temp[4] = charset[(value >> 1) & 0x3F];
     temp[5] = '\0';
 
-    if (eid == NULL)
+    if (eid == NULL) 
+    {
+        #if COMPILE_WITH_THREADS
+        pthread_mutex_unlock(&g_eidconv_mutex);
+        #endif
         return temp;
+    }
 
     memcpy(eid, temp, 6);
+    #if COMPILE_WITH_THREADS
+    pthread_mutex_unlock(&g_eidconv_mutex);
+    #endif
     return eid;
 }
 
