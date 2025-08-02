@@ -8,6 +8,9 @@ MAIN BKUP1.cpp
 doxygen
 c2export
 .vscode
+.vs
+x64
+
 
 *.exe
 *.o
