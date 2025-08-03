@@ -299,6 +299,34 @@ void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int
         }
 }
 
+// global DSU state
+THREAD_LOCAL int32_t g_dsu_parent[CHUNK_LIST_DEFAULT_SIZE];
+THREAD_LOCAL int32_t g_dsu_chunk_size[CHUNK_LIST_DEFAULT_SIZE];
+THREAD_LOCAL int32_t g_dsu_entry_count[CHUNK_LIST_DEFAULT_SIZE];
+
+// Finds the representative of the set containing 'i' with path compression
+int32_t dsu_find_set(int32_t i)
+{
+    if (g_dsu_parent[i] == i)
+        return i;
+
+    // Path compression for future lookups
+    return g_dsu_parent[i] = dsu_find_set(g_dsu_parent[i]);
+}
+
+// Merges the sets containing 'a' and 'b'
+// assumes root_a and root_b are different
+void dsu_union_sets(int32_t a, int32_t b)
+{
+    int32_t root_a = dsu_find_set(a);
+    int32_t root_b = dsu_find_set(b);
+
+    // Simple union: merge b's set into a's.
+    g_dsu_parent[root_b] = root_a;
+    g_dsu_chunk_size[root_a] += g_dsu_chunk_size[root_b];
+    g_dsu_entry_count[root_a] += g_dsu_entry_count[root_b];
+}
+
 /** \brief
  *  For each entry pair it finds out what chunk each is in and attempts to merge.
  *  Starts with entries with highest common occurence count.
@@ -312,38 +340,55 @@ void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int
  */
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio)
 {
-    // for each relation it calculates size of the chunk that would be created by the merge
-    // if the size is ok it merges, there are empty chunks afterwards that get cleaned up later
+    // Determine the number of chunks needed for DSU arrays
+    int32_t max_chunk_index = 0;
+    for (int32_t i = 0; i < entry_count; i++)
+    {
+        if (elist[i].chunk > max_chunk_index)
+            max_chunk_index = elist[i].chunk;
+    }
+    int32_t num_chunks = max_chunk_index + 1;
 
+    // Initialize DSU state and Pre-calculate data
+    for (int32_t i = 0; i < num_chunks; i++)
+    {
+        // Each chunk is its own parent initially
+        g_dsu_parent[i] = i;
+        g_dsu_chunk_size[i] = 0;
+        g_dsu_entry_count[i] = 0;
+    }
+
+    for (int32_t i = 0; i < entry_count; i++)
+    {
+        int32_t c_idx = elist[i].chunk;
+        g_dsu_chunk_size[c_idx] += elist[i].esize + 4;
+        g_dsu_entry_count[c_idx]++;
+    }
+
+    // Optimized Merge Loop
     int32_t iter_count = min((int32_t)(relations.count * merge_ratio), relations.count);
-
     for (int32_t x = 0; x < iter_count; x++)
     {
-        // awkward index shenanishans because entries in the matrix and later relation array werent indexed the same way
-        // elist is, so theres the need to get index of the elist entry and then that one's chunk
+        int32_t chunk_idx1 = elist[relations.relations[x].index1].chunk;
+        int32_t chunk_idx2 = elist[relations.relations[x].index2].chunk;
 
-        int32_t index1 = relations.relations[x].index1;
-        int32_t index2 = relations.relations[x].index2;
+        int root1 = dsu_find_set(chunk_idx1);
+        int root2 = dsu_find_set(chunk_idx2);
 
-        int32_t chunk_index1 = elist[index1].chunk;
-        int32_t chunk_index2 = elist[index2].chunk;
+        if (root1 == root2)
+            continue;
 
-        int32_t merged_chunk_size = 0x14;
-        int32_t new_entry_count = 0;
+        int32_t merged_chunk_size = g_dsu_chunk_size[root1] + g_dsu_chunk_size[root2];
+        int32_t new_entry_count = g_dsu_entry_count[root1] + g_dsu_entry_count[root2];
 
-        for (int32_t i = 0; i < entry_count && merged_chunk_size <= CHUNKSIZE; i++)
-        {
-            if (elist[i].chunk == chunk_index1 || elist[i].chunk == chunk_index2)
-            {
-                merged_chunk_size += elist[i].esize + 4;
-                new_entry_count++;
-            }
-        }
+        if (merged_chunk_size <= (CHUNKSIZE - 0x14) && new_entry_count <= 125)
+            dsu_union_sets(root1, root2);
+    }
 
-        if (merged_chunk_size <= CHUNKSIZE && new_entry_count <= 125)
-            for (int32_t i = 0; i < entry_count; i++)
-                if (elist[i].chunk == chunk_index2)
-                    elist[i].chunk = chunk_index1;
+    // Apply the merges back to the elist
+    for (int32_t i = 0; i < entry_count; i++)
+    {
+        elist[i].chunk = dsu_find_set(elist[i].chunk);
     }
 }
 

@@ -737,7 +737,7 @@ void build_main(int32_t build_type)
         0, // 11 - merge technique value                                                                    set by user in build_ask_build_flags
 
         1, // 12 - perma inc. in matrix flag    0 - dont include|   1 - do include                          set here, used by matrix merges
-        0, // 13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
+        1, // 13 - inc. 0-vals in relarray flag 0 - dont include|   1 - do include                          set here, used by matrix merges
 
         0, // 14 - draw list gen dist 2D            set by user in build_ask_draw_distances
         0, // 15 - draw list gen dist 3D            set by user in build_ask_draw_distances

@@ -163,7 +163,7 @@ void *build_matrix_merge_random_util(void *args)
             if (is_new_best)
                 printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, t_id, curr,
                        eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
-            else if (curr_i % 10 == 0)
+            else
                 printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, t_id, curr,
                        eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
         }

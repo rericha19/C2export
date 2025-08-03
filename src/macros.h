@@ -11,6 +11,12 @@
 #include <pthread.h>
 #endif
 
+#ifdef _MSC_VER
+#define THREAD_LOCAL __declspec(thread)
+#else
+#define THREAD_LOCAL _Thread_local
+#endif
+
 // various constants
 #define HASH_TABLE_SIZE 100000000
 #define HEAP_SIZE_INCREMENT 200000
@@ -543,6 +549,8 @@ void deprecate_build_print_relatives(ENTRY *elist, int32_t entry_count);
 void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB);
 void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, int32_t chunk_count, SPAWNS spawns, uint32_t *gool_table, int32_t level_ID);
 void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
+int32_t dsu_find_set(int32_t i);
+void dsu_union_sets(int32_t a, int32_t b);
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio);
 RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *config, ENTRY *elist, int32_t entry_count);
 void build_matrix_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, double merge_ratio, double mult);
@@ -624,7 +632,7 @@ int32_t c2yaw_to_deg(int32_t yaw);
 int32_t deg_to_c2yaw(int32_t deg);
 int32_t angle_distance(int32_t angle1, int32_t angle2);
 int32_t average_angles(int32_t angle1, int32_t angle2);
-void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);
+void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST *pos_overrides);
 void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config);
 
 // state thing
