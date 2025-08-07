@@ -300,8 +300,8 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
 
     qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
     printf("\nWorst zone average:\n");
-    for (int32_t i = 0; i < wzi.used_count; i++)
-        printf("%3d | %s - %4dx, worst-avg %4.2f\n", i, eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
+    for (int32_t i = 0; i < wzi.used_count && i < 10; i++)
+        printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
 
     // cleanup
     for (int32_t i = 0; i < stored_lls.count; i++)
@@ -512,8 +512,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
 
     qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
     printf("\nWorst zone average:\n");
-    for (int32_t i = 0; i < wzi.used_count; i++)
-        printf("%3d | %s - %4dx, worst-avg %4.2f\n", i, eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
+    for (int32_t i = 0; i < wzi.used_count && i < 10; i++)
+        printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
 
     for (int32_t i = 0; i < stored_lls.count; i++)
         free(stored_lls.stored_lls[i].full_load.eids);
