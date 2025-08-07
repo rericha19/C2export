@@ -431,6 +431,19 @@ typedef struct chunk_str
     uint16_t entry_count;
 } CHUNK_STR;
 
+typedef struct merge_worst_zone_info_single
+{
+    uint32_t zone;
+    int32_t count;
+    int32_t sum;
+} MERGE_WORST_ZONE_INFO_SINGLE;
+
+typedef struct merge_worst_zone_info 
+{
+    MERGE_WORST_ZONE_INFO_SINGLE infos[200];
+    int32_t used_count;
+} MERGE_WORST_ZONE_INFO;
+
 // misc.c
 
 void export_printstatus(int32_t zonetype, int32_t gamemode, int32_t portmode);
@@ -551,6 +564,8 @@ void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, i
 void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
 int32_t dsu_find_set(int32_t i);
 void dsu_union_sets(int32_t a, int32_t b);
+int32_t cmp_worst_zone_info(const void* a, const void* b);
+void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO* info, uint32_t zone, uint32_t payload);
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio);
 RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *config, ENTRY *elist, int32_t entry_count);
 void build_matrix_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, double merge_ratio, double mult);

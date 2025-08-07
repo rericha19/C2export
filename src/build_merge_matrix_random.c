@@ -24,6 +24,7 @@ typedef struct matrix_merge_thread_input_struct
     pthread_mutex_t *mutex_iter;
     int32_t chunk_border_sounds;
     MATRIX_STORED_LLS stored_lls;
+    MERGE_WORST_ZONE_INFO *worst_zones_info;
 } MTRX_THRD_IN_STR;
 #endif // COMPILE_WITH_THREADS
 
@@ -142,6 +143,7 @@ void *build_matrix_merge_random_util(void *args)
         }
 
         pthread_mutex_lock(inp_args.mutex_iter);
+        build_update_worst_zones_info(inp_args.worst_zones_info, payloads.arr[0].zone, payloads.arr[0].count);
         curr_i = *inp_args.curr_iter_ptr;
 
         int64_t cr_max = *inp_args.best_max_ptr;
@@ -242,6 +244,8 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
     uint32_t best_zone = 0;
 
     MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
+    MERGE_WORST_ZONE_INFO wzi;
+    wzi.used_count = 0;
 
     // declare, initialise and create threads, pass them necessary args thru structs
     pthread_t *threads = (pthread_t *)malloc(t_count * sizeof(pthread_t));
@@ -269,6 +273,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
         thread_args[i].chunk_border_sounds = chunk_border_sounds;
         thread_args[i].max_pay = max_payload_limit;
         thread_args[i].stored_lls = stored_lls;
+        thread_args[i].worst_zones_info = &wzi;
 
         pthread_mutex_lock(&running_mutex);
         running_threads++;
@@ -292,6 +297,11 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
         if (elist[i].chunk >= *chunk_count)
             *chunk_count = elist[i].chunk + 1;
     }
+
+    qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
+    printf("\nWorst zone average:\n");
+    for (int32_t i = 0; i < wzi.used_count; i++)
+        printf("%3d | %s - %4dx, worst-avg %4.2f\n", i, eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
 
     // cleanup
     for (int32_t i = 0; i < stored_lls.count; i++)
@@ -434,6 +444,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
     free(entry_matrix);
 
     MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
+    MERGE_WORST_ZONE_INFO wzi;
+    wzi.used_count = 0;
 
     // runs until iter count is reached or until break inside goes off (iter count 0 can make it never stop)
     for (int32_t i = 0; i < iter_count || iter_count == 0; i++)
@@ -456,6 +468,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         // get payload ladder for current iteration
         PAYLOADS payloads = build_matrix_get_payload_ladder(stored_lls, clone_elist, entry_count, chunk_border_sounds, 0);
         qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
+        build_update_worst_zones_info(&wzi, payloads.arr[0].zone, payloads.arr[0].count);
 
         // how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
         int32_t src_depth = min(payloads.count, 8);
@@ -496,6 +509,11 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         if (elist[i].chunk >= *chunk_count)
             *chunk_count = elist[i].chunk + 1;
     }
+
+    qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
+    printf("\nWorst zone average:\n");
+    for (int32_t i = 0; i < wzi.used_count; i++)
+        printf("%3d | %s - %4dx, worst-avg %4.2f\n", i, eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
 
     for (int32_t i = 0; i < stored_lls.count; i++)
         free(stored_lls.stored_lls[i].full_load.eids);

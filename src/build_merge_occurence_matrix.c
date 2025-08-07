@@ -327,6 +327,37 @@ void dsu_union_sets(int32_t a, int32_t b)
     g_dsu_entry_count[root_a] += g_dsu_entry_count[root_b];
 }
 
+// for sorting worst zone infos
+int32_t cmp_worst_zone_info(const void *a, const void *b)
+{
+    MERGE_WORST_ZONE_INFO_SINGLE va = *(MERGE_WORST_ZONE_INFO_SINGLE *)a;
+    MERGE_WORST_ZONE_INFO_SINGLE vb = *(MERGE_WORST_ZONE_INFO_SINGLE *)b;
+
+    return vb.count - va.count;
+}
+
+// stores worst zone info during merge
+void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO *info, uint32_t zone, uint32_t payload)
+{
+    // existing, increment ref count
+    for (int i = 0; i < info->used_count; i++)
+    {
+        if (info->infos[i].zone == zone)
+        {
+            info->infos[i].count++;
+            info->infos[i].sum += payload;
+            return;
+        }
+    }
+
+    // new zone
+    int32_t uc = info->used_count;
+    info->infos[uc].zone = zone;
+    info->infos[uc].count = 1;
+    info->infos[uc].sum = payload;
+    info->used_count++;
+}
+
 /** \brief
  *  For each entry pair it finds out what chunk each is in and attempts to merge.
  *  Starts with entries with highest common occurence count.
