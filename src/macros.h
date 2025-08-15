@@ -17,9 +17,13 @@
 #define THREAD_LOCAL _Thread_local
 #endif
 
+#ifndef bool
+#define bool int8_t
+#define true 1
+#define false 0
+#endif
+
 // various constants
-#define HASH_TABLE_SIZE 100000000
-#define HEAP_SIZE_INCREMENT 200000
 
 #define PAYLOAD_MERGE_STATS_ONLY 1
 #define PAYLOAD_MERGE_FULL_USE 0
@@ -212,13 +216,6 @@ enum
 #define ENTITY_PROP_CAM_BG_COLORS 0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY 0x27F
 
-#define STATE_SEARCH_EVAL_INVALID 0x80000000u
-#define STATE_SEARCH_EVAL_SUCCESS 0
-
-// #define min(a,b) (((a)<(b))?(a):(b)) // .c doesnt need these two
-// #define max(a,b) (((a)>(b))?(a):(b))
-// #define abs(a)   (((a)> 0) ?(a):(-a))
-
 // in export script used to keep track of status stuff
 typedef struct info
 {
@@ -266,8 +263,8 @@ typedef struct entry
     uint8_t *data;
     uint32_t *related;
     uint32_t *distances;
-    uint32_t *visited;
-    uint8_t norm_chunk_ent_is_loaded;
+    bool *visited;
+    bool norm_chunk_ent_is_loaded;
 } ENTRY;
 
 typedef struct draw_item
@@ -390,39 +387,6 @@ typedef struct entry_queue
     int32_t camera_indices[QUEUE_ITEM_COUNT];
 } DIST_GRAPH_Q;
 
-// used to represent states in a* alg
-typedef struct state_set_search_struct
-{
-    uint16_t *entry_chunk_array;
-    uint32_t estimated;
-    uint32_t elapsed;
-} STATE_SEARCH_STR;
-
-// stores queue of states in a* alg
-typedef struct state_set_search_heap
-{
-    uint32_t length;
-    uint32_t real_size;
-    STATE_SEARCH_STR **heap_array;
-} STATE_SEARCH_HEAP;
-
-// used to store visited/considered/not-to-be-visited again configurations of entry-chunk assignments
-typedef struct hash_item
-{
-    struct hash_item *next;
-    uint16_t *entry_chunk_array;
-} HASH_ITEM;
-
-// master hash table that contains hash items
-typedef struct hash_table
-{
-    int32_t table_length;
-    int32_t key_length;
-    int32_t item_count; // not really necessary
-    HASH_ITEM **items;
-    int32_t (*hash_function)(struct hash_table *table, uint16_t *entry_chunk_array);
-} HASH_TABLE;
-
 // used to sort chunks in states in state search to get rid of as many permutations as possible
 typedef struct chunk_str
 {
@@ -438,7 +402,7 @@ typedef struct merge_worst_zone_info_single
     int32_t sum;
 } MERGE_WORST_ZONE_INFO_SINGLE;
 
-typedef struct merge_worst_zone_info 
+typedef struct merge_worst_zone_info
 {
     MERGE_WORST_ZONE_INFO_SINGLE infos[200];
     int32_t used_count;
@@ -564,8 +528,8 @@ void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, i
 void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
 int32_t dsu_find_set(int32_t i);
 void dsu_union_sets(int32_t a, int32_t b);
-int32_t cmp_worst_zone_info(const void* a, const void* b);
-void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO* info, uint32_t zone, uint32_t payload);
+int32_t cmp_worst_zone_info(const void *a, const void *b);
+void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO *info, uint32_t zone, uint32_t payload);
 void build_matrix_merge_util(RELATIONS relations, ENTRY *elist, int32_t entry_count, double merge_ratio);
 RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *config, ENTRY *elist, int32_t entry_count);
 void build_matrix_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, double merge_ratio, double mult);
@@ -597,7 +561,7 @@ void build_load_list_util(int32_t zone_index, int32_t camera_index, LIST *full_l
                           int32_t entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int32_t *config);
 PROPERTY build_make_load_list_prop(LIST *list_array, int32_t cam_length, int32_t code);
 void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDENCIES sub_info);
-void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int32_t cam_length, ENTRY *elist, int32_t entry_count, int32_t is_draw);
+void build_load_list_to_delta(LIST *full_load, LIST *listA, LIST *listB, int32_t cam_length, ENTRY *elist, int32_t entry_count, bool is_draw);
 LIST build_read_special_entries(uint8_t *zone);
 LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count);
 void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config);
@@ -613,11 +577,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
 int32_t build_assign_primary_chunks_all(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
 LIST build_get_normal_entry_list(ENTRY *elist, int32_t entry_count);
 int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST entries, int32_t *config);
-int32_t build_is_normal_chunk_entry(ENTRY entry);
-void build_matrix_merge_relative_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
-void build_matrix_merge_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
-void build_matrix_merge_relative(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded,
-                                 double merge_ratio);
+bool build_is_normal_chunk_entry(ENTRY entry);
 void build_cleanup_elist(ENTRY *elist, int32_t entry_count);
 void build_final_cleanup(ENTRY *elist, int32_t entry_count, uint8_t **chunks, int32_t chunk_count, FILE *nsfnew, FILE *nsd, DEPENDENCIES dep1, DEPENDENCIES dep2);
 void build_ask_spawn(SPAWNS spawns);
@@ -637,7 +597,8 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                                    ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath);
 void build_sort_load_lists(ENTRY *elist, int32_t entry_count);
 void build_ask_build_flags(int32_t *config);
-void build_ask_premerge(int32_t *premerge_type, double *merge_ratio);
+MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count);
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages);
 void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
 void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
 void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int32_t levelID);
@@ -650,40 +611,12 @@ int32_t average_angles(int32_t angle1, int32_t angle2);
 void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST *pos_overrides);
 void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config);
 
-// state thing
+// payload_info.c
 
-void build_merge_state_search_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
-STATE_SEARCH_STR *build_state_search_str_init(int32_t length);
-void build_state_search_str_destroy(STATE_SEARCH_STR *state);
-uint32_t build_state_search_eval_state(LIST *stored_load_lists, int32_t load_list_snapshot_count, STATE_SEARCH_STR *state, int32_t key_length,
-                                       int32_t first_nonperma_chunk, int32_t perma_count, int32_t max_payload_limit, int32_t *max_pay);
-int32_t build_state_search_str_chunk_max(STATE_SEARCH_STR *state, int32_t key_length);
-STATE_SEARCH_STR *build_state_search_merge_chunks(STATE_SEARCH_STR *state, uint32_t chunk1, uint32_t chunk2, int32_t key_length, int32_t first_nonperma_chunk, ENTRY *temp_elist);
-STATE_SEARCH_STR *build_state_search_init_state_convert(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t key_length);
-int32_t build_state_search_is_empty_chunk(STATE_SEARCH_STR *state, uint32_t chunk_index, int32_t key_length);
-uint32_t *build_state_search_init_elist_convert(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t *key_length);
-void build_state_search_solve(ENTRY *elist, int32_t entry_count, int32_t first_nonperma_chunk_index, int32_t perma_chunk_count);
-MATRIX_STORED_LLS
-build_matrix_store_lls(ENTRY *elist, int32_t entry_count);
-PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages);
-
-// deprecate_build.c
-
-PAYLOADS deprecate_build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chunk_min);
-void deprecate_build_payload_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t *chunk_count, int32_t stats_only_flag);
-void deprecate_build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
-void deprecate_build_print_payload(PAYLOAD payload, int32_t stopper);
-int32_t deprecate_build_merge_thing(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count);
-int32_t deprecate_build_get_common(int32_t *listA, int32_t countA, int32_t *listB, int32_t countB);
-void deprecate_build_chunk_merge(ENTRY *elist, int32_t entry_count, int32_t *chunks, int32_t chunk_count);
-PAYLOAD deprecate_build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, int32_t get_tpages);
-void deprecate_build_gool_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count);
-int32_t deprecate_build_is_relative(uint32_t searched, uint32_t *array, int32_t count);
-void deprecate_build_ll_add_children(uint32_t eid, ENTRY *elist, int32_t entry_count, LIST *list, uint32_t *gool_table, DEPENDENCIES dependencies);
-void deprecate_build_assign_primary_chunks_gool(ENTRY *elist, int32_t entry_count, int32_t *real_chunk_count, int32_t grouping_flag);
-void deprecate_build_assign_primary_chunks_rest(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
-void deprecate_build_assign_primary_chunks_zones(ENTRY *elist, int32_t entry_count, int32_t *real_chunk_count, int32_t grouping_flag);
-void deprecate_build_payload_merge_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chunk_min);
+void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
+void build_print_payload(PAYLOAD payload, int32_t stopper);
+PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, int32_t get_tpages);
 
 // side_scripts.c
 
@@ -701,7 +634,7 @@ void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_I
 void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
 void rotate_main(char *time);
 void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time, int32_t filesize);
-void rotate_zone(uint8_t *buffer, char *filepath, double rotation);
+// void rotate_zone(uint8_t *buffer, char *filepath, double rotation);
 void rotate_rotate(uint32_t *y, uint32_t *x, double rotation);
 void crate_rotation_angle();
 void nsd_gool_table_print(char *fpath);

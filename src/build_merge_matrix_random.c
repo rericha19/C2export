@@ -78,7 +78,8 @@ void *build_matrix_merge_random_util(void *args)
 {
     char temp[6] = "";
     char temp2[6] = "";
-    int32_t limit_reached = 0, best_reached = 0;
+    bool limit_reached = false;
+    bool best_reached = false;
 
     MTRX_THRD_IN_STR inp_args = *(MTRX_THRD_IN_STR *)args;
     ENTRY clone_elist[ELIST_DEFAULT_SIZE];
@@ -97,7 +98,7 @@ void *build_matrix_merge_random_util(void *args)
         // check whether iter limit was reached
         pthread_mutex_lock(inp_args.mutex_iter);
         if (*inp_args.curr_iter_ptr > iter_count && iter_count != 0)
-            limit_reached = 1;
+            limit_reached = true;
         pthread_mutex_unlock(inp_args.mutex_iter);
 
         if (limit_reached)
@@ -130,8 +131,9 @@ void *build_matrix_merge_random_util(void *args)
             curr = curr * (int64_t)100;
             curr += (int64_t)payloads.arr[j].count;
         }
+
         pthread_mutex_lock(inp_args.mutex_best);
-        int32_t is_new_best = 0;
+        bool is_new_best = false;
         // if its better than the previous best it gets stored in best_elist and score and zone are remembered
         if (curr < *inp_args.best_max_ptr)
         {
@@ -139,7 +141,7 @@ void *build_matrix_merge_random_util(void *args)
                 inp_args.best_elist[j] = clone_elist[j];
             *inp_args.best_max_ptr = curr;
             *inp_args.best_zone_ptr = payloads.arr[0].zone;
-            is_new_best = 1;
+            is_new_best = true;
         }
 
         pthread_mutex_lock(inp_args.mutex_iter);
@@ -151,7 +153,7 @@ void *build_matrix_merge_random_util(void *args)
             cr_max = cr_max / 100;
 
         if (cr_max <= inp_args.max_pay)
-            best_reached = 1;
+            best_reached = true;
 
         if (best_reached)
         {
@@ -301,7 +303,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
     qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
     printf("\nWorst zone average:\n");
     for (int32_t i = 0; i < wzi.used_count && i < 10; i++)
-        printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
+        printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double)wzi.infos[i].sum) / wzi.infos[i].count);
 
     // cleanup
     for (int32_t i = 0; i < stored_lls.count; i++)
@@ -323,56 +325,57 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
     stored_stuff.count = 0;
     stored_stuff.stored_lls = NULL;
 
-    int32_t i, j, l, m;
-    for (i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+    for (int32_t i = 0; i < entry_count; i++)
+    {
+        if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE || elist[i].data == NULL)
+            continue;
+
+        int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < cam_count; j++)
         {
-            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (j = 0; j < cam_count; j++)
+            LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+
+            LIST list = init_list();
+            for (int32_t l = 0; l < load_list.count; l++)
             {
-                LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+                if (load_list.array[l].type == 'A')
+                    for (int32_t m = 0; m < load_list.array[l].list_length; m++)
+                        list_add(&list, load_list.array[l].list[m]);
 
-                LIST list = init_list();
-                for (l = 0; l < load_list.count; l++)
+                if (load_list.array[l].type == 'B')
+                    for (int32_t m = 0; m < load_list.array[l].list_length; m++)
+                        list_remove(&list, load_list.array[l].list[m]);
+
+                // for simultaneous loads and deloads
+                if (l + 1 != load_list.count)
+                    if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
+                        if (load_list.array[l].index == load_list.array[l + 1].index)
+                            continue;
+
+                if (list.count > 0)
                 {
-                    if (load_list.array[l].type == 'A')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_add(&list, load_list.array[l].list[m]);
+                    int32_t stored_c = stored_stuff.count;
+                    if (stored_c > 0)
+                        stored_stuff.stored_lls = (MATRIX_STORED_LL *)realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
+                    else
+                        stored_stuff.stored_lls = (MATRIX_STORED_LL *)malloc(sizeof(MATRIX_STORED_LL));
 
-                    if (load_list.array[l].type == 'B')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_remove(&list, load_list.array[l].list[m]);
-
-                    // for simultaneous loads and deloads
-                    if (l + 1 != load_list.count)
-                        if (load_list.array[l].type == 'A' && load_list.array[l + 1].type == 'B')
-                            if (load_list.array[l].index == load_list.array[l + 1].index)
-                                continue;
-
-                    if (list.count > 0)
+                    LIST new_l = init_list();
+                    for (int32_t z = 0; z < list.count; z++)
                     {
-                        int32_t stored_c = stored_stuff.count;
-                        if (stored_c > 0)
-                            stored_stuff.stored_lls = (MATRIX_STORED_LL *)realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
-                        else
-                            stored_stuff.stored_lls = (MATRIX_STORED_LL *)malloc(sizeof(MATRIX_STORED_LL));
-
-                        LIST new_l = init_list();
-                        for (int32_t z = 0; z < list.count; z++)
-                        {
-                            int32_t index = build_get_index(list.eids[z], elist, entry_count);
-                            if (index >= 0 && build_is_normal_chunk_entry(elist[index]))
-                                list_add(&new_l, list.eids[z]);
-                        }
-                        stored_stuff.stored_lls[stored_c].full_load = new_l;
-                        stored_stuff.stored_lls[stored_c].zone = elist[i].eid;
-                        stored_stuff.stored_lls[stored_c].cam_path = j;
-                        stored_stuff.count++;
+                        int32_t index = build_get_index(list.eids[z], elist, entry_count);
+                        if (index >= 0 && build_is_normal_chunk_entry(elist[index]))
+                            list_add(&new_l, list.eids[z]);
                     }
+                    stored_stuff.stored_lls[stored_c].full_load = new_l;
+                    stored_stuff.stored_lls[stored_c].zone = elist[i].eid;
+                    stored_stuff.stored_lls[stored_c].cam_path = j;
+                    stored_stuff.count++;
                 }
-                delete_load_list(load_list);
             }
+            delete_load_list(load_list);
         }
+    }
 
     return stored_stuff;
 }
@@ -385,9 +388,9 @@ PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *el
     for (int32_t i = 0; i < stored_lls.count; i++)
     {
         MATRIX_STORED_LL curr_ll = stored_lls.stored_lls[i];
-        PAYLOAD payload = deprecate_build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min, get_tpages);
+        PAYLOAD payload = build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min, get_tpages);
         payload.cam_path = curr_ll.cam_path;
-        deprecate_build_insert_payload(&payloads, payload);
+        build_insert_payload(&payloads, payload);
     }
     return payloads;
 }
@@ -481,7 +484,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
             curr += (int64_t)payloads.arr[j].count;
         }
 
-        int32_t is_new_best = 0;
+        bool is_new_best = false;
         // if its better than the previous best it gets stored in best_elist and score and zone are remembered
         if (curr < best_max)
         {
@@ -489,7 +492,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
                 best_elist[j] = clone_elist[j];
             best_max = curr;
             best_zone = payloads.arr[0].zone;
-            is_new_best = 1;
+            is_new_best = true;
         }
 
         if (!is_new_best)
@@ -513,7 +516,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
     qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
     printf("\nWorst zone average:\n");
     for (int32_t i = 0; i < wzi.used_count && i < 10; i++)
-        printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double) wzi.infos[i].sum) / wzi.infos[i].count);
+        printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double)wzi.infos[i].sum) / wzi.infos[i].count);
 
     for (int32_t i = 0; i < stored_lls.count; i++)
         free(stored_lls.stored_lls[i].full_load.eids);

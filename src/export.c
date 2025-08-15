@@ -123,7 +123,7 @@ void export_countprint(DEPRECATE_INFO_STRUCT status)
                            "Zones: \t\t", "", "", "", "GOOL entries: \t", "Sound entries: \t", "Music tracks:\t", "Instruments: \t", "VCOL entries:\t",
                            "", "", "", "Demo entries:\t", "Speech entries:\t", "T21 entries: \t"};
 
-    for (i = 0; i < 22; i++)
+    for (int32_t i = 0; i < 22; i++)
         if (status.counter[i])
         {
             if (status.portmode && (i == 2 || i == 7 || (i == 11 && status.portmode && (status.gamemode == 3))))
@@ -230,7 +230,7 @@ int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT
     export_condprint(*status);
 
     // hands the chunks to chunk_handler one by one
-    for (i = 0; (uint32_t)i < (numbytes / CHUNKSIZE); i++)
+    for (int32_t i = 0; (uint32_t)i < (numbytes / CHUNKSIZE); i++)
     {
         fread(chunk, sizeof(char), CHUNKSIZE, file);
         export_chunk_handler(chunk, i, sid, date, zone, status);
@@ -251,7 +251,7 @@ int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT
     sprintf(status->temp, "\n");
     export_condprint(*status);
 
-    for (i = 0; (uint32_t)i < status->animrefcount; i++)
+    for (int32_t i = 0; (uint32_t)i < status->animrefcount; i++)
     {
         eid_conv(status->anim[i][0], lcltemp[0]);
         eid_conv(status->anim[i][1], lcltemp[1]);
@@ -298,7 +298,7 @@ int32_t export_normal_chunk(uint8_t *buffer, char *lvlid, char *date, int32_t zo
     char eid[6];
     uint32_t eidnum = 0;
 
-    for (i = 0; i < buffer[8]; i++)
+    for (int32_t i = 0; i < buffer[8]; i++)
     {
         status->counter[0]++;
         offset_start = BYTE * buffer[0x11 + i * 4] + buffer[0x10 + i * 4];
@@ -378,7 +378,7 @@ int32_t export_camera_fix(uint8_t *cam, int32_t length)
 {
     int32_t i, curr_off;
 
-    for (i = 0; i < cam[0xC]; i++)
+    for (int32_t i = 0; i < cam[0xC]; i++)
     {
         if (cam[0x10 + i * 8] == 0x29 && cam[0x11 + i * 8] == 0)
         {
@@ -413,7 +413,7 @@ void export_entity_coord_fix(uint8_t *item, int32_t itemlength)
     int16_t coord;
 
     // printf("%d\n", itemlength);
-    for (i = 0; i < item[0xC]; i++)
+    for (int32_t i = 0; i < item[0xC]; i++)
     {
         if (item[0x10 + i * 8] == 0x4B && item[0x11 + i * 8] == 0)
             off0x4B = BYTE * item[0x13 + i * 8] + item[0x12 + i * 8] + 0xC;
@@ -442,7 +442,7 @@ void export_entity_coord_fix(uint8_t *item, int32_t itemlength)
             break;
         }
 
-        for (i = 0; i < item[off0x4B] * 6; i += 2)
+        for (int32_t i = 0; i < item[off0x4B] * 6; i += 2)
         {
             if (item[off0x4B + 0x5 + i] < 0x80)
             {
@@ -478,7 +478,7 @@ void export_scenery(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date,
     uint32_t origin;
 
     strncpy(cur_type, "scenery", 10);
-    for (i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
     {
         eidint = (BYTE * eidint) + buffer[7 - i];
     }
@@ -490,11 +490,11 @@ void export_scenery(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date,
         if (status->gamemode == 3) // c3 to c2
         {
             item1off = buffer[0x10];
-            for (i = 0; i < 3; i++)
+            for (int32_t i = 0; i < 3; i++)
             {
                 origin = from_u32(buffer + item1off + 4 * i);
                 // origin += 0x8000;
-                for (j = 0; j < 4; j++)
+                for (int32_t j = 0; j < 4; j++)
                 {
                     buffer[item1off + j + i * 4] = origin % 256;
                     origin /= 256;
@@ -601,7 +601,7 @@ void export_gool(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DE
     cpy = (uint8_t *)calloc(entrysize, sizeof(char)); // freed here
     memcpy(cpy, buffer, entrysize);
 
-    for (i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
         eidint = (BYTE * eidint) + buffer[7 - i];
     strncpy(cur_type, "GOOL", 10);
     eid_conv(eidint, eid);
@@ -622,13 +622,13 @@ void export_gool(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DE
                 case 1:
                     help1 = 0;
                     help2 = 0;
-                    for (j = 0; j < 4; j++)
+                    for (int32_t j = 0; j < 4; j++)
                         help1 = 256 * help1 + cpy[curr_off + 0x0F - j];
                     eid_conv(help1, eidhelp1);
 
                     if (eidhelp1[4] == 'G')
                     {
-                        for (j = 0; j < 4; j++)
+                        for (int32_t j = 0; j < 4; j++)
                             help2 = 256 * help2 + cpy[curr_off + 0x13 - j];
                         eid_conv(help2, eidhelp2);
                         if (eidhelp2[4] == 'V')
@@ -641,7 +641,7 @@ void export_gool(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DE
                     }
 
                     for (i = 1; i < 4; i++)
-                        for (j = 0; j < 4; j++)
+                        for (int32_t j = 0; j < 4; j++)
                             cpy[curr_off + 0x10 - 4 * i + j] = cpy[curr_off + 0x10 + j];
 
                     curr_off += 0x14;
@@ -703,7 +703,7 @@ void export_zone(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, in
                 cpy = (uint8_t *)realloc(cpy, lcl_entrysize);
 
                 // offset fix
-                for (j = 0; j < cpy[0xC]; j++)
+                for (int32_t j = 0; j < cpy[0xC]; j++)
                 {
                     lcl_temp = BYTE * cpy[0x15 + j * 4] + cpy[0x14 + j * 4];
                     lcl_temp += 0x40;
@@ -730,7 +730,7 @@ void export_zone(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, in
         {
             if ((BYTE * cpy[0x15] + cpy[0x14] - BYTE * cpy[0x11] - cpy[0x10]) == 0x358)
             {
-                for (j = 0; j < cpy[0xC]; j++)
+                for (int32_t j = 0; j < cpy[0xC]; j++)
                 {
                     lcl_temp = BYTE * cpy[0x15 + j * 4] + cpy[0x14 + j * 4];
                     lcl_temp -= 0x40;
@@ -762,7 +762,7 @@ void export_zone(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, in
             }
 
             irrelitems = cpy[cpy[0x10] + 256 * cpy[0x11] + 0x188];
-            for (i = 0; i < irrelitems / 3; i++)
+            for (int32_t i = 0; i < irrelitems / 3; i++)
             {
                 curr_off = BYTE * cpy[0x19 + i * 0xC] + cpy[0x18 + i * 0xC];
                 next_off = BYTE * cpy[0x19 + i * 0xC + 0x4] + cpy[0x18 + i * 0xC + 0x4];
@@ -804,7 +804,7 @@ void export_model(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, D
         scaling = 8;
 
     if (status->portmode)
-        for (i = 0; i < 3; i++)
+        for (int32_t i = 0; i < 3; i++)
         {
             msize = BYTE * buffer[buffer[0x10] + 1 + i * 4] + buffer[buffer[0x10] + i * 4];
             msize = (int32_t)msize * scaling;
@@ -812,7 +812,7 @@ void export_model(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, D
             buffer[buffer[0x10] + i * 4] = msize % BYTE;
         }
 
-    for (i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
     {
         eidint = (BYTE * eidint) + buffer[7 - i];
     }

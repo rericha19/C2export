@@ -225,35 +225,6 @@ void build_ask_build_flags(int32_t *config)
     printf("\n");
 }
 
-void build_ask_premerge(int32_t *premerge_type, double *merge_ratio)
-{
-    int32_t ans;
-    printf("\nWhich premerge method do you want to use? (Can speed the process up, but premerging too much might prevent complex levels from building properly)\n");
-    printf("[0] - no premerge\n");
-    printf("[1] - partial occurence count matrix merge (absolute)\n");
-    printf("[2] - partial occurence count matrix merge (relative)\n");
-    printf("[3] - place models with their most used animation available\n");
-    printf("[4] - place SLSTs with their zone\n");
-    printf("[5] - 3 & 4 combined\n");
-    scanf("%d", &ans);
-    if (ans < 0 || ans > 5)
-    {
-        printf("Invalid choice, defaulting to [0]\n");
-        ans = 0;
-    }
-
-    if (ans == 1 || ans == 2)
-    {
-        printf("\nPartial premerge ratio? [0 - no premerge, 1 - full merge]\n");
-        double ans2;
-        scanf("%lf", &ans2);
-        *merge_ratio = ans2;
-    }
-
-    *premerge_type = ans;
-    printf("\n");
-}
-
 void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int32_t levelID)
 {
     char temp[80] = "";

@@ -10,8 +10,9 @@ c2export
 .vscode
 .vs
 x64
+c2export_vs/Release
 
-
+*.pdb
 *.exe
 *.o
 *.cbp

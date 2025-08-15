@@ -14,16 +14,15 @@
  */
 void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count)
 {
-    int32_t i, j, k;
     while (1)
     {
-        int32_t merge_happened = 0;
-        for (i = chunk_index_start; i < *chunk_index_end; i++)
+        bool merge_happened = false;
+        for (int32_t i = chunk_index_start; i < *chunk_index_end; i++)
         {
             int32_t size1 = 0;
             int32_t count1 = 0;
 
-            for (j = 0; j < entry_count; j++)
+            for (int32_t j = 0; j < entry_count; j++)
                 if (elist[j].chunk == i)
                 {
                     size1 += elist[j].esize;
@@ -33,11 +32,11 @@ void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_in
             int32_t maxsize = 0;
             int32_t maxentry_count = 0;
 
-            for (j = i + 1; j < *chunk_index_end; j++)
+            for (int32_t j = i + 1; j < *chunk_index_end; j++)
             {
                 int32_t size2 = 0;
                 int32_t count2 = 0;
-                for (k = 0; k < entry_count; k++)
+                for (int32_t k = 0; k < entry_count; k++)
                     if (elist[k].chunk == j)
                     {
                         size2 += elist[k].esize;
@@ -54,10 +53,10 @@ void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_in
 
             if (maxentry_count)
             {
-                for (j = 0; j < entry_count; j++)
+                for (int32_t j = 0; j < entry_count; j++)
                     if (elist[j].chunk == maxentry_count)
                         elist[j].chunk = i;
-                merge_happened++;
+                merge_happened = true;
             }
         }
         if (!merge_happened)
@@ -114,13 +113,13 @@ uint32_t build_get_zone_track(uint8_t *entry)
  */
 int32_t build_get_base_chunk_border(uint32_t textr, uint8_t **chunks, int32_t index_end)
 {
-    int32_t i, retrn = -1;
+    int32_t ret = -1;
 
-    for (i = 0; i < index_end; i++)
+    for (int32_t i = 0; i < index_end; i++)
         if (from_u32(chunks[i] + 4) == textr)
-            retrn = i;
+            ret = i;
 
-    return retrn;
+    return ret;
 }
 
 /** \brief
@@ -344,7 +343,7 @@ int32_t build_get_chunk_count_base(FILE *nsf)
  * \param entry ENTRY                   entry to be tested
  * \return int32_t                          1 if it belongs to a normal chunk, else 0
  */
-int32_t build_is_normal_chunk_entry(ENTRY entry)
+bool build_is_normal_chunk_entry(ENTRY entry)
 {
     int32_t type = build_entry_type(entry);
     if (type == ENTRY_TYPE_ANIM ||
@@ -358,9 +357,9 @@ int32_t build_is_normal_chunk_entry(ENTRY entry)
         type == ENTRY_TYPE_MIDI ||
         type == ENTRY_TYPE_GOOL ||
         type == ENTRY_TYPE_T21)
-        return 1;
+        return true;
 
-    return 0;
+    return false;
 }
 
 void build_cleanup_elist(ENTRY *elist, int32_t entry_count)
@@ -507,29 +506,28 @@ LOAD_LIST build_get_load_lists(uint8_t *entry, int32_t cam_index)
  */
 LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
 {
-    int32_t k, l;
     LOAD_LIST load_list = init_load_list();
 
     int32_t cam_offset = build_get_nth_item_offset(entry, cam_index);
     int32_t prop_count = from_u32(entry + cam_offset + OFFSET);
 
-    for (k = 0; (unsigned)k < prop_count; k++)
+    for (int32_t k = 0; (unsigned)k < prop_count; k++)
     {
         int32_t code = from_u16(entry + cam_offset + 0x10 + 8 * k);
         int32_t offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
         int32_t list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
 
         int32_t next_offset = (k + 1 < prop_count)
-                              ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
-                              : (from_u16(entry + cam_offset) + cam_offset);
+                                  ? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
+                                  : (from_u16(entry + cam_offset) + cam_offset);
         int32_t prop_length = next_offset - offset;
 
         if (code == prop_code || code == prop_code + 1)
         {
             int32_t sub_list_offset;
             int32_t load_list_item_count;
-            int32_t condensed_check1 = 0;
-            int32_t condensed_check2 = 0;
+            bool condensed_check1 = false;
+            bool condensed_check2 = false;
 
             // i should use 0x40 flag in prop header[4] but my spaghetti doesnt work with it so this thing stays here
             int32_t potentially_condensed_length = from_u16(entry + offset) * 4 * list_count;
@@ -537,13 +535,13 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
             if (from_u16(entry + offset + 2 + 2 * list_count) == 0)
                 potentially_condensed_length += 2;
             if (potentially_condensed_length == prop_length && list_count > 1)
-                condensed_check1 = 1;
+                condensed_check1 = true;
 
             int32_t len = 4 * list_count;
-            for (l = 0; l < list_count; l++)
+            for (int32_t l = 0; l < list_count; l++)
                 len += from_u16(entry + offset + l * 2) * 4;
             if (len != prop_length)
-                condensed_check2 = 1;
+                condensed_check2 = true;
 
             if (condensed_check1 && condensed_check2)
             {
@@ -554,7 +552,7 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
                 sub_list_offset = offset + 2 + 2 * list_count;
                 if (sub_list_offset % 4)
                     sub_list_offset += 2;
-                for (l = 0; l < list_count; l++)
+                for (int32_t l = 0; l < list_count; l++)
                 {
                     load_list.array[load_list.count].list_length = load_list_item_count;
                     load_list.array[load_list.count].list = (uint32_t *)
@@ -573,7 +571,7 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
             {
                 sub_list_offset = offset + 4 * list_count;
                 ;
-                for (l = 0; l < list_count; l++)
+                for (int32_t l = 0; l < list_count; l++)
                 {
                     load_list_item_count = from_u16(entry + offset + l * 2);
                     int32_t index = from_u16(entry + offset + l * 2 + list_count * 2);
@@ -605,7 +603,7 @@ void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
     scanf("%d", &omit);
 
     for (int32_t i = 0; i < entry_count; i++)
-        elist[i].norm_chunk_ent_is_loaded = 1;
+        elist[i].norm_chunk_ent_is_loaded = true;
 
     if (!omit)
     {
@@ -621,30 +619,30 @@ void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
     // reads all load lists and bluntly adds all items into the list of all loaded entries
     for (int32_t i = 0; i < entry_count; i++)
     {
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        if (!(build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL))
+            continue;
+
+        int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < cam_count; j++)
         {
-            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (int32_t j = 0; j < cam_count; j++)
-            {
-                LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
-                for (int32_t k = 0; k < ll.count; k++)
-                    for (int32_t l = 0; l < ll.array[k].list_length; l++)
-                        list_add(&ever_loaded, ll.array[k].list[l]);
-            }
+            LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
+            for (int32_t k = 0; k < ll.count; k++)
+                for (int32_t l = 0; l < ll.array[k].list_length; l++)
+                    list_add(&ever_loaded, ll.array[k].list[l]);
         }
     }
 
     for (int32_t i = 0; i < entry_count; i++)
     {
-        if (build_is_normal_chunk_entry(elist[i]))
+        if (!build_is_normal_chunk_entry(elist[i]))
+            continue;
+
+        if (list_find(ever_loaded, elist[i].eid) == -1)
         {
-            if (list_find(ever_loaded, elist[i].eid) == -1)
-            {
-                elist[i].norm_chunk_ent_is_loaded = 0;
-                entries_skipped++;
-                printf("  %3d. entry %s never loaded, will not be included\n",
-                       entries_skipped, eid_conv(elist[i].eid, temp));
-            }
+            elist[i].norm_chunk_ent_is_loaded = false;
+            entries_skipped++;
+            printf("  %3d. entry %s never loaded, will not be included\n",
+                   entries_skipped, eid_conv(elist[i].eid, temp));
         }
     }
 
@@ -697,22 +695,22 @@ void build_main(int32_t build_type)
 
     FILE *nsfnew = NULL, *nsd = NULL; // file pointers for input nsf, output nsf (nsfnew) and output nsd
     FILE *nsfnew2 = NULL, *nsd2 = NULL;
-    SPAWNS spawns = init_spawns();                  // struct with spawns found during reading and parsing of the level data
-    ENTRY elist[ELIST_DEFAULT_SIZE];                // array of structs used to store entries, fixed length cuz lazy & struct is small
-    uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE]; // array of pointers to potentially built chunks, fixed length cuz lazy
-    LIST permaloaded;                               // list containing eids of permaloaded entries provided by the user
-    DEPENDENCIES subtype_info = build_init_dep();   // struct containing info about dependencies of certain types and subtypes
-    DEPENDENCIES collisions = build_init_dep();     // struct containing info about dependencies of certain collision types
+    SPAWNS spawns = init_spawns();                // struct with spawns found during reading and parsing of the level data
+    ENTRY elist[ELIST_DEFAULT_SIZE];              // array of structs used to store entries, fixed length cuz lazy & struct is small
+    uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE];     // array of pointers to potentially built chunks, fixed length cuz lazy
+    LIST permaloaded;                             // list containing eids of permaloaded entries provided by the user
+    DEPENDENCIES subtype_info = build_init_dep(); // struct containing info about dependencies of certain types and subtypes
+    DEPENDENCIES collisions = build_init_dep();   // struct containing info about dependencies of certain collision types
     DEPENDENCIES mus_dep = build_init_dep();
     int32_t level_ID = 0; // level ID, used for naming output files and needed in output nsd
 
     // used to keep track of counts and to separate groups of chunks
     // int32_t chunk_border_base       = 0;
-    int32_t chunk_border_texture = 0,
-        chunk_border_sounds = 0,
-        chunk_count = 0,
-        entry_count_base = 0,
-        entry_count = 0;
+    int32_t chunk_border_texture = 0;
+    int32_t chunk_border_sounds = 0;
+    int32_t chunk_count = 0;
+    int32_t entry_count_base = 0;
+    int32_t entry_count = 0;
 
     uint32_t gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
@@ -745,20 +743,21 @@ void build_main(int32_t build_type)
         0, // 17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
     };
 
-    int32_t input_parse_rtrn_value = 1;
+    bool input_parse_err = true;
     // reading contents of the nsf/folder and collecting metadata
     if (build_type == BuildType_Build)
-        input_parse_rtrn_value = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
+        input_parse_err = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
 
     // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
     if (build_type == BuildType_Rebuild || build_type == BuildType_Rebuild_DL)
-        input_parse_rtrn_value = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
+        input_parse_err = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
 
     chunk_count = chunk_border_texture;
 
     // end if something went wrong
-    if (input_parse_rtrn_value)
+    if (input_parse_err)
     {
+        printf("[ERROR] something went wrong during parsing\n");
         build_final_cleanup(elist, entry_count, chunks, chunk_count, nsfnew, nsd, subtype_info, collisions);
         return;
     }
@@ -854,23 +853,16 @@ void build_main(int32_t build_type)
 #else
         printf("This build does not support this method, using method 4 instead\n");
         build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        // eat input
+        int32_t t_count;
+        scanf("%d", &t_count);
 #endif // COMPILE_WITH_THREADS
         break;
     case 4:
         build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
         break;
-    case 3:
-        build_merge_state_search_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-        break;
-    case 2:
-        deprecate_build_payload_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-        break;
-    case 1:
-        build_matrix_merge_relative_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-        break;
-    case 0:
     default:
-        build_matrix_merge_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        printf("[ERROR] deprecated merge %d\n", merge_tech_flag);
         break;
     }
     printf("\nMerge took %.3fs\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);

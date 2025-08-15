@@ -53,14 +53,14 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     int32_t sound_entry_count = 0;
 
     // count sound entries, create an array of entries for them (temporary)
-    for (i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_entry_count++;
     ENTRY *sound_list = (ENTRY *)malloc(sound_entry_count * sizeof(ENTRY)); // freed here
 
     // add actual entries to the array
     int32_t indexer = 0;
-    for (i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_list[indexer++] = elist[i];
 
@@ -70,13 +70,13 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     // assumes 8 sound chunks, i dont think theres anywhere the vanilla game uses more than 8 soooo
     // default header is 0x14B
     int32_t sizes[8];
-    for (i = 0; i < 8; i++)
+    for (int32_t i = 0; i < 8; i++)
         sizes[i] = 0x14;
 
     // put in the first chunk it fits into
     // idk what happened here anymore
-    for (i = 0; i < sound_entry_count; i++)
-        for (j = 0; j < 8; j++)
+    for (int32_t i = 0; i < sound_entry_count; i++)
+        for (int32_t j = 0; j < 8; j++)
             if (sizes[j] + 4 + (((sound_list[i].esize + 16) >> 4) << 4) <= CHUNKSIZE)
             {
                 sound_list[i].chunk = temp_chunk_count + j;
@@ -86,7 +86,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
 
     // find out how many actual sound chunks got made
     int32_t snd_chunk_count = 0;
-    for (i = 0; i < 8; i++)
+    for (int32_t i = 0; i < 8; i++)
         if (sizes[i] > 0x14)
             snd_chunk_count = i + 1;
 
@@ -94,13 +94,13 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     qsort(sound_list, sound_entry_count, sizeof(ENTRY), cmp_func_eid);
 
     // build the actual chunks, almost identical to the build_normal_chunks function
-    for (i = 0; i < snd_chunk_count; i++)
+    for (int32_t i = 0; i < snd_chunk_count; i++)
     {
         int32_t local_entry_count = 0;
         int32_t chunk_no = 2 * (temp_chunk_count + i) + 1;
         chunks[temp_chunk_count + i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
 
-        for (j = 0; j < sound_entry_count; j++)
+        for (int32_t j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)
                 local_entry_count++;
 
@@ -113,18 +113,18 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
         indexer = 0;
         offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
 
-        for (j = 0; j < sound_entry_count; j++)
+        for (int32_t j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)
             {
                 offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
                 indexer++;
             }
 
-        for (j = 0; j < local_entry_count + 1; j++)
+        for (int32_t j = 0; j < local_entry_count + 1; j++)
             *(uint32_t *)(chunks[temp_chunk_count + i] + 0x10 + j * 4) = offsets[j];
 
         indexer = 0;
-        for (j = 0; j < sound_entry_count; j++)
+        for (int32_t j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == temp_chunk_count + i)
                 memcpy(chunks[temp_chunk_count + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
 
@@ -133,8 +133,8 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     }
 
     // update the chunk assignment in the actual master entry list, this function only worked with copies of the entries
-    for (i = 0; i < entry_count; i++)
-        for (j = 0; j < sound_entry_count; j++)
+    for (int32_t i = 0; i < entry_count; i++)
+        for (int32_t j = 0; j < sound_entry_count; j++)
             if (elist[i].eid == sound_list[j].eid)
                 elist[i].chunk = sound_list[j].chunk;
     // update chunk count

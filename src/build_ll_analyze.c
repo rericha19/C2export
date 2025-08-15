@@ -3,87 +3,86 @@
 void build_ll_check_load_list_integrity(ENTRY *elist, int32_t entry_count)
 {
     printf("\nLoad list integrity check:\n");
-    int32_t issue_found = 0;
+    bool issue_found = false;
 
-    int32_t i, j, l, m;
-    for (i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
+        if (!(build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL))
+            continue;
+
+        int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < cam_count; j++)
         {
-            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            for (j = 0; j < cam_count; j++)
+            LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+
+            // load and deload everything in 'positive' direction, whatever remains in list is undeloaded
+            LIST list = init_list();
+            for (int32_t l = 0; l < load_list.count; l++)
             {
-                LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
-
-                // load and deload everything in 'positive' direction, whatever remains in list is undeloaded
-                LIST list = init_list();
-                for (l = 0; l < load_list.count; l++)
-                {
-                    if (load_list.array[l].type == 'A')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
+                if (load_list.array[l].type == 'A')
+                    for (int32_t m = 0; m < load_list.array[l].list_length; m++)
+                    {
+                        int32_t len, len2;
+                        char temp[6] = "";
+                        char temp2[6] = "";
+                        len = list.count;
+                        list_add(&list, load_list.array[l].list[m]);
+                        len2 = list.count;
+                        if (len == len2)
                         {
-                            int32_t len, len2;
-                            char temp[6] = "";
-                            char temp2[6] = "";
-                            len = list.count;
-                            list_add(&list, load_list.array[l].list[m]);
-                            len2 = list.count;
-                            if (len == len2)
-                            {
-                                issue_found = 1;
-                                printf("Duplicate/already loaded entry %s in zone %s path %d load list A point %d\n",
-                                       eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), j, load_list.array[l].index);
-                            }
+                            issue_found = true;
+                            printf("Duplicate/already loaded entry %s in zone %s path %d load list A point %d\n",
+                                   eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), j, load_list.array[l].index);
                         }
+                    }
 
-                    if (load_list.array[l].type == 'B')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_remove(&list, load_list.array[l].list[m]);
-                }
-
-                // load and deload everything in 'negative' direction, whatever remains in list2 was not loaded
-                LIST list2 = init_list();
-                for (l = load_list.count - 1; l >= 0; l--)
-                {
-                    if (load_list.array[l].type == 'A')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                            list_remove(&list2, load_list.array[l].list[m]);
-
-                    if (load_list.array[l].type == 'B')
-                        for (m = 0; m < load_list.array[l].list_length; m++)
-                        {
-                            int32_t len, len2;
-                            char temp[6] = "";
-                            char temp2[6] = "";
-                            len = list2.count;
-                            list_add(&list2, load_list.array[l].list[m]);
-                            len2 = list2.count;
-                            if (len == len2)
-                            {
-                                issue_found = 1;
-                                printf("Duplicate/already loaded entry %s in zone %s path %d load list B point %d\n",
-                                       eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), j, load_list.array[l].index);
-                            }
-                        }
-                }
-
-                char temp[100] = "";
-                if (list.count || list2.count)
-                {
-                    issue_found = 1;
-                    printf("Zone %5s cam path %d load list incorrect:\n", eid_conv(elist[i].eid, temp), j);
-                }
-
-                for (l = 0; l < list.count; l++)
-                    printf("\t%5s (never deloaded)\n", eid_conv(list.eids[l], temp));
-                for (l = 0; l < list2.count; l++)
-                    printf("\t%5s (deloaded before loaded)\n", eid_conv(list2.eids[l], temp));
-
-                delete_load_list(load_list);
+                if (load_list.array[l].type == 'B')
+                    for (int32_t m = 0; m < load_list.array[l].list_length; m++)
+                        list_remove(&list, load_list.array[l].list[m]);
             }
+
+            // load and deload everything in 'negative' direction, whatever remains in list2 was not loaded
+            LIST list2 = init_list();
+            for (int32_t l = load_list.count - 1; l >= 0; l--)
+            {
+                if (load_list.array[l].type == 'A')
+                    for (int32_t m = 0; m < load_list.array[l].list_length; m++)
+                        list_remove(&list2, load_list.array[l].list[m]);
+
+                if (load_list.array[l].type == 'B')
+                    for (int32_t m = 0; m < load_list.array[l].list_length; m++)
+                    {
+                        int32_t len, len2;
+                        char temp[6] = "";
+                        char temp2[6] = "";
+                        len = list2.count;
+                        list_add(&list2, load_list.array[l].list[m]);
+                        len2 = list2.count;
+                        if (len == len2)
+                        {
+                            issue_found = true;
+                            printf("Duplicate/already loaded entry %s in zone %s path %d load list B point %d\n",
+                                   eid_conv(load_list.array[l].list[m], temp), eid_conv(elist[i].eid, temp2), j, load_list.array[l].index);
+                        }
+                    }
+            }
+
+            char temp[100] = "";
+            if (list.count || list2.count)
+            {
+                issue_found = true;
+                printf("Zone %5s cam path %d load list incorrect:\n", eid_conv(elist[i].eid, temp), j);
+            }
+
+            for (int32_t l = 0; l < list.count; l++)
+                printf("\t%5s (never deloaded)\n", eid_conv(list.eids[l], temp));
+            for (int32_t l = 0; l < list2.count; l++)
+                printf("\t%5s (deloaded before loaded)\n", eid_conv(list2.eids[l], temp));
+
+            delete_load_list(load_list);
         }
     }
-    if (issue_found == 0)
+    if (!issue_found)
         printf("No load list issues were found\n\n");
     else
         printf("\n");
@@ -204,7 +203,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int32_t entry_count)
                         }
 
                         int32_t neighbour_entity_offset = build_get_nth_item_offset(elist[neighbour_index].data,
-                                                                                2 + neighbour_cam_item_count + draw_item.neighbour_item_index);
+                                                                                    2 + neighbour_cam_item_count + draw_item.neighbour_item_index);
                         int32_t neighbour_entity_ID = build_get_entity_prop(elist[neighbour_index].data + neighbour_entity_offset, ENTITY_PROP_ID);
 
                         if (draw_item.ID != neighbour_entity_ID)
@@ -273,7 +272,7 @@ int32_t pay_cmp2(const void *a, const void *b)
 void build_ll_print_full_payload_info(ENTRY *elist, int32_t entry_count, int32_t print_full)
 {
     /* gets and prints payload ladder */
-    PAYLOADS payloads = deprecate_build_get_payload_ladder(elist, entry_count, 0);
+    PAYLOADS payloads = build_get_payload_ladder(elist, entry_count, 0);
 
     int32_t ans = 1;
     /*printf("\nPick payload print option:\n");
@@ -294,7 +293,7 @@ void build_ll_print_full_payload_info(ENTRY *elist, int32_t entry_count, int32_t
         if (payloads.arr[k].count >= 21 || ans == 1)
         {
             printf("%d\t", k + 1);
-            deprecate_build_print_payload(payloads.arr[k], 0);
+            build_print_payload(payloads.arr[k], 0);
         }
 
         if (payloads.arr[k].count >= 21 || print_full)

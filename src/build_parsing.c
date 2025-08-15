@@ -16,17 +16,17 @@
  */
 void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, uint8_t **chunks, int32_t *chunk_border_texture, int32_t *entry_count, FILE *nsf, uint32_t *gool_table)
 {
-    int32_t i, j, offset;
+    int32_t offset;
     uint8_t chunk[CHUNKSIZE];
 
-    for (i = 0; i < chunk_border_base; i++)
+    for (int32_t i = 0; i < chunk_border_base; i++)
     {
         fread(chunk, CHUNKSIZE, sizeof(uint8_t), nsf);
         chunks[*chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
         memcpy(chunks[*chunk_border_texture], chunk, CHUNKSIZE);
         (*chunk_border_texture)++;
         if (chunk[2] != 1)
-            for (j = 0; j < chunk[8]; j++)
+            for (int32_t j = 0; j < chunk[8]; j++)
             {
                 offset = *(int32_t *)(chunk + 0x10 + j * 4);
                 elist[*entry_count].eid = from_u32(chunk + offset + 4);
@@ -157,7 +157,6 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
 {
 
     int32_t remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
-    int32_t valid = 1;
 
     char *line = NULL;
     int32_t line_r_off = 0;
@@ -198,8 +197,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
         if (index == -1)
         {
             printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", temp);
-            valid = 0;
-            continue;
+            return 0;
         }
 
         list_add(&perma, eid_to_int(temp));
@@ -470,11 +468,6 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
     *subtype_info = subinfo;
     *collisions = coll;
     *music_deps = mus_d;
-    if (!valid)
-    {
-        printf("Cannot proceed with invalid items, fix that\n");
-        return 0;
-    }
     return 1;
 }
 
@@ -560,7 +553,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count)
  */
 uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
 {
-    int32_t entity_count, item1len, relcount, camcount, neighbourcount, scencount, i, entry_count = 0;
+    int32_t entity_count, item1len, relcount, camcount, neighbourcount, scencount, entry_count = 0;
     uint32_t *relatives;
 
     int32_t item1off = build_get_nth_item_offset(entry, 0);
@@ -587,23 +580,23 @@ uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
 
     relatives[entry_count++] = relcount - 1;
 
-    for (i = 0; i < (camcount / 3); i++)
+    for (int32_t i = 0; i < (camcount / 3); i++)
     {
         int32_t offset = build_get_nth_item_offset(entry, 2 + 3 * i);
         relatives[entry_count++] = build_get_slst(entry + offset);
     }
 
     LIST neighbours = build_get_neighbours(entry);
-    for (i = 0; i < neighbours.count; i++)
+    for (int32_t i = 0; i < neighbours.count; i++)
         relatives[entry_count++] = neighbours.eids[i];
 
-    for (i = 0; i < scencount; i++)
+    for (int32_t i = 0; i < scencount; i++)
         relatives[entry_count++] = from_u32(entry + item1off + 0x4 + 0x30 * i);
 
     if (music_ref != EID_NONE)
         relatives[entry_count++] = music_ref;
 
-    for (i = 0; i < entity_count; i++)
+    for (int32_t i = 0; i < entity_count; i++)
     {
         int32_t *coords_ptr;
         coords_ptr = build_seek_spawn(entry + from_u32(entry + 0x18 + 4 * camcount + 4 * i));
@@ -632,7 +625,7 @@ uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
 uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
 {
     int32_t curr_off, type = 0, help;
-    int32_t i, counter = 0;
+    int32_t counter = 0;
     char temp[6];
     int32_t curr_eid;
     uint32_t local[256];
@@ -663,7 +656,7 @@ uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
             }
             else
             {
-                for (i = 0; i < 4; i++)
+                for (int32_t i = 0; i < 4; i++)
                 {
                     curr_eid = from_u32(entry + curr_off + 4 + 4 * i);
                     eid_conv(curr_eid, temp);
@@ -692,7 +685,7 @@ uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
 
     relatives = (uint32_t *)malloc((counter + 1) * sizeof(uint32_t)); // freed by build_main
     relatives[0] = counter;
-    for (i = 0; i < counter; i++)
+    for (int32_t i = 0; i < counter; i++)
         relatives[i + 1] = local[i];
 
     return relatives;
@@ -707,8 +700,8 @@ uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
  */
 int32_t *build_seek_spawn(uint8_t *item)
 {
-    int32_t i, code, offset, type = -1, subtype = -1, coords_offset = -1;
-    for (i = 0; (unsigned)i < from_u32(item + 0xC); i++)
+    int32_t code, offset, type = -1, subtype = -1, coords_offset = -1;
+    for (int32_t i = 0; (unsigned)i < from_u32(item + 0xC); i++)
     {
         code = from_u16(item + 0x10 + 8 * i);
         offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
@@ -724,7 +717,7 @@ int32_t *build_seek_spawn(uint8_t *item)
         if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4))
         {
             int32_t *coords = (int32_t *)malloc(3 * sizeof(int32_t)); // freed by caller
-            for (i = 0; i < 3; i++)
+            for (int32_t i = 0; i < 3; i++)
                 coords[i] = (*(int16_t *)(item + coords_offset + 2 * i)) * 4;
             return coords;
         }
@@ -742,15 +735,14 @@ int32_t *build_seek_spawn(uint8_t *item)
  */
 void build_get_model_references(ENTRY *elist, int32_t entry_count)
 {
-    int32_t i, j;
     uint32_t new_relatives[250];
-    for (i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if ((elist[i].related != NULL) && (from_u32(elist[i].data + 8) == ENTRY_TYPE_GOOL))
         {
             int32_t relative_index;
             int32_t new_counter = 0;
-            for (j = 0; (unsigned)j < elist[i].related[0]; j++)
+            for (int32_t j = 0; (unsigned)j < elist[i].related[0]; j++)
                 if ((relative_index = build_get_index(elist[i].related[j + 1], elist, entry_count)) >= 0)
                     if (elist[relative_index].data != NULL && (from_u32(elist[relative_index].data + 8) == 1))
                         new_relatives[new_counter++] = build_get_model(elist[relative_index].data, 0);
@@ -760,7 +752,7 @@ void build_get_model_references(ENTRY *elist, int32_t entry_count)
                 int32_t relative_count;
                 relative_count = elist[i].related[0];
                 elist[i].related = (uint32_t *)realloc(elist[i].related, (relative_count + new_counter + 1) * sizeof(uint32_t));
-                for (j = 0; j < new_counter; j++)
+                for (int32_t j = 0; j < new_counter; j++)
                     elist[i].related[j + relative_count + 1] = new_relatives[j];
                 elist[i].related[0] += new_counter;
             }
@@ -786,12 +778,12 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
         {
             int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
             elist[i].distances = (uint32_t *)malloc(cam_count * sizeof(uint32_t)); // freed by build_main
-            elist[i].visited = (uint32_t *)malloc(cam_count * sizeof(uint32_t));   // freed by build_main
+            elist[i].visited = (bool *)malloc(cam_count * sizeof(bool));           // freed by build_main
 
             for (int32_t j = 0; j < cam_count; j++)
             {
                 elist[i].distances[j] = INT_MAX;
-                elist[i].visited[j] = 0;
+                elist[i].visited[j] = false;
             }
         }
         else
@@ -866,14 +858,13 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
  */
 void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t entry_count_base)
 {
-    int32_t i, j, k;
     uint32_t new_relatives[250];
 
-    for (i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (elist[i].related == NULL)
             continue;
-        for (j = 1; (unsigned)j < elist[i].related[0] + 1; j++)
+        for (int32_t j = 1; (unsigned)j < elist[i].related[0] + 1; j++)
         {
             int32_t relative_index;
             relative_index = build_get_index(elist[i].related[j], elist, entry_count);
@@ -882,13 +873,13 @@ void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t 
             if (elist[i].related[j] == elist[i].eid)
                 elist[i].related[j] = 0;
 
-            for (k = j + 1; (unsigned)k < elist[i].related[0] + 1; k++)
+            for (int32_t k = j + 1; (unsigned)k < elist[i].related[0] + 1; k++)
                 if (elist[i].related[j] == elist[i].related[k])
                     elist[i].related[k] = 0;
         }
 
         int32_t counter = 0;
-        for (j = 1; (unsigned)j < elist[i].related[0] + 1; j++)
+        for (int32_t j = 1; (unsigned)j < elist[i].related[0] + 1; j++)
             if (elist[i].related[j] != 0)
                 new_relatives[counter++] = elist[i].related[j];
 
@@ -900,7 +891,7 @@ void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t 
 
         elist[i].related = (uint32_t *)realloc(elist[i].related, (counter + 1) * sizeof(uint32_t));
         elist[i].related[0] = counter;
-        for (j = 0; j < counter; j++)
+        for (int32_t j = 0; j < counter; j++)
             elist[i].related[j + 1] = new_relatives[j];
     }
 }

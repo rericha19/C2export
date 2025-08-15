@@ -68,7 +68,7 @@ int32_t import_file_lister(char *path, FILE *fnew)
 
     curr_chunk = 2 * (int32_t)ftell(fnew) / CHUNKSIZE + 1;
 
-    for (i = 0; i < CHUNKSIZE + 1024; i++)
+    for (int32_t i = 0; i < CHUNKSIZE + 1024; i++)
     {
         nrmal[i] = 0;
         //    sound[i] = 0;
@@ -103,7 +103,7 @@ int32_t import_file_lister(char *path, FILE *fnew)
                 {
                     fread(textu, sizeof(uint8_t), CHUNKSIZE, file);
                     eidint = 0;
-                    for (i = 0; i < 4; i++)
+                    for (int32_t i = 0; i < 4; i++)
                     {
                         eidint = BYTE * eidint + textu[7 - i];
                     }
@@ -157,7 +157,7 @@ void import_chunksave(uint8_t *chunk, int32_t *index, int32_t *curr_off, int32_t
     int32_t i;
     uint32_t checksum;
 
-    for (i = 0; i < 1024; i++)
+    for (int32_t i = 0; i < 1024; i++)
         help[i] = 0;
 
     *index = *index - 1;
@@ -168,7 +168,7 @@ void import_chunksave(uint8_t *chunk, int32_t *index, int32_t *curr_off, int32_t
     help[5] = *curr_chunk / 256;
     help[8] = (*index + 1) % 256;
     help[9] = (*index + 1) / 256;
-    for (i = 0; i < *index + 2; i++)
+    for (int32_t i = 0; i < *index + 2; i++)
     {
         help[0x11 + i * 4] = (0x10 + offsets[i] + (*index + 2) * 4) / 256;
         help[0x10 + i * 4] = (0x10 + offsets[i] + (*index + 2) * 4) % 256;
@@ -178,14 +178,14 @@ void import_chunksave(uint8_t *chunk, int32_t *index, int32_t *curr_off, int32_t
 
     checksum = nsfChecksum(chunk);
 
-    for (i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
     {
         chunk[0xC + i] = checksum % 256;
         checksum /= 256;
     }
 
     fwrite(chunk, sizeof(uint8_t), CHUNKSIZE, fnew);
-    for (i = 0; i < CHUNKSIZE; i++)
+    for (int32_t i = 0; i < CHUNKSIZE; i++)
         chunk[i] = 0;
     *index = 0;
     *curr_off = 0;

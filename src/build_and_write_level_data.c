@@ -35,13 +35,13 @@ void build_write_nsf(FILE *nsfnew, ENTRY *elist, int32_t entry_count, int32_t ch
  */
 void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t **chunks, int32_t do_end_print)
 {
-    int32_t i, j, sum = 0;
+    int32_t sum = 0;
     // texture, wavebank and sound chunks are already taken care of, thats why it starts after sounds
-    for (i = chunk_border_sounds; i < chunk_count; i++)
+    for (int32_t i = chunk_border_sounds; i < chunk_count; i++)
     {
         int32_t chunk_no = 2 * i + 1;
         int32_t local_entry_count = 0;
-        for (j = 0; j < entry_count; j++)
+        for (int32_t j = 0; j < entry_count; j++)
             if (elist[j].chunk == i)
                 local_entry_count++;
 
@@ -56,7 +56,7 @@ void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border
         int32_t indexer = 0;
         offsets[0] = 0x10 + (local_entry_count + 1) * 4;
 
-        for (j = 0; j < entry_count; j++)
+        for (int32_t j = 0; j < entry_count; j++)
             if (elist[j].chunk == i)
             {
                 offsets[indexer + 1] = offsets[indexer] + elist[j].esize;
@@ -64,12 +64,12 @@ void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border
             }
 
         // writes offsets
-        for (j = 0; j < local_entry_count + 1; j++)
+        for (int32_t j = 0; j < local_entry_count + 1; j++)
             *(uint32_t *)(chunks[i] + 0x10 + j * 4) = offsets[j];
 
         // writes entries
         int32_t curr_offset = offsets[0];
-        for (j = 0; j < entry_count; j++)
+        for (int32_t j = 0; j < entry_count; j++)
         {
             if (elist[j].chunk == i)
             {
@@ -186,36 +186,35 @@ void build_sort_load_lists(ENTRY *elist, int32_t entry_count)
     // sorts the load list entries so that the order matches the nsd's entry table's order
     for (int32_t i = 0; i < entry_count; i++)
     {
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL)
-        {
-            int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        if (!(build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL))
+            continue;
 
-            for (int32_t j = 0; j < cam_count; j++)
+        int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+        for (int32_t j = 0; j < cam_count; j++)
+        {
+            int32_t cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
+            for (int32_t k = 0; (unsigned)k < build_prop_count(elist[i].data + cam_offset); k++)
             {
-                int32_t cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
-                for (int32_t k = 0; (unsigned)k < build_prop_count(elist[i].data + cam_offset); k++)
+                int32_t code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
+                int32_t offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+                int32_t list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
+                if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
                 {
-                    int32_t code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
-                    int32_t offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-                    int32_t list_count = from_u16(elist[i].data + cam_offset + 0x16 + 8 * k);
-                    if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
+                    int32_t sub_list_offset = offset + 4 * list_count;
+                    for (int32_t l = 0; l < list_count; l++)
                     {
-                        int32_t sub_list_offset = offset + 4 * list_count;
-                        for (int32_t l = 0; l < list_count; l++)
+                        int32_t item_count = from_u16(elist[i].data + offset + l * 2);
+                        LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *)malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL)); // freed here
+                        for (int32_t m = 0; m < item_count; m++)
                         {
-                            int32_t item_count = from_u16(elist[i].data + offset + l * 2);
-                            LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *)malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL)); // freed here
-                            for (int32_t m = 0; m < item_count; m++)
-                            {
-                                item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
-                                item_list[m].index = build_get_index(item_list[m].eid, elist, entry_count);
-                            }
-                            qsort(item_list, item_count, sizeof(LOAD_LIST_ITEM_UTIL), load_list_sort);
-                            for (int32_t m = 0; m < item_count; m++)
-                                *(uint32_t *)(elist[i].data + sub_list_offset + 4 * m) = item_list[m].eid;
-                            sub_list_offset += item_count * 4;
-                            free(item_list);
+                            item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);
+                            item_list[m].index = build_get_index(item_list[m].eid, elist, entry_count);
                         }
+                        qsort(item_list, item_count, sizeof(LOAD_LIST_ITEM_UTIL), load_list_sort);
+                        for (int32_t m = 0; m < item_count; m++)
+                            *(uint32_t *)(elist[i].data + sub_list_offset + 4 * m) = item_list[m].eid;
+                        sub_list_offset += item_count * 4;
+                        free(item_list);
                     }
                 }
             }

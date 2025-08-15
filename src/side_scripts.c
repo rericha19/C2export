@@ -205,7 +205,7 @@ void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     int32_t vertcount = (next_off - curr_off) / 6;
     uint32_t **verts = (uint32_t **)malloc(vertcount * sizeof(uint32_t *)); // freed here
-    for (i = 0; i < vertcount; i++)
+    for (int32_t i = 0; i < vertcount; i++)
         verts[i] = (uint32_t *)malloc(2 * sizeof(uint32_t *)); // freed here
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
@@ -221,7 +221,7 @@ void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time
             printf("x_index: %d, z_index: %d\n", (i - curr_off) / 4, (i - curr_off) / 2 - vertcount * 2);
     }
 
-    for (i = 0; i < vertcount; i++)
+    for (int32_t i = 0; i < vertcount; i++)
         rotate_rotate(&verts[i][0], &verts[vertcount - 1 - i][1], rotation);
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
@@ -252,7 +252,7 @@ void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time
     filenew = fopen(lcltemp, "wb");
     fwrite(buffer, sizeof(uint8_t), filesize, filenew);
     fclose(filenew);
-    for (i = 0; i < vertcount; i++)
+    for (int32_t i = 0; i < vertcount; i++)
         free(verts[i]);
     free(verts);
 }
@@ -305,8 +305,7 @@ int32_t texture_copy_main()
     fread(texture2, 65536, 1, file2);
 
     while (1)
-    {
-        int32_t i;
+    {        
         int32_t bpp, src_x, src_y, width, height, dest_x, dest_y;
         printf("bpp src_x src_y width height dest-x dest-y? [set bpp to 0 to end]\n");
         scanf("%d", &bpp);
@@ -317,7 +316,7 @@ int32_t texture_copy_main()
         switch (bpp)
         {
         case 4:
-            for (i = 0; i < height; i++)
+            for (int32_t i = 0; i < height; i++)
             {
                 int32_t offset1 = (i + src_y) * 0x200 + src_x / 2;
                 int32_t offset2 = (i + dest_y) * 0x200 + dest_x / 2;
@@ -326,7 +325,7 @@ int32_t texture_copy_main()
             }
             break;
         case 8:
-            for (i = 0; i < height; i++)
+            for (int32_t i = 0; i < height; i++)
             {
                 int32_t offset1 = (i + src_y) * 0x200 + src_x;
                 int32_t offset2 = (i + dest_y) * 0x200 + dest_x;
@@ -389,7 +388,7 @@ void print_prop_body(uint8_t *arr, int32_t offset, int32_t offset_next)
 void prop_main(char *path)
 {
     FILE *file = NULL;
-    uint32_t fsize, i, code, offset, offset_next;
+    uint32_t fsize, code, offset, offset_next;
     uint8_t *arr;
 
     if ((file = fopen(path, "rb")) == NULL)
@@ -406,7 +405,7 @@ void prop_main(char *path)
     fread(arr, fsize, sizeof(uint8_t), file);
 
     printf("\n");
-    for (i = 0; i < build_prop_count(arr); i++)
+    for (int32_t i = 0; i < build_prop_count(arr); i++)
     {
         code = from_u16(arr + 0x10 + 8 * i);
         offset = from_u16(arr + 0x12 + 8 * i) + OFFSET;
@@ -646,7 +645,7 @@ void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
     FILE *level = NULL;
     char path[MAX] = "";
     double scale[3];
-    int32_t check = 1;
+    bool check = true;
     DIR *df = NULL;
 
     scanf("%d %lf %lf %lf", &status.gamemode, &scale[0], &scale[1], &scale[2]);
@@ -666,14 +665,14 @@ void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
     else
     {
         printf("Couldn't open\n");
-        check--;
+        check = false;
     }
 
     fclose(level);
     closedir(df);
+
     if (check)
-        printf("\nEntries' dimensions resized\n\n");
-    return;
+        printf("\nEntries' dimensions resized\n\n");    
 }
 
 // yep resizes level
@@ -681,8 +680,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
-    uint8_t buffer[CHUNKSIZE];
-    int32_t i, chunkcount;
+    uint8_t buffer[CHUNKSIZE];    
 
     help = strrchr(filepath, '\\');
     *help = '\0';
@@ -691,10 +689,10 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
 
     filenew = fopen(lcltemp, "wb");
     fseek(level, 0, SEEK_END);
-    chunkcount = ftell(level) / CHUNKSIZE;
+    int32_t chunkcount = ftell(level) / CHUNKSIZE;
     rewind(level);
 
-    for (i = 0; i < chunkcount; i++)
+    for (int32_t i = 0; i < chunkcount; i++)
     {
         fread(buffer, sizeof(uint8_t), CHUNKSIZE, level);
         resize_chunk_handler(buffer, status, scale);
@@ -799,13 +797,13 @@ void resize_zone_camera_distance(int32_t fsize, uint8_t *buffer, double scale[3]
 // yep resizes chunk
 void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
 {
-    int32_t offset_start, offset_end, i;
+    int32_t offset_start, offset_end;
     uint32_t checksum;
     uint8_t *entry = NULL;
     if (chunk[2] != 0)
         return;
 
-    for (i = 0; i < chunk[8]; i++)
+    for (int32_t i = 0; i < chunk[8]; i++)
     {
         offset_start = BYTE * chunk[0x11 + i * 4] + chunk[0x10 + i * 4];
         offset_end = BYTE * chunk[0x15 + i * 4] + chunk[0x14 + i * 4];
@@ -832,7 +830,7 @@ void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double s
 
     checksum = nsfChecksum(chunk);
 
-    for (i = 0; i < 4; i++)
+    for (int32_t i = 0; i < 4; i++)
     {
         chunk[0xC + i] = checksum % 256;
         checksum /= 256;
@@ -910,10 +908,10 @@ void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO
     itemcount = build_item_count(buffer);
     int32_t *itemoffs = (int32_t *)malloc(itemcount * sizeof(int32_t)); // freed here
 
-    for (i = 0; i < itemcount; i++)
+    for (int32_t i = 0; i < itemcount; i++)
         itemoffs[i] = 256 * buffer[0x11 + i * 4] + buffer[0x10 + i * 4];
 
-    for (i = 0; i < 6; i++)
+    for (int32_t i = 0; i < 6; i++)
     {
         coord = from_u32(buffer + itemoffs[1] + i * 4);
         if (coord >= (1LL << 31))
@@ -948,9 +946,7 @@ void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO
 // yep resizes entity
 void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    int32_t i;
-
-    for (i = 0; i < build_item_count(item); i++)
+    for (int32_t i = 0; i < build_item_count(item); i++)
     {
         int32_t code = from_u16(item + 0x10 + 8 * i);
         int32_t offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
@@ -972,12 +968,12 @@ void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_I
 // yep resizes scenery
 void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
 {
-    int32_t i, item1off, j, curr_off, next_off, group;
+    int32_t item1off, curr_off, next_off, group;
     int64_t origin;
     int32_t vertcount;
 
     item1off = buffer[0x10];
-    for (i = 0; i < 3; i++)
+    for (int32_t i = 0; i < 3; i++)
     {
         origin = from_u32(buffer + item1off + 4 * i);
         if (origin >= (1LL << 31))
@@ -985,7 +981,7 @@ void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_I
             origin = (1LL << 32) - origin;
             origin = scale[i] * origin;
             origin = (1LL << 32) - origin;
-            for (j = 0; j < 4; j++)
+            for (int32_t j = 0; j < 4; j++)
             {
                 buffer[item1off + j + i * 4] = origin % 256;
                 origin /= 256;
@@ -994,7 +990,7 @@ void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_I
         else
         {
             origin = scale[i] * origin;
-            for (j = 0; j < 4; j++)
+            for (int32_t j = 0; j < 4; j++)
             {
                 buffer[item1off + j + i * 4] = origin % 256;
                 origin /= 256;
@@ -1006,7 +1002,7 @@ void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_I
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     vertcount = next_off - curr_off / 6;
 
-    for (i = curr_off; i < next_off; i += 2)
+    for (int32_t i = curr_off; i < next_off; i += 2)
     {
         group = from_s16(buffer + i);
         int16_t vert = group & 0xFFF0;
@@ -1314,7 +1310,7 @@ void c3_ent_resize()
 
     fseek(file1, 0, SEEK_END);
     int32_t fsize = ftell(file1);
-    double scale = 1;
+    double scale = 1.f;
     rewind(file1);
 
     uint8_t *buffer = (uint8_t *)malloc(fsize);
@@ -1482,12 +1478,13 @@ void print_model_refs_util(uint8_t *model)
 
         sprintf(curr_str, " %5s: %04X %d %d-%02X %02X %02X %02X",
                 eid_conv2(from_u32(model + item1off + 0xC + tex)), clut, bit, seg, startx, starty, width, height);
-        int32_t str_listed = 0;
+
+        bool str_listed = false;
         for (int32_t j = 0; j < str_cnt; j++)
         {
             if (strcmp(curr_str, strs[j]) == 0)
             {
-                str_listed = 1;
+                str_listed = true;
                 break;
             }
         }
@@ -1518,7 +1515,7 @@ void print_model_tex_refs_nsf()
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    int32_t printed_something = 0;
+    bool printed_something = false;
     char temp[6] = "";
     printf("Model name? (type \"all\" to print all models' tex refs)\n");
     char ename[6] = "";
@@ -1532,7 +1529,7 @@ void print_model_tex_refs_nsf()
             {
                 printf("\nModel %s:", eid_conv2(elist[i].eid));
                 print_model_refs_util(elist[i].data);
-                printed_something = 1;
+                printed_something = true;
             }
         }
     }
@@ -1622,13 +1619,14 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, uint32_t *gool_tab
                     continue;
                 total_entity_count++;
 
-                int32_t found_before = 0;
+                bool found_before = false;
                 for (int32_t k = 0; k < deps->count; k++)
                     if (deps->array[k].type == type && deps->array[k].subtype == subt)
                     {
                         list_add(&deps->array[k].dependencies, total_entity_count);
-                        found_before = 1;
+                        found_before = true;
                     }
+
                 if (!found_before)
                 {
                     deps->array = realloc(deps->array, (deps->count + 1) * sizeof(DEPENDENCY));
@@ -1731,9 +1729,9 @@ void nsf_props_scr()
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
         return;
 
-    int32_t printed_something = 0;
-    int32_t prop_code;
+    bool printed_something = false;
 
+    int32_t prop_code;
     printf("\nProp code? (hex)\n");
     scanf("%x", &prop_code);
 
@@ -1760,7 +1758,7 @@ void nsf_props_scr()
 
                         if (code == prop_code)
                         {
-                            printed_something = 1;
+                            printed_something = true;
                             printf("Zone %5s path %d item %d", eid_conv2(elist[i].eid), j, k);
                             print_prop_header(item, 0x10 + 8 * l);
                             print_prop_body(item, offset, offset_next);
@@ -1948,7 +1946,7 @@ void warp_spawns_generate()
 void special_load_lists_util(char *fpath)
 {
     printf("Checking %s\n", fpath);
-    int32_t printed_something = 0;
+    bool printed_something = false;
 
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int32_t entry_count = 0;
@@ -1965,7 +1963,7 @@ void special_load_lists_util(char *fpath)
         LIST special_entries = build_read_special_entries(curr.data);
         if (special_entries.count)
         {
-            printed_something = 1;
+            printed_something = true;
             printf("Zone %5s:\t", eid_conv2(curr.eid));
             for (int32_t j = 0; j < special_entries.count; j++)
             {

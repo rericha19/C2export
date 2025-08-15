@@ -550,7 +550,7 @@ void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int32_t zone_index, int32_t ca
     (graph->add_index)++;
 
     elist[zone_index].distances[camera_index] = n;
-    elist[zone_index].visited[camera_index] = 1;
+    elist[zone_index].visited[camera_index] = true;
 }
 
 // graph pop out (for checking what zone comes 'first' in the level)

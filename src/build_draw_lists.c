@@ -68,7 +68,10 @@ int32_t average_angles(int32_t angle1, int32_t angle2)
 // gets full draw list for all points of a camera path according to config
 void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides)
 {
-    int32_t cam_len, ent_len, angles_len = 0;
+    int32_t cam_len = 0;
+    int32_t ent_len = 0;
+    int32_t angles_len = 0;
+
     char temp[6] = "";
     ENTRY curr = elist[curr_idx];
     ENTRY neighbour = elist[neigh_idx];
@@ -220,12 +223,11 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
 // selects entities to draw, converts to delta form and replaces camera properties
 void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
 {
-    int32_t i, j, k, l;
-    int32_t dbg_print = 0;
+    bool dbg_print = false;
 
     LIST pos_overrides = init_list();
 
-    for (i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
@@ -242,7 +244,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
 
             printf("\nMaking draw lists for %s\n", eid_conv2(elist[i].eid));
 
-            for (j = 0; j < cam_count; j++)
+            for (int32_t j = 0; j < cam_count; j++)
             {
                 int32_t cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
 
@@ -251,12 +253,12 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
 
                 // initialize full non-delta draw list used to represent the draw list during its building
                 LIST *full_draw = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
-                for (k = 0; k < cam_length; k++)
+                for (int32_t k = 0; k < cam_length; k++)
                     full_draw[k] = init_list();
 
                 int32_t neighbour_count = build_get_neighbour_count(elist[i].data);
                 LIST visited_neighbours = init_list();
-                for (l = 0; l < neighbour_count; l++)
+                for (int32_t l = 0; l < neighbour_count; l++)
                 {
                     ENTRY curr = elist[i];
                     uint32_t neighbour_eid = from_u32(build_get_nth_item(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
@@ -278,7 +280,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                 int32_t max_c = 0;
                 int32_t max_p = 0;
                 printf("\t");
-                for (k = 0; k < cam_length; k++)
+                for (int32_t k = 0; k < cam_length; k++)
                 {
                     printf("%d,", full_draw[k].count);
                     if (full_draw[k].count > max_c)
@@ -292,7 +294,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                 // creates and initialises delta representation of the draw list
                 LIST *listA = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
                 LIST *listB = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
-                for (k = 0; k < cam_length; k++)
+                for (int32_t k = 0; k < cam_length; k++)
                 {
                     listA[k] = init_list();
                     listB[k] = init_list();
