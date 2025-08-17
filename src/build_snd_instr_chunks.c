@@ -49,10 +49,10 @@ void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_c
  */
 void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count, uint8_t **chunks)
 {
-    int32_t i, j, temp_chunk_count = *chunk_count;
+    int32_t start_chunk_idx = *chunk_count;
     int32_t sound_entry_count = 0;
 
-    // count sound entries, create an array of entries for them (temporary)
+    // count sound entries, create an array of entries for them
     for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_entry_count++;
@@ -79,7 +79,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
         for (int32_t j = 0; j < 8; j++)
             if (sizes[j] + 4 + (((sound_list[i].esize + 16) >> 4) << 4) <= CHUNKSIZE)
             {
-                sound_list[i].chunk = temp_chunk_count + j;
+                sound_list[i].chunk = start_chunk_idx + j;
                 sizes[j] += 4 + (((sound_list[i].esize + 16) >> 4) << 4);
                 break;
             }
@@ -97,38 +97,38 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     for (int32_t i = 0; i < snd_chunk_count; i++)
     {
         int32_t local_entry_count = 0;
-        int32_t chunk_no = 2 * (temp_chunk_count + i) + 1;
-        chunks[temp_chunk_count + i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+        int32_t chunk_no = 2 * (start_chunk_idx + i) + 1;
+        chunks[start_chunk_idx + i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
 
         for (int32_t j = 0; j < sound_entry_count; j++)
-            if (sound_list[j].chunk == temp_chunk_count + i)
+            if (sound_list[j].chunk == start_chunk_idx + i)
                 local_entry_count++;
 
         uint32_t *offsets = (uint32_t *)malloc((local_entry_count + 2) * sizeof(uint32_t)); // idk why its +2, freed here
-        *(uint16_t *)chunks[temp_chunk_count + i] = MAGIC_CHUNK;
-        *(uint16_t *)(chunks[temp_chunk_count + i] + 2) = CHUNK_TYPE_SOUND;
-        *(uint16_t *)(chunks[temp_chunk_count + i] + 4) = chunk_no;
-        *(uint16_t *)(chunks[temp_chunk_count + i] + 8) = local_entry_count;
+        *(uint16_t *)chunks[start_chunk_idx + i] = MAGIC_CHUNK;
+        *(uint16_t *)(chunks[start_chunk_idx + i] + 2) = CHUNK_TYPE_SOUND;
+        *(uint16_t *)(chunks[start_chunk_idx + i] + 4) = chunk_no;
+        *(uint16_t *)(chunks[start_chunk_idx + i] + 8) = local_entry_count;
 
         indexer = 0;
         offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
 
         for (int32_t j = 0; j < sound_entry_count; j++)
-            if (sound_list[j].chunk == temp_chunk_count + i)
+            if (sound_list[j].chunk == start_chunk_idx + i)
             {
                 offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
                 indexer++;
             }
 
         for (int32_t j = 0; j < local_entry_count + 1; j++)
-            *(uint32_t *)(chunks[temp_chunk_count + i] + 0x10 + j * 4) = offsets[j];
+            *(uint32_t *)(chunks[start_chunk_idx + i] + 0x10 + j * 4) = offsets[j];
 
         indexer = 0;
         for (int32_t j = 0; j < sound_entry_count; j++)
-            if (sound_list[j].chunk == temp_chunk_count + i)
-                memcpy(chunks[temp_chunk_count + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
+            if (sound_list[j].chunk == start_chunk_idx + i)
+                memcpy(chunks[start_chunk_idx + i] + offsets[indexer++], sound_list[j].data, sound_list[j].esize);
 
-        *(uint32_t *)(chunks[temp_chunk_count + i] + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[temp_chunk_count + i]);
+        *(uint32_t *)(chunks[start_chunk_idx + i] + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[start_chunk_idx + i]);
         free(offsets);
     }
 
@@ -138,7 +138,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
             if (elist[i].eid == sound_list[j].eid)
                 elist[i].chunk = sound_list[j].chunk;
     // update chunk count
-    *chunk_count = temp_chunk_count + snd_chunk_count;
+    *chunk_count = start_chunk_idx + snd_chunk_count;
     free(sound_list);
 }
 

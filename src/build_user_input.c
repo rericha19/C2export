@@ -65,12 +65,11 @@ void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config)
 void build_ask_spawn(SPAWNS spawns)
 {
     int32_t input = 0;
-    char temp[100] = "";
 
     // lets u pick a spawn point
     printf("Pick a spawn:\n");
     for (int32_t i = 0; i < spawns.spawn_count; i++)
-        printf("Spawn %2d:\tZone: %s\n", i + 1, eid_conv(spawns.spawns[i].zone, temp));
+        printf("Spawn %2d:\tZone: %s\n", i + 1, eid_conv2(spawns.spawns[i].zone));
 
     scanf("%d", &input);
     input--;
@@ -81,32 +80,32 @@ void build_ask_spawn(SPAWNS spawns)
     }
 
     build_swap_spawns(spawns, 0, input);
-    printf("Using spawn %2d: Zone: %s\n", input + 1, eid_conv(spawns.spawns[0].zone, temp));
+    printf("Using spawn %2d: Zone: %s\n", input + 1, eid_conv2(spawns.spawns[0].zone));
 }
 
 void build_ask_draw_distances(int32_t *config)
 {
-    int32_t temp;
+    int32_t input;
 
     printf("\nDraw distance 2D horizontal (x-dist) (set 0 to make infinite)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_CAP_X] = temp;
-    printf("Selected %d for horizontal draw distance\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_DRAW_LIST_GEN_CAP_X] = input;
+    printf("Selected %d for horizontal draw distance\n", input);
 
     printf("\nDraw distance 2D vertical (y-dist) (set 0 to make infinite)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y] = temp;
-    printf("Selected %d for vertical draw distance\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y] = input;
+    printf("Selected %d for vertical draw distance\n", input);
 
     printf("\nDraw distance 3D sections (xz-dist) (set 0 to make infinite)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ] = temp;
-    printf("Selected %d for 3D sections draw distance\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ] = input;
+    printf("Selected %d for 3D sections draw distance\n", input);
 
     printf("\nMax allowed angle distance for 3D sections (default to 90)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] = temp;
-    printf("Selected %d for max allowed angle distance for 3D sections\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] = input;
+    printf("Selected %d for max allowed angle distance for 3D sections\n", input);
 }
 
 /** \brief
@@ -117,27 +116,27 @@ void build_ask_draw_distances(int32_t *config)
  */
 void build_ask_distances(int32_t *config)
 {
-    int32_t temp;
-    int32_t ans;
+    int32_t input;
+
     printf("\nSLST distance?      (recommended is approx 7250)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_LL_SLST_DIST_VALUE] = temp;
-    printf("Selected %d for SLST distance\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_LL_SLST_DIST_VALUE] = input;
+    printf("Selected %d for SLST distance\n", input);
 
     printf("\nNeighbour distance? (recommended is approx 7250)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_LL_NEIGH_DIST_VALUE] = temp;
-    printf("Selected %d for neighbour distance\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_LL_NEIGH_DIST_VALUE] = input;
+    printf("Selected %d for neighbour distance\n", input);
 
     printf("\nDraw list distance? (recommended is approx 7250)\n");
-    scanf("%d", &temp);
-    config[CNFG_IDX_LL_DRAW_DIST_VALUE] = temp;
-    printf("Selected %d for draw list distance\n", temp);
+    scanf("%d", &input);
+    config[CNFG_IDX_LL_DRAW_DIST_VALUE] = input;
+    printf("Selected %d for draw list distance\n", input);
 
     printf("\nTransition pre-loading? [0 - none / 1 - textures / 2 - normal chunk entries only / 3 - all]\n");
-    scanf("%d", &ans);
-    if (ans >= 0 && ans <= 3)
-        config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = ans;
+    scanf("%d", &input);
+    if (input >= 0 && input <= 3)
+        config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = input;
     else
         config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
 
@@ -180,9 +179,9 @@ void build_ask_distances(int32_t *config)
  */
 void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB)
 {
-    SPAWN temp = spawns.spawns[spawnA];
+    SPAWN temp_sp = spawns.spawns[spawnA];
     spawns.spawns[spawnA] = spawns.spawns[spawnB];
-    spawns.spawns[spawnB] = temp;
+    spawns.spawns[spawnB] = temp_sp;
 }
 
 void build_ask_build_flags(int32_t *config)
@@ -227,37 +226,36 @@ void build_ask_build_flags(int32_t *config)
 
 void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int32_t levelID)
 {
-    char temp[80] = "";
+    char user_in[80] = "";
     char path[100] = "";
     char path2[100] = "";
 
     printf("\nInput path to secondary save folder (use exactly \"-\" (minus sign) to not use sec. save)\n");
-    scanf(" %[^\n]", temp);
-    path_fix(temp);
+    scanf(" %[^\n]", user_in);
+    path_fix(user_in);
 
-    if (!strcmp(temp, "-"))
+    if (!strcmp(user_in, "-"))
     {
         printf("Not using secondary output\n");
+        return;
+    }
+
+    sprintf(path, "%s\\S00000%02X.NSF", user_in, levelID);
+    sprintf(path2, "%s\\S00000%02X.NSD", user_in, levelID);
+
+    printf("Secondary file paths:\n%s\n%s\n", path, path2);
+
+    *nsfnew2 = fopen(path, "wb");
+    *nsd2 = fopen(path2, "wb");
+
+    if (*nsfnew2 == NULL || *nsd2 == NULL)
+    {
+        printf("Could not open secondary NSF or NSD\n");
+        *nsfnew2 = NULL;
+        *nsd2 = NULL;
     }
     else
     {
-        sprintf(path, "%s\\S00000%02X.NSF", temp, levelID);
-        sprintf(path2, "%s\\S00000%02X.NSD", temp, levelID);
-
-        printf("Secondary file paths:\n%s\n%s\n", path, path2);
-
-        *nsfnew2 = fopen(path, "wb");
-        *nsd2 = fopen(path2, "wb");
-
-        if (*nsfnew2 == NULL || *nsd2 == NULL)
-        {
-            printf("Could not open secondary NSF or NSD\n");
-            *nsfnew2 = NULL;
-            *nsd2 = NULL;
-        }
-        else
-        {
-            printf("Successfully using secondary output\n");
-        }
+        printf("Successfully using secondary output\n");
     }
 }

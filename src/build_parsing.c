@@ -59,7 +59,7 @@ void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, uint8_t **chunks, i
 void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, int32_t *chunk_border_texture, int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table)
 {
     struct dirent *de;
-    char temp[500];
+    char buff[500];
     FILE *file = NULL;
     int32_t fsize;
     uint8_t entry[CHUNKSIZE];
@@ -67,13 +67,13 @@ void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, i
     while ((de = readdir(df)) != NULL)
         if ((de->d_name)[0] != '.')
         {
-            sprintf(temp, "%s\\%s", dirpath, de->d_name);
+            sprintf(buff, "%s\\%s", dirpath, de->d_name);
             if (file != NULL)
             {
                 fclose(file);
                 file = NULL;
             }
-            if ((file = fopen(temp, "rb")) == NULL)
+            if ((file = fopen(buff, "rb")) == NULL)
                 continue;
             fseek(file, 0, SEEK_END);
             fsize = ftell(file);
@@ -120,7 +120,7 @@ void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, i
                 int32_t gool_type = *(int32_t *)(elist[*entry_count].data + item1_offset);
                 if (/*gool_type >= C2_GOOL_TABLE_SIZE || */ gool_type < 0)
                 {
-                    printf("[warning] GOOL entry %s has invalid type specified in the first item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
+                    printf("[warning] GOOL entry %s has invalid type specified in the first item (%2d)!\n", eid_conv2(elist[*entry_count].eid), gool_type);
                     continue;
                 }
                 gool_table[gool_type] = elist[*entry_count].eid;
@@ -155,13 +155,12 @@ DEPENDENCIES build_init_dep()
  */
 int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, DEPENDENCIES *collisions, DEPENDENCIES *music_deps, ENTRY *elist, int32_t entry_count, uint32_t *gool_table, int32_t *config)
 {
-
     int32_t remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
 
     char *line = NULL;
     int32_t line_r_off = 0;
     int32_t line_len, read;
-    char temp[6];
+    char eid_buff[6];
 
     char fpaths[BUILD_FPATH_COUNT][MAX] = {0}; // paths to files, fpaths contains user-input metadata like perma list file
     build_ask_list_paths(fpaths, config);
@@ -183,24 +182,23 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
     if (file == NULL)
     {
         printf("[ERROR] File with permaloaded entries could not be opened\n");
-        return 0;
+        return false;
     }
 
     while ((read = getline(&line, &line_len, file)) != -1)
     {
-
         if (line[0] == '#')
             continue;
 
-        sscanf(line, "%5s", temp);
-        int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
+        sscanf(line, "%5s", eid_buff);
+        int32_t index = build_get_index(eid_to_int(eid_buff), elist, entry_count);
         if (index == -1)
         {
-            printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", temp);
-            return 0;
+            printf("[ERROR] invalid permaloaded entry, won't proceed :\t%s\n", eid_buff);
+            return false;
         }
 
-        list_add(&perma, eid_to_int(temp));
+        list_add(&perma, eid_to_int(eid_buff));
 
         if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
         {
@@ -213,7 +211,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                 int32_t model_index = build_get_index(model, elist, entry_count);
                 if (model_index == -1)
                 {
-                    printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, temp));
+                    printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, eid_buff));
                     continue;
                 }
 
@@ -230,7 +228,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
         if (file == NULL)
         {
             printf("[ERROR] File with type/subtype dependencies could not be opened\n");
-            return 0;
+            return false;
         }
 
         int32_t i = 0;
@@ -267,16 +265,16 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
 
             while (1)
             {
-                if (sscanf(line + line_r_off, ", %5[^\n]", temp) < 1)
+                if (sscanf(line + line_r_off, ", %5[^\n]", eid_buff) < 1)
                     break;
                 line_r_off += 7;
-                int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
+                int32_t index = build_get_index(eid_to_int(eid_buff), elist, entry_count);
                 if (index == -1)
                 {
-                    printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", temp);
+                    printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_buff);
                     continue;
                 }
-                list_add(&(subinfo.array[i].dependencies), eid_to_int(temp));
+                list_add(&(subinfo.array[i].dependencies), eid_to_int(eid_buff));
 
                 if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
                 {
@@ -288,7 +286,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                         int32_t model_index = build_get_index(model, elist, entry_count);
                         if (model_index == -1)
                         {
-                            printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, temp));
+                            printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv2(model));
                             continue;
                         }
 
@@ -339,17 +337,17 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                 line_r_off = 4;
                 while (1)
                 {
-                    if (sscanf(line + line_r_off, ", %5[^\n]", temp) < 1)
+                    if (sscanf(line + line_r_off, ", %5[^\n]", eid_buff) < 1)
                         break;
                     line_r_off += 7;
-                    int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
+                    int32_t index = build_get_index(eid_to_int(eid_buff), elist, entry_count);
                     if (index == -1)
                     {
-                        printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", temp);
+                        printf("[warning] unknown entry reference in collision dependency list, will be skipped: %s\n", eid_buff);
                         continue;
                     }
 
-                    list_add(&(coll.array[i].dependencies), eid_to_int(temp));
+                    list_add(&(coll.array[i].dependencies), eid_to_int(eid_buff));
 
                     if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
                     {
@@ -361,8 +359,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                             int32_t model_index = build_get_index(model, elist, entry_count);
                             if (model_index == -1)
                             {
-                                printf("[warning] unknown entry reference in collision dependency list, will be skipped: %5s\n",
-                                       eid_conv(model, temp));
+                                printf("[warning] unknown entry reference in collision dependency list, will be skipped: %5s\n", eid_conv2(model));
                                 continue;
                             }
 
@@ -385,7 +382,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
         else
         {
             int32_t mus_d_count = 0;
-            char temp[6] = "";
+            char eid_buf[6] = "";
             while (1)
             {
 
@@ -396,7 +393,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                 if (line[0] == '#')
                     continue;
 
-                if (1 > sscanf(line, "%5s", temp))
+                if (1 > sscanf(line, "%5s", eid_buf))
                     break;
 
                 i = mus_d_count;
@@ -406,7 +403,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                 else
                     mus_d.array = (DEPENDENCY *)realloc(mus_d.array, mus_d_count * sizeof(DEPENDENCY));
 
-                mus_d.array[i].type = eid_to_int(temp);
+                mus_d.array[i].type = eid_to_int(eid_buf);
                 mus_d.array[i].subtype = -1;
                 mus_d.array[i].dependencies = init_list();
 
@@ -414,18 +411,18 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
 
                 while (1)
                 {
-                    if (sscanf(line + line_r_off, ", %5[^\n]", temp) < 1)
+                    if (sscanf(line + line_r_off, ", %5[^\n]", eid_buf) < 1)
                         break;
                     line_r_off += 7;
 
-                    int32_t index = build_get_index(eid_to_int(temp), elist, entry_count);
+                    int32_t index = build_get_index(eid_to_int(eid_buf), elist, entry_count);
                     if (index == -1)
                     {
-                        printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %s\n", temp);
+                        printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %s\n", eid_buf);
                         continue;
                     }
 
-                    list_add(&(mus_d.array[i].dependencies), eid_to_int(temp));
+                    list_add(&(mus_d.array[i].dependencies), eid_to_int(eid_buf));
 
                     if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
                     {
@@ -437,8 +434,7 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                             int32_t model_index = build_get_index(model, elist, entry_count);
                             if (model_index == -1)
                             {
-                                printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %5s\n",
-                                       eid_conv(model, temp));
+                                printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %5s\n", eid_conv2(model));
                                 continue;
                             }
 
@@ -454,21 +450,11 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
         }
     }
 
-    /*printf("mus_d_count: %d\n", mus_d.count);
-    for (int32_t i = 0; i < mus_d.count; i++) {
-        char temp[100] = "";
-        printf("\nType %s subtype %2d\n", eid_conv(mus_d.array[i].type, temp), mus_d.array[i].subtype);
-        for (int32_t j = 0; j < mus_d.array[i].dependencies.count; j++) {
-            char temp[100] = "";
-            printf("\t%s\n", eid_conv(mus_d.array[i].dependencies.eids[j], temp));
-        }
-    }*/
-
     *permaloaded = perma;
     *subtype_info = subinfo;
     *collisions = coll;
     *music_deps = mus_d;
-    return 1;
+    return true;
 }
 
 /** \brief
@@ -513,14 +499,14 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count)
 
     for (int32_t i = 0; i < iteration_clone.count; i++)
     {
-        char temp[100] = "";
-        char temp2[100] = "";
-        char temp3[100] = "";
+        char eid1[100] = "";
+        char eid2[100] = "";
+        char eid3[100] = "";
         int32_t item = iteration_clone.eids[i];
         int32_t index = build_get_index(item, elist, entry_count);
         if (index == -1)
         {
-            printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.eid, temp), eid_conv(item, temp2));
+            printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.eid, eid1), eid_conv(item, eid2));
             list_remove(&special_entries, item);
             continue;
         }
@@ -532,7 +518,7 @@ LIST build_get_special_entries(ENTRY zone, ENTRY *elist, int32_t entry_count)
             if (model_index == -1 || build_entry_type(elist[model_index]) != ENTRY_TYPE_MODEL)
             {
                 printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
-                       eid_conv(zone.eid, temp), eid_conv(item, temp2), eid_conv(model, temp3));
+                       eid_conv(zone.eid, eid1), eid_conv(item, eid2), eid_conv(model, eid3));
                 continue;
             }
 
@@ -626,7 +612,7 @@ uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
 {
     int32_t curr_off, type = 0, help;
     int32_t counter = 0;
-    char temp[6];
+    char eid_buf[6];
     int32_t curr_eid;
     uint32_t local[256];
     uint32_t *relatives = NULL;
@@ -649,8 +635,8 @@ uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
             if (type == 2)
             {
                 curr_eid = from_u32(entry + curr_off + 4);
-                eid_conv(curr_eid, temp);
-                if (temp[4] == 'G' || temp[4] == 'V')
+                eid_conv(curr_eid, eid_buf);
+                if (eid_buf[4] == 'G' || eid_buf[4] == 'V')
                     local[counter++] = curr_eid;
                 curr_off += 0xC;
             }
@@ -659,8 +645,8 @@ uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
                 for (int32_t i = 0; i < 4; i++)
                 {
                     curr_eid = from_u32(entry + curr_off + 4 + 4 * i);
-                    eid_conv(curr_eid, temp);
-                    if (temp[4] == 'G' || temp[4] == 'V')
+                    eid_conv(curr_eid, eid_buf);
+                    if (eid_buf[4] == 'G' || eid_buf[4] == 'V')
                         local[counter++] = curr_eid;
                 }
                 curr_off += 0x14;
@@ -772,6 +758,9 @@ void build_get_model_references(ENTRY *elist, int32_t entry_count)
  */
 void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
 {
+    char eid1[100] = "";
+    char eid2[100] = "";
+
     for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
@@ -817,19 +806,15 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
             int32_t neighbour_index = build_get_index(neighbours[link.zone_index], elist, entry_count);
             if (neighbour_index == -1)
             {
-                char temp1[100] = "";
-                char temp2[100] = "";
                 printf("[warning] %s references %s that does not seem to be present (link %d neighbour %d)\n",
-                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2), i, link.zone_index);
+                       eid_conv(elist[top_zone].eid, eid1), eid_conv(neighbours[link.zone_index], eid2), i, link.zone_index);
                 continue;
             }
             int32_t path_count = build_get_cam_item_count(elist[neighbour_index].data) / 3;
             if (link.cam_index >= path_count)
             {
-                char temp1[100] = "";
-                char temp2[100] = "";
                 printf("[warning] %s links to %s's cam path %d which doesnt exist (link %d neighbour %d)\n",
-                       eid_conv(elist[top_zone].eid, temp1), eid_conv(neighbours[link.zone_index], temp2), link.cam_index, i, link.zone_index);
+                       eid_conv(elist[top_zone].eid, eid1), eid_conv(neighbours[link.zone_index], eid2), link.cam_index, i, link.zone_index);
                 continue;
             }
 
@@ -897,8 +882,8 @@ void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t 
 }
 
 // parsing input info for rebuilding using files from folder (not really supported)
-int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns)
+bool build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
+                                ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns)
 {
     char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20];
     printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
@@ -913,7 +898,7 @@ int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
     if ((nsf = fopen(nsfpath, "rb")) == NULL)
     {
         printf("[ERROR] Could not open selected NSF\n\n");
-        return 1;
+        return true;
     }
 
     DIR *df = NULL;
@@ -921,7 +906,7 @@ int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
     {
         printf("[ERROR] Could not open selected directory\n\n");
         fclose(nsf);
-        return 1;
+        return true;
     }
 
     *level_ID = build_ask_ID();
@@ -936,7 +921,7 @@ int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
     // build_read_nsf(elist, chunk_border_base, chunks, chunk_border_texture, &entry_count, nsf, gool_table);    // rn base level is not considered
     build_read_folder(df, dirpath, chunks, elist, chunk_border_texture, entry_count, spawns, gool_table);
     fclose(nsf);
-    return 0;
+    return false;
 }
 
 // parsing input info for rebuilding from a nsf file
@@ -951,7 +936,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
         if ((nsf = fopen(fpath, "rb")) == NULL)
         {
             printf("[ERROR] Could not open selected NSF\n\n");
-            return 1;
+            return true;
         }
     }
     else
@@ -966,7 +951,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
             if ((nsf = fopen(nsfpath, "rb")) == NULL)
             {
                 printf("[ERROR] Could not open selected NSF\n\n");
-                return 1;
+                return true;
             }
 
             *level_ID = build_ask_ID();
@@ -986,7 +971,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
             if ((nsf = fopen(nsfpath, "rb")) == NULL)
             {
                 printf("[ERROR] Could not open selected NSF\n\n");
-                return 1;
+                return true;
             }
         }
     }
@@ -1057,8 +1042,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                     int32_t gool_type = *(int32_t *)(elist[*entry_count].data + item1_offset);
                     if (/*gool_type >= C2_GOOL_TABLE_SIZE || */ gool_type < 0)
                     {
-                        char temp[100] = "";
-                        printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv(elist[*entry_count].eid, temp), gool_type);
+                        printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv2(elist[*entry_count].eid), gool_type);
                         continue;
                     }
                     if (gool_table != NULL && gool_table[gool_type] == EID_NONE)
@@ -1072,5 +1056,5 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
     fclose(nsf);
     if (chunk_border_texture != NULL)
         *chunk_border_texture = lcl_chunk_border_texture;
-    return 0;
+    return false;
 }

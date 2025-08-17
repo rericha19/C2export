@@ -55,8 +55,7 @@ void build_remake_load_lists(ENTRY *elist, int32_t entry_count, uint32_t *gool_t
             if (cam_count == 0)
                 continue;
 
-            char temp[100] = "";
-            printf("Making load lists for %s\n", eid_conv(elist[i].eid, temp));
+            printf("Making load lists for %s\n", eid_conv2(elist[i].eid));
 
             // get list of special entries that can be placed inside zones' first item
             // as a special zone-specific dependency/load list
@@ -325,16 +324,13 @@ void build_load_list_util(int32_t zone_index, int32_t camera_index, LIST *full_l
             int32_t type = types_subtypes.eids[j] >> 0x10;
             int32_t subtype = types_subtypes.eids[j] & 0xFF;
 
-            /*char temp[6] = "";
-            printf("%s point %2d to load type %2d subtype %2d stuff\n", eid_conv(elist[zone_index].eid, temp), i, type, subtype);*/
             for (int32_t k = 0; k < sub_info.count; k++)
+            {
                 if (sub_info.array[k].subtype == subtype && sub_info.array[k].type == type)
                 {
                     list_copy_in(&full_list[i], sub_info.array[k].dependencies);
-
-                    /*for (int32_t l = 0; l < sub_info.array[k].dependencies.count; l++)
-                        printf("\t%s\n", eid_conv(sub_info.array[k].dependencies.eids[l], temp));*/
                 }
+            }
         }
     }
 }
@@ -413,6 +409,9 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int32_t cam_length, int32_t
  */
 void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t link_int, LIST *full_list, int32_t cam_length, ENTRY *elist, int32_t entry_count, int32_t *config, DEPENDENCIES collisisons)
 {
+    char eid1[100] = "";
+    char eid2[100] = "";
+
     int32_t slst_distance = config[CNFG_IDX_LL_SLST_DIST_VALUE];
     int32_t neig_distance = config[CNFG_IDX_LL_NEIGH_DIST_VALUE];
     int32_t preloading_flag = config[CNFG_IDX_LL_TRNS_PRLD_FLAG];
@@ -473,10 +472,8 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
     int32_t neighbour_cam_count = build_get_cam_item_count(elist[neighbour_index].data) / 3;
     if (link.cam_index >= neighbour_cam_count)
     {
-        char temp[100] = "";
-        char temp2[100] = "";
         printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
-               eid_conv(elist[zone_index].eid, temp), eid_conv(elist[neighbour_index].eid, temp2),
+               eid_conv(elist[zone_index].eid, eid1), eid_conv(elist[neighbour_index].eid, eid2),
                link.cam_index, neighbour_cam_count);
         return;
     }
@@ -512,10 +509,8 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
         int32_t neighbour_cam_count2 = build_get_cam_item_count(elist[neighbour_index2].data) / 3;
         if (link2.cam_index >= neighbour_cam_count2)
         {
-            char temp[100] = "";
-            char temp2[100] = "";
             printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
-                   eid_conv(elist[neighbour_index].eid, temp), eid_conv(elist[neighbour_index2].eid, temp2),
+                   eid_conv(elist[neighbour_index].eid, eid1), eid_conv(elist[neighbour_index2].eid, eid2),
                    link2.cam_index, neighbour_cam_count2);
             continue;
         }
@@ -537,8 +532,6 @@ void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t li
 
         if (build_is_before(elist, zone_index, cam_index / 3, neighbour_index2, link2.cam_index))
         {
-            /*char temp[100], temp2[100];
-            printf("util util %s is before %s\n", eid_conv(elist[neighbour_index2].eid, temp), eid_conv(elist[zone_index].eid, temp2));*/
             slst_dist_w_orientation = build_dist_w_penalty(slst_distance, backwards_penalty);
             neig_dist_w_orientation = build_dist_w_penalty(neig_distance, backwards_penalty);
         }
@@ -643,7 +636,7 @@ int32_t build_get_distance(int16_t *coords, int32_t start_index, int32_t end_ind
         if (distance < cap)
             index--;
     }
-    
+
     if (start_index < end_index)
     {
         index = start_index;
@@ -751,8 +744,6 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
         int32_t draw_dist_w_orientation = draw_dist;
         if (build_is_before(elist, zone_index, camera_index / 3, neighbour_index, link.cam_index))
         {
-            /*char temp[100], temp2[100];
-            printf("entity list %s is before %s\n", eid_conv(elist[neighbour_index].eid, temp), eid_conv(elist[zone_index].eid, temp2));*/
             draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
         }
 
@@ -802,8 +793,6 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
             draw_dist_w_orientation = draw_dist;
             if (build_is_before(elist, zone_index, camera_index / 3, neighbour_index2, link2.cam_index))
             {
-                /*char temp[100], temp2[100];
-                printf("entity list %s is before %s\n", eid_conv(elist[neighbour_index2].eid, temp), eid_conv(elist[zone_index].eid, temp2));*/
                 draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
             }
 
@@ -841,7 +830,7 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
  */
 LIST build_get_types_subtypes(ENTRY *elist, int32_t entry_count, LIST entity_list, LIST neighbour_list)
 {
-    LIST type_subtype_list = init_list();    
+    LIST type_subtype_list = init_list();
     for (int32_t i = 0; i < neighbour_list.count; i++)
     {
         int32_t curr_index = build_get_index(neighbour_list.eids[i], elist, entry_count);
@@ -879,7 +868,6 @@ void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDEN
 {
     printf("\n");
 
-    char temp[100] = "";
     LIST considered = init_list();
     for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
@@ -894,7 +882,7 @@ void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDEN
                 int32_t enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
                 if (type >= 64 || type < 0 || subt < 0)
                 {
-                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv(elist[i].eid, temp), j, type, subt);
+                    printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", eid_conv2(elist[i].eid), j, type, subt);
                     continue;
                 }
 
@@ -909,7 +897,7 @@ void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDEN
                         found = true;
                 if (!found)
                     printf("[warning] Entity with type %2d subtype %2d has no dependency list! (e.g. Zone %s entity %2d ID %3d)\n",
-                           type, subt, eid_conv(elist[i].eid, temp), j, enID);
+                           type, subt, eid_conv2(elist[i].eid), j, enID);
             }
         }
 }
@@ -1020,7 +1008,6 @@ void build_add_collision_dependencies(LIST *full_list, int32_t start_index, int3
  */
 void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_load, int32_t cam_length, int32_t i, int32_t j)
 {
-    char temp[100] = "";
     int32_t over_count = 0;
     uint32_t over_textures[20];
     int32_t point = 0;
@@ -1034,9 +1021,9 @@ void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_loa
             int32_t idx = build_get_index(full_load[k].eids[l], elist, entry_count);
             if (idx == -1)
             {
-                printf("Trying to load invalid entry %s\n", eid_conv(full_load[k].eids[l], temp));
+                printf("Trying to load invalid entry %s\n", eid_conv2(full_load[k].eids[l]));
             }
-            else if (build_entry_type(elist[idx]) == -1 && eid_conv(full_load[k].eids[l], temp)[4] == 'T')
+            else if (build_entry_type(elist[idx]) == -1 && eid_conv2(full_load[k].eids[l])[4] == 'T')
                 textures[texture_count++] = full_load[k].eids[l];
         }
 
@@ -1050,9 +1037,9 @@ void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_loa
 
     if (over_count > 8)
     {
-        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv(elist[i].eid, temp), j, over_count, point);
+        printf("[warning] Zone %s cam path %d trying to load %d textures! (eg on point %d)\n", eid_conv2(elist[i].eid), j, over_count, point);
         for (int32_t k = 0; k < over_count; k++)
-            printf("\t%s", eid_conv(over_textures[k], temp));
+            printf("\t%s", eid_conv2(over_textures[k]));
         printf("\n");
     }
 }
@@ -1336,13 +1323,13 @@ uint8_t *build_rem_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
     uint8_t **properties = (uint8_t **)malloc(property_count * sizeof(uint8_t *));
     uint8_t **property_headers = (uint8_t **)malloc(property_count * sizeof(uint8_t *));
 
-    int32_t found = 0;
+    bool found = false;
     for (int32_t i = 0; i < property_count; i++)
     {
         property_headers[i] = (uint8_t *)malloc(8 * sizeof(uint8_t *));
         memcpy(property_headers[i], item + 0x10 + 8 * i, 8);
         if (from_u16(property_headers[i]) == code)
-            found++;
+            found = true;
     }
 
     if (!found)

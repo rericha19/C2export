@@ -66,13 +66,12 @@ int32_t average_angles(int32_t angle1, int32_t angle2)
 }
 
 // gets full draw list for all points of a camera path according to config
-void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides)
+void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, int32_t *config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST *pos_overrides)
 {
     int32_t cam_len = 0;
     int32_t ent_len = 0;
     int32_t angles_len = 0;
 
-    char temp[6] = "";
     ENTRY curr = elist[curr_idx];
     ENTRY neighbour = elist[neigh_idx];
     LIST remember_nopath = init_list();
@@ -86,7 +85,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
 
     if (cam_len != angles_len / 2)
     {
-        printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", eid_conv(curr.eid, temp), cam_idx, cam_len, angles_len);
+        printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", eid_conv2(curr.eid), cam_idx, cam_len, angles_len);
     }
 
     int32_t *avg_angles = malloc(cam_len * sizeof(int32_t));
@@ -153,9 +152,10 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
 
             int16_t *ent_path = build_get_path(elist, neigh_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);
 
-            if (ent_len == 0) {
+            if (ent_len == 0)
+            {
                 int32_t id = build_get_entity_prop(build_get_nth_item(elist[neigh_idx].data, 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
-                if (list_find(remember_nopath, id) == -1) 
+                if (list_find(remember_nopath, id) == -1)
                 {
                     printf("[warning] entity %d in zone %s has no path\n", id, eid_conv2(elist[neigh_idx].eid));
                     list_add(&remember_nopath, id);
@@ -210,7 +210,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
                 }
                 else
                 {
-                    printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv(curr.eid, temp), cam_idx);
+                    printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv2(curr.eid), cam_idx);
                 }
             }
         }
@@ -262,7 +262,8 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                 {
                     ENTRY curr = elist[i];
                     uint32_t neighbour_eid = from_u32(build_get_nth_item(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
-                    if (list_find(visited_neighbours, neighbour_eid) != -1) {
+                    if (list_find(visited_neighbours, neighbour_eid) != -1)
+                    {
                         printf("[warning] Duplicate neighbour %s, skipping\n", eid_conv2(neighbour_eid));
                         continue;
                     }

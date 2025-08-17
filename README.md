@@ -1,4 +1,4 @@
-#### Crash 2/3 export/import tool with the ability to change format of some entries to the other game's format (WIP)
+#### Crash 2/3 level rebuild & utility tool
 
 
 ##### Compile/run

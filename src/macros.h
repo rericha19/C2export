@@ -95,7 +95,6 @@
 #define BUILD 215559733u
 #define REBUILD 1370829996u
 #define EXPORT 2939723207u
-#define EXPORTALL 1522383616u
 #define PROP 2089440550u
 #define NSF_PROP 387011244u
 #define PROP_REMOVE 4293790963u
@@ -128,8 +127,6 @@
 #define ROTATE 3437938580u
 #define ENT_RESIZE 2772317469u
 #define ENT_MOVE 1753493186u
-#define CHANGEPRINT 2239644728u
-#define IMPORT 3083219648u
 #define NSD_UTIL 308922119u
 #define FOV_UTIL 2792294477u
 #define DRAW_UTIL 3986824656u
@@ -139,10 +136,6 @@
 #define FLIP_Y 2964377512u
 #define FLIP_X 2964377511u
 #define LEVEL_RECOLOR 2720813778u
-
-// #define INTRO                           223621809u
-// #define STATUS                          3482341513u
-// #define CHANGEMODE                      588358864u
 
 enum
 {
@@ -159,6 +152,7 @@ enum
     Alter_Type_FlipScenY,
     Alter_Type_FlipScenX,
     Alter_Type_LevelRecolor,
+    Alter_Type_LevelExport,
 };
 
 #define ENTRY_TYPE_ANIM 0x1
@@ -219,10 +213,6 @@ enum
 // in export script used to keep track of status stuff
 typedef struct info
 {
-    int32_t counter[22];    // counts entry types, counter[0] is total entry count
-    int32_t print_en;       // variable for storing printing status 0 - nowhere, 1 - screen, 2 - file, 3 - both
-    FILE *flog;             // file where the logs are exported if file print is enabled
-    char temp[MAX];         // strings are written into this before being printed by condprint
     int32_t gamemode;       // 2 for C2, 3 for C3
     int32_t portmode;       // 0 for normal export, 1 for porting
     uint32_t anim[1024][3]; // field one is model, field 3 is animation, field 2 is original animation when c3->c2
@@ -387,14 +377,6 @@ typedef struct entry_queue
     int32_t camera_indices[QUEUE_ITEM_COUNT];
 } DIST_GRAPH_Q;
 
-// used to sort chunks in states in state search to get rid of as many permutations as possible
-typedef struct chunk_str
-{
-    int32_t chunk_index;
-    uint16_t chunk_size;
-    uint16_t entry_count;
-} CHUNK_STR;
-
 typedef struct merge_worst_zone_info_single
 {
     uint32_t zone;
@@ -410,31 +392,24 @@ typedef struct merge_worst_zone_info
 
 // misc.c
 
-void export_printstatus(int32_t zonetype, int32_t gamemode, int32_t portmode);
 void intro_text();
 void print_help();
 void print_help2();
-void export_countprint(DEPRECATE_INFO_STRUCT status);
-void export_condprint(DEPRECATE_INFO_STRUCT status);
 void clrscr();
 int32_t from_s32(uint8_t *data);
 uint32_t from_u32(uint8_t *data);
 int32_t from_s16(uint8_t *data);
 uint32_t from_u16(uint8_t *data);
 uint32_t from_u8(uint8_t *data);
-void export_countwipe(DEPRECATE_INFO_STRUCT *status);
-void export_askprint(DEPRECATE_INFO_STRUCT *status);
 uint32_t comm_str_hash(const char *str);
 const char *eid_conv2(uint32_t value);
 const char *eid_conv(uint32_t value, char *eid);
 uint32_t eid_to_int(char *eid);
 uint32_t crcChecksum(const uint8_t *data, int32_t size);
 uint32_t nsfChecksum(const uint8_t *data);
-void export_make_path(char *finalpath, char *type, int32_t eid, char *lvlid, char *date, DEPRECATE_INFO_STRUCT status);
-void export_askmode(int32_t *zonetype, DEPRECATE_INFO_STRUCT *status);
 int32_t cmp_func_int(const void *a, const void *b);
-int32_t cmp_func_load(const void *a, const void *b);
-int32_t cmp_func_load2(const void *a, const void *b);
+int32_t cmp_func_loadlist(const void *a, const void *b);
+int32_t cmp_func_drawlist(const void *a, const void *b);
 int32_t cmp_func_payload(const void *a, const void *b);
 int32_t cmp_func_uint(const void *a, const void *b);
 int32_t load_list_sort(const void *a, const void *b);
@@ -446,7 +421,7 @@ LIST init_list();
 SPAWNS init_spawns();
 int32_t list_find(LIST list, uint32_t searched);
 void list_add(LIST *list, uint32_t eid);
-int32_t list_is_subset(LIST list_a, LIST list_b);
+bool list_is_subset(LIST list_a, LIST list_b);
 void list_remove(LIST *list, uint32_t eid);
 void list_copy_in(LIST *destination, LIST source);
 LOAD_LIST init_load_list();
@@ -464,25 +439,8 @@ int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp);
 DEPENDENCIES build_init_dep();
 
 // export.c
-
-int32_t export_main(int32_t zone, char *fpath, char *date, DEPRECATE_INFO_STRUCT *status);
-int32_t export_chunk_handler(uint8_t *buffer, int32_t chunkid, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status);
-int32_t export_normal_chunk(uint8_t *buffer, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status);
-int32_t export_texture_chunk(uint8_t *buffer, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-int32_t export_camera_fix(uint8_t *cam, int32_t length);
-void export_entity_coord_fix(uint8_t *item, int32_t itemlength);
-void export_scenery(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_generic_entry(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_gool(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_zone(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, int32_t zonetype, DEPRECATE_INFO_STRUCT *status);
-void export_model(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-void export_animation(uint8_t *buffer, int32_t entrysize, char *lvlid, char *date, DEPRECATE_INFO_STRUCT *status);
-
-// import.c
-
-int32_t import_main(char *time, DEPRECATE_INFO_STRUCT status);
-int32_t import_file_lister(char *path, FILE *fnew);
-void import_chunksave(uint8_t *chunk, int32_t *index, int32_t *curr_off, int32_t *curr_chunk, FILE *fnew, int32_t offsets[]);
+// rest is hidden
+void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **chunks, uint8_t **chunks2, int32_t chunk_count);
 
 // build files in no particular order
 
@@ -522,7 +480,6 @@ void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, uint8_t **chunks, i
 void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count);
 void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, int32_t *chunk_border_texture,
                        int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table);
-void deprecate_build_print_relatives(ENTRY *elist, int32_t entry_count);
 void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB);
 void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, int32_t chunk_count, SPAWNS spawns, uint32_t *gool_table, int32_t level_ID);
 void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
@@ -591,8 +548,8 @@ void build_ask_distances(int32_t *config);
 int32_t build_is_before(ENTRY *elist, int32_t zone_index, int32_t camera_index, int32_t neighbour_index, int32_t neighbour_cam_index);
 int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, LIST permaloaded);
 void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_load, int32_t cam_length, int32_t i, int32_t j);
-int32_t build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns);
+bool build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
+                                ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns);
 int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
                                    ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath);
 void build_sort_load_lists(ENTRY *elist, int32_t entry_count);
@@ -620,10 +577,10 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
 
 // side_scripts.c
 
-int32_t texture_recolor_stupid();
-int32_t scenery_recolor_main();
-int32_t scenery_recolor_main2();
-int32_t texture_copy_main();
+void texture_recolor_stupid();
+void scenery_recolor_main();
+void scenery_recolor_main2();
+void texture_copy_main();
 void prop_main(char *path);
 void resize_main(char *time, DEPRECATE_INFO_STRUCT status);
 void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
@@ -663,7 +620,7 @@ void gool_util();
 
 // level_alter.c
 
-void level_alter_pseudorebuild(int32_t wipe_entities);
+void level_alter_pseudorebuild(int32_t alter_type);
 void wipe_draw_lists(ENTRY *elist, int32_t entry_count);
 void wipe_entities(ENTRY *elist, int32_t entry_count);
 void convert_old_dl_override(ENTRY *elist, int32_t entry_count);

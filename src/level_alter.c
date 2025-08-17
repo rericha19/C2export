@@ -126,13 +126,13 @@ void collflip_list_nodes(uint8_t *item, int32_t offset, int32_t depth, int32_t m
             num_children <<= 1;
     }
 
-    int32_t is_new = 1;
+    bool is_new = true;
     for (int32_t i = 0; i < node_info->count; i++)
     {
         if (node_info->nodes[i].offset_value == offset && node_info->nodes[i].children_count == num_children)
         {
             list_add(&node_info->nodes[i].found_at, parent_offset);
-            is_new = 0;
+            is_new = false;
             break;
         }
     }
@@ -148,7 +148,7 @@ void collflip_list_nodes(uint8_t *item, int32_t offset, int32_t depth, int32_t m
 
     for (int32_t i = 0; i < num_children; i++)
     {
-        int32_t is_leaf = children[i] == 0 || (children[i] & 1);
+        bool is_leaf = children[i] == 0 || (children[i] & 1);
 
         if (!is_leaf)
         {
@@ -176,7 +176,7 @@ void dbg_print_node_info_single(CollisionNodeInfoSingle *node)
 
 // function for getting rid of problematic data overlaps in collision items
 // required for collision flipping, as overlapping data flip would otherwise get scrambled
-int32_t collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int32_t *new_size)
+bool collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int32_t *new_size)
 {
     for (int32_t i = 0; i < node_info->count; i++)
     {
@@ -233,18 +233,18 @@ int32_t collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int
                     }
                 }
                 *new_size += 2 * childrenB;
-                return 1;
+                return true;
             }
         }
     }
 
-    return 0;
+    return false;
 }
 
 // expands supplied collision item into a form that doesnt have data/node overlaps
 uint8_t *coll_get_expanded(uint8_t *item1, int32_t *new_size, int32_t maxx, int32_t maxy, int32_t maxz)
 {
-    int32_t found_overlap = 1;
+    bool found_overlap = true;
     uint8_t *item1_edited = (uint8_t *)calloc(CHUNKSIZE, 1);
     memcpy(item1_edited, item1, *new_size);
     while (found_overlap)
@@ -259,7 +259,7 @@ uint8_t *coll_get_expanded(uint8_t *item1, int32_t *new_size, int32_t maxx, int3
 }
 
 // flips/mirrors the (expanded) collision item either on x or y
-void collision_flip(uint8_t *item, int32_t offset, int32_t depth, int32_t maxx, int32_t maxy, int32_t maxz, LIST *flipped, int32_t is_x)
+void collision_flip(uint8_t *item, int32_t offset, int32_t depth, int32_t maxx, int32_t maxy, int32_t maxz, LIST *flipped, bool is_x)
 {
     if (offset < 0x1C)
     {
@@ -339,7 +339,7 @@ void collision_flip(uint8_t *item, int32_t offset, int32_t depth, int32_t maxx, 
 
     for (int32_t i = 0; i < num_children; i++)
     {
-        int32_t is_leaf = children[i] == 0 || (children[i] & 1);
+        bool is_leaf = children[i] == 0 || (children[i] & 1);
         if (!is_leaf)
             collision_flip(item, children[i], depth + 1, maxx, maxy, maxz, flipped, is_x);
     }
@@ -661,7 +661,7 @@ void level_recolor(ENTRY *elist, int entry_count)
     scanf("%x %x %x", &r_wanted, &g_wanted, &b_wanted);
     int32_t sum_wanted = r_wanted + g_wanted + b_wanted;
 
-    float mult = 1;
+    float mult = 1.f;
     printf("brigtness mutliplicator? (float)\n");
     scanf("%f", &mult);
 
@@ -674,7 +674,7 @@ void level_recolor(ENTRY *elist, int entry_count)
         int32_t offset6 = build_get_nth_item_offset(elist[i].data, 6);
         uint8_t *item5 = build_get_nth_item(elist[i].data, 5);
 
-        printf("%s colors: %d\n", eid_conv2(elist[i].eid), (offset6 - offset5)/4);
+        printf("%s colors: %d\n", eid_conv2(elist[i].eid), (offset6 - offset5) / 4);
         for (int32_t j = 0; j < (offset6 - offset5) / 4; j++)
         {
             // read current color
@@ -724,7 +724,11 @@ void level_alter_pseudorebuild(int32_t alter_type)
     strcpy(nsdpath, nsfpath);
     nsdpath[strlen(nsdpath) - 1] = 'D';
 
-    int32_t level_ID = build_ask_ID();
+    int32_t level_ID = 0;
+    if (alter_type == Alter_Type_LevelExport)
+        sscanf(nsfpath + strlen(nsfpath) - 6, "%02X.", &level_ID);
+    else
+        level_ID = build_ask_ID();
 
     // make output paths
     strcpy(nsfpathout, nsfpath);
@@ -823,6 +827,19 @@ void level_alter_pseudorebuild(int32_t alter_type)
         break;
     case Alter_Type_LevelRecolor:
         level_recolor(elist, entry_count);
+        break;
+    case Alter_Type_LevelExport:
+        // export doesnt make an output nsf
+        export_level(level_ID, elist, entry_count, chunks, chunks2, chunk_count);
+        build_cleanup_elist(elist, entry_count);
+        for (int32_t i = 0; i < chunk_count; i++)
+        {
+            if (chunks2[i])
+                free(chunks2[i]);
+            if (chunks[i])
+                free(chunks[i]);
+        }
+        return;
         break;
     default:
         break;

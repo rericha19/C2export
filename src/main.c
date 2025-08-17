@@ -8,12 +8,10 @@
 int32_t main()
 {
     DEPRECATE_INFO_STRUCT status;
-    status.print_en = 2;
-    status.flog = NULL;
     int32_t zonetype = 8;
     time_t rawtime;
     struct tm *timeinfo;
-    char dpath[MAX] = "", fpath[MAX + 300] = "", moretemp[MAX] = ""; // + 300 to make it shut up
+    char fpath[MAX + 300] = "";
     char nsfcheck[4] = "";
     struct dirent *de;
 
@@ -45,49 +43,8 @@ int32_t main()
         case HELP2:
             print_help2();
             break;
-        case IMPORT:
-            import_main(lcltemp, status);
-            printf("\n");
-            break;
         case EXPORT:
-            export_askmode(&zonetype, &status);
-            printf("Input the path to the file whose contents you want to export:\n");
-            scanf(" %[^\n]", fpath);
-            path_fix(fpath);
-            export_main(zonetype, fpath, lcltemp, &status);
-            printf("\n");
-            break;
-        case EXPORTALL:
-        {
-            export_askmode(&zonetype, &status);
-            printf("\nInput the path to the folder whose NSFs you want to export:\n");
-            scanf(" %[^\n]", dpath);
-            path_fix(dpath);
-            // opendir() returns a pointer of DIR type.
-            DIR *df = opendir(dpath);
-
-            // opendir returns NULL if couldn't open directory
-            if (df == NULL)
-            {
-                printf("[ERROR] Could not open selected directory\n");
-                break;
-            }
-
-            while ((de = readdir(df)) != NULL)
-            {
-                strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
-                strcpy(moretemp, de->d_name);
-                if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
-                {
-                    sprintf(fpath, "%s\\%s", dpath, de->d_name);
-                    export_main(zonetype, fpath, lcltemp, &status);
-                }
-            }
-            closedir(df);
-            break;
-        }
-        case CHANGEPRINT:
-            export_askprint(&status);
+            level_alter_pseudorebuild(Alter_Type_LevelExport);
             break;
         case HASH:
             scanf("%s", fpath);

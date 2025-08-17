@@ -76,8 +76,8 @@ double randfrom(double min, double max)
 #if COMPILE_WITH_THREADS
 void *build_matrix_merge_random_util(void *args)
 {
-    char temp[6] = "";
-    char temp2[6] = "";
+    char eid1[6] = "";
+    char eid2[6] = "";
     bool limit_reached = false;
     bool best_reached = false;
 
@@ -158,18 +158,19 @@ void *build_matrix_merge_random_util(void *args)
         if (best_reached)
         {
             if (is_new_best)
-                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- DONE\n", curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- DONE\n",
+                       curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
             else
                 printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_i, t_id);
         }
         else
         {
             if (is_new_best)
-                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", curr_i, t_id, curr,
-                       eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n",
+                       curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
             else
-                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s)\n", curr_i, t_id, curr,
-                       eid_conv(payloads.arr[0].zone, temp), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, temp2));
+                printf("Iter %3d, thr %2d, current %I64d (%5s), best %I64d (%5s)\n",
+                       curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
         }
         *inp_args.curr_iter_ptr += 1;
 
@@ -407,9 +408,8 @@ PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *el
  */
 void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded)
 {
-
-    char temp[6] = "";
-    char temp2[6] = "";
+    char eid1[6] = "";
+    char eid2[6] = "";
 
     double mult;
     int32_t iter_count, seed, max_payload_limit;
@@ -496,9 +496,11 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         }
 
         if (!is_new_best)
-            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
+            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s)\n",
+                   i, curr, eid_conv(payloads.arr[0].zone, eid1), best_max, eid_conv(best_zone, eid2));
         else
-            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n", i, curr, eid_conv(payloads.arr[0].zone, temp), best_max, eid_conv(best_zone, temp2));
+            printf("Iter %3d, current %I64d (%5s), best %I64d (%5s) -- NEW BEST\n",
+                   i, curr, eid_conv(payloads.arr[0].zone, eid1), best_max, eid_conv(best_zone, eid2));
 
         // if the worst payload zone has the same or lower payload than user specified max, it stops since its good enough
         if (payloads.arr[0].count <= max_payload_limit)

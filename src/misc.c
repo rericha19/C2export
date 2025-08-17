@@ -5,7 +5,7 @@ void intro_text()
 {
     for (int32_t i = 0; i < 100; i++)
         printf("*");
-    printf("\nCrash 2/3 level entry exporter/importer/reformatter/resizer/rotater made by Averso.\n");
+    printf("\nCrash 2 rebuilder, utility tool & c2/c3 level exporter made by Averso.\n");
     printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
     printf("Type \"HELP\" for list of commands and their format. Commands >ARE NOT< case sensitive.\n");
     printf("It is recommended to provide valid data as there may be edge cases that are unaccounted for.\n");
@@ -96,9 +96,6 @@ void print_help2()
     printf("ENT_MOVE\n");
     printf("\t moves an entity by chosen amount\n");
 
-    printf("CHANGEPRINT & IMPORT (obsolete)\n");
-    printf("\t print selection, entry->NSF import (pretty much useless)\n");
-
     printf("FLIP_Y & FLIP_X\n");
     printf("\t flips the level horizontally or vertically\n");
 
@@ -128,8 +125,8 @@ void print_help()
     printf("LL_ANALYZE\n");
     printf("\t stats about the level, integrity checks\n");
 
-    printf("EXPORT & EXPORTALL\n");
-    printf("\t exports level entries (EXPORTALL exports all levels in a folder)\n");
+    printf("EXPORT\n");
+    printf("\t exports level entries\n");
 
     printf("LEVEL_WIPE_DL & LEVEL_WIPE_ENT\n");
     printf("\t remove draw lists / remove draw lists + entities from level (scrambles the level a bit)\n");
@@ -242,9 +239,9 @@ pthread_mutex_t g_eidconv_mutex = PTHREAD_MUTEX_INITIALIZER;
 // converts int32_t eid to string eid
 const char *eid_conv(uint32_t value, char *eid)
 {
-    #if COMPILE_WITH_THREADS    
+#if COMPILE_WITH_THREADS
     pthread_mutex_lock(&g_eidconv_mutex);
-    #endif
+#endif
 
     const char charset[] =
         "0123456789"
@@ -252,26 +249,26 @@ const char *eid_conv(uint32_t value, char *eid)
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "_!";
 
-    static char temp[6] = "abcde";
-    temp[0] = charset[(value >> 25) & 0x3F];
-    temp[1] = charset[(value >> 19) & 0x3F];
-    temp[2] = charset[(value >> 13) & 0x3F];
-    temp[3] = charset[(value >> 7) & 0x3F];
-    temp[4] = charset[(value >> 1) & 0x3F];
-    temp[5] = '\0';
+    static char s_buf[6] = "abcde";
+    s_buf[0] = charset[(value >> 25) & 0x3F];
+    s_buf[1] = charset[(value >> 19) & 0x3F];
+    s_buf[2] = charset[(value >> 13) & 0x3F];
+    s_buf[3] = charset[(value >> 7) & 0x3F];
+    s_buf[4] = charset[(value >> 1) & 0x3F];
+    s_buf[5] = '\0';
 
-    if (eid == NULL) 
+    if (eid == NULL)
     {
-        #if COMPILE_WITH_THREADS
+#if COMPILE_WITH_THREADS
         pthread_mutex_unlock(&g_eidconv_mutex);
-        #endif
-        return temp;
+#endif
+        return s_buf;
     }
 
-    memcpy(eid, temp, 6);
-    #if COMPILE_WITH_THREADS
+    memcpy(eid, s_buf, 6);
+#if COMPILE_WITH_THREADS
     pthread_mutex_unlock(&g_eidconv_mutex);
-    #endif
+#endif
     return eid;
 }
 
@@ -373,11 +370,11 @@ LIST init_list()
  */
 SPAWNS init_spawns()
 {
-    SPAWNS temp;
-    temp.spawn_count = 0;
-    temp.spawns = NULL;
+    SPAWNS sp;
+    sp.spawn_count = 0;
+    sp.spawns = NULL;
 
-    return temp;
+    return sp;
 }
 
 /** \brief
@@ -430,14 +427,14 @@ void list_add(LIST *list, uint32_t eid)
 }
 
 // Returns 1 if list_a is a subset of list_b, 0 otherwise
-int32_t list_is_subset(LIST list_a, LIST list_b)
+bool list_is_subset(LIST list_a, LIST list_b)
 {
     for (int32_t i = 0; i < list_a.count; i++)
     {
         if (list_find(list_b, list_a.eids[i]) == -1)
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 /** \brief
@@ -485,10 +482,10 @@ void list_copy_in(LIST *destination, LIST source)
  */
 LOAD_LIST init_load_list()
 {
-    LOAD_LIST temp;
-    temp.count = 0;
+    LOAD_LIST ll;
+    ll.count = 0;    
 
-    return temp;
+    return ll;
 }
 
 // calculates distance of two 3D points
@@ -598,14 +595,14 @@ int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp)
     {
         if (i + 1 >= *n)
         {
-            char *temp = realloc(*linep, *n + 128);
-            if (!temp)
+            char *buf = realloc(*linep, *n + 128);
+            if (!buf)
             {
                 errno = ENOMEM;
                 return -1;
             }
             *n += 128;
-            *linep = temp;
+            *linep = buf;
         }
         (*linep)[i++] = ch;
         if (ch == delim)

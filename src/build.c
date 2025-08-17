@@ -278,20 +278,20 @@ void build_check_item_count(uint8_t *zone, int32_t eid)
     int32_t cam_count = build_get_cam_item_count(zone);
     int32_t entity_count = build_get_entity_count(zone);
 
-    char temp[100] = "";
     if (item_count != (2 + cam_count + entity_count))
+    {
         printf("[warning] %s's item count (%d) doesn't match item counts in the first item (2 + %d + %d)\n",
-               eid_conv(eid, temp), item_count, cam_count, entity_count);
+               eid_conv2(eid), item_count, cam_count, entity_count);
+    }
 }
 
 DRAW_ITEM build_decode_draw_item(uint32_t value)
 {
-    DRAW_ITEM temp;
-
-    temp.neighbour_item_index = (value & 0xFF000000) >> 24;
-    temp.ID = (value & 0xFFFF00) >> 8;
-    temp.neighbour_zone_index = value & 0xFF;
-    return temp;
+    DRAW_ITEM draw;
+    draw.neighbour_item_index = (value & 0xFF000000) >> 24;
+    draw.ID = (value & 0xFFFF00) >> 8;
+    draw.neighbour_zone_index = value & 0xFF;
+    return draw;
 }
 
 /** \brief
@@ -440,14 +440,11 @@ void build_get_box_count(ENTRY *elist, int32_t entry_count)
                      subt == 10 || subt == 11 || subt == 12 || subt == 17 || subt == 18 || subt == 23 || subt == 25 || subt == 26))
                 {
                     box_counter++;
-                    // char temp[6] = "";
-                    // printf("%3d, Zone: %5s, type: %2d, subtype: %2d, ID: %3d\n", box_counter, eid_conv(elist[i].eid, temp), type, subt, id);
                 }
 
                 if ((type >= 34 && type <= 43) && subt == 18)
                 {
                     nitro_counter++;
-                    // printf("NITRO %3d\n", id);
                 }
             }
         }
@@ -457,7 +454,7 @@ void build_get_box_count(ENTRY *elist, int32_t entry_count)
 }
 
 // used to sort load lists and to avoid stuff getting removed before its been added
-int32_t cmp_func_load(const void *a, const void *b)
+int32_t cmp_func_loadlist(const void *a, const void *b)
 {
     LOAD x = *(LOAD *)a;
     LOAD y = *(LOAD *)b;
@@ -469,7 +466,7 @@ int32_t cmp_func_load(const void *a, const void *b)
 }
 
 // used to sort draw list to avoid stuff getting removed before its been added
-int32_t cmp_func_load2(const void *a, const void *b)
+int32_t cmp_func_drawlist(const void *a, const void *b)
 {
     LOAD x = *(LOAD *)a;
     LOAD y = *(LOAD *)b;
@@ -482,18 +479,16 @@ int32_t cmp_func_load2(const void *a, const void *b)
 
 LOAD_LIST build_get_draw_lists(uint8_t *entry, int32_t cam_index)
 {
-
-    LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
-    qsort(temp.array, temp.count, sizeof(LOAD), cmp_func_load2);
-    return temp;
+    LOAD_LIST dl = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
+    qsort(dl.array, dl.count, sizeof(LOAD), cmp_func_drawlist);
+    return dl;
 }
 
 LOAD_LIST build_get_load_lists(uint8_t *entry, int32_t cam_index)
 {
-
-    LOAD_LIST temp = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
-    qsort(temp.array, temp.count, sizeof(LOAD), cmp_func_load);
-    return temp;
+    LOAD_LIST ll = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
+    qsort(ll.array, ll.count, sizeof(LOAD), cmp_func_loadlist);
+    return ll;
 }
 
 /** \brief
@@ -597,7 +592,6 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
 
 void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
 {
-
     int32_t omit = 0;
     printf("\nOmit normal chunk entries that are never loaded? [0 - include, 1 - omit]\n");
     scanf("%d", &omit);
@@ -614,7 +608,6 @@ void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
     printf("Checking for normal chunk entries that are never loaded\n");
     LIST ever_loaded = init_list();
     int32_t entries_skipped = 0;
-    char temp[6] = "";
 
     // reads all load lists and bluntly adds all items into the list of all loaded entries
     for (int32_t i = 0; i < entry_count; i++)
@@ -641,8 +634,7 @@ void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
         {
             elist[i].norm_chunk_ent_is_loaded = false;
             entries_skipped++;
-            printf("  %3d. entry %s never loaded, will not be included\n",
-                   entries_skipped, eid_conv(elist[i].eid, temp));
+            printf("  %3d. entry %s never loaded, will not be included\n", entries_skipped, eid_conv2(elist[i].eid));
         }
     }
 
@@ -659,8 +651,8 @@ int32_t cmp_spawns(const void *a, const void *b)
 void build_print_transitions(ENTRY *elist, int32_t entry_count)
 {
     printf("\nTransitions in the level: \n");
-    char temp[6] = "";
-    char temp2[6] = "";
+    char eid1[6] = "";
+    char eid2[6] = "";
 
     for (int32_t i = 0; i < entry_count; i++)
     {
@@ -676,7 +668,7 @@ void build_print_transitions(ENTRY *elist, int32_t entry_count)
 
             if (neighbour_flg == 0xF || neighbour_flg == 0x1F)
             {
-                printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", eid_conv(elist[i].eid, temp), neighbour_flg, eid_conv(neighbour_eid, temp2), j);
+                printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", eid_conv(elist[i].eid, eid1), neighbour_flg, eid_conv(neighbour_eid, eid2), j);
             }
         }
     }

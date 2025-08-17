@@ -1,6 +1,5 @@
 #include "macros.h"
 
-
 /** \brief
  *  Assigns primary chunks to all entries, merges need them.
  *
@@ -471,16 +470,16 @@ int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk
  */
 int32_t build_remove_empty_chunks(int32_t index_start, int32_t index_end, int32_t entry_count, ENTRY *entry_list)
 {
-    int32_t is_occupied = 0, empty_chunk = 0;
+    int32_t empty_chunk = 0;
     while (1)
     {
         for (int32_t i = index_start; i < index_end; i++)
         {
-            is_occupied = 0;
+            bool is_occupied = false;
             empty_chunk = -1;
             for (int32_t j = 0; j < entry_count; j++)
                 if (entry_list[j].chunk == i)
-                    is_occupied++;
+                    is_occupied = true;
 
             if (!is_occupied)
             {

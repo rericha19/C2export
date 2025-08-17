@@ -36,9 +36,6 @@
     <ClCompile Include="..\src\build_merge_occurence_matrix.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\build_merge_state_search.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\build_parsing.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,13 +45,7 @@
     <ClCompile Include="..\src\build_user_input.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\deprecate_build.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\export.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\import.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\level_alter.c">
@@ -66,14 +57,14 @@
     <ClCompile Include="..\src\misc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\payload_info.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\side_scripts.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\build_merge_state_search.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\dirent.h">
       <Filter>Source Files</Filter>
     </ClInclude>

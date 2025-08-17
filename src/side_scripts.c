@@ -1,7 +1,7 @@
 #include "macros.h"
 
 // one of old texture recoloring utils
-int32_t texture_recolor_stupid()
+void texture_recolor_stupid()
 {
     char fpath[1000];
     printf("Path to color item:\n");
@@ -12,7 +12,7 @@ int32_t texture_recolor_stupid()
     if ((file1 = fopen(fpath, "rb+")) == NULL)
     {
         printf("[ERROR] Couldn't open file.\n\n");
-        return 0;
+        return;
     }
 
     int32_t r_wanted, g_wanted, b_wanted;
@@ -70,11 +70,10 @@ int32_t texture_recolor_stupid()
     fwrite(buffer, 1, file_len, file1);
     fclose(file1);
     free(buffer);
-    return 0;
 }
 
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
-int32_t scenery_recolor_main()
+void scenery_recolor_main()
 {
     char fpath[1000];
     printf("Path to color item:\n");
@@ -85,7 +84,7 @@ int32_t scenery_recolor_main()
     if ((file1 = fopen(fpath, "rb+")) == NULL)
     {
         printf("[ERROR] Couldn't open file.\n\n");
-        return 0;
+        return;
     }
 
     fseek(file1, 0, SEEK_END);
@@ -149,7 +148,6 @@ int32_t scenery_recolor_main()
     free(buffer);
 
     printf("\nDone\n\n");
-    return 0;
 }
 
 // garbage, probably doesnt work properly
@@ -274,7 +272,7 @@ void rotate_rotate(uint32_t *y, uint32_t *x, double rotation)
 }
 
 //  Copies texture from one texture chunk to another, doesnt include cluts.
-int32_t texture_copy_main()
+void texture_copy_main()
 {
     char fpath[1000];
     printf("Path to source texture:\n");
@@ -292,20 +290,20 @@ int32_t texture_copy_main()
     if (file1 == NULL)
     {
         printf("[ERROR] Source texture could not be opened.\n\n");
-        return 0;
+        return;
     }
 
     if (file2 == NULL)
     {
         printf("[ERROR] Destination texture could not be opened.\n\n");
-        return 0;
+        return;
     }
 
     fread(texture1, 65536, 1, file1);
     fread(texture2, 65536, 1, file2);
 
     while (1)
-    {        
+    {
         int32_t bpp, src_x, src_y, width, height, dest_x, dest_y;
         printf("bpp src_x src_y width height dest-x dest-y? [set bpp to 0 to end]\n");
         scanf("%d", &bpp);
@@ -347,7 +345,6 @@ int32_t texture_copy_main()
     free(texture1);
     free(texture2);
     printf("Done\n\n");
-    return 0;
 }
 
 // property printing util
@@ -672,7 +669,7 @@ void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
     closedir(df);
 
     if (check)
-        printf("\nEntries' dimensions resized\n\n");    
+        printf("\nEntries' dimensions resized\n\n");
 }
 
 // yep resizes level
@@ -680,7 +677,7 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
-    uint8_t buffer[CHUNKSIZE];    
+    uint8_t buffer[CHUNKSIZE];
 
     help = strrchr(filepath, '\\');
     *help = '\0';
@@ -862,8 +859,6 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
 
             if (!strcmp("scene", lcltemp))
             {
-                sprintf(status.temp, "%s\n", de->d_name);
-                export_condprint(status);
                 file = fopen(fpath, "rb");
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
@@ -880,8 +875,6 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
             }
             if (!strcmp("zone ", lcltemp))
             {
-                sprintf(status.temp, "%s\n", de->d_name);
-                export_condprint(status);
                 file = fopen(fpath, "rb");
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
@@ -1208,7 +1201,7 @@ void generate_spawn()
 }
 
 // for recoloring, i use some dumb algorithm that i think does /some/ job and thats about it
-int32_t scenery_recolor_main2()
+void scenery_recolor_main2()
 {
     char fpath[1000];
     printf("Path to color item:\n");
@@ -1220,7 +1213,7 @@ int32_t scenery_recolor_main2()
     if ((file1 = fopen(fpath, "rb+")) == NULL)
     {
         printf("[ERROR] Couldn't open file.\n\n");
-        return 0;
+        return;
     }
 
     int32_t r_wanted, g_wanted, b_wanted;
@@ -1277,8 +1270,6 @@ int32_t scenery_recolor_main2()
     fwrite(buffer, color_count, 4, file1);
     fclose(file1);
     free(buffer);
-
-    return 0;
 }
 
 // converts time from nice format to hex/data value
@@ -1516,7 +1507,6 @@ void print_model_tex_refs_nsf()
         return;
 
     bool printed_something = false;
-    char temp[6] = "";
     printf("Model name? (type \"all\" to print all models' tex refs)\n");
     char ename[6] = "";
     scanf("%5s", ename);
@@ -1525,7 +1515,7 @@ void print_model_tex_refs_nsf()
     {
         if (build_entry_type(elist[i]) == ENTRY_TYPE_MODEL)
         {
-            if (strcmp(eid_conv(elist[i].eid, temp), ename) == 0 || strcmp(ename, "all") == 0)
+            if (strcmp(eid_conv2(elist[i].eid), ename) == 0 || strcmp(ename, "all") == 0)
             {
                 printf("\nModel %s:", eid_conv2(elist[i].eid));
                 print_model_refs_util(elist[i].data);
@@ -1981,12 +1971,12 @@ void special_load_lists_util(char *fpath)
         printf("\n");
 }
 
-int32_t check_fpath_contains(char *fpath, char *name)
+bool check_fpath_contains(char *fpath, char *name)
 {
     if (strstr(fpath, name))
-        return 1;
+        return true;
 
-    return 0;
+    return false;
 }
 
 // for printing gool type and category list from nsf
@@ -2055,9 +2045,6 @@ void fov_stats_util(char *fpath)
 // util function for printing checkpoint, mask and dda info
 void checkpoint_stats_util(char *fpath)
 {
-    // printf("Checking %s\n", fpath);
-    // char temp[6] = "";
-
     ENTRY elist[ELIST_DEFAULT_SIZE];
     int32_t entry_count = 0;
 

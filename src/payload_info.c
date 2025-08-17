@@ -133,9 +133,8 @@ void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
  */
 void build_print_payload(PAYLOAD payload, int32_t stopper)
 {
-    char temp[100] = "";
     printf("Zone: %s cam path %d: payload: %3d, textures %2d, entities %2d",
-           eid_conv(payload.zone, temp), payload.cam_path, payload.count, payload.tcount, payload.entcount);
+           eid_conv2(payload.zone), payload.cam_path, payload.count, payload.tcount, payload.entcount);
     if (stopper)
         printf("; stopper: %2d", stopper);
     printf("\n");
@@ -157,20 +156,19 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
     int32_t chunks[1024];
     int32_t count = 0;
     int32_t curr_chunk;
-    int32_t is_there;
+    bool is_there = false;
 
     for (int32_t i = 0; i < list.count; i++)
     {
         int32_t elist_index = build_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].chunk;
 
-        is_there = 0;
+        is_there = false;
         for (int32_t j = 0; j < count; j++)
             if (chunks[j] == curr_chunk)
-                is_there = 1;
+                is_there = true;
 
-        char temp[6] = "";
-        if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
+        if (!is_there && eid_conv2(elist[elist_index].eid)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
         {
             chunks[count] = curr_chunk;
             count++;
@@ -194,13 +192,12 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
         int32_t elist_index = build_get_index(list.eids[i], elist, entry_count);
         curr_chunk = elist[elist_index].eid;
 
-        is_there = 0;
+        is_there = false;
         for (int32_t j = 0; j < tcount; j++)
             if (tchunks[j] == curr_chunk)
-                is_there = 1;
+                is_there = true;
 
-        char temp[6] = "";
-        if (!is_there && eid_conv(elist[elist_index].eid, temp)[4] == 'T' && curr_chunk != -1)
+        if (!is_there && eid_conv2(elist[elist_index].eid)[4] == 'T' && curr_chunk != -1)
         {
             tchunks[tcount] = curr_chunk;
             tcount++;
@@ -211,31 +208,4 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
     payload.tchunks = (int32_t *)malloc(tcount * sizeof(int32_t));
     memcpy(payload.tchunks, tchunks, sizeof(int32_t) * tcount);
     return payload;
-}
-
-/** \brief
- *  Prints entries and their relatives.
- *  Actually unused i think.
- *
- * \param elist ENTRY*                  entry list
- * \param entry_count int32_t               entry count
- * \return void
- */
-void deprecate_build_print_relatives(ENTRY *elist, int32_t entry_count)
-{
-    char temp[100] = "";
-    for (int32_t i = 0; i < entry_count; i++)
-    {
-        printf("%04d %s %02d %d\n", i, eid_conv(elist[i].eid, temp), elist[i].chunk, elist[i].esize);
-        if (elist[i].related != NULL)
-        {
-            printf("------ %5d\n", elist[i].related[0]);
-            for (int32_t j = 0; j < (signed)elist[i].related[0]; j++)
-            {
-                int32_t relative = elist[i].related[j + 1];
-                printf("--%2d-- %s %2d %5d\n", j + 1, eid_conv(relative, temp),
-                       elist[build_get_index(relative, elist, entry_count)].chunk, elist[build_get_index(relative, elist, entry_count)].esize);
-            }
-        }
-    }
 }
