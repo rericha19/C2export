@@ -8,12 +8,13 @@
 int32_t main()
 {
     char fpath[MAX] = "";
-    char p_comm_cpy[MAX] = "";
-    char p_command[MAX] = "";
     intro_text();
 
     while (1)
     {
+        char p_comm_cpy[MAX] = "";
+        char p_command[MAX] = "";
+
         scanf("%s", p_command);
         for (uint32_t i = 0; i < strlen(p_command); i++)
             p_comm_cpy[i] = toupper(p_command[i]);
