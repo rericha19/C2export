@@ -348,8 +348,7 @@ void build_final_cleanup(ENTRY *elist, int32_t entry_count, uint8_t **chunks, in
         free(dep2.array);
 }
 
-// dumb thing for snow no or whatever convoluted level its configured for rn
-// actually unused at the time
+// dumb thing for box counting, might be broken
 void build_get_box_count(ENTRY *elist, int32_t entry_count)
 {
     int32_t box_counter = 0;
@@ -684,7 +683,6 @@ void build_main(int32_t build_type)
         return;
     }
 
-    // build_get_box_count(elist, entry_count);
     build_try_second_output(&nsfnew2, &nsd2, level_ID);
 
     // user picks whether to remake load lists or not, also merge method

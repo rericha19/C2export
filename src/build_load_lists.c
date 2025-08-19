@@ -314,7 +314,7 @@ void build_load_list_util(int32_t zone_index, int32_t camera_index, LIST *full_l
         // get a list of entities drawn within set distance of current camera point
         LIST entity_list = build_get_entity_list(i, zone_index, camera_index, cam_length, elist, entry_count, &neighbour_list, config);
 
-        neighbour_list.count = neighbour_list.count; // this has to be here otherwise VS optimises it away or some shit, idk im scared
+        neighbour_list.count = neighbour_list.count; // this has to be here otherwise VS optimises it away? idk im scared
         // get a list of types and subtypes from the entity list
         LIST types_subtypes = build_get_types_subtypes(elist, entry_count, entity_list, neighbour_list);
 

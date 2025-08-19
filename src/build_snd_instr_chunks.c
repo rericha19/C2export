@@ -104,7 +104,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
             if (sound_list[j].chunk == start_chunk_idx + i)
                 local_entry_count++;
 
-        uint32_t *offsets = (uint32_t *)try_malloc((local_entry_count + 2) * sizeof(uint32_t)); // idk why its +2, freed here
+        uint32_t *offsets = (uint32_t *)try_malloc((local_entry_count + 2) * sizeof(uint32_t)); // freed here
         *(uint16_t *)chunks[start_chunk_idx + i] = MAGIC_CHUNK;
         *(uint16_t *)(chunks[start_chunk_idx + i] + 2) = CHUNK_TYPE_SOUND;
         *(uint16_t *)(chunks[start_chunk_idx + i] + 4) = chunk_no;

@@ -270,7 +270,7 @@ void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO *info, uint32_t zone, u
 }
 
 /** \brief
- *  For each entry pair it finds out what chunk each is in and attempts to merge.
+ *  For each entry pair it finds out what chunk each is in and tries to merge.
  *  Starts with entries with highest common occurence count.
  *
  * \param relations RELATIONS           array form of the common load list matrix sorted high to low

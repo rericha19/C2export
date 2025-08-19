@@ -62,8 +62,8 @@ void texture_recolor_stupid()
         b_new /= 8;
 
         // write back
-        uint16_t temp2 = (a << 15) + (b_new << 10) + (g_new << 5) + (r_new);
-        *(uint16_t *)(buffer + i) = temp2;
+        uint16_t clr_out = (a << 15) + (b_new << 10) + (g_new << 5) + (r_new);
+        *(uint16_t *)(buffer + i) = clr_out;
     }
 
     rewind(file1);
@@ -207,7 +207,7 @@ void rotate_main()
 void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time, int32_t filesize)
 {
     FILE *filenew;
-    char *help, lcltemp[MAX];
+    char *help, fpath[MAX];
     int32_t curr_off, next_off, i;
     uint32_t group, rest, vert;
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
@@ -256,9 +256,9 @@ void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time
     help = strrchr(filepath, '\\');
     *help = '\0';
     help = help + 1;
-    sprintf(lcltemp, "%s\\%s_%s", filepath, time, help);
+    sprintf(fpath, "%s\\%s_%s", filepath, time, help);
 
-    filenew = fopen(lcltemp, "wb");
+    filenew = fopen(fpath, "wb");
     fwrite(buffer, sizeof(uint8_t), filesize, filenew);
     fclose(filenew);
     for (int32_t i = 0; i < vertcount; i++)
@@ -695,7 +695,7 @@ void resize_main()
 void resize_level(FILE *level, char *filepath, double scale[3], char *time, int32_t game)
 {
     FILE *filenew;
-    char *help, lcltemp[MAX];
+    char *help, fpath[MAX];
     uint8_t *buffer = (uint8_t *)try_malloc(CHUNKSIZE);
     if (buffer == NULL)
     {
@@ -706,9 +706,9 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, int3
     help = strrchr(filepath, '\\');
     *help = '\0';
     help = help + 1;
-    sprintf(lcltemp, "%s\\%s_%s", filepath, time, help);
+    sprintf(fpath, "%s\\%s_%s", filepath, time, help);
 
-    filenew = fopen(lcltemp, "wb");
+    filenew = fopen(fpath, "wb");
     fseek(level, 0, SEEK_END);
     int32_t chunkcount = ftell(level) / CHUNKSIZE;
     rewind(level);
@@ -863,7 +863,7 @@ void resize_chunk_handler(uint8_t *chunk, int32_t game, double scale[3])
 void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t game)
 {
     struct dirent *de;
-    char lcltemp[6] = "", help[MAX] = "";
+    char fname[6] = "", help[MAX] = "";
     uint8_t *buffer = NULL;
     FILE *file, *filenew;
     int32_t filesize;
@@ -877,15 +877,15 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t gam
         {
             char fpath[MAX] = "";
             sprintf(fpath, "%s\\%s", path, de->d_name);
-            strncpy(lcltemp, de->d_name, 5);
-            lcltemp[5] = '\0';
+            strncpy(fname, de->d_name, 5);
+            fname[5] = '\0';
             if (buffer != NULL)
             {
                 free(buffer);
                 buffer = NULL;
             }
 
-            if (!strcmp("scene", lcltemp))
+            if (!strcmp("scene", fname))
             {
                 file = fopen(fpath, "rb");
                 fseek(file, 0, SEEK_END);
@@ -901,7 +901,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t gam
                 fclose(file);
                 fclose(filenew);
             }
-            if (!strcmp("zone ", lcltemp))
+            if (!strcmp("zone ", fname))
             {
                 file = fopen(fpath, "rb");
                 fseek(file, 0, SEEK_END);
@@ -1678,7 +1678,7 @@ int32_t cmp_func_dep2(const void *a, const void *b)
 // folder iterator for getting entity usage
 void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, uint32_t *gool_table)
 {
-    char fpath[MAX + 300] = "", moretemp[MAX] = "";
+    char fpath[MAX + 300] = "", fname[MAX] = "";
     DIR *df = opendir(dpath);
     if (df == NULL)
     {
@@ -1695,7 +1695,7 @@ void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, uint32_t *g
             continue;
         }
         strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
-        strcpy(moretemp, de->d_name);
+        strcpy(fname, de->d_name);
         if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
         {
             sprintf(fpath, "%s\\%s", dpath, de->d_name);
@@ -2191,7 +2191,7 @@ void checkpoint_stats_util(char *fpath)
 // function for recursively iterating over folders and calling callback
 void recursive_folder_iter(const char *dpath, void(callback)(char *))
 {
-    char fpath[MAX + 300] = "", moretemp[MAX] = "";
+    char fpath[MAX + 300] = "", fname[MAX] = "";
     DIR *df = opendir(dpath);
     if (df == NULL)
     {
@@ -2208,7 +2208,7 @@ void recursive_folder_iter(const char *dpath, void(callback)(char *))
             continue;
         }
         strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
-        strcpy(moretemp, de->d_name);
+        strcpy(fname, de->d_name);
         if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
         {
             sprintf(fpath, "%s\\%s", dpath, de->d_name);

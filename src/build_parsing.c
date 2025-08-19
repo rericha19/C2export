@@ -672,7 +672,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                                    ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, bool stats_only, char *fpath)
 {
     FILE *nsf = NULL;
-    char nsfpath[MAX], lcltemp[MAX + 20];
+    char nsfpath[MAX], fname[MAX + 20];
 
     if (fpath)
     {
@@ -700,10 +700,10 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
             *level_ID = build_ask_ID();
 
             *(strrchr(nsfpath, '\\') + 1) = '\0';
-            sprintf(lcltemp, "%s\\S00000%02X.NSF", nsfpath, *level_ID);
-            *nsfnew = fopen(lcltemp, "wb");
-            *(strchr(lcltemp, '\0') - 1) = 'D';
-            *nsd = fopen(lcltemp, "wb");
+            sprintf(fname, "%s\\S00000%02X.NSF", nsfpath, *level_ID);
+            *nsfnew = fopen(fname, "wb");
+            *(strchr(fname, '\0') - 1) = 'D';
+            *nsd = fopen(fname, "wb");
         }
         else
         {

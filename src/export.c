@@ -108,7 +108,7 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
         return;
 
     int32_t lcl_entrysize = zone->esize;
-    int32_t curr_off, lcl_temp, irrelitems, next_off;
+    int32_t curr_off, val, irrelitems, next_off;
 
     uint8_t *cpy = (uint8_t *)try_calloc(lcl_entrysize, sizeof(uint8_t));
     memcpy(cpy, zone->data, lcl_entrysize);
@@ -123,10 +123,10 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
             // offset fix
             for (int32_t j = 0; j < cpy[0xC]; j++)
             {
-                lcl_temp = BYTE * cpy[0x15 + j * 4] + cpy[0x14 + j * 4];
-                lcl_temp += 0x40;
-                cpy[0x15 + j * 4] = lcl_temp / BYTE;
-                cpy[0x14 + j * 4] = lcl_temp % BYTE;
+                val = BYTE * cpy[0x15 + j * 4] + cpy[0x14 + j * 4];
+                val += 0x40;
+                cpy[0x15 + j * 4] = val / BYTE;
+                cpy[0x14 + j * 4] = val % BYTE;
             }
 
             // inserts byte in a very ugly way, look away
@@ -150,10 +150,10 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
         {
             for (int32_t j = 0; j < cpy[0xC]; j++)
             {
-                lcl_temp = BYTE * cpy[0x15 + j * 4] + cpy[0x14 + j * 4];
-                lcl_temp -= 0x40;
-                cpy[0x15 + j * 4] = lcl_temp / BYTE;
-                cpy[0x14 + j * 4] = lcl_temp % BYTE;
+                val = BYTE * cpy[0x15 + j * 4] + cpy[0x14 + j * 4];
+                val -= 0x40;
+                cpy[0x15 + j * 4] = val / BYTE;
+                cpy[0x14 + j * 4] = val % BYTE;
             }
 
             curr_off = BYTE * cpy[0x11] + cpy[0x10];
