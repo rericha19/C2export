@@ -21,7 +21,7 @@ void texture_recolor_stupid()
 
     fseek(file1, 0, SEEK_END);
     int32_t file_len = ftell(file1);
-    uint8_t *buffer = (uint8_t *)malloc(file_len * sizeof(uint8_t *));
+    uint8_t *buffer = (uint8_t *)try_malloc(file_len * sizeof(uint8_t *));
     rewind(file1);
     fread(buffer, 1, file_len, file1);
 
@@ -30,11 +30,11 @@ void texture_recolor_stupid()
 
     for (int32_t i = 0; i < file_len; i += 2)
     {
-        uint16_t temp = *(uint16_t *)(buffer + i);
-        int32_t r = temp & 0x1F;
-        int32_t g = (temp >> 5) & 0x1F;
-        int32_t b = (temp >> 10) & 0x1F;
-        int32_t a = (temp >> 15) & 1;
+        uint16_t clr_val = *(uint16_t *)(buffer + i);
+        int32_t r = clr_val & 0x1F;
+        int32_t g = (clr_val >> 5) & 0x1F;
+        int32_t b = (clr_val >> 10) & 0x1F;
+        int32_t a = (clr_val >> 15) & 1;
 
         r *= 8;
         g *= 8;
@@ -89,7 +89,7 @@ void scenery_recolor_main()
 
     fseek(file1, 0, SEEK_END);
     int32_t color_count = ftell(file1) / 4;
-    uint8_t *buffer = (uint8_t *)malloc((color_count * 4) * sizeof(uint8_t *));
+    uint8_t *buffer = (uint8_t *)try_malloc((color_count * 4) * sizeof(uint8_t *));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
@@ -151,8 +151,19 @@ void scenery_recolor_main()
 }
 
 // garbage, probably doesnt work properly
-void rotate_main(char *time)
+void rotate_main()
 {
+    time_t rawtime;
+    struct tm *timeinfo;
+    char time_str[9] = "";
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    sprintf(time_str, "%02d_%02d_%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+    for (uint32_t i = 0; i < strlen(time_str); i++)
+        if (!isalnum(time_str[i]))
+            time_str[i] = '_';
+
     double rotation;
     char path[MAX];
     FILE *file;
@@ -182,12 +193,12 @@ void rotate_main(char *time)
     fseek(file, 0, SEEK_END);
     filesize = ftell(file);
     rewind(file);
-    entry = (uint8_t *)malloc(filesize); // freed here
+    entry = (uint8_t *)try_malloc(filesize); // freed here
     fread(entry, sizeof(uint8_t), filesize, file);
     // if (entry[8] == 7)
     // rotate_zone(entry, path, rotation);
     if (entry[8] == 3)
-        rotate_scenery(entry, path, rotation, time, filesize);
+        rotate_scenery(entry, path, rotation, time_str, filesize);
     free(entry);
     fclose(file);
 }
@@ -202,9 +213,9 @@ void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time
     curr_off = BYTE * buffer[0x15] + buffer[0x14];
     next_off = BYTE * buffer[0x19] + buffer[0x18];
     int32_t vertcount = (next_off - curr_off) / 6;
-    uint32_t **verts = (uint32_t **)malloc(vertcount * sizeof(uint32_t *)); // freed here
+    uint32_t **verts = (uint32_t **)try_malloc(vertcount * sizeof(uint32_t *)); // freed here
     for (int32_t i = 0; i < vertcount; i++)
-        verts[i] = (uint32_t *)malloc(2 * sizeof(uint32_t *)); // freed here
+        verts[i] = (uint32_t *)try_malloc(2 * sizeof(uint32_t *)); // freed here
 
     for (i = curr_off; i < curr_off + 6 * vertcount; i += 2)
     {
@@ -258,17 +269,11 @@ void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time
 // rotates xy coord by some angle
 void rotate_rotate(uint32_t *y, uint32_t *x, double rotation)
 {
-    int32_t temp1, temp2;
-    int32_t x_t = *x, y_t = *y;
+    int32_t x_t = *x;
+    int32_t y_t = *y;
 
-    temp1 = x_t;
-    temp2 = y_t;
-
-    temp1 = (int32_t)(x_t * cos(rotation) - y_t * sin(rotation));
-    temp2 = (int32_t)(x_t * sin(rotation) + y_t * cos(rotation));
-
-    *x = temp1;
-    *y = temp2;
+    *x = (int32_t)(x_t * cos(rotation) - y_t * sin(rotation));
+    *y = (int32_t)(x_t * sin(rotation) + y_t * cos(rotation));
 }
 
 //  Copies texture from one texture chunk to another, doesnt include cluts.
@@ -279,13 +284,13 @@ void texture_copy_main()
     scanf(" %[^\n]", fpath);
     path_fix(fpath);
     FILE *file1 = fopen(fpath, "rb");
-    uint8_t *texture1 = (uint8_t *)malloc(65536);
+    uint8_t *texture1 = (uint8_t *)try_malloc(CHUNKSIZE);
 
     printf("Path to destination texture:\n");
     scanf(" %[^\n]", fpath);
     path_fix(fpath);
     FILE *file2 = fopen(fpath, "rb+");
-    uint8_t *texture2 = (uint8_t *)malloc(65536);
+    uint8_t *texture2 = (uint8_t *)try_malloc(CHUNKSIZE);
 
     if (file1 == NULL)
     {
@@ -299,8 +304,8 @@ void texture_copy_main()
         return;
     }
 
-    fread(texture1, 65536, 1, file1);
-    fread(texture2, 65536, 1, file2);
+    fread(texture1, CHUNKSIZE, 1, file1);
+    fread(texture2, CHUNKSIZE, 1, file2);
 
     while (1)
     {
@@ -337,7 +342,7 @@ void texture_copy_main()
     }
 
     rewind(file2);
-    fwrite(texture2, 65536, 1, file2);
+    fwrite(texture2, CHUNKSIZE, 1, file2);
 
     fclose(file1);
     fclose(file2);
@@ -398,7 +403,7 @@ void prop_main(char *path)
     fsize = ftell(file);
     rewind(file);
 
-    arr = (uint8_t *)malloc(fsize); // freed here
+    arr = (uint8_t *)try_malloc(fsize); // freed here
     fread(arr, fsize, sizeof(uint8_t), file);
 
     printf("\n");
@@ -501,7 +506,7 @@ void prop_remove_script()
     int32_t fsize = ftell(file1);
     rewind(file1);
 
-    uint8_t *item = malloc(fsize * sizeof(uint8_t));
+    uint8_t *item = try_malloc(fsize * sizeof(uint8_t));
     fread(item, 1, fsize, file1);
     fclose(file1);
 
@@ -530,7 +535,7 @@ void prop_remove_script()
 PROPERTY *build_get_prop_full(uint8_t *item, int32_t prop_code)
 {
 
-    PROPERTY *prop = malloc(sizeof(PROPERTY));
+    PROPERTY *prop = try_malloc(sizeof(PROPERTY));
     prop->length = 0;
     int32_t property_count = build_prop_count(item);
     uint8_t property_header[8];
@@ -548,7 +553,7 @@ PROPERTY *build_get_prop_full(uint8_t *item, int32_t prop_code)
                 next_offset = *(uint16_t *)(item + 0x12 + (i * 8) + 8) + OFFSET;
             int32_t curr_offset = *(uint16_t *)(item + 0x12 + 8 * i) + OFFSET;
             prop->length = next_offset - curr_offset;
-            prop->data = malloc(prop->length);
+            prop->data = try_malloc(prop->length);
             memcpy(prop->data, item + curr_offset, prop->length);
             break;
         }
@@ -579,7 +584,7 @@ void prop_replace_script()
     int32_t fsize = ftell(file1);
     rewind(file1);
 
-    uint8_t *item = malloc(fsize * sizeof(uint8_t));
+    uint8_t *item = try_malloc(fsize * sizeof(uint8_t));
     fread(item, 1, fsize, file1);
     fclose(file1);
 
@@ -600,7 +605,7 @@ void prop_replace_script()
     int32_t fsize2 = ftell(file2);
     rewind(file2);
 
-    uint8_t *item2 = malloc(fsize2 * sizeof(uint8_t));
+    uint8_t *item2 = try_malloc(fsize2 * sizeof(uint8_t));
     fread(item2, 1, fsize2, file2);
 
     int32_t fsize2_before;
@@ -637,35 +642,49 @@ void prop_replace_script()
 }
 
 // im not gonna comment the resize stuff cuz it looks atrocious
-void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
+void resize_main()
 {
+    time_t rawtime;
+    struct tm *timeinfo;
+    char time_str[9] = "";
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    sprintf(time_str, "%02d_%02d_%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+    for (uint32_t i = 0; i < strlen(time_str); i++)
+        if (!isalnum(time_str[i]))
+            time_str[i] = '_';
+
     FILE *level = NULL;
     char path[MAX] = "";
     double scale[3];
     bool check = true;
     DIR *df = NULL;
 
-    scanf("%d %lf %lf %lf", &status.gamemode, &scale[0], &scale[1], &scale[2]);
-    if (status.gamemode != 2 && status.gamemode != 3)
+    int32_t gamemode;
+
+    scanf("%d %lf %lf %lf", &gamemode, &scale[0], &scale[1], &scale[2]);
+    if (gamemode != 2 && gamemode != 3)
     {
         printf("[error] invalid gamemode, defaulting to 2");
-        status.gamemode = 2;
+        gamemode = 2;
     }
     printf("Input the path to the directory or level whose contents you want to resize:\n");
     scanf(" %[^\n]", path);
     path_fix(path);
 
     if ((df = opendir(path)) != NULL) // opendir returns NULL if couldn't open directory
-        resize_folder(df, path, scale, time, status);
+        resize_folder(df, path, scale, time_str, gamemode);
     else if ((level = fopen(path, "rb")) != NULL)
-        resize_level(level, path, scale, time, status);
+        resize_level(level, path, scale, time_str, gamemode);
     else
     {
         printf("Couldn't open\n");
         check = false;
     }
 
-    fclose(level);
+    if (level)
+        fclose(level);
     closedir(df);
 
     if (check)
@@ -673,11 +692,16 @@ void resize_main(char *time, DEPRECATE_INFO_STRUCT status)
 }
 
 // yep resizes level
-void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status)
+void resize_level(FILE *level, char *filepath, double scale[3], char *time, int32_t game)
 {
     FILE *filenew;
     char *help, lcltemp[MAX];
-    uint8_t buffer[CHUNKSIZE];
+    uint8_t *buffer = (uint8_t *)try_malloc(CHUNKSIZE);
+    if (buffer == NULL)
+    {
+        printf("[ERROR] Memory allocation failed\n");
+        return;
+    }
 
     help = strrchr(filepath, '\\');
     *help = '\0';
@@ -692,10 +716,11 @@ void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPR
     for (int32_t i = 0; i < chunkcount; i++)
     {
         fread(buffer, sizeof(uint8_t), CHUNKSIZE, level);
-        resize_chunk_handler(buffer, status, scale);
+        resize_chunk_handler(buffer, game, scale);
         fwrite(buffer, sizeof(uint8_t), CHUNKSIZE, filenew);
     }
     fclose(filenew);
+    free(buffer);
 }
 
 // yep resizes model
@@ -792,7 +817,7 @@ void resize_zone_camera_distance(int32_t fsize, uint8_t *buffer, double scale[3]
 }
 
 // yep resizes chunk
-void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double scale[3])
+void resize_chunk_handler(uint8_t *chunk, int32_t game, double scale[3])
 {
     int32_t offset_start, offset_end;
     uint32_t checksum;
@@ -813,9 +838,9 @@ void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double s
         int32_t etype = build_entry_type(curr_entry);
 
         if (etype == ENTRY_TYPE_ZONE)
-            resize_zone(offset_end - offset_start, entry, scale, status);
+            resize_zone(offset_end - offset_start, entry, scale, game);
         else if (etype == ENTRY_TYPE_SCENERY)
-            resize_scenery(offset_end - offset_start, entry, scale, status);
+            resize_scenery(offset_end - offset_start, entry, scale, game);
         else if (etype == ENTRY_TYPE_MODEL)
             resize_model(offset_end - offset_start, entry, scale);
         else if (etype == ENTRY_TYPE_ANIM)
@@ -835,7 +860,7 @@ void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double s
 }
 
 // yep resizes folder
-void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_INFO_STRUCT status)
+void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t game)
 {
     struct dirent *de;
     char lcltemp[6] = "", help[MAX] = "";
@@ -855,7 +880,10 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
             strncpy(lcltemp, de->d_name, 5);
             lcltemp[5] = '\0';
             if (buffer != NULL)
+            {
                 free(buffer);
+                buffer = NULL;
+            }
 
             if (!strcmp("scene", lcltemp))
             {
@@ -863,9 +891,9 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (uint8_t *)calloc(sizeof(uint8_t), filesize); // freed here
+                buffer = (uint8_t *)try_calloc(sizeof(uint8_t), filesize); // freed here
                 fread(buffer, sizeof(uint8_t), filesize, file);
-                resize_scenery(filesize, buffer, scale, status);
+                resize_scenery(filesize, buffer, scale, game);
                 sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
                 filenew = fopen(help, "wb");
                 fwrite(buffer, sizeof(uint8_t), filesize, filenew);
@@ -879,9 +907,9 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (uint8_t *)calloc(sizeof(uint8_t), filesize); // freed here
+                buffer = (uint8_t *)try_calloc(sizeof(uint8_t), filesize); // freed here
                 fread(buffer, sizeof(uint8_t), filesize, file);
-                resize_zone(filesize, buffer, scale, status);
+                resize_zone(filesize, buffer, scale, game);
                 sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
                 filenew = fopen(help, "wb");
                 fwrite(buffer, sizeof(uint8_t), filesize, filenew);
@@ -894,12 +922,12 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_I
 }
 
 // yep resizes zone
-void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], int32_t game)
 {
     int32_t i, itemcount;
     uint32_t coord;
     itemcount = build_item_count(buffer);
-    int32_t *itemoffs = (int32_t *)malloc(itemcount * sizeof(int32_t)); // freed here
+    int32_t *itemoffs = (int32_t *)try_malloc(itemcount * sizeof(int32_t)); // freed here
 
     for (int32_t i = 0; i < itemcount; i++)
         itemoffs[i] = 256 * buffer[0x11 + i * 4] + buffer[0x10 + i * 4];
@@ -931,13 +959,13 @@ void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO
 
     for (i = 2; i < itemcount; i++)
         if (i > buffer[itemoffs[0] + 0x188] || (i % 3 == 2))
-            resize_entity(buffer + itemoffs[i], itemoffs[i + 1] - itemoffs[i], scale, status);
+            resize_entity(buffer + itemoffs[i], itemoffs[i + 1] - itemoffs[i], scale);
 
     free(itemoffs);
 }
 
 // yep resizes entity
-void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_entity(uint8_t *item, int32_t itemsize, double scale[3])
 {
     for (int32_t i = 0; i < build_item_count(item); i++)
     {
@@ -959,7 +987,7 @@ void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_I
 }
 
 // yep resizes scenery
-void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status)
+void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], int32_t game)
 {
     int32_t item1off, curr_off, next_off, group;
     int64_t origin;
@@ -1000,7 +1028,7 @@ void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_I
         group = from_s16(buffer + i);
         int16_t vert = group & 0xFFF0;
         int16_t rest = group & 0xF;
-        if (status.gamemode == 2)
+        if (game == 2)
         {
             if (i >= 4 * vertcount + curr_off)
                 vert *= scale[2];
@@ -1009,7 +1037,7 @@ void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_I
             else
                 vert *= scale[0];
         }
-        if (status.gamemode == 2 && vert >= 2048)
+        if (game == 2 && vert >= 2048)
         {
             vert = 4096 - vert;
             if (i < 4 * vertcount + curr_off)
@@ -1084,7 +1112,7 @@ void nsd_gool_table_print(char *fpath)
     int32_t filesize = ftell(file);
     rewind(file);
 
-    uint8_t *buffer = (uint8_t *)malloc(filesize * sizeof(uint8_t *)); // freed here
+    uint8_t *buffer = (uint8_t *)try_malloc(filesize * sizeof(uint8_t *)); // freed here
     fread(buffer, sizeof(uint8_t), filesize, file);
 
     int32_t entry_count = from_u32(buffer + C2_NSD_ENTRY_COUNT_OFFSET);
@@ -1103,7 +1131,7 @@ void nsd_gool_table_print(char *fpath)
 // command for generating spawn
 void generate_spawn()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -1225,7 +1253,7 @@ void scenery_recolor_main2()
 
     fseek(file1, 0, SEEK_END);
     int32_t color_count = ftell(file1) / 4;
-    uint8_t *buffer = (uint8_t *)malloc((color_count * 4) * sizeof(uint8_t *));
+    uint8_t *buffer = (uint8_t *)try_malloc((color_count * 4) * sizeof(uint8_t *));
     rewind(file1);
     fread(buffer, color_count, 4, file1);
 
@@ -1304,7 +1332,7 @@ void c3_ent_resize()
     double scale = 1.f;
     rewind(file1);
 
-    uint8_t *buffer = (uint8_t *)malloc(fsize);
+    uint8_t *buffer = (uint8_t *)try_malloc(fsize);
     fread(buffer, fsize, 1, file1);
 
     uint32_t offset = 0;
@@ -1387,7 +1415,7 @@ void entity_move_scr()
     int32_t fsize = ftell(file1);
     rewind(file1);
 
-    uint8_t *buffer = (uint8_t *)malloc(fsize);
+    uint8_t *buffer = (uint8_t *)try_malloc(fsize);
     fread(buffer, fsize, 1, file1);
 
     uint32_t offset = 0;
@@ -1434,7 +1462,7 @@ void print_model_refs_util(uint8_t *model)
     char *strs[200];
     int32_t str_cnt = 0;
     for (int32_t i = 0; i < 200; i++)
-        strs[i] = (char *)malloc(50);
+        strs[i] = (char *)try_malloc(50);
     char curr_str[50] = "";
 
     int32_t item1off = build_get_nth_item_offset(model, 0);
@@ -1497,7 +1525,7 @@ void print_model_refs_util(uint8_t *model)
 // prints texture references of a model or all models from a nsf
 void print_model_tex_refs_nsf()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
     uint32_t gool_table[C2_GOOL_TABLE_SIZE];
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
@@ -1547,8 +1575,15 @@ void print_model_tex_refs()
 
     fseek(file1, 0, SEEK_END);
     int32_t fsize = ftell(file1);
+    if (fsize <= 0)
+    {
+        printf("[ERROR] File is empty or corrupted.\n\n");
+        fclose(file1);
+        return;
+    }
+
     rewind(file1);
-    uint8_t *model = (uint8_t *)malloc(fsize);
+    uint8_t *model = (uint8_t *)try_malloc(fsize);
     fread(model, fsize, 1, file1);
     fclose(file1);
 
@@ -1560,7 +1595,7 @@ void print_model_tex_refs()
 // prints all entries?
 void print_all_entries_perma()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
     uint32_t gool_table[C2_GOOL_TABLE_SIZE];
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
@@ -1584,7 +1619,7 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, uint32_t *gool_tab
 {
     printf("Checking %s\n", fpath);
 
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, fpath))
@@ -1619,7 +1654,7 @@ void entity_usage_single_nsf(char *fpath, DEPENDENCIES *deps, uint32_t *gool_tab
 
                 if (!found_before)
                 {
-                    deps->array = realloc(deps->array, (deps->count + 1) * sizeof(DEPENDENCY));
+                    deps->array = try_realloc(deps->array, (deps->count + 1) * sizeof(DEPENDENCY));
                     deps->array[deps->count].type = type;
                     deps->array[deps->count].subtype = subt;
                     deps->array[deps->count].dependencies = init_list();
@@ -1710,7 +1745,7 @@ void entity_usage_folder()
 // script for printing a property from all cameras in a level
 void nsf_props_scr()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
     uint32_t gool_table[C2_GOOL_TABLE_SIZE];
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
@@ -1830,7 +1865,7 @@ void generate_slst()
 // modpack warp spawns generation util (for nsd)
 void warp_spawns_generate()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -1938,7 +1973,7 @@ void special_load_lists_util(char *fpath)
     printf("Checking %s\n", fpath);
     bool printed_something = false;
 
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
@@ -1982,7 +2017,7 @@ bool check_fpath_contains(char *fpath, char *name)
 // for printing gool type and category list from nsf
 void nsd_util_util(char *fpath)
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     char *filename = strrchr(fpath, '\\');
@@ -2018,7 +2053,7 @@ void nsd_util_util(char *fpath)
 void fov_stats_util(char *fpath)
 {
     printf("Level: %s\n", fpath);
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
@@ -2045,7 +2080,7 @@ void fov_stats_util(char *fpath)
 // util function for printing checkpoint, mask and dda info
 void checkpoint_stats_util(char *fpath)
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
@@ -2244,7 +2279,7 @@ void nsd_util()
 // command for listing draw info from nsf
 void draw_util()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -2312,7 +2347,7 @@ void draw_util()
 // util for printing file texture pages
 void tpage_util_util(char *fpath)
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     char *filename = strrchr(fpath, '\\');
@@ -2361,7 +2396,7 @@ void tpage_util()
 // for gool_util command, prints gool entries of a file plus their checksum
 void gool_util_util(char *fpath)
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))

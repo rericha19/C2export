@@ -1,137 +1,6 @@
 #include "macros.h"
 // reading input data (nsf/folder), parsing and storing it
 
-/** \brief
- *  Reads the nsf, puts it straight into chunks, does not collect references or anything.
- *  Collects relatives. Likely slightly deprecate.
- *
- * \param elist ENTRY*                  list of entries
- * \param chunk_border_base int32_t         chunk count of the base nsf
- * \param chunks uint8_t**        chunk array, base level gets put straight into them
- * \param chunk_border_texture int32_t*     index of the last texture chunk
- * \param entry_count int32_t*              entry count
- * \param nsf FILE*                     nsf file
- * \param gool_table uint32_t*      gool table gets created, contains GOOL entries associated with the type/index they are on
- * \return void
- */
-void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, uint8_t **chunks, int32_t *chunk_border_texture, int32_t *entry_count, FILE *nsf, uint32_t *gool_table)
-{
-    int32_t offset;
-    uint8_t chunk[CHUNKSIZE];
-
-    for (int32_t i = 0; i < chunk_border_base; i++)
-    {
-        fread(chunk, CHUNKSIZE, sizeof(uint8_t), nsf);
-        chunks[*chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
-        memcpy(chunks[*chunk_border_texture], chunk, CHUNKSIZE);
-        (*chunk_border_texture)++;
-        if (chunk[2] != 1)
-            for (int32_t j = 0; j < chunk[8]; j++)
-            {
-                offset = *(int32_t *)(chunk + 0x10 + j * 4);
-                elist[*entry_count].eid = from_u32(chunk + offset + 4);
-                elist[*entry_count].chunk = i;
-                elist[*entry_count].esize = -1;
-                if (*(int32_t *)(chunk + offset + 8) == ENTRY_TYPE_GOOL && build_item_count(chunk + offset) == 6)
-                {
-                    int32_t item1_offset = *(int32_t *)(chunk + offset + 0x10);
-                    gool_table[*(int32_t *)(chunk + offset + item1_offset)] = elist[*entry_count].eid;
-                }
-                (*entry_count)++;
-            }
-    }
-}
-
-/** \brief
- *  For each valid file it adds it to the nsf(texture) or to the entry list.
- *  Collects relatives.
- *
- * \param df DIR*                       directory/folder
- * \param dirpath char *                 path to the directory/folder
- * \param chunks uint8_t**        array of 64kB chunks
- * \param elist ENTRY*                  entry list
- * \param chunk_border_texture int32_t*     max index of a texture chunk
- * \param entry_count int32_t*              entry count
- * \param spawns SPAWNS*                spawns, spawns get updated here
- * \param gool_table uint32_t*      table that contains GOOL entries on indexes that correspond to their types
- * \return void
- */
-void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, int32_t *chunk_border_texture, int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table)
-{
-    struct dirent *de;
-    char buff[500];
-    FILE *file = NULL;
-    int32_t fsize;
-    uint8_t entry[CHUNKSIZE];
-
-    while ((de = readdir(df)) != NULL)
-        if ((de->d_name)[0] != '.')
-        {
-            sprintf(buff, "%s\\%s", dirpath, de->d_name);
-            if (file != NULL)
-            {
-                fclose(file);
-                file = NULL;
-            }
-            if ((file = fopen(buff, "rb")) == NULL)
-                continue;
-            fseek(file, 0, SEEK_END);
-            fsize = ftell(file);
-            rewind(file);
-            fread(entry, fsize, sizeof(uint8_t), file);
-            if (fsize == CHUNKSIZE && from_u16(entry + 0x2) == CHUNK_TYPE_TEXTURE)
-            {
-                if (build_get_base_chunk_border(from_u32(entry + 4), chunks, *chunk_border_texture) > 0)
-                    continue;
-                chunks[*chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
-                memcpy(chunks[*chunk_border_texture], entry, CHUNKSIZE);
-                elist[*entry_count].eid = from_u32(entry + 4);
-                elist[*entry_count].chunk = *chunk_border_texture;
-                elist[*entry_count].data = NULL;
-                elist[*entry_count].visited = NULL;
-                elist[*entry_count].related = NULL;
-                elist[*entry_count].distances = NULL;
-                (*entry_count)++;
-                (*chunk_border_texture)++;
-                continue;
-            }
-
-            if (from_u32(entry) != MAGIC_ENTRY)
-                continue;
-            if (build_get_index(from_u32(entry + 4), elist, *entry_count) >= 0)
-                continue;
-
-            elist[*entry_count].eid = from_u32(entry + 4);
-            elist[*entry_count].chunk = -1;
-            elist[*entry_count].esize = fsize;
-
-            if (entry[8] == ENTRY_TYPE_ZONE)
-                build_check_item_count(entry, elist[*entry_count].eid);
-            if (entry[8] == ENTRY_TYPE_ZONE)
-                elist[*entry_count].related = build_get_zone_relatives(entry, spawns);
-            if (entry[8] == ENTRY_TYPE_GOOL && build_item_count(entry) == 6)
-                elist[*entry_count].related = build_get_gool_relatives(entry, fsize);
-
-            elist[*entry_count].data = (uint8_t *)malloc(fsize * sizeof(uint8_t)); // freed by build_main at its end
-            memcpy(elist[*entry_count].data, entry, fsize);
-            if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && *(elist[*entry_count].data + 8) > 3)
-            {
-                int32_t item1_offset = *(int32_t *)(elist[*entry_count].data + 0x10);
-                int32_t gool_type = *(int32_t *)(elist[*entry_count].data + item1_offset);
-                if (/*gool_type >= C2_GOOL_TABLE_SIZE || */ gool_type < 0)
-                {
-                    printf("[warning] GOOL entry %s has invalid type specified in the first item (%2d)!\n", eid_conv2(elist[*entry_count].eid), gool_type);
-                    continue;
-                }
-                gool_table[gool_type] = elist[*entry_count].eid;
-            }
-            (*entry_count)++;
-            qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
-        }
-
-    fclose(file);
-}
-
 // initialise dependency struct
 DEPENDENCIES build_init_dep()
 {
@@ -252,9 +121,9 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
             i = subcount;
             subcount++;
             if (subcount == 1)
-                subinfo.array = (DEPENDENCY *)malloc(subcount * sizeof(DEPENDENCY)); // freed by caller
+                subinfo.array = (DEPENDENCY *)try_malloc(subcount * sizeof(DEPENDENCY)); // freed by caller
             else
-                subinfo.array = (DEPENDENCY *)realloc(subinfo.array, subcount * sizeof(DEPENDENCY));
+                subinfo.array = (DEPENDENCY *)try_realloc(subinfo.array, subcount * sizeof(DEPENDENCY));
 
             subinfo.array[i].type = type;
             subinfo.array[i].subtype = subtype;
@@ -327,9 +196,9 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                 i = coll_count;
                 coll_count++;
                 if (coll_count == 1)
-                    coll.array = (DEPENDENCY *)malloc(coll_count * sizeof(DEPENDENCY)); // freed by caller
+                    coll.array = (DEPENDENCY *)try_malloc(coll_count * sizeof(DEPENDENCY)); // freed by caller
                 else
-                    coll.array = (DEPENDENCY *)realloc(coll.array, coll_count * sizeof(DEPENDENCY));
+                    coll.array = (DEPENDENCY *)try_realloc(coll.array, coll_count * sizeof(DEPENDENCY));
                 coll.array[i].type = code;
                 coll.array[i].subtype = -1;
                 coll.array[i].dependencies = init_list();
@@ -399,9 +268,9 @@ int32_t build_read_entry_config(LIST *permaloaded, DEPENDENCIES *subtype_info, D
                 i = mus_d_count;
                 mus_d_count++;
                 if (mus_d_count == 1)
-                    mus_d.array = (DEPENDENCY *)malloc(mus_d_count * sizeof(DEPENDENCY)); // freed by caller
+                    mus_d.array = (DEPENDENCY *)try_malloc(mus_d_count * sizeof(DEPENDENCY)); // freed by caller
                 else
-                    mus_d.array = (DEPENDENCY *)realloc(mus_d.array, mus_d_count * sizeof(DEPENDENCY));
+                    mus_d.array = (DEPENDENCY *)try_realloc(mus_d.array, mus_d_count * sizeof(DEPENDENCY));
 
                 mus_d.array[i].type = eid_to_int(eid_buf);
                 mus_d.array[i].subtype = -1;
@@ -562,7 +431,7 @@ uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
     uint32_t music_ref = build_get_zone_track(entry);
     if (music_ref != EID_NONE)
         relcount++;
-    relatives = (uint32_t *)malloc(relcount * sizeof(uint32_t)); // freed by build_main
+    relatives = (uint32_t *)try_malloc(relcount * sizeof(uint32_t)); // freed by build_main
 
     relatives[entry_count++] = relcount - 1;
 
@@ -590,7 +459,7 @@ uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
         {
             spawns->spawn_count += 1;
             int32_t cnt = spawns->spawn_count;
-            spawns->spawns = (SPAWN *)realloc(spawns->spawns, cnt * sizeof(SPAWN));
+            spawns->spawns = (SPAWN *)try_realloc(spawns->spawns, cnt * sizeof(SPAWN));
             spawns->spawns[cnt - 1].x = coords_ptr[0] + *(int32_t *)(entry + item2off);
             spawns->spawns[cnt - 1].y = coords_ptr[1] + *(int32_t *)(entry + item2off + 4);
             spawns->spawns[cnt - 1].z = coords_ptr[2] + *(int32_t *)(entry + item2off + 8);
@@ -598,82 +467,6 @@ uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns)
             free(coords_ptr);
         }
     }
-    return relatives;
-}
-
-/** \brief
- *  Gets gool relatives excluding models.
- *
- * \param entry uint8_t*          entry data
- * \param entrysize int32_t                 entry size
- * \return uint32_t*                array of relatives relatives[count + 1], relatives[0] == count
- */
-uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize)
-{
-    int32_t curr_off, type = 0, help;
-    int32_t counter = 0;
-    char eid_buf[6];
-    int32_t curr_eid;
-    uint32_t local[256];
-    uint32_t *relatives = NULL;
-
-    curr_off = build_get_nth_item_offset(entry, 5);
-
-    while (curr_off < entrysize)
-        switch (entry[curr_off])
-        {
-        case 1:
-            if (type == 0)
-            {
-                help = from_u32(entry + curr_off + 0xC) & 0xFF00FFFF;
-                if (help <= 05 && help > 0)
-                    type = 2;
-                else
-                    type = 3;
-            }
-
-            if (type == 2)
-            {
-                curr_eid = from_u32(entry + curr_off + 4);
-                eid_conv(curr_eid, eid_buf);
-                if (eid_buf[4] == 'G' || eid_buf[4] == 'V')
-                    local[counter++] = curr_eid;
-                curr_off += 0xC;
-            }
-            else
-            {
-                for (int32_t i = 0; i < 4; i++)
-                {
-                    curr_eid = from_u32(entry + curr_off + 4 + 4 * i);
-                    eid_conv(curr_eid, eid_buf);
-                    if (eid_buf[4] == 'G' || eid_buf[4] == 'V')
-                        local[counter++] = curr_eid;
-                }
-                curr_off += 0x14;
-            }
-            break;
-        case 2:
-            curr_off += 0x8 + 0x10 * entry[curr_off + 2];
-            break;
-        case 3:
-            curr_off += 0x8 + 0x14 * entry[curr_off + 2];
-            break;
-        case 4:
-            curr_off = entrysize;
-            break;
-        case 5:
-            curr_off += 0xC + 0x18 * entry[curr_off + 2] * entry[curr_off + 8];
-            break;
-        }
-
-    if (!counter)
-        return NULL;
-
-    relatives = (uint32_t *)malloc((counter + 1) * sizeof(uint32_t)); // freed by build_main
-    relatives[0] = counter;
-    for (int32_t i = 0; i < counter; i++)
-        relatives[i + 1] = local[i];
-
     return relatives;
 }
 
@@ -702,7 +495,7 @@ int32_t *build_seek_spawn(uint8_t *item)
     if (coords_offset != -1)
         if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4))
         {
-            int32_t *coords = (int32_t *)malloc(3 * sizeof(int32_t)); // freed by caller
+            int32_t *coords = (int32_t *)try_malloc(3 * sizeof(int32_t)); // freed by caller
             for (int32_t i = 0; i < 3; i++)
                 coords[i] = (*(int16_t *)(item + coords_offset + 2 * i)) * 4;
             return coords;
@@ -737,7 +530,7 @@ void build_get_model_references(ENTRY *elist, int32_t entry_count)
             {
                 int32_t relative_count;
                 relative_count = elist[i].related[0];
-                elist[i].related = (uint32_t *)realloc(elist[i].related, (relative_count + new_counter + 1) * sizeof(uint32_t));
+                elist[i].related = (uint32_t *)try_realloc(elist[i].related, (relative_count + new_counter + 1) * sizeof(uint32_t));
                 for (int32_t j = 0; j < new_counter; j++)
                     elist[i].related[j + relative_count + 1] = new_relatives[j];
                 elist[i].related[0] += new_counter;
@@ -766,8 +559,8 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
         {
             int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
-            elist[i].distances = (uint32_t *)malloc(cam_count * sizeof(uint32_t)); // freed by build_main
-            elist[i].visited = (bool *)malloc(cam_count * sizeof(bool));           // freed by build_main
+            elist[i].distances = (uint32_t *)try_malloc(cam_count * sizeof(uint32_t)); // freed by build_main
+            elist[i].visited = (bool *)try_malloc(cam_count * sizeof(bool));           // freed by build_main
 
             for (int32_t j = 0; j < cam_count; j++)
             {
@@ -799,7 +592,7 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
         {
             CAMERA_LINK link = int_to_link(links.eids[i]);
             int32_t neighbour_count = build_get_neighbour_count(elist[top_zone].data);
-            uint32_t *neighbours = (uint32_t *)malloc(neighbour_count * sizeof(uint32_t)); // freed here
+            uint32_t *neighbours = (uint32_t *)try_malloc(neighbour_count * sizeof(uint32_t)); // freed here
             int32_t item1off = from_u32(elist[top_zone].data + 0x10);
             for (int32_t j = 0; j < neighbour_count; j++)
                 neighbours[j] = from_u32(elist[top_zone].data + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
@@ -823,14 +616,6 @@ void build_get_distance_graph(ENTRY *elist, int32_t entry_count, SPAWNS spawns)
             free(neighbours);
         }
     }
-
-    /*for (int32_t i = 0; i < entry_count; i++)
-        if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
-        {
-            int32_t cam_count = build_get_cam_count(elist[i].data)/3;
-            for (int32_t j = 0; j < cam_count; j++)
-                printf("Zone %s campath %d has distance %d\n", eid_conv(elist[i].eid, temp), j, elist[i].distances[j]);
-        }*/
 }
 
 /** \brief
@@ -870,63 +655,21 @@ void build_remove_invalid_references(ENTRY *elist, int32_t entry_count, int32_t 
 
         if (counter == 0)
         {
-            elist[i].related = (uint32_t *)realloc(elist[i].related, 0);
+            free(elist[i].related);
+            elist[i].related = NULL;
             continue;
         }
 
-        elist[i].related = (uint32_t *)realloc(elist[i].related, (counter + 1) * sizeof(uint32_t));
+        elist[i].related = (uint32_t *)try_realloc(elist[i].related, (counter + 1) * sizeof(uint32_t));
         elist[i].related[0] = counter;
         for (int32_t j = 0; j < counter; j++)
             elist[i].related[j + 1] = new_relatives[j];
     }
 }
 
-// parsing input info for rebuilding using files from folder (not really supported)
-bool build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                                ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns)
-{
-    char dirpath[MAX], nsfpath[MAX], lcltemp[MAX + 20];
-    printf("Input the path to the base level (.nsf)[CAN BE A BLANK FILE]:\n");
-    scanf(" %[^\n]", nsfpath);
-    path_fix(nsfpath);
-
-    printf("\nInput the path to the folder whose contents you want to import:\n");
-    scanf(" %[^\n]", dirpath);
-    path_fix(dirpath);
-
-    FILE *nsf = NULL;
-    if ((nsf = fopen(nsfpath, "rb")) == NULL)
-    {
-        printf("[ERROR] Could not open selected NSF\n\n");
-        return true;
-    }
-
-    DIR *df = NULL;
-    if ((df = opendir(dirpath)) == NULL)
-    {
-        printf("[ERROR] Could not open selected directory\n\n");
-        fclose(nsf);
-        return true;
-    }
-
-    *level_ID = build_ask_ID();
-
-    *(strrchr(nsfpath, '\\') + 1) = '\0';
-    sprintf(lcltemp, "%s\\S00000%02X.NSF", nsfpath, *level_ID);
-    *nsfnew = fopen(lcltemp, "wb");
-    *(strchr(lcltemp, '\0') - 1) = 'D';
-    *nsd = fopen(lcltemp, "wb");
-
-    // chunk_border_base = build_get_chunk_count_base(nsf);
-    // build_read_nsf(elist, chunk_border_base, chunks, chunk_border_texture, &entry_count, nsf, gool_table);    // rn base level is not considered
-    build_read_folder(df, dirpath, chunks, elist, chunk_border_texture, entry_count, spawns, gool_table);
-    fclose(nsf);
-    return false;
-}
-
 // parsing input info for rebuilding from a nsf file
 int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath)
+                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, bool stats_only, char *fpath)
 {
     FILE *nsf = NULL;
     char nsfpath[MAX], lcltemp[MAX + 20];
@@ -979,7 +722,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
     int32_t nsf_chunk_count = build_get_chunk_count_base(nsf);
     int32_t lcl_chunk_border_texture = 0;
 
-    uint8_t buffer[CHUNKSIZE];
+    uint8_t *buffer = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t));
     for (int32_t i = 0; i < nsf_chunk_count; i++)
     {
         fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf);
@@ -992,7 +735,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
         {
             if (chunks != NULL)
             {
-                chunks[lcl_chunk_border_texture] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+                chunks[lcl_chunk_border_texture] = (uint8_t *)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
                 memcpy(chunks[lcl_chunk_border_texture], buffer, CHUNKSIZE);
             }
             elist[*entry_count].eid = from_u32(buffer + 4);
@@ -1018,7 +761,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                 elist[*entry_count].related = NULL;
                 elist[*entry_count].visited = NULL;
                 elist[*entry_count].distances = NULL;
-                elist[*entry_count].data = (uint8_t *)malloc(entry_size); // freed by build_main
+                elist[*entry_count].data = (uint8_t *)try_malloc(entry_size); // freed by build_main
                 memcpy(elist[*entry_count].data, buffer + start_offset, entry_size);
 
                 if (!stats_only || build_entry_type(elist[*entry_count]) == ENTRY_TYPE_SOUND)
@@ -1032,9 +775,6 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                     build_check_item_count(elist[*entry_count].data, elist[*entry_count].eid);
                 if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_ZONE)
                     elist[*entry_count].related = build_get_zone_relatives(elist[*entry_count].data, spawns);
-                /*if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && build_item_count(elist[*entry_count].data) == 6)
-                    elist[*entry_count].related = build_get_gool_relatives(elist[*entry_count].data, entry_size);*/
-                // causes issues sometimes
 
                 if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_GOOL && build_item_count(elist[*entry_count].data) == 6)
                 {
@@ -1053,6 +793,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                 qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
             }
     }
+    free(buffer);
     fclose(nsf);
     if (chunk_border_texture != NULL)
         *chunk_border_texture = lcl_chunk_border_texture;

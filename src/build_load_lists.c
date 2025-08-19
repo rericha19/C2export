@@ -70,7 +70,7 @@ void build_remake_load_lists(ENTRY *elist, int32_t entry_count, uint32_t *gool_t
                 int32_t cam_length = build_get_path_length(elist[i].data + cam_offset);
 
                 // initialise full non-delta load list used to represent the load list during its building
-                LIST *full_load = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
+                LIST *full_load = (LIST *)try_malloc(cam_length * sizeof(LIST)); // freed here
                 for (int32_t k = 0; k < cam_length; k++)
                     full_load[k] = init_list();
 
@@ -160,8 +160,8 @@ void build_remake_load_lists(ENTRY *elist, int32_t entry_count, uint32_t *gool_t
                     printf("Texture chunk was checked\n");
 
                 // creates and initialises delta representation of the load list
-                LIST *listA = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
-                LIST *listB = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
+                LIST *listA = (LIST *)try_malloc(cam_length * sizeof(LIST)); // freed here
+                LIST *listB = (LIST *)try_malloc(cam_length * sizeof(LIST)); // freed here
                 for (int32_t k = 0; k < cam_length; k++)
                 {
                     listA[k] = init_list();
@@ -377,7 +377,7 @@ PROPERTY build_make_load_list_prop(LIST *list_array, int32_t cam_length, int32_t
     *(int16_t *)(prop.header + 6) = delta_counter;
 
     prop.length = total_length;
-    prop.data = (uint8_t *)malloc(total_length * sizeof(uint8_t)); // freed by caller
+    prop.data = (uint8_t *)try_malloc(total_length * sizeof(uint8_t)); // freed by caller
 
     int32_t indexer = 0;
     int32_t offset = 4 * delta_counter;
@@ -913,7 +913,8 @@ void build_find_unspecified_entities(ENTRY *elist, int32_t entry_count, DEPENDEN
  */
 LIST *build_get_complete_draw_list(ENTRY *elist, int32_t zone_index, int32_t cam_index, int32_t cam_length)
 {
-    LIST *draw_list = (LIST *)malloc(cam_length * sizeof(LIST));
+    LIST *draw_list = (LIST *)try_malloc(cam_length * sizeof(LIST));
+
     LIST list = init_list();
     for (int32_t i = 0; i < cam_length; i++)
         draw_list[i] = init_list();
@@ -950,7 +951,7 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int32_t zone_index, int32_t cam
             i--;
     }
 
-    delete_load_list(draw_list2);
+    delete_load_list(&draw_list2);
     return draw_list;
 }
 
@@ -1057,7 +1058,7 @@ LIST build_get_links(uint8_t *entry, int32_t cam_index)
     int32_t *links = NULL;
     int32_t cam_offset = build_get_nth_item_offset(entry, cam_index);
 
-    for (int32_t k = 0; (unsigned)k < build_prop_count(entry + cam_offset); k++)
+    for (int32_t k = 0; k < build_prop_count(entry + cam_offset); k++)
     {
         int32_t code = from_u16(entry + cam_offset + 0x10 + 8 * k);
         int32_t offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
@@ -1068,14 +1069,14 @@ LIST build_get_links(uint8_t *entry, int32_t cam_index)
             if (prop_len == 1)
             {
                 link_count = from_u16(entry + offset);
-                links = (int32_t *)malloc(link_count * sizeof(int32_t));
+                links = (int32_t *)try_malloc(link_count * sizeof(int32_t));
                 for (int32_t l = 0; l < link_count; l++)
                     links[l] = from_u32(entry + offset + 4 + 4 * l);
             }
             else
             {
                 link_count = max(1, from_u16(entry + offset)) + max(1, from_u16(entry + offset + 2));
-                links = (int32_t *)malloc(link_count * sizeof(int32_t));
+                links = (int32_t *)try_malloc(link_count * sizeof(int32_t));
                 for (int32_t l = 0; l < link_count; l++)
                     links[l] = from_u32(entry + offset + 0x8 + 4 * l);
             }
@@ -1096,14 +1097,15 @@ void build_replace_item(ENTRY *zone, int32_t item_index, uint8_t *new_item, int3
     int32_t item_count = build_item_count(zone->data);
     int32_t first_item_offset = 0x14 + 4 * item_count;
 
-    int32_t *item_lengths = (int32_t *)malloc(item_count * sizeof(int32_t));
-    uint8_t **items = (uint8_t **)malloc(item_count * sizeof(uint8_t **));
+    int32_t *item_lengths = (int32_t *)try_malloc(item_count * sizeof(int32_t));
+    uint8_t **items = (uint8_t **)try_malloc(item_count * sizeof(uint8_t **));
+
     for (int32_t i = 0; i < item_count; i++)
         item_lengths[i] = build_get_nth_item_offset(zone->data, i + 1) - build_get_nth_item_offset(zone->data, i);
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
-        items[i] = (uint8_t *)malloc(item_lengths[i]);
+        items[i] = (uint8_t *)try_malloc(item_lengths[i]);
         memcpy(items[i], zone->data + offset, item_lengths[i]);
     }
 
@@ -1114,7 +1116,7 @@ void build_replace_item(ENTRY *zone, int32_t item_index, uint8_t *new_item, int3
     for (int32_t i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    uint8_t *new_data = (uint8_t *)malloc(new_size);
+    uint8_t *new_data = (uint8_t *)try_malloc(new_size);
     *(int32_t *)(new_data) = MAGIC_ENTRY;
     *(int32_t *)(new_data + 0x4) = zone->eid;
     *(int32_t *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
@@ -1152,14 +1154,14 @@ void build_entity_alter(ENTRY *zone, int32_t item_index, uint8_t *(func_arg)(uin
     int32_t item_count = build_item_count(zone->data);
     int32_t first_item_offset = 0x14 + 4 * item_count;
 
-    int32_t *item_lengths = (int32_t *)malloc(item_count * sizeof(int32_t));
-    uint8_t **items = (uint8_t **)malloc(item_count * sizeof(uint8_t **));
+    int32_t *item_lengths = (int32_t *)try_malloc(item_count * sizeof(int32_t));
+    uint8_t **items = (uint8_t **)try_malloc(item_count * sizeof(uint8_t **));
     for (int32_t i = 0; i < item_count; i++)
         item_lengths[i] = build_get_nth_item_offset(zone->data, i + 1) - build_get_nth_item_offset(zone->data, i);
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
-        items[i] = (uint8_t *)malloc(item_lengths[i]);
+        items[i] = (uint8_t *)try_malloc(item_lengths[i]);
         memcpy(items[i], zone->data + offset, item_lengths[i]);
     }
 
@@ -1169,7 +1171,7 @@ void build_entity_alter(ENTRY *zone, int32_t item_index, uint8_t *(func_arg)(uin
     for (int32_t i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    uint8_t *new_data = (uint8_t *)malloc(new_size);
+    uint8_t *new_data = (uint8_t *)try_malloc(new_size);
     *(int32_t *)(new_data) = MAGIC_ENTRY;
     *(int32_t *)(new_data + 0x4) = zone->eid;
     *(int32_t *)(new_data + 0x8) = ENTRY_TYPE_ZONE;
@@ -1204,13 +1206,13 @@ uint8_t *build_add_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
 {
     int32_t offset, property_count = build_prop_count(item);
 
-    int32_t *property_sizes = (int32_t *)malloc((property_count + 1) * sizeof(int32_t));
-    uint8_t **properties = (uint8_t **)malloc((property_count + 1) * sizeof(uint8_t *));
-    uint8_t **property_headers = (uint8_t **)malloc((property_count + 1) * sizeof(uint8_t *));
+    int32_t *property_sizes = (int32_t *)try_malloc((property_count + 1) * sizeof(int32_t));
+    uint8_t **properties = (uint8_t **)try_malloc((property_count + 1) * sizeof(uint8_t *));
+    uint8_t **property_headers = (uint8_t **)try_malloc((property_count + 1) * sizeof(uint8_t *));
 
     for (int32_t i = 0; i < property_count + 1; i++)
     {
-        property_headers[i] = (uint8_t *)malloc(8 * sizeof(uint8_t));
+        property_headers[i] = (uint8_t *)try_malloc(8 * sizeof(uint8_t));
         for (int32_t j = 0; j < 8; j++)
             property_headers[i][j] = 0;
     }
@@ -1262,7 +1264,7 @@ uint8_t *build_add_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
         if (i == insertion_index)
             continue;
 
-        properties[i] = (uint8_t *)malloc(property_sizes[i]);
+        properties[i] = (uint8_t *)try_malloc(property_sizes[i]);
         memcpy(properties[i], item + offset, property_sizes[i]);
         offset += property_sizes[i];
     }
@@ -1277,7 +1279,7 @@ uint8_t *build_add_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
     if (insertion_index == property_count)
         new_size += OFFSET;
 
-    uint8_t *new_item = (uint8_t *)malloc(new_size);
+    uint8_t *new_item = (uint8_t *)try_malloc(new_size);
     *(int32_t *)(new_item) = new_size - OFFSET;
 
     *(int32_t *)(new_item + 0x4) = 0;
@@ -1319,14 +1321,14 @@ uint8_t *build_rem_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
 {
     int32_t property_count = build_prop_count(item);
 
-    int32_t *property_sizes = (int32_t *)malloc(property_count * sizeof(int32_t));
-    uint8_t **properties = (uint8_t **)malloc(property_count * sizeof(uint8_t *));
-    uint8_t **property_headers = (uint8_t **)malloc(property_count * sizeof(uint8_t *));
+    int32_t *property_sizes = (int32_t *)try_malloc(property_count * sizeof(int32_t));
+    uint8_t **properties = (uint8_t **)try_malloc(property_count * sizeof(uint8_t *));
+    uint8_t **property_headers = (uint8_t **)try_malloc(property_count * sizeof(uint8_t *));
 
     bool found = false;
     for (int32_t i = 0; i < property_count; i++)
     {
-        property_headers[i] = (uint8_t *)malloc(8 * sizeof(uint8_t *));
+        property_headers[i] = (uint8_t *)try_malloc(8 * sizeof(uint8_t *));
         memcpy(property_headers[i], item + 0x10 + 8 * i, 8);
         if (from_u16(property_headers[i]) == code)
             found = true;
@@ -1342,7 +1344,7 @@ uint8_t *build_rem_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
     int32_t offset = 0x10 + 8 * property_count;
     for (int32_t i = 0; i < property_count; offset += property_sizes[i], i++)
     {
-        properties[i] = (uint8_t *)malloc(property_sizes[i]);
+        properties[i] = (uint8_t *)try_malloc(property_sizes[i]);
         memcpy(properties[i], item + offset, property_sizes[i]);
     }
 
@@ -1354,7 +1356,7 @@ uint8_t *build_rem_property(uint32_t code, uint8_t *item, int32_t *item_size, PR
         new_size += property_sizes[i];
     }
 
-    uint8_t *new_item = (uint8_t *)malloc(new_size);
+    uint8_t *new_item = (uint8_t *)try_malloc(new_size);
     *(int32_t *)(new_item) = new_size;
     *(int32_t *)(new_item + 4) = 0;
     *(int32_t *)(new_item + 8) = 0;
@@ -1400,8 +1402,9 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
     int32_t i, offset;
     int32_t first_item_offset = 0x14 + 4 * item_count;
 
-    int32_t *item_lengths = (int32_t *)malloc(item_count * sizeof(int32_t));
-    uint8_t **items = (uint8_t **)malloc(item_count * sizeof(uint8_t **));
+    int32_t *item_lengths = (int32_t *)try_malloc(item_count * sizeof(int32_t));
+    uint8_t **items = (uint8_t **)try_malloc(item_count * sizeof(uint8_t **));
+
     for (int32_t i = 0; i < item_count; i++)
     {
         int32_t next_start = build_get_nth_item_offset(entry->data, i + 1);
@@ -1413,7 +1416,7 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
 
     for (offset = first_item_offset, i = 0; i < item_count; offset += item_lengths[i], i++)
     {
-        items[i] = (uint8_t *)malloc(item_lengths[i]);
+        items[i] = (uint8_t *)try_malloc(item_lengths[i]);
         memcpy(items[i], entry->data + offset, item_lengths[i]);
     }
 
@@ -1424,7 +1427,7 @@ void build_remove_nth_item(ENTRY *entry, int32_t n)
     for (int32_t i = 0; i < item_count; i++)
         new_size += item_lengths[i];
 
-    uint8_t *new_data = (uint8_t *)malloc(new_size);
+    uint8_t *new_data = (uint8_t *)try_malloc(new_size);
     *(int32_t *)(new_data) = MAGIC_ENTRY;
     *(int32_t *)(new_data + 0x4) = entry->eid;
     *(int32_t *)(new_data + 0x8) = *(int32_t *)(entry->data + 8);
@@ -1518,7 +1521,7 @@ int16_t *build_get_path(ENTRY *elist, int32_t zone_index, int32_t item_index, in
         return NULL;
     }
 
-    int16_t *coords = (int16_t *)malloc(3 * sizeof(int16_t) * *path_len);
+    int16_t *coords = (int16_t *)try_malloc(3 * sizeof(int16_t) * *path_len);
     memcpy(coords, item + offset + 4, 6 * (*path_len));
     return coords;
 }

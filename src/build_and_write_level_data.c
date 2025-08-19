@@ -8,10 +8,10 @@
  *
  * \param nsfnew FILE*                  output file
  * \param elist ENTRY*                  entry list
- * \param entry_count int32_t               entry count
- * \param chunk_border_sounds int32_t       index of the first normal chunk, only chunks afterwards get built (normal chunks)
- * \param chunk_count int32_t               chunk count
- * \param chunks uint8_t**        array with built chunks
+ * \param entry_count int32_t           entry count
+ * \param chunk_border_sounds int32_t   index of the first normal chunk, only chunks afterwards get built (normal chunks)
+ * \param chunk_count int32_t           chunk count
+ * \param chunks uint8_t**              array with built chunks
  * \return void
  */
 void build_write_nsf(FILE *nsfnew, ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t **chunks, FILE *nsfnew2)
@@ -45,13 +45,13 @@ void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border
             if (elist[j].chunk == i)
                 local_entry_count++;
 
-        chunks[i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+        chunks[i] = (uint8_t *)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
         // header stuff
         *(uint16_t *)chunks[i] = MAGIC_CHUNK;
         *(uint16_t *)(chunks[i] + 4) = chunk_no;
         *(uint16_t *)(chunks[i] + 8) = local_entry_count;
 
-        uint32_t *offsets = (uint32_t *)malloc((local_entry_count + 2) * sizeof(uint32_t)); // idr why +2 but ok, freed here
+        uint32_t *offsets = (uint32_t *)try_malloc((local_entry_count + 2) * sizeof(uint32_t));
         // calculates offsets
         int32_t indexer = 0;
         offsets[0] = 0x10 + (local_entry_count + 1) * 4;
@@ -123,7 +123,7 @@ void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, i
     int32_t real_entry_count = 0;
 
     // arbitrarily doing 64kB because convenience
-    uint8_t *nsddata = (uint8_t *)calloc(CHUNKSIZE, 1); // freed here
+    uint8_t *nsddata = (uint8_t *)try_calloc(CHUNKSIZE, 1); // freed here
 
     // count actual entries (some entries might not have been assigned a chunk for a reason, those are left out)
     for (int32_t i = 0; i < entry_count; i++)
@@ -193,7 +193,7 @@ void build_sort_load_lists(ENTRY *elist, int32_t entry_count)
         for (int32_t j = 0; j < cam_count; j++)
         {
             int32_t cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
-            for (int32_t k = 0; (unsigned)k < build_prop_count(elist[i].data + cam_offset); k++)
+            for (int32_t k = 0; k < build_prop_count(elist[i].data + cam_offset); k++)
             {
                 int32_t code = from_u16(elist[i].data + cam_offset + 0x10 + 8 * k);
                 int32_t offset = from_u16(elist[i].data + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
@@ -204,7 +204,7 @@ void build_sort_load_lists(ENTRY *elist, int32_t entry_count)
                     for (int32_t l = 0; l < list_count; l++)
                     {
                         int32_t item_count = from_u16(elist[i].data + offset + l * 2);
-                        LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *)malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL)); // freed here
+                        LOAD_LIST_ITEM_UTIL *item_list = (LOAD_LIST_ITEM_UTIL *)try_malloc(item_count * sizeof(LOAD_LIST_ITEM_UTIL)); // freed here
                         for (int32_t m = 0; m < item_count; m++)
                         {
                             item_list[m].eid = from_u32(elist[i].data + sub_list_offset + 4 * m);

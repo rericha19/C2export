@@ -60,7 +60,7 @@
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
-#define QUEUE_ITEM_COUNT 2500
+#define QUEUE_ITEM_COUNT 1000
 #define ELIST_DEFAULT_SIZE 2500
 #define CHUNK_LIST_DEFAULT_SIZE 2500
 #define PENALTY_MULT_CONSTANT 1000000
@@ -92,7 +92,6 @@
 #define HELP2 222103648u
 
 #define WIPE 2089682330u
-#define BUILD 215559733u
 #define REBUILD 1370829996u
 #define EXPORT 2939723207u
 #define PROP 2089440550u
@@ -139,7 +138,6 @@
 
 enum
 {
-    BuildType_Build = 1,
     BuildType_Rebuild,
     BuildType_Rebuild_DL,
 };
@@ -209,15 +207,6 @@ enum
 #define ENTITY_PROP_CAM_WARP_SWITCH 0x1A8
 #define ENTITY_PROP_CAM_BG_COLORS 0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY 0x27F
-
-// in export script used to keep track of status stuff
-typedef struct info
-{
-    int32_t gamemode;       // 2 for C2, 3 for C3
-    int32_t portmode;       // 0 for normal export, 1 for porting
-    uint32_t anim[1024][3]; // field one is model, field 3 is animation, field 2 is original animation when c3->c2
-    uint32_t animrefcount;  // count of animation references when porting c3 to c2
-} DEPRECATE_INFO_STRUCT;
 
 // in build scripts, used to store spawns
 typedef struct spawn
@@ -392,6 +381,9 @@ typedef struct merge_worst_zone_info
 
 // misc.c
 
+void *try_malloc(uint32_t size);
+void *try_calloc(uint32_t count, uint32_t size);
+void *try_realloc(void *ptr, uint32_t size);
 void intro_text();
 void print_help();
 void print_help2();
@@ -424,10 +416,9 @@ void list_add(LIST *list, uint32_t eid);
 bool list_is_subset(LIST list_a, LIST list_b);
 void list_remove(LIST *list, uint32_t eid);
 void list_copy_in(LIST *destination, LIST source);
-LOAD_LIST init_load_list();
 int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
 CAMERA_LINK int_to_link(uint32_t link);
-void delete_load_list(LOAD_LIST load_list);
+void delete_load_list(LOAD_LIST *load_list);
 void path_fix(char *fpath);
 DIST_GRAPH_Q graph_init();
 void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int32_t zone_index, int32_t camera_index);
@@ -437,10 +428,6 @@ uint8_t *build_get_nth_item(uint8_t *entry, int32_t n);
 int32_t getline(char **linep, int32_t *n, FILE *fp);
 int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp);
 DEPENDENCIES build_init_dep();
-
-// export.c
-// rest is hidden
-void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **chunks, uint8_t **chunks2, int32_t chunk_count);
 
 // build files in no particular order
 
@@ -474,12 +461,6 @@ int32_t build_get_entity_count(uint8_t *entry);
 uint32_t *build_get_zone_relatives(uint8_t *entry, SPAWNS *spawns);
 int32_t build_entry_type(ENTRY entry);
 int32_t build_chunk_type(uint8_t *chunk);
-uint32_t *build_get_gool_relatives(uint8_t *entry, int32_t entrysize);
-void build_read_nsf(ENTRY *elist, int32_t chunk_border_base, uint8_t **chunks, int32_t *chunk_border_texture,
-                    int32_t *entry_count, FILE *nsf, uint32_t *gool_table);
-void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count);
-void build_read_folder(DIR *df, char *dirpath, uint8_t **chunks, ENTRY *elist, int32_t *chunk_border_texture,
-                       int32_t *entry_count, SPAWNS *spawns, uint32_t *gool_table);
 void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB);
 void build_write_nsd(FILE *nsd, FILE *nsd2, ENTRY *elist, int32_t entry_count, int32_t chunk_count, SPAWNS spawns, uint32_t *gool_table, int32_t level_ID);
 void build_increment_common(LIST list, LIST entries, int32_t **entry_matrix, int32_t rating);
@@ -548,18 +529,15 @@ void build_ask_distances(int32_t *config);
 int32_t build_is_before(ENTRY *elist, int32_t zone_index, int32_t camera_index, int32_t neighbour_index, int32_t neighbour_cam_index);
 int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, LIST permaloaded);
 void build_texture_count_check(ENTRY *elist, int32_t entry_count, LIST *full_load, int32_t cam_length, int32_t i, int32_t j);
-bool build_read_and_parse_build(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                                ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns);
 int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd, int32_t *chunk_border_texture, uint32_t *gool_table,
-                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, int32_t stats_only, char *fpath);
+                                   ENTRY *elist, int32_t *entry_count, uint8_t **chunks, SPAWNS *spawns, bool stats_only, char *fpath);
 void build_sort_load_lists(ENTRY *elist, int32_t entry_count);
 void build_ask_build_flags(int32_t *config);
 MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count);
 PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages);
-void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
+void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, bool eat_thrc);
 void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded);
 void build_try_second_output(FILE **nsfnew2, FILE **nsd2, int32_t levelID);
-int32_t abs(int32_t val);
 int32_t normalize_angle(int32_t angle);
 int32_t c2yaw_to_deg(int32_t yaw);
 int32_t deg_to_c2yaw(int32_t deg);
@@ -572,8 +550,8 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
 
 PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chunk_min);
 void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee);
-void build_print_payload(PAYLOAD payload, int32_t stopper);
-PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, int32_t get_tpages);
+void build_print_payload(PAYLOAD payload);
+PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, bool get_tpages);
 
 // side_scripts.c
 
@@ -582,16 +560,15 @@ void scenery_recolor_main();
 void scenery_recolor_main2();
 void texture_copy_main();
 void prop_main(char *path);
-void resize_main(char *time, DEPRECATE_INFO_STRUCT status);
-void resize_level(FILE *level, char *filepath, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
-void resize_chunk_handler(uint8_t *chunk, DEPRECATE_INFO_STRUCT status, double scale[3]);
-void resize_folder(DIR *df, char *path, double scale[3], char *time, DEPRECATE_INFO_STRUCT status);
-void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
-void resize_entity(uint8_t *item, int32_t itemsize, double scale[3], DEPRECATE_INFO_STRUCT status);
-void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], DEPRECATE_INFO_STRUCT status);
-void rotate_main(char *time);
+void resize_main();
+void resize_level(FILE *level, char *filepath, double scale[3], char *time, int32_t game);
+void resize_chunk_handler(uint8_t *chunk, int32_t game, double scale[3]);
+void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t game);
+void resize_zone(int32_t fsize, uint8_t *buffer, double scale[3], int32_t game);
+void resize_entity(uint8_t *item, int32_t itemsize, double scale[3]);
+void resize_scenery(int32_t fsize, uint8_t *buffer, double scale[3], int32_t game);
+void rotate_main();
 void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time, int32_t filesize);
-// void rotate_zone(uint8_t *buffer, char *filepath, double rotation);
 void rotate_rotate(uint32_t *y, uint32_t *x, double rotation);
 void crate_rotation_angle();
 void nsd_gool_table_print(char *fpath);
@@ -626,3 +603,7 @@ void wipe_entities(ENTRY *elist, int32_t entry_count);
 void convert_old_dl_override(ENTRY *elist, int32_t entry_count);
 void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
 void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count);
+
+// export.c
+
+void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **chunks, uint8_t **chunks2, int32_t chunk_count);

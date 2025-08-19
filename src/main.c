@@ -7,32 +7,17 @@
 // main, polls input and runs commands based on it
 int32_t main()
 {
-    DEPRECATE_INFO_STRUCT status;
-    int32_t zonetype = 8;
-    time_t rawtime;
-    struct tm *timeinfo;
-    char fpath[MAX + 300] = "";
-    char nsfcheck[4] = "";
-    struct dirent *de;
-
-    status.animrefcount = 0;
+    char fpath[MAX] = "";
+    char p_comm_cpy[MAX] = "";
+    char p_command[MAX] = "";
     intro_text();
 
     while (1)
     {
-        char p_comm_cpy[MAX] = "";
-        char lcltemp[9] = "";
-        char p_command[MAX] = "";
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        sprintf(lcltemp, "%02d_%02d_%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-
         scanf("%s", p_command);
-        for (uint32_t i = 0; i < strlen(lcltemp); i++)
-            if (!isalnum(lcltemp[i]))
-                lcltemp[i] = '_';
         for (uint32_t i = 0; i < strlen(p_command); i++)
             p_comm_cpy[i] = toupper(p_command[i]);
+
         switch (comm_str_hash(p_comm_cpy))
         {
         case KILL:
@@ -55,13 +40,10 @@ int32_t main()
             intro_text();
             break;
         case RESIZE:
-            resize_main(lcltemp, status);
+            resize_main();
             break;
         case ROTATE:
-            rotate_main(lcltemp);
-            break;
-        case BUILD:
-            build_main(BuildType_Build);
+            rotate_main();
             break;
         case REBUILD:
             build_main(BuildType_Rebuild);

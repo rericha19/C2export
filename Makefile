@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -Ofast -Wno-unused-parameter -Wno-sign-compare
+CFLAGS = -Wall -Wextra -Ofast -Wno-unused-parameter -Wno-sign-compare -Wunused-function
 LDFLAGS = -lpthread
 
 # Debug flags

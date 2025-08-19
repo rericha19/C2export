@@ -76,7 +76,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int32_t entry_count)
             for (int32_t l = 0; l < list2.count; l++)
                 printf("\t%5s (deloaded before loaded)\n", eid_conv2(list2.eids[l]));
 
-            delete_load_list(load_list);
+            delete_load_list(&load_list);
         }
     }
     if (!issue_found)
@@ -97,7 +97,6 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int32_t entry_count)
             int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (int32_t j = 0; j < cam_count; j++)
             {
-
                 LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
 
                 LIST ids = init_list();
@@ -212,7 +211,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int32_t entry_count)
                     }
                 }
 
-                delete_load_list(draw_list);
+                delete_load_list(&draw_list);
             }
         }
     }
@@ -230,7 +229,7 @@ void build_ll_print_avg(ENTRY *elist, int32_t entry_count)
         if (elist[i].chunk >= chunk_count)
             chunk_count = elist[i].chunk + 1;
 
-    int32_t *chunksizes = (int32_t *)calloc(chunk_count, sizeof(int32_t));
+    int32_t *chunksizes = (int32_t *)try_calloc(chunk_count, sizeof(int32_t));
     for (int32_t i = 0; i < entry_count; i++)
     {
         if (build_is_normal_chunk_entry(elist[i]))
@@ -274,9 +273,8 @@ void build_ll_print_full_payload_info(ENTRY *elist, int32_t entry_count, int32_t
     printf("\nFull payload info (max payload of each camera path):\n");
     for (int32_t k = 0; k < payloads.count; k++)
     {
-
         printf("%d\t", k + 1);
-        build_print_payload(payloads.arr[k], 0);
+        build_print_payload(payloads.arr[k]);
 
         if (payloads.arr[k].count >= 21 || print_full)
         {
@@ -299,8 +297,11 @@ void build_ll_print_full_payload_info(ENTRY *elist, int32_t entry_count, int32_t
             printf("\n");
         }
 
-        free(payloads.arr[k].chunks);
-        free(payloads.arr[k].tchunks);
+        if (payloads.arr[k].chunks)
+            free(payloads.arr[k].chunks);
+        if (payloads.arr[k].tchunks)
+            free(payloads.arr[k].tchunks);
+
         if (print_full)
             printf("\n");
     }
@@ -350,7 +351,7 @@ void build_ll_various_stats(ENTRY *elist, int32_t entry_count)
                     }
                 if (!found_before)
                 {
-                    deps.array = realloc(deps.array, (deps.count + 1) * sizeof(DEPENDENCY));
+                    deps.array = try_realloc(deps.array, (deps.count + 1) * sizeof(DEPENDENCY));
                     deps.array[deps.count].type = type;
                     deps.array[deps.count].subtype = subt;
                     deps.array[deps.count].dependencies = init_list();
@@ -516,7 +517,7 @@ void build_ll_check_gool_references(ENTRY *elist, int32_t entry_count, uint32_t 
             uint32_t i6_end = build_get_nth_item_offset(elist[i].data, 6);
             uint32_t i6_len = i6_end - i6_off;
 
-            for (int32_t j = 0; j < i6_len / 4; j++)
+            for (uint32_t j = 0; j < i6_len / 4; j++)
             {
                 uint32_t potential_eid = from_u32(elist[i].data + i6_off + 4 * j);
                 if (build_get_index(potential_eid, elist, entry_count) == -1)
@@ -632,7 +633,7 @@ void build_ll_check_tpag_references(ENTRY *elist, int32_t entry_count)
                 uint32_t i6_end = build_get_nth_item_offset(elist[i].data, 6);
                 uint32_t i6_len = i6_end - i6_off;
 
-                for (int32_t j = 0; j < i6_len / 4; j++)
+                for (uint32_t j = 0; j < i6_len / 4; j++)
                 {
                     uint32_t potential_eid = from_u32(elist[i].data + i6_off + 4 * j);
                     if (build_get_index(potential_eid, elist, entry_count) == -1)
@@ -690,7 +691,7 @@ void build_ll_check_sound_references(ENTRY *elist, int32_t entry_count)
                 uint32_t i4off = build_get_nth_item_offset(elist[i].data, 3);
                 uint32_t i3len = i4off - i3off;
 
-                for (int32_t j = 0; j < i3len / 4; j++)
+                for (uint32_t j = 0; j < i3len / 4; j++)
                 {
                     uint32_t potential_eid = from_u32(elist[i].data + i3off + 4 * j);
                     if (build_get_index(potential_eid, elist, entry_count) == -1)
@@ -767,7 +768,7 @@ void build_ll_check_gool_types(ENTRY *elist, int32_t entry_count)
 
 void ll_payload_info_main()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
     uint32_t gool_table[C2_GOOL_TABLE_SIZE];
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
@@ -783,7 +784,7 @@ void ll_payload_info_main()
 
 void build_ll_analyze()
 {
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
     uint32_t gool_table[C2_GOOL_TABLE_SIZE];
     for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)

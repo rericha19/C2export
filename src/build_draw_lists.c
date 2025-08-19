@@ -88,7 +88,7 @@ void build_draw_list_util(ENTRY *elist, int32_t entry_count, LIST *full_draw, in
         printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", eid_conv2(curr.eid), cam_idx, cam_len, angles_len);
     }
 
-    int32_t *avg_angles = malloc(cam_len * sizeof(int32_t));
+    int32_t *avg_angles = try_malloc(cam_len * sizeof(int32_t));
     if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
     {
         for (int32_t n = 0; n < angles_len; n += 2)
@@ -252,7 +252,7 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                 printf("\tcam path %d (%d points)\n", j, cam_length);
 
                 // initialize full non-delta draw list used to represent the draw list during its building
-                LIST *full_draw = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
+                LIST *full_draw = (LIST *)try_malloc(cam_length * sizeof(LIST)); // freed here
                 for (int32_t k = 0; k < cam_length; k++)
                     full_draw[k] = init_list();
 
@@ -293,8 +293,9 @@ void build_remake_draw_lists(ENTRY *elist, int32_t entry_count, int32_t *config)
                 printf("\n\tMax count: %d (point %d)\n", max_c, max_p);
 
                 // creates and initialises delta representation of the draw list
-                LIST *listA = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
-                LIST *listB = (LIST *)malloc(cam_length * sizeof(LIST)); // freed here
+                LIST *listA = (LIST *)try_malloc(cam_length * sizeof(LIST)); // freed here
+                LIST *listB = (LIST *)try_malloc(cam_length * sizeof(LIST)); // freed here
+
                 for (int32_t k = 0; k < cam_length; k++)
                 {
                     listA[k] = init_list();

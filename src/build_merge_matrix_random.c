@@ -59,7 +59,7 @@ void ask_params_matrix(double *mult, int32_t *iter_count, int32_t *seed, int32_t
     {
         time_t raw_time;
         time(&raw_time);
-        srand(raw_time);
+        srand((uint32_t)raw_time);
         *seed = rand();
         printf("Seed used: %d\n", *seed);
     }
@@ -203,7 +203,6 @@ void *build_matrix_merge_random_util(void *args)
  */
 void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded)
 {
-
     // asking user parameters for the method
     double mult;
     int32_t iter_count, seed, max_payload_limit;
@@ -251,8 +250,8 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
     wzi.used_count = 0;
 
     // declare, initialise and create threads, pass them necessary args thru structs
-    pthread_t *threads = (pthread_t *)malloc(t_count * sizeof(pthread_t));
-    MTRX_THRD_IN_STR *thread_args = (MTRX_THRD_IN_STR *)malloc(t_count * sizeof(MTRX_THRD_IN_STR));
+    pthread_t *threads = (pthread_t *)try_malloc(t_count * sizeof(pthread_t));
+    MTRX_THRD_IN_STR *thread_args = (MTRX_THRD_IN_STR *)try_malloc(t_count * sizeof(MTRX_THRD_IN_STR));
 
     for (int32_t i = 0; i < t_count; i++)
     {
@@ -357,9 +356,9 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
                 {
                     int32_t stored_c = stored_stuff.count;
                     if (stored_c > 0)
-                        stored_stuff.stored_lls = (MATRIX_STORED_LL *)realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
+                        stored_stuff.stored_lls = (MATRIX_STORED_LL *)try_realloc(stored_stuff.stored_lls, (stored_c + 1) * sizeof(MATRIX_STORED_LL));
                     else
-                        stored_stuff.stored_lls = (MATRIX_STORED_LL *)malloc(sizeof(MATRIX_STORED_LL));
+                        stored_stuff.stored_lls = (MATRIX_STORED_LL *)try_malloc(sizeof(MATRIX_STORED_LL));
 
                     LIST new_l = init_list();
                     for (int32_t z = 0; z < list.count; z++)
@@ -374,7 +373,7 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
                     stored_stuff.count++;
                 }
             }
-            delete_load_list(load_list);
+            delete_load_list(&load_list);
         }
     }
 
@@ -404,9 +403,10 @@ PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS stored_lls, ENTRY *el
  * \param chunk_count int32_t*
  * \param config int32_t*
  * \param permaloaded LIST
+ * \param eat_thrc bool
  *
  */
-void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded)
+void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, int32_t *config, LIST permaloaded, bool eat_thrc)
 {
     char eid1[6] = "";
     char eid2[6] = "";
@@ -415,6 +415,13 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
     int32_t iter_count, seed, max_payload_limit;
     ask_params_matrix(&mult, &iter_count, &seed, &max_payload_limit);
     srand(seed);
+
+    if (eat_thrc)
+    {
+        printf("Eating thread count param (singlethreaded but tried method 5)\n\n");
+        int32_t t_count;
+        scanf("%d", &t_count);
+    }
 
     // for keeping track of the best found
     int64_t best_max = 9223372036854775807; // max signed 64b int32_t
@@ -521,7 +528,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double)wzi.infos[i].sum) / wzi.infos[i].count);
 
     for (int32_t i = 0; i < stored_lls.count; i++)
-        free(stored_lls.stored_lls[i].full_load.eids);
+        if (stored_lls.stored_lls[i].full_load.eids != NULL)
+            free(stored_lls.stored_lls[i].full_load.eids);
 
     free(stored_lls.stored_lls);
     free(array_representation.relations);

@@ -2,22 +2,22 @@
 // contains deprecate but not entirely unused implementation of the chunk merging/building algorithm
 // mainly payload based decisions and some other older stuff
 
-int32_t build_get_max_draw(LOAD_LIST draw_list)
+int32_t build_get_max_draw(LOAD_LIST *draw_list)
 {
     LIST list = init_list();
     int32_t ecount = 0;
 
-    for (int32_t i = 0; i < draw_list.count; i++)
+    for (int32_t i = 0; i < draw_list->count; i++)
     {
-        if (draw_list.array[i].type == 'B')
+        if (draw_list->array[i].type == 'B')
         {
-            for (int32_t m = 0; m < draw_list.array[i].list_length; m++)
-                list_add(&list, draw_list.array[i].list[m]);
+            for (int32_t m = 0; m < draw_list->array[i].list_length; m++)
+                list_add(&list, draw_list->array[i].list[m]);
         }
-        if (draw_list.array[i].type == 'A')
+        if (draw_list->array[i].type == 'A')
         {
-            for (int32_t m = 0; m < draw_list.array[i].list_length; m++)
-                list_remove(&list, draw_list.array[i].list[m]);
+            for (int32_t m = 0; m < draw_list->array[i].list_length; m++)
+                list_remove(&list, draw_list->array[i].list[m]);
         }
 
         ecount = max(ecount, list.count);
@@ -50,7 +50,7 @@ PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chu
         {
             LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
             LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
-            int32_t max_draw = build_get_max_draw(draw_list);
+            int32_t max_draw = build_get_max_draw(&draw_list);
 
             LIST list = init_list();
             PAYLOAD payload;
@@ -75,8 +75,8 @@ PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chu
                 payload.entcount = max_draw;
                 build_insert_payload(&payloads, payload);
             }
-            delete_load_list(load_list);
-            delete_load_list(draw_list);
+            delete_load_list(&load_list);
+            delete_load_list(&draw_list);
         }
     }
 
@@ -93,6 +93,7 @@ PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chu
 void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
 {
     for (int32_t i = 0; i < payloads->count; i++)
+    {
         if (payloads->arr[i].zone == insertee.zone && payloads->arr[i].cam_path == insertee.cam_path)
         {
 
@@ -115,11 +116,16 @@ void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
 
             return;
         }
+    }
 
     if (payloads->arr == NULL)
-        payloads->arr = (PAYLOAD *)malloc(1 * sizeof(PAYLOAD));
+        payloads->arr = (PAYLOAD *)try_malloc(1 * sizeof(PAYLOAD));
     else
-        payloads->arr = (PAYLOAD *)realloc(payloads->arr, (payloads->count + 1) * sizeof(PAYLOAD));
+        payloads->arr = (PAYLOAD *)try_realloc(payloads->arr, (payloads->count + 1) * sizeof(PAYLOAD));
+    if (payloads->arr == NULL)
+    {
+        printf("[ERROR] payloads->arr is NULL in build_insert_payload\n");
+    }
     payloads->arr[payloads->count] = insertee;
     (payloads->count)++;
 }
@@ -131,12 +137,10 @@ void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
  * \param stopper int32_t                   something dumb
  * \return void
  */
-void build_print_payload(PAYLOAD payload, int32_t stopper)
+void build_print_payload(PAYLOAD payload)
 {
     printf("Zone: %s cam path %d: payload: %3d, textures %2d, entities %2d",
            eid_conv2(payload.zone), payload.cam_path, payload.count, payload.tcount, payload.entcount);
-    if (stopper)
-        printf("; stopper: %2d", stopper);
     printf("\n");
 }
 
@@ -151,7 +155,7 @@ void build_print_payload(PAYLOAD payload, int32_t stopper)
  * \param chunk_min int32_t                 used to weed out sound and instrument entries (nsf structure this program produces is texture - wavebank - sound - normal)
  * \return PAYLOAD                      payload object that contains a list of chunks that are loaded in this zone, their count and the current zone eid
  */
-PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, int32_t get_tpages)
+PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, bool get_tpages)
 {
     int32_t chunks[1024];
     int32_t count = 0;
@@ -178,8 +182,14 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
     PAYLOAD payload;
     payload.zone = zone;
     payload.count = count;
-    payload.chunks = (int32_t *)malloc(count * sizeof(int32_t)); // freed by payload ladder function, caller 3 layers up iirc
-    memcpy(payload.chunks, chunks, sizeof(int32_t) * count);
+    payload.chunks = NULL;
+    payload.tchunks = NULL;
+
+    if (count)
+    {
+        payload.chunks = (int32_t *)try_malloc(count * sizeof(int32_t));
+        memcpy(payload.chunks, chunks, sizeof(int32_t) * count);
+    }
 
     if (!get_tpages)
         return payload;
@@ -205,7 +215,10 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
     }
 
     payload.tcount = tcount;
-    payload.tchunks = (int32_t *)malloc(tcount * sizeof(int32_t));
-    memcpy(payload.tchunks, tchunks, sizeof(int32_t) * tcount);
+    if (tcount)
+    {
+        payload.tchunks = (int32_t *)try_malloc(tcount * sizeof(int32_t));
+        memcpy(payload.tchunks, tchunks, sizeof(int32_t) * tcount);
+    }
     return payload;
 }

@@ -101,7 +101,7 @@ typedef struct col_info_single
 
 typedef struct col_info
 {
-    CollisionNodeInfoSingle nodes[CHUNKSIZE / 2];
+    CollisionNodeInfoSingle nodes[3000];
     int32_t count;
 } CollisionNodeInfo;
 
@@ -245,7 +245,7 @@ bool collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int32_
 uint8_t *coll_get_expanded(uint8_t *item1, int32_t *new_size, int32_t maxx, int32_t maxy, int32_t maxz)
 {
     bool found_overlap = true;
-    uint8_t *item1_edited = (uint8_t *)calloc(CHUNKSIZE, 1);
+    uint8_t *item1_edited = (uint8_t *)try_calloc(CHUNKSIZE, 1);
     memcpy(item1_edited, item1, *new_size);
     while (found_overlap)
     {
@@ -730,15 +730,9 @@ void level_alter_pseudorebuild(int32_t alter_type)
     else
         level_ID = build_ask_ID();
 
-    // make output paths
-    strcpy(nsfpathout, nsfpath);
-    sprintf(nsfpathout + strlen(nsfpathout) - 6, "%02X.NSF", level_ID);
-    strcpy(nsdpathout, nsfpathout);
-    nsdpathout[strlen(nsdpathout) - 1] = 'D';
-
     uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE] = {NULL};  // array of pointers to potentially built chunks, fixed length cuz lazy
     uint8_t *chunks2[CHUNK_LIST_DEFAULT_SIZE] = {NULL}; // keeping original non-normal chunks to keep level order
-    ENTRY elist[ELIST_DEFAULT_SIZE];
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
     int32_t chunk_count = 0;
 
@@ -758,6 +752,13 @@ void level_alter_pseudorebuild(int32_t alter_type)
         printf("[ERROR] Could not open selected NSF\n\n");
         return;
     }
+
+    // make output paths
+    strcpy(nsfpathout, nsfpath);
+    sprintf(nsfpathout + strlen(nsfpathout) - 6, "%02X.NSF", level_ID);
+    strcpy(nsdpathout, nsfpathout);
+    nsdpathout[strlen(nsdpathout) - 1] = 'D';
+
     int32_t nsf_chunk_count = build_get_chunk_count_base(nsf_og);
     uint8_t buffer[CHUNKSIZE];
     for (int32_t i = 0; i < nsf_chunk_count; i++)
@@ -766,7 +767,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
         int32_t ct = build_chunk_type(buffer);
         if (ct == CHUNK_TYPE_TEXTURE || ct == CHUNK_TYPE_SOUND || ct == CHUNK_TYPE_INSTRUMENT)
         {
-            chunks2[i] = (uint8_t *)malloc(CHUNKSIZE);
+            chunks2[i] = (uint8_t *)try_malloc(CHUNKSIZE);
             memcpy(chunks2[i], buffer, CHUNKSIZE);
         }
     }
@@ -876,7 +877,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
     {
         if (chunks2[i] != NULL)
         {
-            chunks[i] = (uint8_t *)malloc(CHUNKSIZE);
+            chunks[i] = (uint8_t *)try_malloc(CHUNKSIZE);
             memcpy(chunks[i], chunks2[i], CHUNKSIZE);
         }
     }

@@ -110,7 +110,7 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
     int32_t lcl_entrysize = zone->esize;
     int32_t curr_off, lcl_temp, irrelitems, next_off;
 
-    uint8_t *cpy = (uint8_t *)calloc(lcl_entrysize, sizeof(uint8_t));
+    uint8_t *cpy = (uint8_t *)try_calloc(lcl_entrysize, sizeof(uint8_t));
     memcpy(cpy, zone->data, lcl_entrysize);
 
     if (game == 2) // c2 to c3
@@ -118,7 +118,7 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
         if (zonetype == 16)
         {
             lcl_entrysize += 0x40;
-            cpy = (uint8_t *)realloc(cpy, lcl_entrysize);
+            cpy = (uint8_t *)try_realloc(cpy, lcl_entrysize);
 
             // offset fix
             for (int32_t j = 0; j < cpy[0xC]; j++)
@@ -202,7 +202,7 @@ void export_gool_patch(ENTRY *gool, int32_t game, bool porting)
     int entrysize = gool->esize;
     int32_t curr_off = 0;
 
-    uint8_t *cpy = (uint8_t *)calloc(entrysize, sizeof(uint8_t));
+    uint8_t *cpy = (uint8_t *)try_calloc(entrysize, sizeof(uint8_t));
     memcpy(cpy, gool->data, entrysize);
 
     if (cpy[0xC] == 6)
@@ -271,6 +271,7 @@ void export_model_patch(ENTRY *model, int32_t game, bool porting)
     }
 }
 
+// main function for exporting entries
 void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **chunks, uint8_t **chunks2, int32_t chunk_count)
 {
     char c = 0;
@@ -366,7 +367,7 @@ void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **
         else if (entry_type == ENTRY_TYPE_GOOL)
             export_gool_patch(&elist[i], game, porting);
         else if (entry_type == ENTRY_TYPE_MODEL)
-            export_model_patch(&elist[i], game, porting);        
+            export_model_patch(&elist[i], game, porting);
 
         char *path = export_make_path(out_dir, entry_type_list[entry_type], eid, ++entry_counter);
         FILE *f = fopen(path, "wb");
@@ -374,6 +375,5 @@ void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **
         fclose(f);
     }
 
-    printf("\nConversion of some things is not implemented here, use CrashEdit (scenery coords, animations)");
-    printf("Done.\n\n");    
+    printf("\nConversion of some things is not implemented here, use CrashEdit (scenery coords, animations)\nDone.\n\n");
 }

@@ -1,5 +1,48 @@
 #include "macros.h"
 
+void *try_malloc(uint32_t size)
+{
+    void *ret = malloc(size);
+    if (ret == NULL)
+    {
+        printf("[ERROR] Failed to try_malloc memory (%d), exiting\n", size);
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
+
+void *try_calloc(uint32_t count, uint32_t size)
+{
+    void *ret = calloc(count, size);
+    if (ret == NULL)
+    {
+        printf("[ERROR] Failed to calloc memory (%d %d), exiting\n", count, size);
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
+
+void *try_realloc(void *ptr, uint32_t size)
+{
+    if (size == 0)
+    {
+        if (ptr)
+            free(ptr);
+        return NULL;
+    }
+
+    void *ret = realloc(ptr, size);
+    if (ret == NULL)
+    {
+        printf("[ERROR] Failed to realloc memory (%d), exiting\n", size);
+        getchar();
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
+
 // text at the start when you open the program or wipe
 void intro_text()
 {
@@ -119,7 +162,7 @@ void print_help()
     printf("WIPE\n");
     printf("\t wipes current screen\n");
 
-    printf("BUILD & REBUILD & REBUILD_DL\n");
+    printf("REBUILD & REBUILD_DL\n");
     printf("\t builds a level from chosen inputs\n");
 
     printf("LL_ANALYZE\n");
@@ -418,9 +461,10 @@ void list_add(LIST *list, uint32_t eid)
         return;
 
     if (list->count)
-        list->eids = (uint32_t *)realloc(list->eids, (list->count + 1) * sizeof(uint32_t)); // realloc is slow
+        list->eids = (uint32_t *)try_realloc(list->eids, (list->count + 1) * sizeof(uint32_t)); // realloc is slow
     else
-        list->eids = (uint32_t *)malloc(sizeof(uint32_t)); // not freed, big issue
+        list->eids = (uint32_t *)try_malloc(sizeof(uint32_t)); // not freed, big issue
+
     list->eids[list->count] = eid;
     list->count++;
     qsort(list->eids, list->count, sizeof(uint32_t), cmp_func_uint);
@@ -451,7 +495,7 @@ void list_remove(LIST *list, uint32_t eid)
         return;
 
     list->eids[index] = list->eids[list->count - 1];
-    list->eids = (uint32_t *)realloc(list->eids, (list->count - 1) * sizeof(uint32_t)); // realloc is slow
+    list->eids = (uint32_t *)try_realloc(list->eids, (list->count - 1) * sizeof(uint32_t)); // realloc is slow
     list->count--;
     qsort(list->eids, list->count, sizeof(uint32_t), cmp_func_uint);
 }
@@ -475,19 +519,6 @@ void list_copy_in(LIST *destination, LIST source)
         list_add(destination, source.eids[i]);
 }
 
-/** \brief
- *  Inits load list struct.
- *
- * \return LOAD_LIST
- */
-LOAD_LIST init_load_list()
-{
-    LOAD_LIST ll;
-    ll.count = 0;    
-
-    return ll;
-}
-
 // calculates distance of two 3D points
 int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2)
 {
@@ -506,11 +537,16 @@ CAMERA_LINK int_to_link(uint32_t link)
     return result;
 }
 
-// misc cleanup thing
-void delete_load_list(LOAD_LIST load_list)
+void delete_load_list(LOAD_LIST *load_list)
 {
-    for (int32_t i = 0; i < load_list.count; i++)
-        free(load_list.array[i].list);
+    for (int32_t i = 0; i < load_list->count; i++)
+    {
+        if (load_list->array[i].list != NULL) // Fix: check for NULL before freeing
+        {
+            free(load_list->array[i].list);
+            load_list->array[i].list = NULL; // Optional: avoid dangling pointer
+        }
+    }
 }
 
 // fixes path string supplied by the user, if it starts with "
@@ -584,7 +620,7 @@ int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp)
     }
     if (*linep == NULL)
     {
-        if (NULL == (*linep = malloc(*n = 128)))
+        if (NULL == (*linep = try_malloc(*n = 128)))
         {
             *n = 0;
             errno = ENOMEM;
@@ -595,7 +631,7 @@ int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp)
     {
         if (i + 1 >= *n)
         {
-            char *buf = realloc(*linep, *n + 128);
+            char *buf = try_realloc(*linep, *n + 128);
             if (!buf)
             {
                 errno = ENOMEM;

@@ -20,7 +20,7 @@ void build_instrument_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_c
         if (build_entry_type(elist[i]) == ENTRY_TYPE_INST)
         {
             elist[i].chunk = chunk_index;
-            chunks[chunk_index] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+            chunks[chunk_index] = (uint8_t *)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
             *(uint16_t *)(chunks[chunk_index]) = MAGIC_CHUNK;
             *(uint16_t *)(chunks[chunk_index] + 2) = CHUNK_TYPE_INSTRUMENT;
             *(uint16_t *)(chunks[chunk_index] + 4) = 2 * chunk_index + 1;
@@ -56,7 +56,7 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     for (int32_t i = 0; i < entry_count; i++)
         if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
             sound_entry_count++;
-    ENTRY *sound_list = (ENTRY *)malloc(sound_entry_count * sizeof(ENTRY)); // freed here
+    ENTRY *sound_list = (ENTRY *)try_malloc(sound_entry_count * sizeof(ENTRY)); // freed here
 
     // add actual entries to the array
     int32_t indexer = 0;
@@ -98,13 +98,13 @@ void build_sound_chunks(ENTRY *elist, int32_t entry_count, int32_t *chunk_count,
     {
         int32_t local_entry_count = 0;
         int32_t chunk_no = 2 * (start_chunk_idx + i) + 1;
-        chunks[start_chunk_idx + i] = (uint8_t *)calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+        chunks[start_chunk_idx + i] = (uint8_t *)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
 
         for (int32_t j = 0; j < sound_entry_count; j++)
             if (sound_list[j].chunk == start_chunk_idx + i)
                 local_entry_count++;
 
-        uint32_t *offsets = (uint32_t *)malloc((local_entry_count + 2) * sizeof(uint32_t)); // idk why its +2, freed here
+        uint32_t *offsets = (uint32_t *)try_malloc((local_entry_count + 2) * sizeof(uint32_t)); // idk why its +2, freed here
         *(uint16_t *)chunks[start_chunk_idx + i] = MAGIC_CHUNK;
         *(uint16_t *)(chunks[start_chunk_idx + i] + 2) = CHUNK_TYPE_SOUND;
         *(uint16_t *)(chunks[start_chunk_idx + i] + 4) = chunk_no;

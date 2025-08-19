@@ -3,70 +3,6 @@
 // necessary or used across various build files
 
 /** \brief
- *  Merges chunks prioritising highest combined size.
- *  Does not consider anything else.
- *
- * \param elist ENTRY*                  entry list
- * \param chunk_index_start int32_t         start of the range
- * \param chunk_index_end int32_t*          end of the range
- * \param entry_count int32_t               entry count
- * \return void
- */
-void build_dumb_merge(ENTRY *elist, int32_t chunk_index_start, int32_t *chunk_index_end, int32_t entry_count)
-{
-    while (1)
-    {
-        bool merge_happened = false;
-        for (int32_t i = chunk_index_start; i < *chunk_index_end; i++)
-        {
-            int32_t size1 = 0;
-            int32_t count1 = 0;
-
-            for (int32_t j = 0; j < entry_count; j++)
-                if (elist[j].chunk == i)
-                {
-                    size1 += elist[j].esize;
-                    count1++;
-                }
-
-            int32_t maxsize = 0;
-            int32_t maxentry_count = 0;
-
-            for (int32_t j = i + 1; j < *chunk_index_end; j++)
-            {
-                int32_t size2 = 0;
-                int32_t count2 = 0;
-                for (int32_t k = 0; k < entry_count; k++)
-                    if (elist[k].chunk == j)
-                    {
-                        size2 += elist[k].esize;
-                        count2++;
-                    }
-
-                if ((size1 + size2 + 4 * count1 + 4 * count2 + 0x14) <= CHUNKSIZE)
-                    if (size2 > maxsize)
-                    {
-                        maxsize = size2;
-                        maxentry_count = j;
-                    }
-            }
-
-            if (maxentry_count)
-            {
-                for (int32_t j = 0; j < entry_count; j++)
-                    if (elist[j].chunk == maxentry_count)
-                        elist[j].chunk = i;
-                merge_happened = true;
-            }
-        }
-        if (!merge_happened)
-            break;
-    }
-
-    *chunk_index_end = build_remove_empty_chunks(chunk_index_start, *chunk_index_end, entry_count, elist);
-}
-
-/** \brief
  *  Just returns the model reference of an animation.
  *  Only looks at the first frame of the animation.
  *
@@ -378,6 +314,8 @@ void build_cleanup_elist(ENTRY *elist, int32_t entry_count)
         if (elist[i].distances != NULL)
             free(elist[i].distances);
     }
+
+    free(elist);
 }
 
 /** \brief
@@ -501,12 +439,13 @@ LOAD_LIST build_get_load_lists(uint8_t *entry, int32_t cam_index)
  */
 LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
 {
-    LOAD_LIST load_list = init_load_list();
+    LOAD_LIST load_list;
+    load_list.count = 0;
 
     int32_t cam_offset = build_get_nth_item_offset(entry, cam_index);
     int32_t prop_count = from_u32(entry + cam_offset + OFFSET);
 
-    for (int32_t k = 0; (unsigned)k < prop_count; k++)
+    for (int32_t k = 0; k < prop_count; k++)
     {
         int32_t code = from_u16(entry + cam_offset + 0x10 + 8 * k);
         int32_t offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
@@ -542,7 +481,7 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
             {
 
                 load_list_item_count = from_u16(entry + offset);
-                uint16_t *indices = (uint16_t *)malloc(list_count * sizeof(uint16_t));
+                uint16_t *indices = (uint16_t *)try_malloc(list_count * sizeof(uint16_t));
                 memcpy(indices, entry + offset + 2, list_count * 2);
                 sub_list_offset = offset + 2 + 2 * list_count;
                 if (sub_list_offset % 4)
@@ -550,8 +489,7 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
                 for (int32_t l = 0; l < list_count; l++)
                 {
                     load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (uint32_t *)
-                        malloc(load_list_item_count * sizeof(uint32_t)); // freed by caller using delete_load_list
+                    load_list.array[load_list.count].list = (uint32_t *)try_malloc(load_list_item_count * sizeof(uint32_t));
                     memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
                     if (code == prop_code)
                         load_list.array[load_list.count].type = 'A';
@@ -572,8 +510,7 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
                     int32_t index = from_u16(entry + offset + l * 2 + list_count * 2);
 
                     load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (uint32_t *)
-                        malloc(load_list_item_count * sizeof(uint32_t)); // freed by caller using delete_load_list
+                    load_list.array[load_list.count].list = (uint32_t *)try_malloc(load_list_item_count * sizeof(uint32_t));
                     memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
                     if (code == prop_code)
                         load_list.array[load_list.count].type = 'A';
@@ -675,20 +612,20 @@ void build_print_transitions(ENTRY *elist, int32_t entry_count)
 }
 
 /** \brief
- *  Reads nsf, reads folder, collects relatives, assigns proto chunks, calls some merge functions, makes load lists, makes nsd, makes nsf, end.
+ *  Reads nsf, reads inputs, makes draw lists, makes load lists and draw lists if selected, merges entries into chunks, writes output.
  *
- * \param build_type            build or rebuild
+ * \param build_type            rebuild or rebuild_dl
  * \return void
  */
 void build_main(int32_t build_type)
 {
-
     clock_t time_build_start = clock();
 
     FILE *nsfnew = NULL, *nsd = NULL; // file pointers for input nsf, output nsf (nsfnew) and output nsd
     FILE *nsfnew2 = NULL, *nsd2 = NULL;
-    SPAWNS spawns = init_spawns();                // struct with spawns found during reading and parsing of the level data
-    ENTRY elist[ELIST_DEFAULT_SIZE];              // array of structs used to store entries, fixed length cuz lazy & struct is small
+    SPAWNS spawns = init_spawns(); // struct with spawns found during reading and parsing of the level data
+    ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
+
     uint8_t *chunks[CHUNK_LIST_DEFAULT_SIZE];     // array of pointers to potentially built chunks, fixed length cuz lazy
     LIST permaloaded;                             // list containing eids of permaloaded entries provided by the user
     DEPENDENCIES subtype_info = build_init_dep(); // struct containing info about dependencies of certain types and subtypes
@@ -735,15 +672,8 @@ void build_main(int32_t build_type)
         0, // 17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
     };
 
-    bool input_parse_err = true;
-    // reading contents of the nsf/folder and collecting metadata
-    if (build_type == BuildType_Build)
-        input_parse_err = build_read_and_parse_build(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns);
-
-    // reading contents of the nsf to be rebuilt and collecting metadata in a matter identical to 'build' procedure
-    if (build_type == BuildType_Rebuild || build_type == BuildType_Rebuild_DL)
-        input_parse_err = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
-
+    // reading contents of the nsf to be rebuilt and collecting metadata
+    bool input_parse_err = build_read_and_parse_rebld(&level_ID, &nsfnew, &nsd, &chunk_border_texture, gool_table, elist, &entry_count, chunks, &spawns, 0, NULL);
     chunk_count = chunk_border_texture;
 
     // end if something went wrong
@@ -844,14 +774,11 @@ void build_main(int32_t build_type)
         build_matrix_merge_random_thr_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
 #else
         printf("This build does not support this method, using method 4 instead\n");
-        build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
-        // eat input
-        int32_t t_count;
-        scanf("%d", &t_count);
+        build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded, true);
 #endif // COMPILE_WITH_THREADS
         break;
     case 4:
-        build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded);
+        build_matrix_merge_random_main(elist, entry_count, chunk_border_sounds, &chunk_count, config, permaloaded, false);
         break;
     default:
         printf("[ERROR] deprecated merge %d\n", merge_tech_flag);

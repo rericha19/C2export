@@ -25,9 +25,9 @@ int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST ent
 {
     int32_t ll_pollin_flag = config[CNFG_IDX_MTRX_LL_POLL_FLAG];
 
-    int32_t **entry_matrix = (int32_t **)malloc(entries.count * sizeof(int32_t *)); // freed by caller
+    int32_t **entry_matrix = (int32_t **)try_malloc(entries.count * sizeof(int32_t *)); // freed by caller
     for (int32_t i = 0; i < entries.count; i++)
-        entry_matrix[i] = (int32_t *)calloc((i), sizeof(int32_t)); // freed by caller
+        entry_matrix[i] = (int32_t *)try_calloc((i), sizeof(int32_t)); // freed by caller
 
     // for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
     for (int32_t i = 0; i < entry_count; i++)
@@ -98,17 +98,16 @@ int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST ent
                 break;
             }
 
-            delete_load_list(load_list);
+            delete_load_list(&load_list);
         }
     }
     return entry_matrix;
 }
 
+// get a list of all normal chunk entries in elist
 LIST build_get_normal_entry_list(ENTRY *elist, int32_t entry_count)
 {
-
     LIST entries = init_list();
-    // add all normal chunk entries to a new temporary array
     for (int32_t i = 0; i < entry_count; i++)
     {
         switch (build_entry_type(elist[i]))
@@ -365,7 +364,7 @@ RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *
 
     RELATIONS relations;
     relations.count = rel_counter;
-    relations.relations = (RELATION *)malloc(rel_counter * sizeof(RELATION)); // freed by caller
+    relations.relations = (RELATION *)try_malloc(rel_counter * sizeof(RELATION)); // freed by caller
 
     for (int32_t i = 0; i < entries.count; i++)
         for (int32_t j = 0; j < i; j++)
@@ -376,13 +375,12 @@ RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *
             relations.relations[indexer].index1 = build_get_index(entries.eids[i], elist, entry_count);
             relations.relations[indexer].index2 = build_get_index(entries.eids[j], elist, entry_count);
 
-            // experimental
-            int32_t temp = 0;
+            int32_t sum = 0;
             for (int32_t k = 0; k < i; k++)
-                temp += entry_matrix[i][k];
+                sum += entry_matrix[i][k];
             for (int32_t k = 0; k < j; k++)
-                temp += entry_matrix[j][k];
-            relations.relations[indexer].total_occurences = temp;
+                sum += entry_matrix[j][k];
+            relations.relations[indexer].total_occurences = sum;
 
             indexer++;
         }
@@ -409,7 +407,7 @@ RELATIONS build_transform_matrix(LIST entries, int32_t **entry_matrix, int32_t *
  */
 int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t *chunk_count, LIST permaloaded)
 {
-    int32_t temp_count = *chunk_count;
+    int32_t start_chunk_count = *chunk_count;
     int32_t perma_normal_entry_count = 0;
 
     // find all permaloaded entries, add them to a temporary list, sort the list in descending order by size (biggest first)
@@ -417,7 +415,7 @@ int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk
         if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
             perma_normal_entry_count++;
 
-    ENTRY *perma_elist = (ENTRY *)malloc(perma_normal_entry_count * sizeof(ENTRY)); // freed here
+    ENTRY *perma_elist = (ENTRY *)try_malloc(perma_normal_entry_count * sizeof(ENTRY)); // freed here
     int32_t indexer = 0;
     for (int32_t i = 0; i < entry_count; i++)
         if (list_find(permaloaded, elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
@@ -426,8 +424,9 @@ int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk
     qsort(perma_elist, perma_normal_entry_count, sizeof(ENTRY), cmp_func_esize);
 
     // keep putting them into existing chunks if they fit
-    int32_t perma_chunk_count = perma_normal_entry_count;                    // idrc about optimising this
-    int32_t *sizes = (int32_t *)malloc(perma_chunk_count * sizeof(int32_t)); // freed here
+    int32_t perma_chunk_count = perma_normal_entry_count;                        // idrc about optimising this
+    int32_t *sizes = (int32_t *)try_malloc(perma_chunk_count * sizeof(int32_t)); // freed here
+
     for (int32_t i = 0; i < perma_chunk_count; i++)
         sizes[i] = 0x14;
 
@@ -436,7 +435,7 @@ int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk
         for (int32_t j = 0; j < perma_chunk_count; j++)
             if (sizes[j] + 4 + perma_elist[i].esize <= CHUNKSIZE)
             {
-                perma_elist[i].chunk = temp_count + j;
+                perma_elist[i].chunk = start_chunk_count + j;
                 sizes[j] += 4 + perma_elist[i].esize;
                 break;
             }
@@ -452,7 +451,7 @@ int32_t build_permaloaded_merge(ENTRY *elist, int32_t entry_count, int32_t chunk
         if (sizes[i] > 0x14)
             counter = i + 1;
 
-    *chunk_count = temp_count + counter;
+    *chunk_count = start_chunk_count + counter;
     free(perma_elist);
     free(sizes);
     return counter;
