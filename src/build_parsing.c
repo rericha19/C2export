@@ -730,7 +730,6 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
         uint32_t checksum_used = *(uint32_t *)(buffer + CHUNK_CHECKSUM_OFFSET);
         if (checksum_calc != checksum_used)
             printf("Chunk %3d has invalid checksum\n", 2 * i + 1);
-        int32_t chunk_entry_count = from_u32(buffer + 0x8);
         if (build_chunk_type(buffer) == CHUNK_TYPE_TEXTURE)
         {
             if (chunks != NULL)
@@ -750,6 +749,8 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
             qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
         }
         else
+        {
+            int32_t chunk_entry_count = from_u32(buffer + 0x8);
             for (int32_t j = 0; j < chunk_entry_count; j++)
             {
                 int32_t start_offset = build_get_nth_item_offset(buffer, j);
@@ -769,8 +770,6 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                 else
                     elist[*entry_count].chunk = i;
 
-                // elist[*entry_count].og_chunk = i;
-
                 if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_ZONE)
                     build_check_item_count(elist[*entry_count].data, elist[*entry_count].eid);
                 if (build_entry_type(elist[*entry_count]) == ENTRY_TYPE_ZONE)
@@ -780,7 +779,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                 {
                     int32_t item1_offset = *(int32_t *)(elist[*entry_count].data + 0x10);
                     int32_t gool_type = *(int32_t *)(elist[*entry_count].data + item1_offset);
-                    if (/*gool_type >= C2_GOOL_TABLE_SIZE || */ gool_type < 0)
+                    if (/*gool_type >= C3_GOOL_TABLE_SIZE || */ gool_type < 0)
                     {
                         printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", eid_conv2(elist[*entry_count].eid), gool_type);
                         continue;
@@ -792,6 +791,7 @@ int32_t build_read_and_parse_rebld(int32_t *level_ID, FILE **nsfnew, FILE **nsd,
                 *entry_count += 1;
                 qsort(elist, *entry_count, sizeof(ENTRY), cmp_func_eid);
             }
+        }
     }
     free(buffer);
     fclose(nsf);

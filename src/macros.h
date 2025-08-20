@@ -52,7 +52,8 @@
 #define PRELOADING_REG_ENTRIES_ONLY 2
 #define PRELOADING_ALL 3
 
-#define C2_GOOL_TABLE_SIZE 0x40
+#define C3_GOOL_TABLE_SIZE 0x40
+
 #define BUILD_FPATH_COUNT 4
 #define OFFSET 0xC // bad name
 #define CHUNKSIZE 65536
@@ -60,9 +61,10 @@
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
-#define QUEUE_ITEM_COUNT 1000
-#define ELIST_DEFAULT_SIZE 2500
-#define CHUNK_LIST_DEFAULT_SIZE 2500
+#define WORST_ZONE_INFO_COUNT 200
+#define QUEUE_ITEM_COUNT 500
+#define ELIST_DEFAULT_SIZE 2000
+#define CHUNK_LIST_DEFAULT_SIZE 2000
 #define PENALTY_MULT_CONSTANT 1000000
 
 #define SPECIAL_METADATA_MASK_LLCOUNT 0xFF
@@ -238,12 +240,11 @@ typedef struct entry
     uint32_t eid;
     int32_t esize;
     int32_t chunk;
-    // int32_t og_chunk;
+    bool norm_chunk_ent_is_loaded;
     uint8_t *data;
     uint32_t *related;
     uint32_t *distances;
     bool *visited;
-    bool norm_chunk_ent_is_loaded;
 } ENTRY;
 
 typedef struct draw_item
@@ -265,11 +266,11 @@ typedef struct payload
 {
     int32_t *chunks;
     int32_t count;
+    int16_t entcount;
+    int16_t cam_path;
     int32_t *tchunks;
     int32_t tcount;
-    int32_t entcount;
     uint32_t zone;
-    int32_t cam_path;
 } PAYLOAD;
 
 // load list data stored for matrix merge, so payload doesnt need to read them every iter
@@ -296,10 +297,10 @@ typedef struct payloads
 // used to store load or draw list in its non-delta form
 typedef struct load
 {
-    char type;
-    int32_t list_length;
-    uint32_t *list;
+    int8_t type;
+    int16_t list_length;
     int32_t index;
+    uint32_t *list;
 } LOAD;
 
 // used to keep the entire non-delta load/draw list
@@ -375,7 +376,7 @@ typedef struct merge_worst_zone_info_single
 
 typedef struct merge_worst_zone_info
 {
-    MERGE_WORST_ZONE_INFO_SINGLE infos[200];
+    MERGE_WORST_ZONE_INFO_SINGLE infos[WORST_ZONE_INFO_COUNT];
     int32_t used_count;
 } MERGE_WORST_ZONE_INFO;
 
@@ -418,7 +419,7 @@ void list_remove(LIST *list, uint32_t eid);
 void list_copy_in(LIST *destination, LIST source);
 int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
 CAMERA_LINK int_to_link(uint32_t link);
-void delete_load_list(LOAD_LIST *load_list);
+void clear_load_list(LOAD_LIST *load_list);
 void path_fix(char *fpath);
 DIST_GRAPH_Q graph_init();
 void graph_add(DIST_GRAPH_Q *graph, ENTRY *elist, int32_t zone_index, int32_t camera_index);
@@ -435,9 +436,9 @@ double randfrom(double min, double max);
 void build_get_box_count(ENTRY *elist, int32_t entry_count);
 int32_t build_item_count(uint8_t *entry);
 int32_t build_prop_count(uint8_t *item);
-LOAD_LIST build_get_draw_lists(uint8_t *entry, int32_t cam_index);
-LOAD_LIST build_get_load_lists(uint8_t *entry, int32_t cam_index);
-LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index);
+void build_get_draw_lists(LOAD_LIST *dl, uint8_t *entry, int32_t cam_index);
+void build_get_load_lists(LOAD_LIST *ll, uint8_t *entry, int32_t cam_index);
+void build_get_lists(LOAD_LIST *load_list, int32_t prop_code, uint8_t *entry, int32_t cam_index);
 DRAW_ITEM build_decode_draw_item(uint32_t value);
 void build_ll_analyze();
 int32_t build_align_sound(int32_t input);

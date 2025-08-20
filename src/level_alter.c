@@ -737,8 +737,8 @@ void level_alter_pseudorebuild(int32_t alter_type)
     int32_t chunk_count = 0;
 
     SPAWNS spawns = init_spawns();           // struct with spawns found during reading and parsing of the level data
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_count, gool_table, elist, &entry_count, chunks, &spawns, 1, nsfpath))

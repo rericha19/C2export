@@ -4,6 +4,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int32_t entry_count)
 {
     printf("\nLoad list integrity check:\n");
     bool issue_found = false;
+    LOAD_LIST load_list;
     char eid1[6] = "";
     char eid2[6] = "";
 
@@ -15,7 +16,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int32_t entry_count)
         int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int32_t j = 0; j < cam_count; j++)
         {
-            LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+            build_get_load_lists(&load_list, elist[i].data, 2 + 3 * j);
 
             // load and deload everything in 'positive' direction, whatever remains in list is undeloaded
             LIST list = init_list();
@@ -76,7 +77,7 @@ void build_ll_check_load_list_integrity(ENTRY *elist, int32_t entry_count)
             for (int32_t l = 0; l < list2.count; l++)
                 printf("\t%5s (deloaded before loaded)\n", eid_conv2(list2.eids[l]));
 
-            delete_load_list(&load_list);
+            clear_load_list(&load_list);
         }
     }
     if (!issue_found)
@@ -89,6 +90,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int32_t entry_count)
 {
     printf("Draw list integrity check:\n");
     bool issue_found = false;
+    LOAD_LIST draw_list;
 
     for (int32_t i = 0; i < entry_count; i++)
     {
@@ -97,7 +99,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int32_t entry_count)
             int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
             for (int32_t j = 0; j < cam_count; j++)
             {
-                LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
+                build_get_draw_lists(&draw_list, elist[i].data, 2 + 3 * j);
 
                 LIST ids = init_list();
                 for (int32_t k = 0; k < draw_list.count; k++)
@@ -211,7 +213,7 @@ void build_ll_check_draw_list_integrity(ENTRY *elist, int32_t entry_count)
                     }
                 }
 
-                delete_load_list(&draw_list);
+                clear_load_list(&draw_list);
             }
         }
     }
@@ -493,7 +495,7 @@ void build_ll_check_gool_references(ENTRY *elist, int32_t entry_count, uint32_t 
 
     bool unused_gool_entries = false;
     printf("\nUnused GOOL entries:\n");
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
     {
         if (gool_table[i] == EID_NONE)
             continue;
@@ -770,8 +772,8 @@ void ll_payload_info_main()
 {
     ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -786,8 +788,8 @@ void build_ll_analyze()
 {
     ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))

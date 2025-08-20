@@ -82,8 +82,8 @@ void *build_matrix_merge_random_util(void *args)
     bool best_reached = false;
 
     MTRX_THRD_IN_STR inp_args = *(MTRX_THRD_IN_STR *)args;
-    ENTRY clone_elist[ELIST_DEFAULT_SIZE];
     int32_t entry_count = inp_args.entry_count;
+    ENTRY *clone_elist = (ENTRY *)try_malloc(entry_count * sizeof(ENTRY));
     RELATIONS array_repr_untouched = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
     RELATIONS array_representation = build_transform_matrix(inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
     srand(inp_args.rnd_seed);
@@ -183,6 +183,7 @@ void *build_matrix_merge_random_util(void *args)
 
     free(array_representation.relations);
     free(array_repr_untouched.relations);
+    free(clone_elist);
 
     pthread_mutex_lock(inp_args.mutex_running_thr_cnt);
     (*inp_args.running_threads)--;
@@ -240,7 +241,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
     int32_t **entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
 
     // clone elists that store the current iteration and the best iretation
-    ENTRY best_elist[ELIST_DEFAULT_SIZE];
+    ENTRY *best_elist = (ENTRY *)try_malloc(sizeof(ENTRY) * entry_count);
     // for keeping track of the best found
     int64_t best_max = 9223372036854775807; // max signed 64b int
     uint32_t best_zone = 0;
@@ -306,6 +307,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
         printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double)wzi.infos[i].sum) / wzi.infos[i].count);
 
     // cleanup
+    free(best_elist);
     for (int32_t i = 0; i < stored_lls.count; i++)
         free(stored_lls.stored_lls[i].full_load.eids);
     free(stored_lls.stored_lls);
@@ -321,6 +323,7 @@ void build_matrix_merge_random_thr_main(ENTRY *elist, int32_t entry_count, int32
 
 MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
 {
+    LOAD_LIST load_list;
     MATRIX_STORED_LLS stored_stuff;
     stored_stuff.count = 0;
     stored_stuff.stored_lls = NULL;
@@ -333,7 +336,7 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
         int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int32_t j = 0; j < cam_count; j++)
         {
-            LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+            build_get_load_lists(&load_list, elist[i].data, 2 + 3 * j);
 
             LIST list = init_list();
             for (int32_t l = 0; l < load_list.count; l++)
@@ -373,7 +376,7 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY *elist, int32_t entry_count)
                     stored_stuff.count++;
                 }
             }
-            delete_load_list(&load_list);
+            clear_load_list(&load_list);
         }
     }
 
@@ -428,8 +431,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
     uint32_t best_zone = 0;
 
     // clone elists that store the current iteration and the best iretation
-    ENTRY clone_elist[ELIST_DEFAULT_SIZE];
-    ENTRY best_elist[ELIST_DEFAULT_SIZE];
+    ENTRY *clone_elist = (ENTRY *)try_malloc(entry_count * sizeof(ENTRY));
+    ENTRY *best_elist = (ENTRY *)try_malloc(entry_count * sizeof(ENTRY));
 
     // first half of matrix merge method, unchanged
     // this can be done once instead of every iteration since its the same every time
@@ -460,9 +463,7 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
     // runs until iter count is reached or until break inside goes off (iter count 0 can make it never stop)
     for (int32_t i = 0; i < iter_count || iter_count == 0; i++)
     {
-        // copy elist into clone elist
-        for (int32_t j = 0; j < entry_count; j++)
-            clone_elist[j] = elist[j];
+        memcpy(clone_elist, elist, entry_count * sizeof(ENTRY)); // restore clone elist
 
         // restore relations array so it can be tweaked again
         memcpy(array_representation.relations, array_repr_untouched.relations, array_representation.count * sizeof(RELATION));
@@ -495,8 +496,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         // if its better than the previous best it gets stored in best_elist and score and zone are remembered
         if (curr < best_max)
         {
-            for (int32_t j = 0; j < entry_count; j++)
-                best_elist[j] = clone_elist[j];
+            // copy clone elist into best elist
+            memcpy(best_elist, clone_elist, entry_count * sizeof(ENTRY));
             best_max = curr;
             best_zone = payloads.arr[0].zone;
             is_new_best = true;
@@ -531,6 +532,8 @@ void build_matrix_merge_random_main(ENTRY *elist, int32_t entry_count, int32_t c
         if (stored_lls.stored_lls[i].full_load.eids != NULL)
             free(stored_lls.stored_lls[i].full_load.eids);
 
+    free(clone_elist);
+    free(best_elist);
     free(stored_lls.stored_lls);
     free(array_representation.relations);
     free(array_repr_untouched.relations);

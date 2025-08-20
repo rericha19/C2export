@@ -23,6 +23,7 @@ int32_t build_assign_primary_chunks_all(ENTRY *elist, int32_t entry_count, int32
 // builds a triangular matrix that contains the count of common load list occurences of i-th and j-th entry
 int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST entries, int32_t *config)
 {
+    LOAD_LIST load_list;
     int32_t ll_pollin_flag = config[CNFG_IDX_MTRX_LL_POLL_FLAG];
 
     int32_t **entry_matrix = (int32_t **)try_malloc(entries.count * sizeof(int32_t *)); // freed by caller
@@ -38,7 +39,7 @@ int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST ent
         int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int32_t j = 0; j < cam_count; j++)
         {
-            LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
+            build_get_load_lists(&load_list, elist[i].data, 2 + 3 * j);
 
             int32_t cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
             int32_t cam_length = build_get_path_length(elist[i].data + cam_offset);
@@ -98,7 +99,7 @@ int32_t **build_get_occurence_matrix(ENTRY *elist, int32_t entry_count, LIST ent
                 break;
             }
 
-            delete_load_list(&load_list);
+            clear_load_list(&load_list);
         }
     }
     return entry_matrix;
@@ -249,9 +250,10 @@ int32_t cmp_worst_zone_info(const void *a, const void *b)
 
 // stores worst zone info during merge
 void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO *info, uint32_t zone, uint32_t payload)
-{
+{   
     // existing, increment ref count
-    for (int i = 0; i < info->used_count; i++)
+    int32_t uc = info->used_count;
+    for (int i = 0; i < uc; i++)
     {
         if (info->infos[i].zone == zone)
         {
@@ -261,8 +263,10 @@ void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO *info, uint32_t zone, u
         }
     }
 
+    if (uc == (WORST_ZONE_INFO_COUNT - 1))
+        return;
+
     // new zone
-    int32_t uc = info->used_count;
     info->infos[uc].zone = zone;
     info->infos[uc].count = 1;
     info->infos[uc].sum = payload;

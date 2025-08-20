@@ -537,7 +537,7 @@ CAMERA_LINK int_to_link(uint32_t link)
     return result;
 }
 
-void delete_load_list(LOAD_LIST *load_list)
+void clear_load_list(LOAD_LIST *load_list)
 {
     for (int32_t i = 0; i < load_list->count; i++)
     {

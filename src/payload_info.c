@@ -40,6 +40,9 @@ PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chu
     PAYLOADS payloads;
     payloads.count = 0;
     payloads.arr = NULL;
+    LOAD_LIST load_list;
+    LOAD_LIST draw_list;
+
     for (int32_t i = 0; i < entry_count; i++)
     {
         if (!(build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data != NULL))
@@ -48,12 +51,12 @@ PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chu
         int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int32_t j = 0; j < cam_count; j++)
         {
-            LOAD_LIST load_list = build_get_load_lists(elist[i].data, 2 + 3 * j);
-            LOAD_LIST draw_list = build_get_draw_lists(elist[i].data, 2 + 3 * j);
+            build_get_load_lists(&load_list, elist[i].data, 2 + 3 * j);
+            build_get_draw_lists(&draw_list, elist[i].data, 2 + 3 * j);
+
             int32_t max_draw = build_get_max_draw(&draw_list);
 
             LIST list = init_list();
-            PAYLOAD payload;
             for (int32_t l = 0; l < load_list.count; l++)
             {
                 if (load_list.array[l].type == 'A')
@@ -70,13 +73,13 @@ PAYLOADS build_get_payload_ladder(ENTRY *elist, int32_t entry_count, int32_t chu
                         if (load_list.array[l].index == load_list.array[l + 1].index)
                             continue;
 
-                payload = build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min, 1);
+                PAYLOAD payload = build_get_payload(elist, entry_count, list, elist[i].eid, chunk_min, 1);
                 payload.cam_path = j;
                 payload.entcount = max_draw;
                 build_insert_payload(&payloads, payload);
             }
-            delete_load_list(&load_list);
-            delete_load_list(&draw_list);
+            clear_load_list(&load_list);
+            clear_load_list(&draw_list);
         }
     }
 
@@ -122,10 +125,6 @@ void build_insert_payload(PAYLOADS *payloads, PAYLOAD insertee)
         payloads->arr = (PAYLOAD *)try_malloc(1 * sizeof(PAYLOAD));
     else
         payloads->arr = (PAYLOAD *)try_realloc(payloads->arr, (payloads->count + 1) * sizeof(PAYLOAD));
-    if (payloads->arr == NULL)
-    {
-        printf("[ERROR] payloads->arr is NULL in build_insert_payload\n");
-    }
     payloads->arr[payloads->count] = insertee;
     (payloads->count)++;
 }
@@ -157,7 +156,7 @@ void build_print_payload(PAYLOAD payload)
  */
 PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, bool get_tpages)
 {
-    int32_t chunks[1024];
+    int32_t chunks[1024] = {0};
     int32_t count = 0;
     int32_t curr_chunk;
     bool is_there = false;
@@ -179,7 +178,7 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
         }
     }
 
-    PAYLOAD payload;
+    PAYLOAD payload = {0};
     payload.zone = zone;
     payload.count = count;
     payload.chunks = NULL;
@@ -194,7 +193,7 @@ PAYLOAD build_get_payload(ENTRY *elist, int32_t entry_count, LIST list, uint32_t
     if (!get_tpages)
         return payload;
 
-    int32_t tchunks[128];
+    int32_t tchunks[128] = {0};
     int32_t tcount = 0;
 
     for (int32_t i = 0; i < list.count; i++)

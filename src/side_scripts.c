@@ -864,7 +864,6 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t gam
 {
     struct dirent *de;
     char fname[6] = "", help[MAX] = "";
-    uint8_t *buffer = NULL;
     FILE *file, *filenew;
     int32_t filesize;
 
@@ -879,11 +878,6 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t gam
             sprintf(fpath, "%s\\%s", path, de->d_name);
             strncpy(fname, de->d_name, 5);
             fname[5] = '\0';
-            if (buffer != NULL)
-            {
-                free(buffer);
-                buffer = NULL;
-            }
 
             if (!strcmp("scene", fname))
             {
@@ -891,7 +885,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t gam
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (uint8_t *)try_calloc(sizeof(uint8_t), filesize); // freed here
+                uint8_t *buffer = (uint8_t *)try_calloc(sizeof(uint8_t), filesize); // freed here
                 fread(buffer, sizeof(uint8_t), filesize, file);
                 resize_scenery(filesize, buffer, scale, game);
                 sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
@@ -907,7 +901,7 @@ void resize_folder(DIR *df, char *path, double scale[3], char *time, int32_t gam
                 fseek(file, 0, SEEK_END);
                 filesize = ftell(file);
                 rewind(file);
-                buffer = (uint8_t *)try_calloc(sizeof(uint8_t), filesize); // freed here
+                uint8_t *buffer = (uint8_t *)try_calloc(sizeof(uint8_t), filesize); // freed here
                 fread(buffer, sizeof(uint8_t), filesize, file);
                 resize_zone(filesize, buffer, scale, game);
                 sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
@@ -1527,8 +1521,8 @@ void print_model_tex_refs_nsf()
 {
     ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -1597,8 +1591,8 @@ void print_all_entries_perma()
 {
     ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -1695,6 +1689,8 @@ void entity_usage_folder_util(const char *dpath, DEPENDENCIES *deps, uint32_t *g
             continue;
         }
         strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
+        nsfcheck[3] = '\0'; // Ensure null-termination
+
         strcpy(fname, de->d_name);
         if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
         {
@@ -1718,8 +1714,8 @@ void entity_usage_folder()
     char dpath[MAX] = "";
     DEPENDENCIES deps = build_init_dep();
 
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     scanf(" %[^\n]", dpath);
@@ -1747,8 +1743,8 @@ void nsf_props_scr()
 {
     ENTRY *elist = (ENTRY *)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
     int32_t entry_count = 0;
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE];
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
@@ -2208,6 +2204,8 @@ void recursive_folder_iter(const char *dpath, void(callback)(char *))
             continue;
         }
         strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
+        nsfcheck[3] = '\0'; // Ensure null-termination
+
         strcpy(fname, de->d_name);
         if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
         {

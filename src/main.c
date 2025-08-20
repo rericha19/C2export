@@ -1,14 +1,40 @@
 #include "macros.h"
 
 // Crash 2 levels' entry exporter and other stuff made by Averso
-// half the stuff barely works so dont touch it much
-// imo the only part thats in a reasonable shape is the level build related code
+
+#define PRINT_STRUCT_SIZE(type) printf("%30s\t %d\n", #type, (int32_t)sizeof(type));
+
+void debug_struct_sizes()
+{
+    PRINT_STRUCT_SIZE(SPAWN);
+    PRINT_STRUCT_SIZE(SPAWNS);
+    PRINT_STRUCT_SIZE(LIST);
+    PRINT_STRUCT_SIZE(ENTRY);
+    PRINT_STRUCT_SIZE(DRAW_ITEM);
+    PRINT_STRUCT_SIZE(LOAD_LIST_ITEM_UTIL);
+    PRINT_STRUCT_SIZE(PAYLOAD);
+    PRINT_STRUCT_SIZE(MATRIX_STORED_LL);
+    PRINT_STRUCT_SIZE(MATRIX_STORED_LLS);
+    PRINT_STRUCT_SIZE(PAYLOADS);
+    PRINT_STRUCT_SIZE(LOAD);
+    PRINT_STRUCT_SIZE(LOAD_LIST);
+    PRINT_STRUCT_SIZE(RELATION);
+    PRINT_STRUCT_SIZE(RELATIONS);
+    PRINT_STRUCT_SIZE(DEPENDENCY);
+    PRINT_STRUCT_SIZE(DEPENDENCIES);
+    PRINT_STRUCT_SIZE(CAMERA_LINK);
+    PRINT_STRUCT_SIZE(PROPERTY);
+    PRINT_STRUCT_SIZE(DIST_GRAPH_Q);
+    PRINT_STRUCT_SIZE(MERGE_WORST_ZONE_INFO_SINGLE);
+    PRINT_STRUCT_SIZE(MERGE_WORST_ZONE_INFO);
+}
 
 // main, polls input and runs commands based on it
 int32_t main()
 {
     char fpath[MAX] = "";
     intro_text();
+    // debug_struct_sizes();
 
     while (1)
     {

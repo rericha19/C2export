@@ -414,32 +414,29 @@ int32_t cmp_func_drawlist(const void *a, const void *b)
         return (y.type - x.type);
 }
 
-LOAD_LIST build_get_draw_lists(uint8_t *entry, int32_t cam_index)
+void build_get_draw_lists(LOAD_LIST *dl, uint8_t *entry, int32_t cam_index)
 {
-    LOAD_LIST dl = build_get_lists(ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
-    qsort(dl.array, dl.count, sizeof(LOAD), cmp_func_drawlist);
-    return dl;
+    build_get_lists(dl, ENTITY_PROP_CAM_DRAW_LIST_A, entry, cam_index);
+    qsort(dl->array, dl->count, sizeof(LOAD), cmp_func_drawlist);
 }
 
-LOAD_LIST build_get_load_lists(uint8_t *entry, int32_t cam_index)
+void build_get_load_lists(LOAD_LIST *ll, uint8_t *entry, int32_t cam_index)
 {
-    LOAD_LIST ll = build_get_lists(ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
-    qsort(ll.array, ll.count, sizeof(LOAD), cmp_func_loadlist);
-    return ll;
+    build_get_lists(ll, ENTITY_PROP_CAM_LOAD_LIST_A, entry, cam_index);
+    qsort(ll->array, ll->count, sizeof(LOAD), cmp_func_loadlist);
 }
 
 /** \brief
  *  Deconstructs the load or draw lists and saves into a convenient struct.
  *
+ * \param load_list LOAD_LIST                    load or draw list struct
  * \param prop_code int32_t                 first of the two list properties (either 0x13B or 0x208)
  * \param entry uint8_t*          entry data
  * \param cam_offset int32_t                offset of the camera item
- * \return LOAD_LIST                    load or draw list struct
  */
-LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
+void build_get_lists(LOAD_LIST *load_list, int32_t prop_code, uint8_t *entry, int32_t cam_index)
 {
-    LOAD_LIST load_list;
-    load_list.count = 0;
+    load_list->count = 0;
 
     int32_t cam_offset = build_get_nth_item_offset(entry, cam_index);
     int32_t prop_count = from_u32(entry + cam_offset + OFFSET);
@@ -487,15 +484,15 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
                     sub_list_offset += 2;
                 for (int32_t l = 0; l < list_count; l++)
                 {
-                    load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (uint32_t *)try_malloc(load_list_item_count * sizeof(uint32_t));
-                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
+                    load_list->array[load_list->count].list_length = load_list_item_count;
+                    load_list->array[load_list->count].list = (uint32_t *)try_malloc(load_list_item_count * sizeof(uint32_t));
+                    memcpy(load_list->array[load_list->count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
                     if (code == prop_code)
-                        load_list.array[load_list.count].type = 'A';
+                        load_list->array[load_list->count].type = 'A';
                     else
-                        load_list.array[load_list.count].type = 'B';
-                    load_list.array[load_list.count].index = indices[l];
-                    load_list.count++;
+                        load_list->array[load_list->count].type = 'B';
+                    load_list->array[load_list->count].index = indices[l];
+                    load_list->count++;
                     sub_list_offset += load_list_item_count * 4;
                 }
             }
@@ -508,22 +505,20 @@ LOAD_LIST build_get_lists(int32_t prop_code, uint8_t *entry, int32_t cam_index)
                     load_list_item_count = from_u16(entry + offset + l * 2);
                     int32_t index = from_u16(entry + offset + l * 2 + list_count * 2);
 
-                    load_list.array[load_list.count].list_length = load_list_item_count;
-                    load_list.array[load_list.count].list = (uint32_t *)try_malloc(load_list_item_count * sizeof(uint32_t));
-                    memcpy(load_list.array[load_list.count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
+                    load_list->array[load_list->count].list_length = load_list_item_count;
+                    load_list->array[load_list->count].list = (uint32_t *)try_malloc(load_list_item_count * sizeof(uint32_t));
+                    memcpy(load_list->array[load_list->count].list, entry + sub_list_offset, load_list_item_count * sizeof(uint32_t));
                     if (code == prop_code)
-                        load_list.array[load_list.count].type = 'A';
+                        load_list->array[load_list->count].type = 'A';
                     else
-                        load_list.array[load_list.count].type = 'B';
-                    load_list.array[load_list.count].index = index;
-                    load_list.count++;
+                        load_list->array[load_list->count].type = 'B';
+                    load_list->array[load_list->count].index = index;
+                    load_list->count++;
                     sub_list_offset += load_list_item_count * 4;
                 }
             }
         }
     }
-
-    return load_list;
 }
 
 void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
@@ -542,6 +537,7 @@ void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
     }
 
     printf("Checking for normal chunk entries that are never loaded\n");
+    LOAD_LIST ll;
     LIST ever_loaded = init_list();
     int32_t entries_skipped = 0;
 
@@ -554,7 +550,7 @@ void build_normal_check_loaded(ENTRY *elist, int32_t entry_count)
         int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
         for (int32_t j = 0; j < cam_count; j++)
         {
-            LOAD_LIST ll = build_get_load_lists(elist[i].data, 2 + 3 * j);
+            build_get_load_lists(&ll, elist[i].data, 2 + 3 * j);
             for (int32_t k = 0; k < ll.count; k++)
                 for (int32_t l = 0; l < ll.array[k].list_length; l++)
                     list_add(&ever_loaded, ll.array[k].list[l]);
@@ -640,8 +636,8 @@ void build_main(int32_t build_type)
     int32_t entry_count_base = 0;
     int32_t entry_count = 0;
 
-    uint32_t gool_table[C2_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
-    for (int32_t i = 0; i < C2_GOOL_TABLE_SIZE; i++)
+    uint32_t gool_table[C3_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
+    for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
         gool_table[i] = EID_NONE;
 
     // config:

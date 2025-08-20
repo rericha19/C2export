@@ -919,7 +919,8 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int32_t zone_index, int32_t cam
     for (int32_t i = 0; i < cam_length; i++)
         draw_list[i] = init_list();
 
-    LOAD_LIST draw_list2 = build_get_draw_lists(elist[zone_index].data, cam_index);
+    LOAD_LIST draw_list2;
+    build_get_draw_lists(&draw_list2, elist[zone_index].data, cam_index);
 
     int32_t sublist_index = 0;
     for (int32_t i = 0; i < cam_length && sublist_index < draw_list2.count; i++)
@@ -951,7 +952,7 @@ LIST *build_get_complete_draw_list(ENTRY *elist, int32_t zone_index, int32_t cam
             i--;
     }
 
-    delete_load_list(&draw_list2);
+    clear_load_list(&draw_list2);
     return draw_list;
 }
 
