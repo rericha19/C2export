@@ -2441,10 +2441,3 @@ void eid_cmd()
     uint32_t eid = eid_to_int(buf);
     printf("%02X %02X %02X %02X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
 }
-
-void hash_cmd()
-{
-    char buf[MAX] = "";
-    scanf("%s", buf);
-    printf("%u\n", comm_str_hash(buf));
-}

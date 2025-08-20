@@ -88,56 +88,6 @@
 #define C2_MUSIC_REF 0x2A4
 #define EID_NONE 0x6396347Fu
 
-// commands
-#define HASH 2089134665u
-#define HELP 2089138798u
-#define HELP2 222103648u
-
-#define WIPE 2089682330u
-#define REBUILD 1370829996u
-#define EXPORT 2939723207u
-#define PROP 2089440550u
-#define NSF_PROP 387011244u
-#define PROP_REMOVE 4293790963u
-#define PROP_REPLACE 4259575393u
-#define TEXTURE 3979833526u
-#define SCEN_RECOLOR 2919463267u
-#define TEXTURE_RECOLOR 1888631019u
-#define NSD 193464746u
-#define EID 193454615u
-#define LL_ANALYZE 4033854192u
-#define GEN_SPAWN 1178716487u
-#define MODEL_REFS 2556337893u
-#define MODEL_REFS_NSF 3538090027u
-#define ENTITY_USAGE 3822178934u
-#define PAYLOAD_INFO 2536593146u
-#define REBUILD_DL 242786907u
-#define LEVEL_WIPE_DL 759838528u
-#define LEVEL_WIPE_ENT 3599836183u
-
-#define KILL 2089250961u
-#define WARP_SPAWNS 3243144250u
-#define CHECK_UTIL 2424829088u
-#define LIST_SPECIAL_LL 2035609912u
-#define A 177638u
-#define TIME 2089574420u
-#define GEN_SLST 2118123300u
-#define ALL_PERMA 1727230258u
-#define SCEN_RECOLOR2 1853007349u
-#define RESIZE 3426052343u
-#define ROTATE 3437938580u
-#define ENT_RESIZE 2772317469u
-#define ENT_MOVE 1753493186u
-#define NSD_UTIL 308922119u
-#define FOV_UTIL 2792294477u
-#define DRAW_UTIL 3986824656u
-#define TPAGE_UTIL 3993095059u
-#define GOOL_UTIL 2723710419u
-#define CONV_OLD_DL_OVERRIDE 2382887815u
-#define FLIP_Y 2964377512u
-#define FLIP_X 2964377511u
-#define LEVEL_RECOLOR 2720813778u
-
 enum
 {
     BuildType_Rebuild,
@@ -394,7 +344,6 @@ uint32_t from_u32(uint8_t *data);
 int32_t from_s16(uint8_t *data);
 uint32_t from_u16(uint8_t *data);
 uint32_t from_u8(uint8_t *data);
-uint32_t comm_str_hash(const char *str);
 const char *eid_conv2(uint32_t value);
 const char *eid_conv(uint32_t value, char *eid);
 uint32_t eid_to_int(char *eid);
@@ -596,7 +545,6 @@ void draw_util();
 void tpage_util();
 void gool_util();
 void eid_cmd();
-void hash_cmd();
 
 // level_alter.c
 

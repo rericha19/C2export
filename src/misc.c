@@ -133,7 +133,7 @@ void print_help2()
     printf("ENT_RESIZE\n");
     printf("\t converts c3 entity to c2 entity (path adjustment)\n");
 
-    printf("CONV_OLD_DL_OVERRIDE\n");
+    printf("CONV_OLD_DL_OR\n");
     printf("\t converts old draw list override to new format (NSF)\n");
 
     printf("ENT_MOVE\n");
@@ -255,17 +255,6 @@ uint32_t from_u8(uint8_t *data)
     const uint8_t *p = data;
     uint32_t result = p[0];
     return result;
-}
-
-// hashes the input string into a number
-uint32_t comm_str_hash(const char *str)
-{
-    uint32_t comm_str_hash = 5381;
-    int32_t c;
-
-    while ((c = *str++))
-        comm_str_hash = ((comm_str_hash << 5) + comm_str_hash) + c;
-    return comm_str_hash;
 }
 
 // converts int32_t eid to string eid
