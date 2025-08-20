@@ -1,40 +1,10 @@
-#include "macros.h"
-
 // Crash 2 levels' entry exporter and other stuff made by Averso
-
-#define PRINT_STRUCT_SIZE(type) printf("%30s\t %d\n", #type, (int32_t)sizeof(type));
-
-void debug_struct_sizes()
-{
-    PRINT_STRUCT_SIZE(SPAWN);
-    PRINT_STRUCT_SIZE(SPAWNS);
-    PRINT_STRUCT_SIZE(LIST);
-    PRINT_STRUCT_SIZE(ENTRY);
-    PRINT_STRUCT_SIZE(DRAW_ITEM);
-    PRINT_STRUCT_SIZE(LOAD_LIST_ITEM_UTIL);
-    PRINT_STRUCT_SIZE(PAYLOAD);
-    PRINT_STRUCT_SIZE(MATRIX_STORED_LL);
-    PRINT_STRUCT_SIZE(MATRIX_STORED_LLS);
-    PRINT_STRUCT_SIZE(PAYLOADS);
-    PRINT_STRUCT_SIZE(LOAD);
-    PRINT_STRUCT_SIZE(LOAD_LIST);
-    PRINT_STRUCT_SIZE(RELATION);
-    PRINT_STRUCT_SIZE(RELATIONS);
-    PRINT_STRUCT_SIZE(DEPENDENCY);
-    PRINT_STRUCT_SIZE(DEPENDENCIES);
-    PRINT_STRUCT_SIZE(CAMERA_LINK);
-    PRINT_STRUCT_SIZE(PROPERTY);
-    PRINT_STRUCT_SIZE(DIST_GRAPH_Q);
-    PRINT_STRUCT_SIZE(MERGE_WORST_ZONE_INFO_SINGLE);
-    PRINT_STRUCT_SIZE(MERGE_WORST_ZONE_INFO);
-}
+#include "macros.h"
 
 // main, polls input and runs commands based on it
 int32_t main()
 {
-    char fpath[MAX] = "";
     intro_text();
-    // debug_struct_sizes();
 
     while (1)
     {
@@ -49,6 +19,7 @@ int32_t main()
         {
         case KILL:
             return 0;
+            break;
         case HELP:
             print_help();
             break;
@@ -59,8 +30,7 @@ int32_t main()
             level_alter_pseudorebuild(Alter_Type_LevelExport);
             break;
         case HASH:
-            scanf("%s", fpath);
-            printf("%u\n", comm_str_hash(fpath));
+            hash_cmd();
             break;
         case WIPE:
             clrscr();
@@ -79,10 +49,7 @@ int32_t main()
             build_main(BuildType_Rebuild_DL);
             break;
         case PROP:
-            printf("Input the path to the file:\n");
-            scanf(" %[^\n]", fpath);
-            path_fix(fpath);
-            prop_main(fpath);
+            prop_main();
             break;
         case TEXTURE:
             texture_copy_main();
@@ -100,16 +67,10 @@ int32_t main()
             crate_rotation_angle();
             break;
         case NSD:
-            printf("Input the path to the NSD file:\n");
-            scanf(" %[^\n]", fpath);
-            path_fix(fpath);
-            nsd_gool_table_print(fpath);
+            nsd_gool_table_print_cmd();
             break;
         case EID:
-            // printf("EID string:\n");
-            scanf(" %[^\n]", fpath);
-            uint32_t eid = eid_to_int(fpath);
-            printf("%02X %02X %02X %02X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
+            eid_cmd();
             break;
         case PROP_REMOVE:
             prop_remove_script();

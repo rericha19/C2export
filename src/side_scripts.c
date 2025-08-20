@@ -381,14 +381,14 @@ void print_prop_body(uint8_t *arr, int32_t offset, int32_t offset_next)
     printf("\n\n");
 }
 
-/** \brief
- *  Prints out properties present in the file.
- *
- * \param path char *                    path to the property file
- * \return void
- */
-void prop_main(char *path)
+// Prints out properties present in the file.
+void prop_main()
 {
+    char path[MAX] = "";
+    printf("Input the path to the file:\n");
+    scanf(" %[^\n]", path);
+    path_fix(path);
+
     FILE *file = NULL;
     uint32_t fsize, code, offset, offset_next;
     uint8_t *arr;
@@ -1093,8 +1093,13 @@ void crate_rotation_angle()
 }
 
 // command for printing nsd table
-void nsd_gool_table_print(char *fpath)
+void nsd_gool_table_print_cmd()
 {
+    char fpath[MAX] = "";
+    printf("Input the path to the NSD file:\n");
+    scanf(" %[^\n]", fpath);
+    path_fix(fpath);
+
     FILE *file = NULL;
     if ((file = fopen(fpath, "rb")) == NULL)
     {
@@ -2427,4 +2432,19 @@ void gool_util()
 
     recursive_folder_iter(dpath, gool_util_util);
     printf("\nDone.\n\n");
+}
+
+void eid_cmd()
+{
+    char buf[MAX] = "";
+    scanf(" %[^\n]", buf);
+    uint32_t eid = eid_to_int(buf);
+    printf("%02X %02X %02X %02X\n\n", eid & 0xFF, (eid >> 8) & 0xFF, (eid >> 16) & 0xFF, (eid >> 24) & 0xFF);
+}
+
+void hash_cmd()
+{
+    char buf[MAX] = "";
+    scanf("%s", buf);
+    printf("%u\n", comm_str_hash(buf));
 }

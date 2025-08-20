@@ -560,7 +560,7 @@ void texture_recolor_stupid();
 void scenery_recolor_main();
 void scenery_recolor_main2();
 void texture_copy_main();
-void prop_main(char *path);
+void prop_main();
 void resize_main();
 void resize_level(FILE *level, char *filepath, double scale[3], char *time, int32_t game);
 void resize_chunk_handler(uint8_t *chunk, int32_t game, double scale[3]);
@@ -572,7 +572,7 @@ void rotate_main();
 void rotate_scenery(uint8_t *buffer, char *filepath, double rotation, char *time, int32_t filesize);
 void rotate_rotate(uint32_t *y, uint32_t *x, double rotation);
 void crate_rotation_angle();
-void nsd_gool_table_print(char *fpath);
+void nsd_gool_table_print_cmd();
 PROPERTY *build_get_prop_full(uint8_t *item, int32_t prop_code);
 void prop_remove_script();
 void prop_replace_script();
@@ -595,6 +595,8 @@ void fov_stats();
 void draw_util();
 void tpage_util();
 void gool_util();
+void eid_cmd();
+void hash_cmd();
 
 // level_alter.c
 
