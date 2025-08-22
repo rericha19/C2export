@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "../include.h"
 
 void *try_malloc(uint32_t size)
 {
@@ -215,25 +215,12 @@ void clrscr()
 // helper for reading signed 32b
 int32_t from_s32(uint8_t *data)
 {
-    /*
-    const uint8_t *p = data;
-    int32_t result = p[0];
-    result |= p[1] << 8;
-    result |= p[2] << 16;
-    result |= p[3] << 24;
-    return result;*/
     return *(int32_t *)data;
 }
 
 // helper for reading unsigned 32b
 uint32_t from_u32(uint8_t *data)
 {
-    /*const uint8_t *p = data;
-    uint32_t result = p[0];
-    result |= p[1] << 8;
-    result |= p[2] << 16;
-    result |= p[3] << 24;
-    return result;*/
     return *(uint32_t *)data;
 }
 
@@ -305,7 +292,7 @@ const char *eid_conv(uint32_t value, char *eid)
 }
 
 // conversion of eid from string form to u32int form
-uint32_t eid_to_int(char *eid)
+uint32_t eid_to_int(std::string eid)
 {
     uint32_t result = 0;
     const char charset[] =
@@ -316,7 +303,7 @@ uint32_t eid_to_int(char *eid)
 
     for (int32_t i = 0; i < 5; i++)
         for (int32_t j = 0; j < 0x40; j++)
-            if (charset[j] == eid[i])
+            if (charset[j] == eid.c_str()[i])
                 result = (result << 6) + j;
 
     result = 1 + (result << 1);
@@ -382,20 +369,6 @@ int32_t cmp_func_esize(const void *a, const void *b)
 }
 
 /** \brief
- *  List struct init function.
- *
- * \return LIST
- */
-LIST init_list()
-{
-    LIST list;
-    list.count = 0;
-    list.eids = NULL;
-
-    return list;
-}
-
-/** \brief
  *  Spawns object init function.
  *
  * \return SPAWNS
@@ -407,105 +380,6 @@ SPAWNS init_spawns()
     sp.spawns = NULL;
 
     return sp;
-}
-
-/** \brief
- *  Binary search in a sorted list.
- *
- * \param list LIST                     list to be searched
- * \param searched uint32_t         searched item
- * \return int32_t                          index the item has or -1 if item wasnt found
- */
-int32_t list_find(LIST list, uint32_t searched)
-{
-    int32_t first = 0;
-    int32_t last = list.count - 1;
-    int32_t middle = (first + last) / 2;
-
-    while (first <= last)
-    {
-        if (list.eids[middle] < searched)
-            first = middle + 1;
-        else if (list.eids[middle] == searched)
-            return middle;
-        else
-            last = middle - 1;
-
-        middle = (first + last) / 2;
-    }
-
-    return -1;
-}
-
-/** \brief
- *  Adds an item to the list.
- *
- * \param list LIST*                    list to be added into
- * \param eid uint32_t              item to be added
- * \return void
- */
-void list_add(LIST *list, uint32_t eid)
-{
-    if (list_find(*list, eid) != -1)
-        return;
-
-    if (list->count)
-        list->eids = (uint32_t *)try_realloc(list->eids, (list->count + 1) * sizeof(uint32_t)); // realloc is slow
-    else
-        list->eids = (uint32_t *)try_malloc(sizeof(uint32_t)); // not freed, big issue
-
-    list->eids[list->count] = eid;
-    list->count++;
-    qsort(list->eids, list->count, sizeof(uint32_t), cmp_func_uint);
-}
-
-// Returns 1 if list_a is a subset of list_b, 0 otherwise
-bool list_is_subset(LIST list_a, LIST list_b)
-{
-    for (int32_t i = 0; i < list_a.count; i++)
-    {
-        if (list_find(list_b, list_a.eids[i]) == -1)
-            return false;
-    }
-    return true;
-}
-
-/** \brief
- *  Removes given item from the list if it exists.
- *
- * \param list LIST*                    list to be removed from
- * \param eid uint32_t              item to be removed
- * \return void
- */
-void list_remove(LIST *list, uint32_t eid)
-{
-    int32_t index = list_find(*list, eid);
-    if (index == -1)
-        return;
-
-    list->eids[index] = list->eids[list->count - 1];
-    list->eids = (uint32_t *)try_realloc(list->eids, (list->count - 1) * sizeof(uint32_t)); // realloc is slow
-    list->count--;
-    qsort(list->eids, list->count, sizeof(uint32_t), cmp_func_uint);
-}
-
-/*
-// should really exist but im irresponsible
-void list_free(LIST list) {
-    free(list.eids);
-}*/
-
-/** \brief
- *  Copies contents of the 'source' list into 'destination' list.
- *
- * \param destination LIST*             list to copy into
- * \param source LIST                   list to copy from
- * \return void
- */
-void list_copy_in(LIST *destination, LIST source)
-{
-    for (int32_t i = 0; i < source.count; i++)
-        list_add(destination, source.eids[i]);
 }
 
 // calculates distance of two 3D points
@@ -524,18 +398,6 @@ CAMERA_LINK int_to_link(uint32_t link)
     result.flag = link & 0xFF;
 
     return result;
-}
-
-void clear_load_list(LOAD_LIST *load_list)
-{
-    for (int32_t i = 0; i < load_list->count; i++)
-    {
-        if (load_list->array[i].list != NULL) // Fix: check for NULL before freeing
-        {
-            free(load_list->array[i].list);
-            load_list->array[i].list = NULL; // Optional: avoid dangling pointer
-        }
-    }
 }
 
 // fixes path string supplied by the user, if it starts with "
@@ -609,7 +471,7 @@ int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp)
     }
     if (*linep == NULL)
     {
-        if (NULL == (*linep = try_malloc(*n = 128)))
+        if (NULL == (*linep = (char*) try_malloc(*n = 128)))
         {
             *n = 0;
             errno = ENOMEM;
@@ -620,7 +482,7 @@ int32_t getdelim(char **linep, int32_t *n, int32_t delim, FILE *fp)
     {
         if (i + 1 >= *n)
         {
-            char *buf = try_realloc(*linep, *n + 128);
+            char *buf = (char*) try_realloc(*linep, *n + 128);
             if (!buf)
             {
                 errno = ENOMEM;

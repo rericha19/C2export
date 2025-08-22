@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "../include.h"
 // contains functions responsible for transforming existing entry->chunk assignmened data
 // into playable/output nsd/nsf files
 
@@ -89,7 +89,7 @@ void build_normal_chunks(ENTRY *elist, int32_t entry_count, int32_t chunk_border
 
 uint32_t build_get_ldat_eid(int32_t level_ID)
 {
-    char eid[6] = "DATxL\0";
+    char eid[6] = "DATxL";
 
     const char charset[] =
         "0123456789"

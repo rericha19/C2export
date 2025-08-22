@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "../include.h"
 
 // removes draw list properties from cameras of all zone entries
 void wipe_draw_lists(ENTRY *elist, int32_t entry_count)
@@ -131,7 +131,7 @@ void collflip_list_nodes(uint8_t *item, int32_t offset, int32_t depth, int32_t m
     {
         if (node_info->nodes[i].offset_value == offset && node_info->nodes[i].children_count == num_children)
         {
-            list_add(&node_info->nodes[i].found_at, parent_offset);
+            node_info->nodes[i].found_at.add(parent_offset);
             is_new = false;
             break;
         }
@@ -141,8 +141,7 @@ void collflip_list_nodes(uint8_t *item, int32_t offset, int32_t depth, int32_t m
         int32_t add_idx = node_info->count;
         node_info->nodes[add_idx].offset_value = offset;
         node_info->nodes[add_idx].children_count = num_children;
-        node_info->nodes[add_idx].found_at = init_list();
-        list_add(&node_info->nodes[add_idx].found_at, parent_offset);
+        node_info->nodes[add_idx].found_at.add(parent_offset);
         node_info->count++;
     }
 
@@ -166,10 +165,10 @@ void collflip_list_nodes(uint8_t *item, int32_t offset, int32_t depth, int32_t m
 void dbg_print_node_info_single(CollisionNodeInfoSingle *node)
 {
     printf("  NodeInfo: offset_value=0x%04X, children_count=%d, found_at.count=%d, found_at.eids=[",
-           node->offset_value, node->children_count, node->found_at.count);
-    for (int32_t j = 0; j < node->found_at.count; j++)
+           node->offset_value, node->children_count, node->found_at.count());
+    for (int32_t j = 0; j < node->found_at.count(); j++)
     {
-        printf("%s0x%04X", (j > 0) ? ", " : "", node->found_at.eids[j]);
+        printf("%s0x%04X", (j > 0) ? ", " : "", node->found_at[j]);
     }
     printf("]\n");
 }
@@ -203,8 +202,8 @@ bool collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int32_
 
             // if A is a subset of B its ok i think?
             int32_t case4 = (offsetA == offsetB && childrenA != childrenB);
-            int32_t a_in_b = list_is_subset(nodeA.found_at, nodeB.found_at);
-            int32_t b_in_a = list_is_subset(nodeB.found_at, nodeA.found_at);
+            int32_t a_in_b = LIST::is_subset(nodeA.found_at, nodeB.found_at);
+            int32_t b_in_a = LIST::is_subset(nodeB.found_at, nodeA.found_at);
             if (a_in_b || b_in_a)
                 case4 = 0;
 
@@ -219,9 +218,9 @@ bool collfip_unwrap_overlaps(uint8_t *item, CollisionNodeInfo *node_info, int32_
                 memcpy(item + new_offset, item + offsetB, 2 * childrenB);
                 if (case4)
                 {
-                    for (int32_t k = 0; k < nodeB.found_at.count; k++)
+                    for (int32_t k = 0; k < nodeB.found_at.count(); k++)
                     {
-                        *(uint16_t *)(item + nodeB.found_at.eids[k]) = new_offset;
+                        *(uint16_t *)(item + nodeB.found_at[k]) = new_offset;
                     }
                 }
                 else
@@ -267,10 +266,10 @@ void collision_flip(uint8_t *item, int32_t offset, int32_t depth, int32_t maxx, 
         return;
     }
 
-    if (list_find(*flipped, offset) != -1)
+    if (flipped->find( offset) != -1)
         return;
 
-    list_add(flipped, offset);
+    flipped->add(offset);
     uint16_t *children = (uint16_t *)(item + offset);
     int32_t num_children = 1;
     if (depth)
@@ -401,7 +400,7 @@ void flip_level_y(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
             int32_t maxz = from_u16(item1 + 0x22);
             printf("y flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
             uint8_t *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
-            LIST flipped = init_list();
+            LIST flipped {};
             collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 0);
             build_replace_item(&elist[i], 1, item1_edited, new_size);
 
@@ -594,7 +593,7 @@ void flip_level_x(ENTRY *elist, int32_t entry_count, int32_t *chunk_count)
             int32_t maxz = from_u16(item1 + 0x22);
             printf("x flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
             uint8_t *item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
-            LIST flipped = init_list();
+            LIST flipped {};
             collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 1);
             build_replace_item(&elist[i], 1, item1_edited, new_size);
 

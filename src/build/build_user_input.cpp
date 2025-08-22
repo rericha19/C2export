@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "../include.h"
 // contains mostly functions used to get input from user (config stuff)
 
 /** \brief

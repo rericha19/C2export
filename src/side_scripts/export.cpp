@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "../include.h"
 
 // converts camera mode from c3 to c2 values
 void export_camera_fix(uint8_t *cam, int32_t length)
@@ -90,14 +90,14 @@ void export_entity_coord_fix(uint8_t *item, int32_t itemlength)
 }
 
 // creates a string thats a save path for the currently processed file
-char *export_make_path(char *dir_path, char *type, uint32_t eid, int32_t counter)
+char *export_make_path(char *dir_path, std::string type, uint32_t eid, int32_t counter)
 {
     static char finalpath[MAX + 40];
 
-    if (strcmp(type, "texture") == 0)
-        sprintf(finalpath, "%s\\\\%s %s %d", dir_path, type, eid_conv2(eid), counter);
+    if (strcmp(type.c_str(), "texture") == 0)
+        sprintf(finalpath, "%s\\\\%s %s %d", dir_path, type.c_str(), eid_conv2(eid), counter);
     else
-        sprintf(finalpath, "%s\\\\%s %s %d.nsentry", dir_path, type, eid_conv2(eid), counter);
+        sprintf(finalpath, "%s\\\\%s %s %d.nsentry", dir_path, type.c_str(), eid_conv2(eid), counter);
 
     return finalpath;
 }
@@ -315,7 +315,7 @@ void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **
 
     char out_dir[MAX] = "";
     sprintf(out_dir, "C%d_to_C%d_S00000%02X", game, out_game, levelid);
-    mkdir(out_dir);
+	std::filesystem::create_directory(out_dir);    
 
     printf("Saving to: \n%s\n", out_dir);
 

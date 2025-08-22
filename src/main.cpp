@@ -1,5 +1,5 @@
 // Crash 2 levels' entry exporter and other stuff made by Averso
-#include "macros.h"
+#include "include.h"
 
 #define CMD(str) (strcmp(p_command, str) == 0)
 

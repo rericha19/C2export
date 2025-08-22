@@ -11,6 +11,7 @@ c2export
 .vs
 x64
 c2export_vs/Release
+c2export_vs/Debug
 
 *.pdb
 *.exe

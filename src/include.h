@@ -1,0 +1,507 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define HAVE_STRUCT_TIMESPEC
+
+#include <stdlib.h>
+#include <stdint.h>
+#include <time.h>
+#include <math.h>
+#include <stdio.h>
+#include <algorithm>
+#include <string>
+#include <filesystem>
+#include <chrono>
+#include <vector>
+#include <mutex>
+
+#include "utils/dirent.h" // todo remove
+#include "utils/utils.hpp"
+
+#if COMPILE_WITH_THREADS
+#include <pthread.h>
+#endif
+
+#undef min
+#undef max
+
+static int32_t min(int32_t a, int32_t b)
+{
+	return std::min<int32_t>(a, b);
+}
+
+inline int32_t max(int32_t a, int32_t b)
+{
+	return std::max<int32_t>(a, b);
+}
+
+// various constants
+
+#define PAYLOAD_MERGE_STATS_ONLY 1
+#define PAYLOAD_MERGE_FULL_USE 0
+
+#define CNFG_IDX_DPR_MERGE_GOOL_FLAG 0
+#define CNFG_IDX_DPR_MERGE_ZONE_FLAG 1
+#define CNFG_IDX_MTRX_LL_POLL_FLAG 2
+#define CNFG_IDX_LL_SLST_DIST_VALUE 3
+#define CNFG_IDX_LL_NEIGH_DIST_VALUE 4
+#define CNFG_IDX_LL_DRAW_DIST_VALUE 5
+#define CNFG_IDX_LL_TRNS_PRLD_FLAG 6
+#define CNFG_IDX_LL_BACKWARDS_PENALTY 7
+#define CNFG_IDX_MTRI_REL_SORT_FLAG 8
+#define CNFG_IDX_LL_SND_INCLUSION_FLAG 9
+#define CNFG_IDX_LL_REMAKE_FLAG 10
+#define CNFG_IDX_MERGE_METHOD_VALUE 11
+#define CNFG_IDX_MTRX_PERMA_INC_FLAG 12
+#define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG 13
+#define CNFG_IDX_DRAW_LIST_GEN_CAP_X 14
+#define CNFG_IDX_DRAW_LIST_GEN_CAP_Y 15
+#define CNFG_IDX_DRAW_LIST_GEN_CAP_XZ 16
+#define CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D 17
+
+#define PRELOADING_NOTHING 0
+#define PRELOADING_TEXTURES_ONLY 1
+#define PRELOADING_REG_ENTRIES_ONLY 2
+#define PRELOADING_ALL 3
+
+#define C3_GOOL_TABLE_SIZE 0x80
+
+#define BUILD_FPATH_COUNT 4
+#define OFFSET 0xC // bad name
+#define CHUNKSIZE 65536
+#define CHUNK_CHECKSUM_OFFSET 0xC
+#define BYTE 0x100
+#define MAX 1000
+#define PI 3.1415926535
+#define WORST_ZONE_INFO_COUNT 200
+#define QUEUE_ITEM_COUNT 500
+#define ELIST_DEFAULT_SIZE 2000
+#define CHUNK_LIST_DEFAULT_SIZE 2000
+#define PENALTY_MULT_CONSTANT 1000000
+
+#define SPECIAL_METADATA_MASK_LLCOUNT 0xFF
+#define SPECIAL_METADATA_MASK_SKIPFLAG 0xFF000000
+
+#define C2_NEIGHBOURS_START 0x190
+#define C2_NEIGHBOURS_END 0x1B4
+#define C2_NEIGHBOURS_FLAGS_END 0x1D4
+#define C2_SPECIAL_METADATA_OFFSET 0x1DC
+#define C2_NSD_CHUNK_COUNT_OFFSET 0x400
+#define C2_NSD_ENTRY_COUNT_OFFSET 0x404
+#define C2_NSD_DATxL_EID 0x408
+#define C2_NSD_ENTRY_TABLE_OFFSET 0x520
+#define MAGIC_ENTRY 0x100FFFF
+#define MAGIC_CHUNK 0x1234
+#define CHUNK_TYPE_NORMAL 0
+#define CHUNK_TYPE_TEXTURE 1
+#define CHUNK_TYPE_PROTO_SOUND 2
+#define CHUNK_TYPE_SOUND 3
+#define CHUNK_TYPE_INSTRUMENT 4
+#define C2_MUSIC_REF 0x2A4
+#define EID_NONE 0x6396347Fu
+
+enum
+{
+	BuildType_Rebuild,
+	BuildType_Rebuild_DL,
+};
+
+enum
+{
+	Alter_Type_WipeDL,
+	Alter_Type_WipeEnts,
+	Alter_Type_Old_DL_Override,
+	Alter_Type_FlipScenY,
+	Alter_Type_FlipScenX,
+	Alter_Type_LevelRecolor,
+	Alter_Type_LevelExport,
+};
+
+#define ENTRY_TYPE_ANIM 0x1
+#define ENTRY_TYPE_MODEL 0x2
+#define ENTRY_TYPE_SCENERY 0x3
+#define ENTRY_TYPE_SLST 0x4
+#define ENTRY_TYPE_TEXTURE 0x5
+#define ENTRY_TYPE_ZONE 0x7
+#define ENTRY_TYPE_GOOL 0xB
+#define ENTRY_TYPE_SOUND 0xC
+#define ENTRY_TYPE_MIDI 0xD
+#define ENTRY_TYPE_INST 0xE
+#define ENTRY_TYPE_VCOL 0xF
+#define ENTRY_TYPE_DEMO 0x13
+#define ENTRY_TYPE_T21 21
+
+#define C2_CAM_MODE_3D 0
+#define C2_CAM_MODE_CUTSCENE 2
+#define C2_CAM_MODE_2D 3
+#define C2_CAM_MODE_VERTICAL 8
+
+#define ENTITY_PROP_NAME 0x2C
+#define ENTITY_PROP_DEPTH_MODIFIER 0x32
+#define ENTITY_PROP_PATH 0x4B
+#define ENTITY_PROP_ID 0x9F
+#define ENTITY_PROP_ARGUMENTS 0xA4
+#define ENTITY_PROP_TYPE 0xA9
+#define ENTITY_PROP_SUBTYPE 0xAA
+#define ENTITY_PROP_WARPIN_COORDS 0x198
+#define ENTITY_PROP_DDA_DEATHS 0x277
+#define ENTITY_PROP_VICTIMS 0x287
+#define ENTITY_PROP_DDA_SECTION 0x288
+#define ENTITY_PROP_BOX_COUNT 0x28B
+
+#define ENTITY_PROP_OVERRIDE_DRAW_ID 0x3FE
+#define ENTITY_PROP_OVERRIDE_DRAW_MULT 0x3FF
+#define ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD 0x337
+#define ENTITY_PROP_OVERRIDE_DRAW_ID_OLD 0x28B
+
+#define ENTITY_PROP_CAMERA_MODE 0x29
+#define ENTITY_PROP_CAM_AVG_PT_DIST 0xC9
+#define ENTITY_PROP_CAM_SLST 0x103
+#define ENTITY_PROP_CAM_PATH_LINKS 0x109
+#define ENTITY_PROP_CAM_FOV 0x130
+#define ENTITY_PROP_CAM_DRAW_LIST_A 0x13B
+#define ENTITY_PROP_CAM_DRAW_LIST_B 0x13C
+#define ENTITY_PROP_CAM_INDEX 0x173
+#define ENTITY_PROP_CAM_SUBINDEX 0x174
+#define ENTITY_PROP_CAM_LINK_COUNT 0x176
+#define ENTITY_PROP_CAM_LOAD_LIST_A 0x208
+#define ENTITY_PROP_CAM_LOAD_LIST_B 0x209
+
+#define ENTITY_PROP_CAM_DISTANCE 0x142
+#define ENTITY_PROP_CAM_WARP_SWITCH 0x1A8
+#define ENTITY_PROP_CAM_BG_COLORS 0x1FA
+#define ENTITY_PROP_CAM_UPDATE_SCENERY 0x27F
+
+// in build scripts, used to store spawns
+typedef struct spawn
+{
+	int32_t x;
+	int32_t y;
+	int32_t z;
+	uint32_t zone;
+} SPAWN;
+
+// spawns struct used in build to store spawns
+typedef struct spawns
+{
+	int32_t spawn_count;
+	SPAWN* spawns;
+} SPAWNS;
+
+// used to store entry information in the build script
+typedef struct entry
+{
+	uint32_t eid;
+	int32_t esize;
+	int32_t chunk;
+	bool norm_chunk_ent_is_loaded;
+	uint8_t* data;
+	uint32_t* related;
+	uint32_t* distances;
+	bool* visited;
+} ENTRY;
+
+typedef struct draw_item
+{
+	uint8_t neighbour_zone_index;
+	uint16_t ID;
+	uint8_t neighbour_item_index;
+} DRAW_ITEM;
+
+// used to sort load lists
+typedef struct item
+{
+	int32_t eid;
+	int32_t index;
+} LOAD_LIST_ITEM_UTIL;
+
+// used to store payload information
+typedef struct payload
+{
+	int32_t* chunks;
+	int32_t count;
+	int16_t entcount;
+	int16_t cam_path;
+	int32_t* tchunks;
+	int32_t tcount;
+	uint32_t zone;
+} PAYLOAD;
+
+// used to store payload ladder
+typedef struct payloads
+{
+	int32_t count;
+	PAYLOAD* arr;
+} PAYLOADS;
+
+// used in matrix merge to store what entries are loaded simultaneously and how much/often
+typedef struct relation
+{
+	int32_t value;
+	int32_t total_occurences;
+	int32_t index1;
+	int32_t index2;
+} RELATION;
+
+// used to keep all relations
+typedef struct relations
+{
+	int32_t count;
+	RELATION* relations;
+} RELATIONS;
+
+// stores a camera path link
+typedef struct link
+{
+	uint8_t type;
+	uint8_t zone_index;
+	uint8_t cam_index;
+	uint8_t flag;
+} CAMERA_LINK;
+
+// entity/item property
+typedef struct property
+{
+	uint8_t header[8];
+	uint8_t* data;
+	int32_t length;
+} PROPERTY;
+
+// used when figuring out cam paths' distance to spawn
+typedef struct entry_queue
+{
+	int32_t add_index;
+	int32_t pop_index;
+	int32_t zone_indices[QUEUE_ITEM_COUNT];
+	int32_t camera_indices[QUEUE_ITEM_COUNT];
+} DIST_GRAPH_Q;
+
+typedef struct merge_worst_zone_info_single
+{
+	uint32_t zone;
+	int32_t count;
+	int32_t sum;
+} MERGE_WORST_ZONE_INFO_SINGLE;
+
+typedef struct merge_worst_zone_info
+{
+	MERGE_WORST_ZONE_INFO_SINGLE infos[WORST_ZONE_INFO_COUNT];
+	int32_t used_count;
+} MERGE_WORST_ZONE_INFO;
+
+// misc.c
+
+void* try_malloc(uint32_t size);
+void* try_calloc(uint32_t count, uint32_t size);
+void* try_realloc(void* ptr, uint32_t size);
+void intro_text();
+void print_help();
+void print_help2();
+void clrscr();
+int32_t from_s32(uint8_t* data);
+uint32_t from_u32(uint8_t* data);
+int32_t from_s16(uint8_t* data);
+uint32_t from_u16(uint8_t* data);
+uint32_t from_u8(uint8_t* data);
+const char* eid_conv2(uint32_t value);
+const char* eid_conv(uint32_t value, char* eid);
+uint32_t eid_to_int(std::string eid);
+uint32_t crcChecksum(const uint8_t* data, int32_t size);
+uint32_t nsfChecksum(const uint8_t* data);
+int32_t cmp_func_int(const void* a, const void* b);
+int32_t cmp_func_payload(const void* a, const void* b);
+int32_t cmp_func_uint(const void* a, const void* b);
+int32_t load_list_sort(const void* a, const void* b);
+int32_t cmp_func_eid(const void* a, const void* b);
+int32_t cmp_func_esize(const void* a, const void* b);
+int32_t relations_cmp(const void* a, const void* b);
+int32_t relations_cmp2(const void* a, const void* b);
+SPAWNS init_spawns();
+int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
+CAMERA_LINK int_to_link(uint32_t link);
+void path_fix(char* fpath);
+DIST_GRAPH_Q graph_init();
+void graph_add(DIST_GRAPH_Q* graph, ENTRY* elist, int32_t zone_index, int32_t camera_index);
+void graph_pop(DIST_GRAPH_Q* graph, int32_t* zone_index, int32_t* cam_index);
+int32_t build_get_nth_item_offset(uint8_t* entry, int32_t n);
+uint8_t* build_get_nth_item(uint8_t* entry, int32_t n);
+int32_t getline(char** linep, int32_t* n, FILE* fp);
+int32_t getdelim(char** linep, int32_t* n, int32_t delim, FILE* fp);
+
+// build files in no particular order
+
+double randfrom(double min, double max);
+void build_get_box_count(ENTRY* elist, int32_t entry_count);
+int32_t build_item_count(uint8_t* entry);
+int32_t build_prop_count(uint8_t* item);
+void build_get_draw_lists(LOAD_LIST& dl, uint8_t* entry, int32_t cam_index);
+void build_get_load_lists(LOAD_LIST& ll, uint8_t* entry, int32_t cam_index);
+void build_get_lists(LOAD_LIST& load_list, int32_t prop_code, uint8_t* entry, int32_t cam_index);
+DRAW_ITEM build_decode_draw_item(uint32_t value);
+void build_ll_analyze();
+int32_t build_align_sound(int32_t input);
+uint32_t build_get_zone_track(uint8_t* entry);
+LIST build_get_models(uint8_t* animation);
+uint32_t build_get_model(uint8_t* anim, int32_t item);
+int32_t build_remove_empty_chunks(int32_t index_start, int32_t index_end, int32_t entry_count, ENTRY* entry_list);
+void build_remove_invalid_references(ENTRY* elist, int32_t entry_count, int32_t entry_count_base);
+int32_t build_get_base_chunk_border(uint32_t textr, uint8_t** chunks, int32_t index_end);
+void build_get_model_references(ENTRY* elist, int32_t entry_count);
+int32_t build_get_index(uint32_t eid, ENTRY* elist, int32_t entry_count);
+uint32_t build_get_slst(uint8_t* item);
+uint32_t build_get_path_length(uint8_t* item);
+int16_t* build_get_path(ENTRY* elist, int32_t zone_index, int32_t item_index, int32_t* path_len);
+int32_t* build_seek_spawn(uint8_t* item);
+int32_t build_get_neighbour_count(uint8_t* entry);
+LIST build_get_neighbours(uint8_t* entry);
+int32_t build_get_cam_item_count(uint8_t* entry);
+int32_t build_get_scen_count(uint8_t* entry);
+int32_t build_get_entity_count(uint8_t* entry);
+uint32_t* build_get_zone_relatives(uint8_t* entry, SPAWNS* spawns);
+int32_t build_entry_type(ENTRY entry);
+int32_t build_chunk_type(uint8_t* chunk);
+void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB);
+void build_write_nsd(FILE* nsd, FILE* nsd2, ENTRY* elist, int32_t entry_count, int32_t chunk_count, SPAWNS spawns, uint32_t* gool_table, int32_t level_ID);
+void build_increment_common(LIST list, LIST entries, int32_t** entry_matrix, int32_t rating);
+int32_t dsu_find_set(int32_t i);
+void dsu_union_sets(int32_t a, int32_t b);
+int32_t cmp_worst_zone_info(const void* a, const void* b);
+void build_update_worst_zones_info(MERGE_WORST_ZONE_INFO* info, uint32_t zone, uint32_t payload);
+void build_matrix_merge_util(RELATIONS relations, ENTRY* elist, int32_t entry_count, double merge_ratio);
+RELATIONS build_transform_matrix(LIST entries, int32_t** entry_matrix, int32_t* config, ENTRY* elist, int32_t entry_count);
+void build_matrix_merge(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded, double merge_ratio, double mult);
+void build_normal_chunks(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t** chunks, int32_t do_end_print);
+int32_t build_get_prop_offset(uint8_t* item, int32_t prop_code);
+int32_t build_get_entity_prop(uint8_t* entity, int32_t prop_code);
+void build_add_scen_textures_to_list(uint8_t* scenery, LIST* list);
+void build_add_model_textures_to_list(uint8_t* model, LIST* list);
+uint8_t* build_add_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
+uint8_t* build_rem_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
+void build_replace_item(ENTRY* zone, int32_t item_index, uint8_t* new_item, int32_t new_size);
+void build_entity_alter(ENTRY* zone, int32_t item_index, uint8_t* (func_arg)(uint32_t, uint8_t*, int32_t*, PROPERTY*),
+	int32_t property_code, PROPERTY* prop);
+void build_remove_nth_item(ENTRY* zone, int32_t n);
+LIST build_get_links(uint8_t* entry, int32_t cam_index);
+void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
+void build_load_list_util_util_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
+void build_add_collision_dependencies(std::vector<LIST>& full_list, int32_t start_index, int32_t end_index, uint8_t* entry,
+	DEPENDENCIES collisions, ENTRY* elist, int32_t entry_count);
+int32_t build_dist_w_penalty(int32_t distance, int32_t backwards_penalty);
+void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list,
+	int32_t cam_length, ENTRY* elist, int32_t entry_count, int32_t* config, DEPENDENCIES collisisons);
+std::vector<LIST> build_get_complete_draw_list(ENTRY* elist, int32_t zone_index, int32_t cam_index, int32_t cam_length);
+LIST build_get_types_subtypes(ENTRY* elist, int32_t entry_count, LIST entity_list, LIST neighbour_list);
+int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
+LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t camera_index, int32_t cam_length, ENTRY* elist,
+	int32_t entry_count, LIST* neighbours, int32_t* config);
+void build_load_list_util(int32_t zone_index, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ENTRY* elist,
+	int32_t entry_count, DEPENDENCIES sub_info, DEPENDENCIES collisions, int32_t* config);
+PROPERTY build_make_load_list_prop(std::vector<LIST>& list_array, int32_t cam_length, int32_t code);
+void build_find_unspecified_entities(ENTRY* elist, int32_t entry_count, DEPENDENCIES sub_info);
+void build_load_list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, int32_t cam_length, ENTRY* elist, int32_t entry_count, bool is_draw);
+LIST build_read_special_entries(uint8_t* zone);
+LIST build_get_special_entries(ENTRY zone, ENTRY* elist, int32_t entry_count);
+void build_remake_draw_lists(ENTRY* elist, int32_t entry_count, int32_t* config);
+void build_remake_load_lists(ENTRY* elist, int32_t entry_count, uint32_t* gool_table, LIST permaloaded,
+	DEPENDENCIES subtype_info, DEPENDENCIES collision, DEPENDENCIES mus_deps, int32_t* config);
+int32_t build_read_entry_config(LIST& permaloaded, DEPENDENCIES& subtype_info, DEPENDENCIES& collisions, DEPENDENCIES& music_deps,
+	ENTRY* elist, int32_t entry_count, uint32_t* gool_table, int32_t* config);
+int32_t build_get_chunk_count_base(FILE* nsf);
+int32_t build_ask_ID();
+void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t* config);
+void build_instrument_chunks(ENTRY* elist, int32_t entry_count, int32_t* chunk_count, uint8_t** chunks);
+void build_sound_chunks(ENTRY* elist, int32_t entry_count, int32_t* chunk_count, uint8_t** chunks);
+int32_t build_assign_primary_chunks_all(ENTRY* elist, int32_t entry_count, int32_t* chunk_count);
+LIST build_get_normal_entry_list(ENTRY* elist, int32_t entry_count);
+int32_t** build_get_occurence_matrix(ENTRY* elist, int32_t entry_count, LIST entries, int32_t* config);
+bool build_is_normal_chunk_entry(ENTRY entry);
+void build_cleanup_elist(ENTRY* elist, int32_t entry_count);
+void build_final_cleanup(ENTRY* elist, int32_t entry_count, uint8_t** chunks, int32_t chunk_count, FILE* nsfnew, FILE* nsd);
+void build_ask_spawn(SPAWNS spawns);
+void build_main(int32_t build_rebuild_flag);
+void build_write_nsf(FILE* nsfnew, ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t** chunks, FILE* nsfnew2);
+LIST build_get_sceneries(uint8_t* entry);
+void build_check_item_count(uint8_t* zone, int32_t eid);
+void build_get_distance_graph(ENTRY* elist, int32_t entry_count, SPAWNS spawns);
+void build_ask_draw_distances(int32_t* config);
+void build_ask_distances(int32_t* config);
+int32_t build_is_before(ENTRY* elist, int32_t zone_index, int32_t camera_index, int32_t neighbour_index, int32_t neighbour_cam_index);
+int32_t build_permaloaded_merge(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t* chunk_count, LIST permaloaded);
+void build_texture_count_check(ENTRY* elist, int32_t entry_count, std::vector<LIST>& full_load, int32_t cam_length, int32_t i, int32_t j);
+int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd, int32_t* chunk_border_texture, uint32_t* gool_table,
+	ENTRY* elist, int32_t* entry_count, uint8_t** chunks, SPAWNS* spawns, bool stats_only, char* fpath);
+void build_sort_load_lists(ENTRY* elist, int32_t entry_count);
+void build_ask_build_flags(int32_t* config);
+MATRIX_STORED_LLS build_matrix_store_lls(ENTRY* elist, int32_t entry_count);
+PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS& stored_lls, ENTRY* elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages);
+void build_matrix_merge_random_main(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded, bool eat_thrc);
+void build_matrix_merge_random_thr_main(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded);
+void build_try_second_output(FILE** nsfnew2, FILE** nsd2, int32_t levelID);
+int32_t normalize_angle(int32_t angle);
+int32_t c2yaw_to_deg(int32_t yaw);
+int32_t deg_to_c2yaw(int32_t deg);
+int32_t angle_distance(int32_t angle1, int32_t angle2);
+int32_t average_angles(int32_t angle1, int32_t angle2);
+void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& full_draw, int32_t* config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);
+void build_remake_draw_lists(ENTRY* elist, int32_t entry_count, int32_t* config);
+
+// payload_info.c
+
+PAYLOADS build_get_payload_ladder(ENTRY* elist, int32_t entry_count, int32_t chunk_min);
+void build_insert_payload(PAYLOADS* payloads, PAYLOAD insertee);
+void build_print_payload(PAYLOAD payload);
+PAYLOAD build_get_payload(ENTRY* elist, int32_t entry_count, LIST list, uint32_t zone, int32_t chunk_min, bool get_tpages);
+
+// side_scripts.c
+
+void texture_recolor_stupid();
+void scenery_recolor_main();
+void scenery_recolor_main2();
+void texture_copy_main();
+void prop_main();
+void resize_main();
+void resize_level(FILE* level, char* filepath, double scale[3], char* time, int32_t game);
+void resize_chunk_handler(uint8_t* chunk, int32_t game, double scale[3]);
+void resize_folder(DIR* df, char* path, double scale[3], char* time, int32_t game);
+void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game);
+void resize_entity(uint8_t* item, int32_t itemsize, double scale[3]);
+void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game);
+void rotate_main();
+void rotate_scenery(uint8_t* buffer, char* filepath, double rotation, char* time, int32_t filesize);
+void rotate_rotate(uint32_t* y, uint32_t* x, double rotation);
+void crate_rotation_angle();
+void nsd_gool_table_print_cmd();
+PROPERTY* build_get_prop_full(uint8_t* item, int32_t prop_code);
+void prop_remove_script();
+void prop_replace_script();
+void generate_spawn();
+void time_convert();
+void c3_ent_resize();
+void entity_move_scr();
+void print_model_tex_refs();
+void print_model_tex_refs_nsf();
+void print_all_entries_perma();
+void entity_usage_folder();
+void nsf_props_scr();
+void generate_slst();
+void ll_payload_info_main();
+void warp_spawns_generate();
+void special_load_lists_list();
+void checkpoint_stats();
+void nsd_util();
+void fov_stats();
+void draw_util();
+void tpage_util();
+void gool_util();
+void eid_cmd();
+
+// level_alter.c
+
+void level_alter_pseudorebuild(int32_t alter_type);
+void wipe_draw_lists(ENTRY* elist, int32_t entry_count);
+void wipe_entities(ENTRY* elist, int32_t entry_count);
+void convert_old_dl_override(ENTRY* elist, int32_t entry_count);
+void flip_level_y(ENTRY* elist, int32_t entry_count, int32_t* chunk_count);
+void flip_level_x(ENTRY* elist, int32_t entry_count, int32_t* chunk_count);
+
+// export.c
+
+void export_level(int32_t levelid, ENTRY* elist, int32_t entry_count, uint8_t** chunks, uint8_t** chunks2, int32_t chunk_count);

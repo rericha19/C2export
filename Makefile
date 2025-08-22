@@ -1,20 +1,21 @@
 # Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -Ofast -Wno-unused-parameter -Wno-sign-compare -Wunused-function
-LDFLAGS = -lpthread
+CXX = g++
+CXXFLAGS = -Wall -Wextra -Ofast -Wno-unused-parameter -Wno-sign-compare -Wunused-function -std=c++17 
+LDFLAGS_MT = -lpthread -mconsole
+LDFLAGS_ST = -mconsole
 
 # Debug flags
 DEBUG_CFLAGS = -DDEBUG -g -O0
 
 # Source files
 SRCDIR = src
-SRC = $(wildcard $(SRCDIR)/*.c)
+SRC = $(wildcard $(SRCDIR)/*.cpp)
 
 # Object files - separate for threaded and non-threaded versions
-OBJ_MT = $(SRC:%.c=%_mt.o)
-OBJ_ST = $(SRC:%.c=%_st.o)
-OBJ_MT_DEBUG = $(SRC:%.c=%_mt_debug.o)
-OBJ_ST_DEBUG = $(SRC:%.c=%_st_debug.o)
+OBJ_MT = $(SRC:%.cpp=%_mt.o)
+OBJ_ST = $(SRC:%.cpp=%_st.o)
+OBJ_MT_DEBUG = $(SRC:%.cpp=%_mt_debug.o)
+OBJ_ST_DEBUG = $(SRC:%.cpp=%_st_debug.o)
 
 # Executable names
 TARGET_MT = bin/c2export_multithr.exe
@@ -27,35 +28,35 @@ debug: $(TARGET_MT_DEBUG) $(TARGET_ST_DEBUG)
 
 # Release versions
 $(TARGET_MT): $(OBJ_MT)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS_MT)
 
 $(TARGET_ST): $(OBJ_ST)
-	$(CC) -o $@ $^
+	$(CXX) -o $@ $^ $(LDFLAGS_ST)
 
 # Debug versions
 $(TARGET_MT_DEBUG): $(OBJ_MT_DEBUG)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS_MT)
 
 $(TARGET_ST_DEBUG): $(OBJ_ST_DEBUG)
-	$(CC) -o $@ $^
+	$(CXX) -o $@ $^ $(LDFLAGS_ST)
 
 # Rules for building release object files
-%_mt.o: %.c
-	$(CC) $(CFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
+%_mt.o: %.cpp
+	$(CXX) $(CXXFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
 
-%_st.o: %.c
-	$(CC) $(CFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
+%_st.o: %.cpp
+	$(CXX) $(CXXFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
 
 # Rules for building debug object files
-%_mt_debug.o: %.c
-	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
+%_mt_debug.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(DEBUG_CFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
 
-%_st_debug.o: %.c
-	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
+%_st_debug.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(DEBUG_CFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
 
 # Clean up
 clean:
-	del /Q src\*_mt.o src\*_st.o src\*_mt_debug.o src\*_st_debug.o	
+	del /Q src\*_mt.o src\*_st.o src\*_mt_debug.o src\*_st_debug.o
 
 $(TARGET_MT) $(TARGET_ST) $(TARGET_MT_DEBUG) $(TARGET_ST_DEBUG): | bin
 

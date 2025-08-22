@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "../include.h"
 // contains functions responsible for creating sound and instrument chunks
 // kinda simple, sound chunks have some dumb rules that this tool still doesnt properly follow but oh well
 
