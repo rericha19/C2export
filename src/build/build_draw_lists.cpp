@@ -66,8 +66,10 @@ int32_t average_angles(int32_t angle1, int32_t angle2)
 }
 
 // gets full draw list for all points of a camera path according to config
-void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& full_draw, int32_t* config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides)
+void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides)
 {
+	int32_t entry_count = int32_t(elist.size());
+
 	int32_t cam_len = 0;
 	int32_t ent_len = 0;
 	int32_t angles_len = 0;
@@ -76,16 +78,16 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 	ENTRY neighbour = elist[neigh_idx];
 	LIST remember_nopath{};
 
-	int32_t cam_mode = build_get_entity_prop(build_get_nth_item(curr.data, 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
+	int32_t cam_mode = build_get_entity_prop(build_get_nth_item(curr._data(), 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
 	int16_t* path = build_get_path(elist, curr_idx, 2 + cam_idx * 3, &cam_len);
 	int16_t* angles = build_get_path(elist, curr_idx, 2 + cam_idx * 3 + 1, &angles_len);
 
-	int32_t neigh_ents = build_get_entity_count(neighbour.data);
-	int32_t neigh_cams = build_get_cam_item_count(neighbour.data);
+	int32_t neigh_ents = build_get_entity_count(neighbour._data());
+	int32_t neigh_cams = build_get_cam_item_count(neighbour._data());
 
 	if (cam_len != angles_len / 2)
 	{
-		printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", eid_conv2(curr.eid), cam_idx, cam_len, angles_len);
+		printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", curr.ename, cam_idx, cam_len, angles_len);
 	}
 
 	int32_t* avg_angles = (int32_t*)try_malloc(cam_len * sizeof(int32_t));
@@ -102,14 +104,14 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 	// for each point of the camera path
 	for (int32_t m = 0; m < cam_len; m++)
 	{
-		int32_t cam_x = path[3 * m + 0] + from_u32(build_get_nth_item(curr.data, 1) + 0);
-		int32_t cam_y = path[3 * m + 1] + from_u32(build_get_nth_item(curr.data, 1) + 4);
-		int32_t cam_z = path[3 * m + 2] + from_u32(build_get_nth_item(curr.data, 1) + 8);
+		int32_t cam_x = path[3 * m + 0] + from_u32(build_get_nth_item(curr._data(), 1) + 0);
+		int32_t cam_y = path[3 * m + 1] + from_u32(build_get_nth_item(curr._data(), 1) + 4);
+		int32_t cam_z = path[3 * m + 2] + from_u32(build_get_nth_item(curr._data(), 1) + 8);
 
 		// check all neighbour entities
 		for (int32_t n = 0; n < neigh_ents; n++)
 		{
-			uint8_t* entity = build_get_nth_item(neighbour.data, 2 + neigh_cams + n);
+			uint8_t* entity = build_get_nth_item(neighbour._data(), 2 + neigh_cams + n);
 			int32_t ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 			int32_t ent_override_mult = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_MULT);
 			int32_t pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_ID);
@@ -126,7 +128,7 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 				pos_override_id = pos_override_id / 0x100;
 				for (int32_t o = 0; o < neigh_ents; o++)
 				{
-					int32_t ent_id2 = build_get_entity_prop(build_get_nth_item(neighbour.data, 2 + neigh_cams + o), ENTITY_PROP_ID);
+					int32_t ent_id2 = build_get_entity_prop(build_get_nth_item(neighbour._data(), 2 + neigh_cams + o), ENTITY_PROP_ID);
 					if (ent_id2 == pos_override_id)
 					{
 						ref_ent_idx = o;
@@ -154,10 +156,10 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 
 			if (ent_len == 0)
 			{
-				int32_t id = build_get_entity_prop(build_get_nth_item(elist[neigh_idx].data, 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
+				int32_t id = build_get_entity_prop(build_get_nth_item(elist[neigh_idx]._data(), 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
 				if (remember_nopath.find(id) == -1)
 				{
-					printf("[warning] entity %d in zone %s has no path\n", id, eid_conv2(elist[neigh_idx].eid));
+					printf("[warning] entity %d in zone %s has no path\n", id, elist[neigh_idx].ename);
 					remember_nopath.add(id);
 				}
 			}
@@ -165,9 +167,9 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 			// check all entity points to see whether its visible
 			for (int32_t o = 0; o < ent_len; o++)
 			{
-				int32_t ent_x = (4 * ent_path[3 * o + 0]) + from_s32(build_get_nth_item(neighbour.data, 1) + 0);
-				int32_t ent_y = (4 * ent_path[3 * o + 1]) + from_s32(build_get_nth_item(neighbour.data, 1) + 4);
-				int32_t ent_z = (4 * ent_path[3 * o + 2]) + from_s32(build_get_nth_item(neighbour.data, 1) + 8);
+				int32_t ent_x = (4 * ent_path[3 * o + 0]) + from_s32(build_get_nth_item(neighbour._data(), 1) + 0);
+				int32_t ent_y = (4 * ent_path[3 * o + 1]) + from_s32(build_get_nth_item(neighbour._data(), 1) + 4);
+				int32_t ent_z = (4 * ent_path[3 * o + 2]) + from_s32(build_get_nth_item(neighbour._data(), 1) + 8);
 
 				int32_t dist_x = abs(cam_x - ent_x);
 				int32_t dist_y = abs(cam_y - ent_y);
@@ -210,7 +212,7 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 				}
 				else
 				{
-					printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, eid_conv2(curr.eid), cam_idx);
+					printf("[warning] Unknown camera mode %d in %s cam %d\n", cam_mode, curr.ename, cam_idx);
 				}
 			}
 		}
@@ -221,108 +223,109 @@ void build_draw_list_util(ENTRY* elist, int32_t entry_count, std::vector<LIST>& 
 
 // main function for remaking draw lists according to config and zone data
 // selects entities to draw, converts to delta form and replaces camera properties
-void build_remake_draw_lists(ENTRY* elist, int32_t entry_count, int32_t* config)
+void build_remake_draw_lists(ELIST& elist, int32_t* config)
 {
 	bool dbg_print = false;
+	int32_t entry_count = int32_t(elist.size());
 	LIST pos_overrides{};
 
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+			continue;
+
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
+		if (!cam_count)
+			continue;
+
+		uint32_t skipflag = from_u32(build_get_nth_item(elist[i]._data(), 0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_SKIPFLAG;
+		if (skipflag)
 		{
-			int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
-			if (cam_count == 0)
-				continue;
+			printf("\nSkipping draw list making for %s\n", elist[i].ename);
+			continue;
+		}
 
-			uint32_t skipflag = from_u32(build_get_nth_item(elist[i].data, 0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_SKIPFLAG;
-			if (skipflag)
+		printf("\nMaking draw lists for %s\n", elist[i].ename);
+
+		for (int32_t j = 0; j < cam_count; j++)
+		{
+			int32_t cam_offset = build_get_nth_item_offset(elist[i]._data(), 2 + 3 * j);
+
+			int32_t cam_length = build_get_path_length(elist[i]._data() + cam_offset);
+			printf("\tcam path %d (%d points)\n", j, cam_length);
+
+			// initialize full non-delta draw list used to represent the draw list during its building
+			std::vector<LIST> full_draw{};
+			full_draw.resize(cam_length);
+
+			int32_t neighbour_count = build_get_neighbour_count(elist[i]._data());
+			LIST visited_neighbours{};
+			for (int32_t l = 0; l < neighbour_count; l++)
 			{
-				printf("\nSkipping draw list making for %s\n", eid_conv2(elist[i].eid));
-				continue;
+				ENTRY curr = elist[i];
+				uint32_t neighbour_eid = from_u32(build_get_nth_item(curr._data(), 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
+				if (visited_neighbours.find(neighbour_eid) != -1)
+				{
+					printf("[warning] Duplicate neighbour %s, skipping\n", eid_conv2(neighbour_eid));
+					continue;
+				}
+
+				visited_neighbours.add(neighbour_eid);
+				int32_t idx = elist.get_index(neighbour_eid);
+				if (idx == -1)
+				{
+					printf("[warning] Invalid neighbour %s\n", eid_conv2(neighbour_eid));
+					continue;
+				}
+				build_draw_list_util(elist, full_draw, config, i, idx, j, l, &pos_overrides);
 			}
 
-			printf("\nMaking draw lists for %s\n", eid_conv2(elist[i].eid));
-
-			for (int32_t j = 0; j < cam_count; j++)
+			int32_t max_c = 0;
+			int32_t max_p = 0;
+			printf("\t");
+			for (int32_t k = 0; k < cam_length; k++)
 			{
-				int32_t cam_offset = build_get_nth_item_offset(elist[i].data, 2 + 3 * j);
-
-				int32_t cam_length = build_get_path_length(elist[i].data + cam_offset);
-				printf("\tcam path %d (%d points)\n", j, cam_length);
-
-				// initialize full non-delta draw list used to represent the draw list during its building
-				std::vector<LIST> full_draw{};
-				full_draw.resize(cam_length);
-
-				int32_t neighbour_count = build_get_neighbour_count(elist[i].data);
-				LIST visited_neighbours{};
-				for (int32_t l = 0; l < neighbour_count; l++)
+				printf("%d,", full_draw[k].count());
+				if (full_draw[k].count() > max_c)
 				{
-					ENTRY curr = elist[i];
-					uint32_t neighbour_eid = from_u32(build_get_nth_item(curr.data, 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
-					if (visited_neighbours.find(neighbour_eid) != -1)
-					{
-						printf("[warning] Duplicate neighbour %s, skipping\n", eid_conv2(neighbour_eid));
-						continue;
-					}
-
-					visited_neighbours.add(neighbour_eid);
-					int32_t idx = build_get_index(neighbour_eid, elist, entry_count);
-					if (idx == -1)
-					{
-						printf("[warning] Invalid neighbour %s\n", eid_conv2(neighbour_eid));
-						continue;
-					}
-					build_draw_list_util(elist, entry_count, full_draw, config, i, idx, j, l, &pos_overrides);
+					max_c = full_draw[k].count();
+					max_p = k;
 				}
-
-				int32_t max_c = 0;
-				int32_t max_p = 0;
-				printf("\t");
-				for (int32_t k = 0; k < cam_length; k++)
-				{
-					printf("%d,", full_draw[k].count());
-					if (full_draw[k].count() > max_c)
-					{
-						max_c = full_draw[k].count();
-						max_p = k;
-					}
-				}
-				printf("\n\tMax count: %d (point %d)\n", max_c, max_p);
-
-				// creates and initialises delta representation of the draw list
-				std::vector<LIST> listA{};
-				std::vector<LIST> listB{};
-				listA.resize(cam_length);
-				listB.resize(cam_length);
-
-				// converts full draw list to delta based, then creates game-format draw list properties based on the delta lists
-				// listA and listB args are switched around because draw lists are like that
-				build_load_list_to_delta(full_draw, listB, listA, cam_length, elist, entry_count, 1);
-				PROPERTY prop_0x13B = build_make_load_list_prop(listA, cam_length, 0x13B);
-				PROPERTY prop_0x13C = build_make_load_list_prop(listB, cam_length, 0x13C);
-
-				if (dbg_print)
-					printf("Converted full list to delta form and delta to props\n");
-
-				// removes existing draw list properties, inserts newly made ones
-				build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13B, NULL);
-				build_entity_alter(&elist[i], 2 + 3 * j, build_rem_property, 0x13C, NULL);
-
-				if (max_c && prop_0x13B.length && prop_0x13C.length)
-				{
-					build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13B, &prop_0x13B);
-					build_entity_alter(&elist[i], 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
-				}
-
-				if (dbg_print)
-					printf("Replaced draw list props\n");
-
-				if (dbg_print)
-					printf("Freed some stuff, end\n");
-				// free(prop_0x208.data);
-				// free(prop_0x209.data);
 			}
+			printf("\n\tMax count: %d (point %d)\n", max_c, max_p);
+
+			// creates and initialises delta representation of the draw list
+			std::vector<LIST> listA{};
+			std::vector<LIST> listB{};
+			listA.resize(cam_length);
+			listB.resize(cam_length);
+
+			// converts full draw list to delta based, then creates game-format draw list properties based on the delta lists
+			// listA and listB args are switched around because draw lists are like that
+			build_load_list_to_delta(full_draw, listB, listA, cam_length, elist, 1);
+			PROPERTY prop_0x13B = build_make_load_list_prop(listA, cam_length, 0x13B);
+			PROPERTY prop_0x13C = build_make_load_list_prop(listB, cam_length, 0x13C);
+
+			if (dbg_print)
+				printf("Converted full list to delta form and delta to props\n");
+
+			// removes existing draw list properties, inserts newly made ones
+			build_entity_alter(elist[i], 2 + 3 * j, build_rem_property, 0x13B, NULL);
+			build_entity_alter(elist[i], 2 + 3 * j, build_rem_property, 0x13C, NULL);
+
+			if (max_c && prop_0x13B.length && prop_0x13C.length)
+			{
+				build_entity_alter(elist[i], 2 + 3 * j, build_add_property, 0x13B, &prop_0x13B);
+				build_entity_alter(elist[i], 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
+			}
+
+			if (dbg_print)
+				printf("Replaced draw list props\n");
+
+			if (dbg_print)
+				printf("Freed some stuff, end\n");
+			// free(prop_0x208.data);
+			// free(prop_0x209.data);
 		}
 	}
 }

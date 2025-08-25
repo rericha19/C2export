@@ -1,128 +1,52 @@
-#include <algorithm>
+#pragma once
+
 #include <vector>
-#include <memory>
 
-#ifndef __list_defined
-#define __list_defined
-
-class LIST
+class LIST : public std::vector<uint32_t>
 {
-
 public:
-	LIST(int32_t res = 0)
-	{
-		if (res)
-			m_eids.reserve(res);
-	}
+	int32_t count() const;
+	int32_t find(uint32_t eid) const;
+	void add(uint32_t eid);
+	void remove(uint32_t eid);
+	void copy_in(const LIST& other);
+	void remove_all(const LIST& other);
 
-	inline uint32_t operator[](int32_t index) const
-	{
-		return m_eids[index];
-	}
-
-	inline std::vector<uint32_t>& eids()
-	{
-		return m_eids;
-	}
-
-	inline int32_t count() const
-	{
-		return static_cast<int32_t>(m_eids.size());
-	}
-
-	inline void add(uint32_t eid)
-	{
-		if (!m_eids.empty() && std::find(m_eids.begin(), m_eids.end(), eid) != m_eids.end())
-			return;
-
-		m_eids.push_back(eid);
-	}
-
-	inline void remove(uint32_t eid)
-	{
-		if (m_eids.empty())
-			return;
-		auto it = std::find(m_eids.begin(), m_eids.end(), eid);
-		if (it == m_eids.end())
-			return;
-
-		m_eids.erase(it);
-	}
-
-	inline int32_t find(uint32_t eid) const
-	{
-		if (m_eids.empty())
-			return -1;
-
-		auto it = std::find(m_eids.begin(), m_eids.end(), eid);
-		if (it == m_eids.end())
-			return -1;
-
-		return static_cast<int32_t>(it - m_eids.begin());
-
-	}
-
-	inline static bool is_subset(const LIST& subset, const LIST& superset)
-	{
-		for (const auto& item : subset.m_eids)
-		{
-			if (superset.find(item) == -1)
-				return false;
-		}
-		return true;
-	}
-
-	inline void copy_in(const LIST& other)
-	{
-		for (auto& eid : other.m_eids)
-		{
-			if (std::find(m_eids.begin(), m_eids.end(), eid) == m_eids.end())
-				m_eids.push_back(eid);
-		}
-	}
-
-	inline void remove_all(const LIST& other)
-	{
-		for (auto& eid : other.m_eids)
-		{
-			auto it = std::find(m_eids.begin(), m_eids.end(), eid);
-			if (it != m_eids.end())
-				m_eids.erase(it);
-		}
-	}
-
-private:
-	std::vector<uint32_t> m_eids{};
+	static bool is_subset(const LIST& subset, const LIST& superset);
 };
 
 class DEPENDENCY
 {
-
 public:
-	DEPENDENCY(int32_t t = 0, int32_t s = 0)
+	inline DEPENDENCY(int32_t t = 0, int32_t s = 0)
 	{
 		type = t;
 		subtype = s;
-	}
+	};
+
 
 	int32_t type = 0;
 	int32_t subtype = 0;
 	LIST dependencies{};
 };
+using DEPENDENCIES = std::vector<DEPENDENCY>;
+
 
 class MATRIX_STORED_LL
 {
 public:
-	MATRIX_STORED_LL(uint32_t z, int32_t path)
+	inline MATRIX_STORED_LL(uint32_t z, int32_t path)
 	{
 		zone = z;
 		cam_path = path;
-	}
+	};
+
 
 	uint32_t zone = 0;
 	int32_t cam_path = 0;
 	LIST full_load{};
 };
+using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
 
 // used to store load or draw list in its non-delta form
 class LOAD
@@ -133,9 +57,29 @@ public:
 	LIST list{};
 };
 
+// in build scripts, used to store spawns
+class SPAWN
+{
+public:
+	int32_t x;
+	int32_t y;
+	int32_t z;
+	uint32_t zone;
+};
 
-using LOAD_LIST = std::vector<LOAD>;
-using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
-using DEPENDENCIES = std::vector<DEPENDENCY>;
+class SPAWNS : public std::vector<SPAWN>
+{
+public:
+	void swap_spawns(int32_t spawnA, int32_t spawnB);	
+	void sort_spawns();
+};
 
-#endif
+using GENERIC_LOAD_LIST = std::vector<LOAD>;
+using LOAD_LIST = GENERIC_LOAD_LIST;
+using DRAW_LIST = GENERIC_LOAD_LIST;
+
+
+// Deconstructs the load or draw lists and saves into a convenient struct.
+void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, uint8_t* entry, int32_t cam_index);
+LOAD_LIST get_load_lists(uint8_t* entry, int32_t cam_index);
+DRAW_LIST get_draw_lists(uint8_t* entry, int32_t cam_index);

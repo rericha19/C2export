@@ -31,6 +31,9 @@
     <ClInclude Include="..\src\game_structs\entry.hpp" />
     <ClInclude Include="..\src\include.h" />
     <ClInclude Include="..\src\utils\dirent.h" />
+    <ClInclude Include="..\src\utils\dist_queue.hpp" />
+    <ClInclude Include="..\src\utils\payloads.hpp" />
+    <ClInclude Include="..\src\utils\utils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\build\build.cpp" />
@@ -43,15 +46,15 @@
     <ClCompile Include="..\src\build\build_parsing.cpp" />
     <ClCompile Include="..\src\build\build_snd_instr_chunks.cpp" />
     <ClCompile Include="..\src\build\build_user_input.cpp" />
-    <ClCompile Include="..\src\build\payload_info.cpp" />
     <ClCompile Include="..\src\game_structs\chunk.cpp" />
     <ClCompile Include="..\src\game_structs\entry.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\side_scripts\export.cpp" />
     <ClCompile Include="..\src\side_scripts\level_alter.cpp" />
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp" />
-    <ClCompile Include="..\src\utils\utils.hpp" />
     <ClCompile Include="..\src\utils\misc.cpp" />
+    <ClCompile Include="..\src\utils\payloads.cpp" />
+    <ClCompile Include="..\src\utils\utils.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

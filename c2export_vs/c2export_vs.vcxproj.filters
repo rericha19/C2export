@@ -30,14 +30,23 @@
     <ClInclude Include="..\src\include.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\utils\dirent.h">
-      <Filter>Source Files\utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\game_structs\chunk.hpp">
       <Filter>Source Files\game_structs</Filter>
     </ClInclude>
     <ClInclude Include="..\src\game_structs\entry.hpp">
       <Filter>Source Files\game_structs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\dirent.h">
+      <Filter>Source Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\dist_queue.hpp">
+      <Filter>Source Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\payloads.hpp">
+      <Filter>Source Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\utils.hpp">
+      <Filter>Source Files\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -52,9 +61,6 @@
     </ClCompile>
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp">
       <Filter>Source Files\side_scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\misc.cpp">
-      <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\build\build.cpp">
       <Filter>Source Files\build</Filter>
@@ -83,12 +89,6 @@
     <ClCompile Include="..\src\build\build_user_input.cpp">
       <Filter>Source Files\build</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\build\payload_info.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\utils.hpp">
-      <Filter>Source Files\utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\game_structs\chunk.cpp">
       <Filter>Source Files\game_structs</Filter>
     </ClCompile>
@@ -97,6 +97,15 @@
     </ClCompile>
     <ClCompile Include="..\src\build\level_analyze.cpp">
       <Filter>Source Files\side_scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\misc.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\payloads.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\utils.cpp">
+      <Filter>Source Files\utils</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

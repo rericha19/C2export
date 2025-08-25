@@ -1,14 +1,15 @@
 #include "../include.h"
+#include "../utils/payloads.hpp"
+#include "../utils/utils.hpp"
 
 #if COMPILE_WITH_THREADS
 
 typedef struct matrix_merge_thread_input_struct
 {
-	ENTRY* elist;
-	int32_t entry_count;
+	ELIST* elist;
 	uint32_t* best_zone_ptr;
 	int64_t* best_max_ptr;
-	ENTRY* best_elist;
+	ELIST* best_elist;
 	LIST* entrs;
 	int32_t** entry_mtrx;
 	int32_t* conf;
@@ -24,7 +25,7 @@ typedef struct matrix_merge_thread_input_struct
 	pthread_mutex_t* mutex_iter;
 	int32_t chunk_border_sounds;
 	MATRIX_STORED_LLS* stored_lls;
-	MERGE_WORST_ZONE_INFO* worst_zones_info;
+	WORST_ZONE_INFO* worst_zones_info;
 } MTRX_THRD_IN_STR;
 #endif // COMPILE_WITH_THREADS
 
@@ -82,10 +83,13 @@ void* build_matrix_merge_random_util(void* args)
 	bool best_reached = false;
 
 	MTRX_THRD_IN_STR inp_args = *(MTRX_THRD_IN_STR*)args;
-	int32_t entry_count = inp_args.entry_count;
-	ENTRY* clone_elist = (ENTRY*)try_malloc(entry_count * sizeof(ENTRY));
-	RELATIONS array_repr_untouched = build_transform_matrix(*inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
-	RELATIONS array_representation = build_transform_matrix(*inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, inp_args.elist, entry_count);
+	int32_t entry_count = inp_args.elist->count();
+
+	ELIST clone_elist{};
+	clone_elist.resize(entry_count);
+	
+	RELATIONS array_repr_untouched = build_transform_matrix(*inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, *inp_args.elist);
+	RELATIONS array_representation = build_transform_matrix(*inp_args.entrs, inp_args.entry_mtrx, inp_args.conf, *inp_args.elist);
 	srand(inp_args.rnd_seed);
 	int32_t iter_count = inp_args.iter_cnt;
 	int32_t curr_i;
@@ -94,7 +98,6 @@ void* build_matrix_merge_random_util(void* args)
 
 	while (1)
 	{
-
 		// check whether iter limit was reached
 		pthread_mutex_lock(inp_args.mutex_iter);
 		if (*inp_args.curr_iter_ptr > iter_count && iter_count != 0)
@@ -106,7 +109,7 @@ void* build_matrix_merge_random_util(void* args)
 
 		// restore stuff
 		for (int32_t j = 0; j < entry_count; j++)
-			clone_elist[j] = inp_args.elist[j];
+			clone_elist[j] = inp_args.elist->at(j);
 		memcpy(array_representation.relations, array_repr_untouched.relations, array_representation.count * sizeof(RELATION));
 
 		// second half of the matrix merge slightly randomised and ran on clone elist
@@ -115,22 +118,11 @@ void* build_matrix_merge_random_util(void* args)
 		qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
 		// do the merges according to the slightly randomised relation array
-		build_matrix_merge_util(array_representation, clone_elist, entry_count, 1.0);
+		build_matrix_merge_util(array_representation, clone_elist, 1.0);
 
 		// get payload ladder for current iteration
-		PAYLOADS payloads = build_matrix_get_payload_ladder(*inp_args.stored_lls, clone_elist, entry_count, inp_args.chunk_border_sounds, 0);
-		qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
-
-		// how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
-		int32_t src_depth = min(payloads.count, 8);
-
-		// gets current 'score', its multiplied by 100 instead of being bit shifted each iter so its legible in the console
-		int64_t curr = 0;
-		for (int32_t j = 0; j < src_depth; j++)
-		{
-			curr = curr * (int64_t)100;
-			curr += (int64_t)payloads.arr[j].count;
-		}
+		PAYLOADS payloads = PAYLOADS::get_payload_ladder(*inp_args.stored_lls, clone_elist, inp_args.chunk_border_sounds, 0);
+		int64_t curr = payloads.calculate_score();
 
 		pthread_mutex_lock(inp_args.mutex_best);
 		bool is_new_best = false;
@@ -138,19 +130,19 @@ void* build_matrix_merge_random_util(void* args)
 		if (curr < *inp_args.best_max_ptr)
 		{
 			for (int32_t j = 0; j < entry_count; j++)
-				inp_args.best_elist[j] = clone_elist[j];
+				(*inp_args.best_elist)[j] = clone_elist[j];
 			*inp_args.best_max_ptr = curr;
-			*inp_args.best_zone_ptr = payloads.arr[0].zone;
+			*inp_args.best_zone_ptr = payloads[0].zone;
 			is_new_best = true;
 		}
 
 		pthread_mutex_lock(inp_args.mutex_iter);
-		build_update_worst_zones_info(inp_args.worst_zones_info, payloads.arr[0].zone, payloads.arr[0].count);
+		inp_args.worst_zones_info->update(payloads[0]);		
 		curr_i = *inp_args.curr_iter_ptr;
 
 		int64_t cr_max = *inp_args.best_max_ptr;
-		for (int32_t j = 0; j < src_depth - 1; j++)
-			cr_max = cr_max / 100;
+		while (cr_max / 100)
+			cr_max /= 100;
 
 		if (cr_max <= inp_args.max_pay)
 			best_reached = true;
@@ -159,7 +151,7 @@ void* build_matrix_merge_random_util(void* args)
 		{
 			if (is_new_best)
 				printf("Iter %3d, thr %2d, current %lld (%5s), best %lld (%5s) -- DONE\n",
-					curr_i, t_id, (long long)curr, eid_conv(payloads.arr[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
+					curr_i, t_id, (long long)curr, eid_conv(payloads[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
 			else
 				printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_i, t_id);
 		}
@@ -167,10 +159,10 @@ void* build_matrix_merge_random_util(void* args)
 		{
 			if (is_new_best)
 				printf("Iter %3d, thr %2d, current %lld (%5s), best %lld (%5s) -- NEW BEST\n",
-					curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
+					curr_i, t_id, curr, eid_conv(payloads[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
 			else
 				printf("Iter %3d, thr %2d, current %lld (%5s), best %lld (%5s)\n",
-					curr_i, t_id, curr, eid_conv(payloads.arr[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
+					curr_i, t_id, curr, eid_conv(payloads[0].zone, eid1), *inp_args.best_max_ptr, eid_conv(*inp_args.best_zone_ptr, eid2));
 		}
 		*inp_args.curr_iter_ptr += 1;
 
@@ -183,7 +175,6 @@ void* build_matrix_merge_random_util(void* args)
 
 	free(array_representation.relations);
 	free(array_repr_untouched.relations);
-	free(clone_elist);
 
 	pthread_mutex_lock(inp_args.mutex_running_thr_cnt);
 	(*inp_args.running_threads)--;
@@ -192,17 +183,7 @@ void* build_matrix_merge_random_util(void* args)
 	return (void*)NULL;
 }
 
-/** \brief
- *
- * \param elist ENTRY*
- * \param entry_count int32_t
- * \param chunk_border_sounds int32_t
- * \param chunk_count int32_t*
- * \param config int32_t*
- * \param permaloaded LIST
- *
- */
-void build_matrix_merge_random_thr_main(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded)
+void build_matrix_merge_random_thr_main(ELIST& elist, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded)
 {
 	// asking user parameters for the method
 	double mult;
@@ -228,27 +209,29 @@ void build_matrix_merge_random_thr_main(ENTRY* elist, int32_t entry_count, int32
 
 	// first half of matrix merge method, unchanged
 	// this can be done once instead of every iteration since its the same every time
-	build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
-	build_assign_primary_chunks_all(elist, entry_count, chunk_count);                           // chunks start off having one entry per chunk
+	build_permaloaded_merge(elist, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
+	build_assign_primary_chunks_all(elist, chunk_count);                           // chunks start off having one entry per chunk
 
 	// get occurence matrix
 	int32_t permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
-	LIST entries = build_get_normal_entry_list(elist, entry_count);
+	LIST entries = build_get_normal_entry_list(elist);
 	if (permaloaded_include_flag == 0)
 		for (int32_t i = 0; i < permaloaded.count(); i++)
 			entries.add(permaloaded[i]);
 
-	int32_t** entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
+	int32_t entry_count = elist.count();
+	int32_t** entry_matrix = build_get_occurence_matrix(elist, entries, config);
 
 	// clone elists that store the current iteration and the best iretation
-	ENTRY* best_elist = (ENTRY*)try_malloc(sizeof(ENTRY) * entry_count);
+	ELIST best_elist{};
+	best_elist.resize(entry_count);
+	
 	// for keeping track of the best found
 	int64_t best_max = 9223372036854775807; // max signed 64b int
 	uint32_t best_zone = 0;
 
-	MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
-	MERGE_WORST_ZONE_INFO wzi;
-	wzi.used_count = 0;
+	MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist);
+	WORST_ZONE_INFO wzi{};	
 
 	// declare, initialise and create threads, pass them necessary args thru structs
 	// replace with smart pointer
@@ -258,11 +241,10 @@ void build_matrix_merge_random_thr_main(ENTRY* elist, int32_t entry_count, int32
 	for (int32_t i = 0; i < t_count; i++)
 	{
 		MTRX_THRD_IN_STR thr_arg{};
-		thr_arg.best_elist = best_elist;
+		thr_arg.best_elist = &best_elist;
 		thr_arg.best_max_ptr = &best_max;
 		thr_arg.best_zone_ptr = &best_zone;
-		thr_arg.elist = elist;
-		thr_arg.entry_count = entry_count;
+		thr_arg.elist = &elist;
 		thr_arg.entrs = &entries;
 		thr_arg.entry_mtrx = entry_matrix;
 		thr_arg.conf = config;
@@ -304,35 +286,31 @@ void build_matrix_merge_random_thr_main(ENTRY* elist, int32_t entry_count, int32
 			*chunk_count = elist[i].chunk + 1;
 	}
 
-	qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
-	printf("\nWorst zone average:\n");
-	for (int32_t i = 0; i < wzi.used_count && i < 10; i++)
-		printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double)wzi.infos[i].sum) / wzi.infos[i].count);
+	wzi.print_summary();
 
 	// cleanup
-	free(best_elist);
 	for (int32_t i = 0; i < entries.count(); i++)
 		free(entry_matrix[i]);
 	free(entry_matrix);	
-	*chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist); // gets rid of empty chunks at the end
+	*chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, elist);
 	printf("\07");
 }
 #endif // COMPILE_WITH_THREADS
 
-MATRIX_STORED_LLS build_matrix_store_lls(ENTRY* elist, int32_t entry_count)
+MATRIX_STORED_LLS build_matrix_store_lls(ELIST & elist)
 {
 	MATRIX_STORED_LLS stored_stuff{};
+	int32_t entry_count = int32_t(elist.size());
 
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE || elist[i].data == NULL)
+		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			LOAD_LIST load_list{};
-			build_get_load_lists(load_list, elist[i].data, 2 + 3 * j);
+			LOAD_LIST load_list = get_load_lists(elist[i]._data(), 2 + 3 * j);
 
 			LIST list{};
 			int32_t idx = -1;
@@ -357,8 +335,8 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY* elist, int32_t entry_count)
 
 					for (int32_t z = 0; z < list.count(); z++)
 					{
-						int32_t index = build_get_index(list[z], elist, entry_count);
-						if (index >= 0 && build_is_normal_chunk_entry(elist[index]))
+						int32_t index = elist.get_index(list[z]);
+						if (index != -1 && build_is_normal_chunk_entry(elist[index]))
 							stored_load_list.full_load.add(list[z]);
 					}
 
@@ -371,33 +349,10 @@ MATRIX_STORED_LLS build_matrix_store_lls(ENTRY* elist, int32_t entry_count)
 	return stored_stuff;
 }
 
-PAYLOADS build_matrix_get_payload_ladder(MATRIX_STORED_LLS& stored_lls, ENTRY* elist, int32_t entry_count, int32_t chunk_min, int32_t get_tpages)
-{
-	PAYLOADS pls;
-	pls.arr = NULL;
-	pls.count = 0;
-	for (auto& curr_ll : stored_lls)
-	{
-		PAYLOAD payload = build_get_payload(elist, entry_count, curr_ll.full_load, curr_ll.zone, chunk_min, get_tpages);
-		payload.cam_path = curr_ll.cam_path;
-		build_insert_payload(&pls, payload);
-	}
-	return pls;
-}
 
-/** \brief
- *
- * \param elist ENTRY*
- * \param entry_count int32_t
- * \param chunk_border_sounds int32_t
- * \param chunk_count int32_t*
- * \param config int32_t*
- * \param permaloaded LIST
- * \param eat_thrc bool
- *
- */
-void build_matrix_merge_random_main(ENTRY* elist, int32_t entry_count, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded, bool eat_thrc)
+void build_matrix_merge_random_main(ELIST& elist, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded, bool eat_thrc)
 {
+	int32_t entry_count = elist.count();
 	char eid1[6] = "";
 	char eid2[6] = "";
 
@@ -418,40 +373,43 @@ void build_matrix_merge_random_main(ENTRY* elist, int32_t entry_count, int32_t c
 	uint32_t best_zone = 0;
 
 	// clone elists that store the current iteration and the best iretation
-	ENTRY* clone_elist = (ENTRY*)try_malloc(entry_count * sizeof(ENTRY));
-	ENTRY* best_elist = (ENTRY*)try_malloc(entry_count * sizeof(ENTRY));
+	ELIST clone_elist{};
+	ELIST best_elist{};
+	clone_elist.resize(entry_count);
+	best_elist.resize(entry_count);	
 
 	// first half of matrix merge method, unchanged
 	// this can be done once instead of every iteration since its the same every time
-	build_permaloaded_merge(elist, entry_count, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
-	build_assign_primary_chunks_all(elist, entry_count, chunk_count);                           // chunks start off having one entry per chunk
+	build_permaloaded_merge(elist, chunk_border_sounds, chunk_count, permaloaded); // merge permaloaded entries' chunks as well as possible
+	build_assign_primary_chunks_all(elist, chunk_count);                           // chunks start off having one entry per chunk
 
 	// get occurence matrix and convert to the relation array (not doing this each iteration makes it way faster)
 	int32_t permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
-	LIST entries = build_get_normal_entry_list(elist, entry_count);
+	LIST entries = build_get_normal_entry_list(elist);
 	if (permaloaded_include_flag == 0)
 	{
 		entries.remove_all(permaloaded);
 	}
 
-	int32_t** entry_matrix = build_get_occurence_matrix(elist, entry_count, entries, config);
+	int32_t** entry_matrix = build_get_occurence_matrix(elist, entries, config);
 
 	// put the matrix's contents in an array and sort (so the matrix doesnt have to be searched every time)
-	RELATIONS array_repr_untouched = build_transform_matrix(entries, entry_matrix, config, elist, entry_count);
-	RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config, elist, entry_count);
+	RELATIONS array_repr_untouched = build_transform_matrix(entries, entry_matrix, config, elist);
+	RELATIONS array_representation = build_transform_matrix(entries, entry_matrix, config, elist);
 	// matrix no longer used
 	for (int32_t i = 0; i < entries.count(); i++)
 		free(entry_matrix[i]);
 	free(entry_matrix);
 
-	MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist, entry_count);
-	MERGE_WORST_ZONE_INFO wzi;
-	wzi.used_count = 0;
+	MATRIX_STORED_LLS stored_lls = build_matrix_store_lls(elist);
+	WORST_ZONE_INFO wzi{};	
 
 	// runs until iter count is reached or until break inside goes off (iter count 0 can make it never stop)
 	for (int32_t i = 0; i < iter_count || iter_count == 0; i++)
 	{
-		memcpy(clone_elist, elist, entry_count * sizeof(ENTRY)); // restore clone elist
+		// restore clone elist
+		for (int32_t j = 0; j < entry_count; j++)
+			clone_elist[j] = elist[j];		
 
 		// restore relations array so it can be tweaked again
 		memcpy(array_representation.relations, array_repr_untouched.relations, array_representation.count * sizeof(RELATION));
@@ -462,44 +420,35 @@ void build_matrix_merge_random_main(ENTRY* elist, int32_t entry_count, int32_t c
 		qsort(array_representation.relations, array_representation.count, sizeof(RELATION), relations_cmp);
 
 		// do the merges according to the slightly randomised relation array
-		build_matrix_merge_util(array_representation, clone_elist, entry_count, 1.0);
+		build_matrix_merge_util(array_representation, clone_elist, 1.0);
 
 		// get payload ladder for current iteration
-		PAYLOADS payloads = build_matrix_get_payload_ladder(stored_lls, clone_elist, entry_count, chunk_border_sounds, 0);
-		qsort(payloads.arr, payloads.count, sizeof(PAYLOAD), cmp_func_payload);
-		build_update_worst_zones_info(&wzi, payloads.arr[0].zone, payloads.arr[0].count);
-
-		// how many cam paths' payload it takes into consideration, max 8 but if the level is smaller it does less, also it could do 9 too but 8 is a nicer number
-		int32_t src_depth = min(payloads.count, 8);
-
-		// gets current 'score', its multiplied by 100 instead of being bit shifted each iter so its legible in the console
-		int64_t curr = 0;
-		for (int32_t j = 0; j < src_depth; j++)
-		{
-			curr = curr * (int64_t)100;
-			curr += (int64_t)payloads.arr[j].count;
-		}
+		PAYLOADS payloads = PAYLOADS::get_payload_ladder(stored_lls, clone_elist, chunk_border_sounds, 0);
+		int64_t curr = payloads.calculate_score();		
+		wzi.update(payloads[0]);				
 
 		bool is_new_best = false;
 		// if its better than the previous best it gets stored in best_elist and score and zone are remembered
 		if (curr < best_max)
 		{
 			// copy clone elist into best elist
-			memcpy(best_elist, clone_elist, entry_count * sizeof(ENTRY));
+			for (int32_t j = 0; j < entry_count; j++)
+				best_elist[j] = clone_elist[j];			
+			
 			best_max = curr;
-			best_zone = payloads.arr[0].zone;
+			best_zone = payloads[0].zone;
 			is_new_best = true;
 		}
 
 		if (!is_new_best)
 			printf("Iter %3d, current %lld (%5s), best %lld (%5s)\n",
-				i, curr, eid_conv(payloads.arr[0].zone, eid1), best_max, eid_conv(best_zone, eid2));
+				i, curr, eid_conv(payloads[0].zone, eid1), best_max, eid_conv(best_zone, eid2));
 		else
 			printf("Iter %3d, current %lld (%5s), best %lld (%5s) -- NEW BEST\n",
-				i, curr, eid_conv(payloads.arr[0].zone, eid1), best_max, eid_conv(best_zone, eid2));
+				i, curr, eid_conv(payloads[0].zone, eid1), best_max, eid_conv(best_zone, eid2));
 
 		// if the worst payload zone has the same or lower payload than user specified max, it stops since its good enough
-		if (payloads.arr[0].count <= max_payload_limit)
+		if (payloads[0].page_count() <= max_payload_limit)
 			break;
 	}
 
@@ -511,15 +460,10 @@ void build_matrix_merge_random_main(ENTRY* elist, int32_t entry_count, int32_t c
 			*chunk_count = elist[i].chunk + 1;
 	}
 
-	qsort(wzi.infos, wzi.used_count, sizeof(MERGE_WORST_ZONE_INFO_SINGLE), cmp_worst_zone_info);
-	printf("\nWorst zone average:\n");
-	for (int32_t i = 0; i < wzi.used_count && i < 10; i++)
-		printf("\t%s - %4dx, worst-avg payload %4.2f\n", eid_conv2(wzi.infos[i].zone), wzi.infos[i].count, ((double)wzi.infos[i].sum) / wzi.infos[i].count);
+	wzi.print_summary();	
 
-	free(clone_elist);
-	free(best_elist);
 	free(array_representation.relations);
 	free(array_repr_untouched.relations);
-	*chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, entry_count, elist); // gets rid of empty chunks at the end
+	*chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, elist);
 	printf("\07");
 }

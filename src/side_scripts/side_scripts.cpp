@@ -832,8 +832,10 @@ void resize_chunk_handler(uint8_t* chunk, int32_t game, double scale[3])
 			offset_end = CHUNKSIZE;
 		entry = chunk + offset_start;
 
-		ENTRY curr_entry;
-		curr_entry.data = entry;
+		ENTRY curr_entry{};
+		curr_entry.esize = offset_end - offset_start;
+		curr_entry.data.resize(curr_entry.esize);
+		memcpy(curr_entry.data.data(), entry, curr_entry.esize);
 		int32_t etype = build_entry_type(curr_entry);
 
 		if (etype == ENTRY_TYPE_ZONE)
@@ -1129,10 +1131,9 @@ void nsd_gool_table_print_cmd()
 // command for generating spawn
 void generate_spawn()
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, NULL))
 		return;
 
 	char zone[100] = "";
@@ -1144,20 +1145,18 @@ void generate_spawn()
 	int32_t path_to_spawn_on = 0;
 	int32_t entity_index = -1;
 	uint32_t zone_eid = eid_to_int(zone);
-	int32_t elist_index = build_get_index(zone_eid, elist, entry_count);
+	int32_t elist_index = elist.get_index(zone_eid);
 
 	if (elist_index == -1)
 	{
 		printf("Zone %5s not found\n\n", zone);
-		build_cleanup_elist(elist, entry_count);
 		return;
 	}
 
-	int32_t cam_count = build_get_cam_item_count(elist[elist_index].data) / 3;
+	int32_t cam_count = build_get_cam_item_count(elist[elist_index]._data()) / 3;
 	if (cam_count == 0)
 	{
 		printf("Zone %5s does not have a camera path\n\n", zone);
-		build_cleanup_elist(elist, entry_count);
 		return;
 	}
 	else if (cam_count > 1)
@@ -1169,9 +1168,9 @@ void generate_spawn()
 	printf("\nWhat entity's coordinates do you wanna spawn on? (entity has to be in the zone)\n");
 	scanf("%d", &entity_id);
 
-	for (int32_t i = 0; i < build_get_entity_count(elist[elist_index].data); i++)
+	for (int32_t i = 0; i < build_get_entity_count(elist[elist_index]._data()); i++)
 	{
-		uint8_t* entity = build_get_nth_item(elist[elist_index].data, 2 + 3 * cam_count + i);
+		uint8_t* entity = build_get_nth_item(elist[elist_index]._data(), 2 + 3 * cam_count + i);
 		int32_t ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
 		if (ID == entity_id)
@@ -1181,7 +1180,6 @@ void generate_spawn()
 	if (entity_index == -1)
 	{
 		printf("\nEntity with ID %4d not found in %5s\n\n", entity_id, zone);
-		build_cleanup_elist(elist, entry_count);
 		return;
 	}
 
@@ -1190,11 +1188,10 @@ void generate_spawn()
 	{
 		free(path);
 		printf("\n Entity doesnt have a position\n");
-		build_cleanup_elist(elist, entry_count);
 		return;
 	}
 
-	uint8_t* coll_item = build_get_nth_item(elist[elist_index].data, 1);
+	uint8_t* coll_item = build_get_nth_item(elist[elist_index]._data(), 1);
 	uint32_t zone_x = from_u32(coll_item);
 	uint32_t zone_y = from_u32(coll_item + 4);
 	uint32_t zone_z = from_u32(coll_item + 8);
@@ -1222,7 +1219,6 @@ void generate_spawn()
 	}
 
 	free(path);
-	build_cleanup_elist(elist, entry_count);
 	printf("\nDone.\n\n");
 }
 
@@ -1523,13 +1519,12 @@ void print_model_refs_util(uint8_t* model)
 // prints texture references of a model or all models from a nsf
 void print_model_tex_refs_nsf()
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
 	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
 		gool_table[i] = EID_NONE;
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
 		return;
 
 	bool printed_something = false;
@@ -1537,20 +1532,19 @@ void print_model_tex_refs_nsf()
 	char ename[6] = "";
 	scanf("%5s", ename);
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (auto& ntry : elist)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_MODEL)
+		if (build_entry_type(ntry) != ENTRY_TYPE_MODEL)
+			continue;
+
+		if (strcmp(eid_conv2(ntry.eid), ename) == 0 || strcmp(ename, "all") == 0)
 		{
-			if (strcmp(eid_conv2(elist[i].eid), ename) == 0 || strcmp(ename, "all") == 0)
-			{
-				printf("\nModel %s:", eid_conv2(elist[i].eid));
-				print_model_refs_util(elist[i].data);
-				printed_something = true;
-			}
+			printf("\nModel %s:", ntry.ename);
+			print_model_refs_util(ntry._data());
+			printed_something = true;
 		}
 	}
 
-	build_cleanup_elist(elist, entry_count);
 	if (!printed_something)
 		printf("No such model was found\n");
 	printf("Done.\n\n");
@@ -1593,22 +1587,21 @@ void print_model_tex_refs()
 // prints all entries?
 void print_all_entries_perma()
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
+
 	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
 	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
 		gool_table[i] = EID_NONE;
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
 		return;
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (auto& ntry : elist)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_INST)
-			printf("%5s\n", eid_conv2(elist[i].eid));
+		if (build_entry_type(ntry) != ENTRY_TYPE_INST)
+			printf("%5s\n", ntry.ename);
 	}
 
-	build_cleanup_elist(elist, entry_count);
 	printf("Done.\n\n");
 }
 
@@ -1617,51 +1610,49 @@ void entity_usage_single_nsf(char* fpath, DEPENDENCIES* deps, uint32_t* gool_tab
 {
 	printf("Checking %s\n", fpath);
 
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
-
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, fpath))
+	ELIST elist{};
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, fpath))
 		return;
 
 	int32_t total_entity_count = 0;
 
-	for (int32_t i = 0; i < entry_count; i++)
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+	for (int32_t i = 0; i < elist.count(); i++)
+	{
+		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+			continue;
+
+		int32_t camera_count = build_get_cam_item_count(elist[i]._data());
+		int32_t entity_count = build_get_entity_count(elist[i]._data());
+
+		for (int32_t j = 0; j < entity_count; j++)
 		{
-			int32_t camera_count = build_get_cam_item_count(elist[i].data);
-			int32_t entity_count = build_get_entity_count(elist[i].data);
+			uint8_t* entity = build_get_nth_item(elist[i]._data(), (2 + camera_count + j));
+			int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+			int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+			int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 
-			for (int32_t j = 0; j < entity_count; j++)
+			if (id == -1)
+				continue;
+			total_entity_count++;
+
+			bool found_before = false;
+			for (auto& d : *deps)
 			{
-				uint8_t* entity = build_get_nth_item(elist[i].data, (2 + camera_count + j));
-				int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-				int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-				int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
-
-				if (id == -1)
-					continue;
-				total_entity_count++;
-
-				bool found_before = false;
-				for (auto& d : *deps)
+				if (d.type == type && d.subtype == subt)
 				{
-					if (d.type == type && d.subtype == subt)
-					{
-						d.dependencies.add(total_entity_count);
-						found_before = true;
-					}
-				}
-
-				if (!found_before)
-				{
-					DEPENDENCY new_dep(type, subt);
-					new_dep.dependencies.add(total_entity_count);
-					deps->push_back(new_dep);
+					d.dependencies.add(total_entity_count);
+					found_before = true;
 				}
 			}
-		}
 
-	build_cleanup_elist(elist, entry_count);
+			if (!found_before)
+			{
+				DEPENDENCY new_dep(type, subt);
+				new_dep.dependencies.add(total_entity_count);
+				deps->push_back(new_dep);
+			}
+		}
+	}
 }
 
 // folder iterator for getting entity usage
@@ -1721,17 +1712,17 @@ void entity_usage_folder()
 		{
 			return y.dependencies.count() < x.dependencies.count();
 		});
-	
+
 
 	int32_t entity_sum = 0;
-	for (auto& d: deps)
+	for (auto& d : deps)
 		entity_sum += d.dependencies.count();
 
 	printf("\nTotal entity count:\n");
 	printf(" %5d entities\n", entity_sum);
 
 	printf("\nEntity type/subtype usage:\n");
-	for (auto& d: deps)
+	for (auto& d : deps)
 		printf(" %2d(%5s)-%2d: %4d entities\n", d.type, eid_conv2(gool_table[d.type]), d.subtype, d.dependencies.count());
 
 	printf("\nDone.\n\n");
@@ -1740,13 +1731,12 @@ void entity_usage_folder()
 // script for printing a property from all cameras in a level
 void nsf_props_scr()
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
 	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
 		gool_table[i] = EID_NONE;
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, &entry_count, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
 		return;
 
 	bool printed_something = false;
@@ -1756,40 +1746,39 @@ void nsf_props_scr()
 	scanf("%x", &prop_code);
 
 	printf("\n");
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+			continue;
+
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
+		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
-			for (int32_t j = 0; j < cam_count; j++)
+			for (int32_t k = 0; k < 3; k++)
 			{
-				for (int32_t k = 0; k < 3; k++)
+				uint8_t* item = build_get_nth_item(elist[i]._data(), 2 + 3 * j + k);
+				int32_t prop_count = build_prop_count(item);
+
+				for (int32_t l = 0; l < build_prop_count(item); l++)
 				{
-					uint8_t* item = build_get_nth_item(elist[i].data, 2 + 3 * j + k);
-					int32_t prop_count = build_prop_count(item);
+					int32_t code = from_u16(item + 0x10 + 8 * l);
+					int32_t offset = from_u16(item + 0x12 + 8 * l) + OFFSET;
+					int32_t offset_next = from_u16(item + 0x1A + 8 * l) + OFFSET;
+					if (l == (prop_count - 1))
+						offset_next = from_u16(item);
 
-					for (int32_t l = 0; l < build_prop_count(item); l++)
+					if (code == prop_code)
 					{
-						int32_t code = from_u16(item + 0x10 + 8 * l);
-						int32_t offset = from_u16(item + 0x12 + 8 * l) + OFFSET;
-						int32_t offset_next = from_u16(item + 0x1A + 8 * l) + OFFSET;
-						if (l == (prop_count - 1))
-							offset_next = from_u16(item);
-
-						if (code == prop_code)
-						{
-							printed_something = true;
-							printf("Zone %5s path %d item %d", eid_conv2(elist[i].eid), j, k);
-							print_prop_header(item, 0x10 + 8 * l);
-							print_prop_body(item, offset, offset_next);
-						}
+						printed_something = true;
+						printf("Zone %5s path %d item %d", eid_conv2(elist[i].eid), j, k);
+						print_prop_header(item, 0x10 + 8 * l);
+						print_prop_body(item, offset, offset_next);
 					}
 				}
 			}
 		}
 	}
 
-	build_cleanup_elist(elist, entry_count);
 	if (!printed_something)
 		printf("No such prop was found in any camera item\n");
 	printf("Done.\n\n");
@@ -1860,10 +1849,9 @@ void generate_slst()
 // modpack warp spawns generation util (for nsd)
 void warp_spawns_generate()
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, NULL))
 		return;
 
 	/* older, hardcoded spawns
@@ -1912,12 +1900,12 @@ void warp_spawns_generate()
 
 	for (int32_t i = 0; i < WARP_SPAWN_COUNT; i++)
 	{
-		for (int32_t j = 0; j < entry_count; j++)
+		for (int32_t j = 0; j < elist.count(); j++)
 		{
 			if (build_entry_type(elist[j]) != ENTRY_TYPE_ZONE)
 				continue;
 
-			uint8_t* curr_zone = elist[j].data;
+			uint8_t* curr_zone = elist[j]._data();
 			int32_t camc = build_get_cam_item_count(curr_zone);
 
 			for (int32_t k = 0; k < build_get_entity_count(curr_zone); k++)
@@ -1929,7 +1917,7 @@ void warp_spawns_generate()
 					int32_t pathlen;
 					int16_t* path = build_get_path(elist, j, 2 + camc + k, &pathlen);
 
-					uint8_t* coll_item = build_get_nth_item(elist[j].data, 1);
+					uint8_t* coll_item = build_get_nth_item(curr_zone, 1);
 					uint32_t zone_x = from_u32(coll_item);
 					uint32_t zone_y = from_u32(coll_item + 4);
 					uint32_t zone_z = from_u32(coll_item + 8);
@@ -1958,7 +1946,6 @@ void warp_spawns_generate()
 		}
 	}
 
-	build_cleanup_elist(elist, entry_count);
 	printf("\nDone.\n\n");
 }
 
@@ -1968,19 +1955,17 @@ void special_load_lists_util(char* fpath)
 	printf("Checking %s\n", fpath);
 	bool printed_something = false;
 
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (auto& curr : elist)
 	{
-		ENTRY curr = elist[i];
 		if (build_entry_type(curr) != ENTRY_TYPE_ZONE)
 			continue;
 
-		LIST special_entries = build_read_special_entries(curr.data);
+		LIST special_entries = ENTRY_2::get_special_entries(curr._data());
 		if (special_entries.count())
 		{
 			printed_something = true;
@@ -1996,7 +1981,6 @@ void special_load_lists_util(char* fpath)
 		}
 	}
 
-	build_cleanup_elist(elist, entry_count);
 	if (printed_something)
 		printf("\n");
 }
@@ -2012,8 +1996,7 @@ bool check_fpath_contains(char* fpath, std::string name)
 // for printing gool type and category list from nsf
 void nsd_util_util(char* fpath)
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
 	char* filename = strrchr(fpath, '\\');
 	if (filename != NULL)
@@ -2025,60 +2008,55 @@ void nsd_util_util(char* fpath)
 		filename = fpath;
 	}
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
 		if (build_entry_type(elist[i]) != ENTRY_TYPE_GOOL)
 			continue;
 
-		int32_t off1 = build_get_nth_item_offset(elist[i].data, 0);
+		int32_t off1 = build_get_nth_item_offset(elist[i]._data(), 0);
 
-		int32_t tpe = from_u32(elist[i].data + off1);
-		int32_t cat = from_u32(elist[i].data + off1 + 4) >> 8;
+		int32_t tpe = from_u32(elist[i]._data() + off1);
+		int32_t cat = from_u32(elist[i]._data() + off1 + 4) >> 8;
 
-		printf("%s %5s, type %d category %d\n", filename, eid_conv2(elist[i].eid), tpe, cat);
+		printf("%s %5s, type %d category %d\n", filename, elist[i].ename, tpe, cat);
 	}
-
-	build_cleanup_elist(elist, entry_count);
 }
 
 // util for printing fov info for a single level
 void fov_stats_util(char* fpath)
 {
 	printf("Level: %s\n", fpath);
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
 		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t c_count = build_get_cam_item_count(elist[i].data) / 3;
+		int32_t c_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < c_count; j++)
 		{
-			uint8_t* entity = build_get_nth_item(elist[i].data, 2 + 3 * j);
+			uint8_t* entity = build_get_nth_item(elist[i]._data(), 2 + 3 * j);
 			int32_t fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
-			printf("Zone %5s : fov %d\n", eid_conv2(elist[i].eid), fov);
+			printf("Zone %5s : fov %d\n", elist[i].ename, fov);
 		}
 	}
 
-	build_cleanup_elist(elist, entry_count);
 	printf("\n");
 }
 
 // util function for printing checkpoint, mask and dda info
 void checkpoint_stats_util(char* fpath)
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
 	int32_t cam_count = 0;
@@ -2087,18 +2065,18 @@ void checkpoint_stats_util(char* fpath)
 	int32_t masks_non_dda = 0;
 	int32_t masks_with_dda = 0;
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
 		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t c_count = build_get_cam_item_count(elist[i].data);
-		int32_t e_count = build_get_entity_count(elist[i].data);
+		int32_t c_count = build_get_cam_item_count(elist[i]._data());
+		int32_t e_count = build_get_entity_count(elist[i]._data());
 		cam_count += (c_count / 3);
 
 		for (int32_t j = 0; j < e_count; j++)
 		{
-			uint8_t* entity = build_get_nth_item(elist[i].data, 2 + c_count + j);
+			uint8_t* entity = build_get_nth_item(elist[i]._data(), 2 + c_count + j);
 			int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
 			int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
 			// int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
@@ -2180,7 +2158,6 @@ void checkpoint_stats_util(char* fpath)
 
 		printf("\n");
 	}
-	build_cleanup_elist(elist, entry_count);
 }
 
 // function for recursively iterating over folders and calling callback
@@ -2276,24 +2253,23 @@ void nsd_util()
 // command for listing draw info from nsf
 void draw_util()
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
+	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, NULL))
 		return;
 
 	int32_t total = 0;
 	int32_t point_count = 0;
 
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
 		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
+			int32_t path_len = build_get_path_length(build_get_nth_item(elist[i]._data(), 2 + 3 * j));
 			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, i, 2 + 3 * j, path_len);
 
 			for (int32_t k = 0; k < path_len - 1; k++)
@@ -2310,15 +2286,15 @@ void draw_util()
 	printf("\n");
 
 	// copypaste, cba to optimise
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
 		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(elist[i].data) / 3;
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = build_get_path_length(build_get_nth_item(elist[i].data, 2 + 3 * j));
+			int32_t path_len = build_get_path_length(build_get_nth_item(elist[i]._data(), 2 + 3 * j));
 			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, i, 2 + 3 * j, path_len);
 
 			int32_t zone_total = 0;
@@ -2336,17 +2312,13 @@ void draw_util()
 	}
 
 	printf("\nAverage entities drawn in level: %d\n", total / point_count);
-
-	build_cleanup_elist(elist, entry_count);
 	printf("\nDone.\n\n");
 }
 
 // util for printing file texture pages
 void tpage_util_util(char* fpath)
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
-
+	ELIST elist{ };
 	char* filename = strrchr(fpath, '\\');
 	if (filename != NULL)
 	{
@@ -2359,7 +2331,7 @@ void tpage_util_util(char* fpath)
 
 	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];
 	int32_t chunk_border_texture = 0;
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_border_texture, NULL, elist, &entry_count, chunks, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_border_texture, NULL, elist, chunks, NULL, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
@@ -2374,7 +2346,6 @@ void tpage_util_util(char* fpath)
 		printf("\t tpage %s \t%08X\n", eid_conv2(from_u32(chunks[i] + 0x4)), checksum);
 	}
 	printf("\n");
-	build_cleanup_elist(elist, entry_count);
 }
 
 // prints tpage list for files from a folder
@@ -2393,26 +2364,23 @@ void tpage_util()
 // for gool_util command, prints gool entries of a file plus their checksum
 void gool_util_util(char* fpath)
 {
-	ENTRY* elist = (ENTRY*)try_calloc(sizeof(ENTRY), ELIST_DEFAULT_SIZE);
-	int32_t entry_count = 0;
-
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, &entry_count, NULL, NULL, 1, fpath))
+	ELIST elist{};
+	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
-	for (int32_t i = 0; i < entry_count; i++)
+	for (int32_t i = 0; i < elist.count(); i++)
 	{
 		if (build_entry_type(elist[i]) != ENTRY_TYPE_GOOL)
 			continue;
 
-		int32_t off1 = build_get_nth_item_offset(elist[i].data, 0);
-		int32_t tpe = from_u32(elist[i].data + off1);
+		int32_t off1 = build_get_nth_item_offset(elist[i]._data(), 0);
+		int32_t tpe = from_u32(elist[i]._data() + off1);
 
-		printf("\t gool %5s-%02d \t%08X\n", eid_conv2(elist[i].eid), tpe, crcChecksum(elist[i].data, elist[i].esize));
+		printf("\t gool %5s-%02d \t%08X\n", eid_conv2(elist[i].eid), tpe, crcChecksum(elist[i]._data(), elist[i].esize));
 	}
 
 	printf("\n");
-	build_cleanup_elist(elist, entry_count);
 }
 
 // command for printing gool entries list from folder

@@ -111,7 +111,7 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
     int32_t curr_off, val, irrelitems, next_off;
 
     uint8_t *cpy = (uint8_t *)try_calloc(lcl_entrysize, sizeof(uint8_t));
-    memcpy(cpy, zone->data, lcl_entrysize);
+    memcpy(cpy, zone->_data(), lcl_entrysize);
 
     if (game == 2) // c2 to c3
     {
@@ -189,9 +189,9 @@ void export_zone_patch(ENTRY *zone, int32_t zonetype, int32_t game, bool porting
         }
     }
 
-    free(zone->data);
-    zone->data = cpy;
-    zone->esize = lcl_entrysize;
+	zone->esize = lcl_entrysize;
+	zone->data.resize(lcl_entrysize);
+	memcpy(zone->data.data(), cpy, lcl_entrysize);    
 }
 
 void export_gool_patch(ENTRY *gool, int32_t game, bool porting)
@@ -203,7 +203,7 @@ void export_gool_patch(ENTRY *gool, int32_t game, bool porting)
     int32_t curr_off = 0;
 
     uint8_t *cpy = (uint8_t *)try_calloc(entrysize, sizeof(uint8_t));
-    memcpy(cpy, gool->data, entrysize);
+    memcpy(cpy, gool->_data(), entrysize);
 
     if (cpy[0xC] == 6)
     {
@@ -242,9 +242,9 @@ void export_gool_patch(ENTRY *gool, int32_t game, bool porting)
         }
     }
 
-    free(gool->data);
-    gool->data = cpy;
     gool->esize = entrysize;
+	gool->data.resize(entrysize);
+	memcpy(gool->data.data(), cpy, entrysize);        
 }
 
 void export_model_patch(ENTRY *model, int32_t game, bool porting)
@@ -261,7 +261,7 @@ void export_model_patch(ENTRY *model, int32_t game, bool porting)
     else
         scaling = 8;
 
-    uint8_t *buffer = model->data;
+    uint8_t *buffer = model->_data();
     for (int32_t i = 0; i < 3; i++)
     {
         msize = BYTE * buffer[buffer[0x10] + 1 + i * 4] + buffer[buffer[0x10] + i * 4];
@@ -272,7 +272,7 @@ void export_model_patch(ENTRY *model, int32_t game, bool porting)
 }
 
 // main function for exporting entries
-void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **chunks, uint8_t **chunks2, int32_t chunk_count)
+void export_level(int32_t levelid, ELIST& elist, uint8_t **chunks, uint8_t **chunks2, int32_t chunk_count)
 {
     char c = 0;
     int32_t game = 0;
@@ -355,7 +355,7 @@ void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **
         "sdio20",
         "t21",
     };
-    for (int32_t i = 0; i < entry_count; i++)
+    for (int32_t i = 0; i < elist.count(); i++)
     {
         int32_t entry_type = build_entry_type(elist[i]);
         if (entry_type == -1)
@@ -371,7 +371,7 @@ void export_level(int32_t levelid, ENTRY *elist, int32_t entry_count, uint8_t **
 
         char *path = export_make_path(out_dir, entry_type_list[entry_type], eid, ++entry_counter);
         FILE *f = fopen(path, "wb");
-        fwrite(elist[i].data, sizeof(uint8_t), elist[i].esize, f);
+        fwrite(elist[i]._data(), sizeof(uint8_t), elist[i].esize, f);
         fclose(f);
     }
 

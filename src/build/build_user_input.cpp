@@ -1,4 +1,6 @@
 #include "../include.h"
+#include "../utils/utils.hpp"
+
 // contains mostly functions used to get input from user (config stuff)
 
 /** \brief
@@ -62,25 +64,25 @@ void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config)
  * \param spawns SPAWNS                 struct that contains all found spawns (willy or checkpoint entities' global origins)
  * \return void
  */
-void build_ask_spawn(SPAWNS spawns)
+void build_ask_spawn(SPAWNS& spawns)
 {
     int32_t input = 0;
 
     // lets u pick a spawn point
     printf("Pick a spawn:\n");
-    for (int32_t i = 0; i < spawns.spawn_count; i++)
-        printf("Spawn %2d:\tZone: %s\n", i + 1, eid_conv2(spawns.spawns[i].zone));
+    for (uint32_t i = 0; i < spawns.size(); i++)
+        printf("Spawn %2d:\tZone: %s\n", i + 1, eid_conv2(spawns[i].zone));
 
     scanf("%d", &input);
     input--;
-    if (input >= spawns.spawn_count || input < 0)
+    if (input >= spawns.size() || input < 0)
     {
         printf("No such spawn, defaulting to first one\n");
         input = 0;
     }
 
-    build_swap_spawns(spawns, 0, input);
-    printf("Using spawn %2d: Zone: %s\n", input + 1, eid_conv2(spawns.spawns[0].zone));
+    spawns.swap_spawns(0, input);
+    printf("Using spawn %2d: Zone: %s\n", input + 1, eid_conv2(spawns[0].zone));
 }
 
 void build_ask_draw_distances(int32_t *config)
@@ -177,12 +179,7 @@ void build_ask_distances(int32_t *config)
  * \param spawnB int32_t                    index2
  * \return void
  */
-void build_swap_spawns(SPAWNS spawns, int32_t spawnA, int32_t spawnB)
-{
-    SPAWN temp_sp = spawns.spawns[spawnA];
-    spawns.spawns[spawnA] = spawns.spawns[spawnB];
-    spawns.spawns[spawnB] = temp_sp;
-}
+
 
 void build_ask_build_flags(int32_t *config)
 {
