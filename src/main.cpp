@@ -1,5 +1,6 @@
 // Crash 2 levels' entry exporter and other stuff made by Averso
 #include "include.h"
+#include "side_scripts/level_analyze.hpp"
 
 #define CMD(str) (strcmp(p_command, str) == 0)
 
@@ -35,7 +36,7 @@ int32_t main()
 		else if (CMD("EID"))                eid_cmd();
 		else if (CMD("PROP_REMOVE"))        prop_remove_script();
 		else if (CMD("PROP_REPLACE"))       prop_replace_script();
-		else if (CMD("LL_ANALYZE"))         build_ll_analyze();
+		else if (CMD("LL_ANALYZE"))         level_analyze::ll_analyze_main();
 		else if (CMD("GEN_SPAWN"))          generate_spawn();
 		else if (CMD("TIME"))               time_convert();
 		else if (CMD("ENT_RESIZE"))         c3_ent_resize();
@@ -46,7 +47,7 @@ int32_t main()
 		else if (CMD("ENTITY_USAGE"))       entity_usage_folder();
 		else if (CMD("NSF_PROP"))           nsf_props_scr();
 		else if (CMD("GEN_SLST"))           generate_slst();
-		else if (CMD("PAYLOAD_INFO"))       ll_payload_info_main();
+		else if (CMD("PAYLOAD_INFO"))       cmd_payload_info();
 		else if (CMD("WARP_SPAWNS"))        warp_spawns_generate();
 		else if (CMD("LIST_SPECIAL_LL"))    special_load_lists_list();
 		else if (CMD("CHECK_UTIL"))         checkpoint_stats();

@@ -51,12 +51,10 @@ public:
 	// to level's path links.
 	static void run_distance_graph(ELIST& elist, SPAWN& spawn0)
 	{
-		char eid1[100] = "";
-		char eid2[100] = "";
 
 		for (auto& ntry : elist)
 		{
-			if (build_entry_type(ntry) != ENTRY_TYPE_ZONE)
+			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 				continue;
 
 			int32_t cam_count = build_get_cam_item_count(ntry._data()) / 3;
@@ -82,33 +80,29 @@ public:
 			if (top_zone == -1 && top_cam == -1)
 				break;
 
-			LIST links = ENTRY_2::get_links(elist[top_zone]._data(), 2 + 3 * top_cam);
+			LIST links = elist[top_zone].get_links(2 + 3 * top_cam);
 			for (int32_t i = 0; i < links.count(); i++)
 			{
-				CAMERA_LINK link = int_to_link(links[i]);
-				int32_t neighbour_count = build_get_neighbour_count(elist[top_zone]._data());
-				uint32_t* neighbours = (uint32_t*)try_malloc(neighbour_count * sizeof(uint32_t)); // freed here
-				uint8_t* item0 = build_get_nth_item(elist[top_zone]._data(), 0);
-				for (int32_t j = 0; j < neighbour_count; j++)
-					neighbours[j] = from_u32(item0 + C2_NEIGHBOURS_START + 4 + 4 * j);
-				int32_t neighbour_index = elist.get_index(neighbours[link.zone_index]);
+				CAMERA_LINK camlink(links[i]);								
+				LIST neighbours = elist[top_zone].get_neighbours();
+				
+				int32_t neighbour_index = elist.get_index(neighbours[camlink.zone_index]);
 				if (neighbour_index == -1)
 				{
 					printf("[warning] %s references %s that does not seem to be present (link %d neighbour %d)\n",
-						eid_conv(elist[top_zone].eid, eid1), eid_conv(neighbours[link.zone_index], eid2), i, link.zone_index);
+						elist[top_zone].ename, eid2str(neighbours[camlink.zone_index]), i, camlink.zone_index);
 					continue;
 				}
 				int32_t path_count = build_get_cam_item_count(elist[neighbour_index]._data()) / 3;
-				if (link.cam_index >= path_count)
+				if (camlink.cam_index >= path_count)
 				{
 					printf("[warning] %s links to %s's cam path %d which doesnt exist (link %d neighbour %d)\n",
-						eid_conv(elist[top_zone].eid, eid1), eid_conv(neighbours[link.zone_index], eid2), link.cam_index, i, link.zone_index);
+						elist[top_zone].ename, eid2str(neighbours[camlink.zone_index]), camlink.cam_index, i, camlink.zone_index);
 					continue;
 				}
 
-				if (elist[neighbour_index].visited[link.cam_index] == 0)
-					graph.graph_add(elist, neighbour_index, link.cam_index);
-				free(neighbours);
+				if (elist[neighbour_index].visited[camlink.cam_index] == 0)
+					graph.graph_add(elist, neighbour_index, camlink.cam_index);
 			}
 		}
 	}

@@ -9,25 +9,23 @@
 
 uint32_t build_get_model(uint8_t* anim, int32_t item)
 {
-	int32_t item_off = build_get_nth_item_offset(anim, item);
+	int32_t item_off = ENTRY::get_nth_item_offset(anim, item);
 	return from_u32(anim + item_off + 0x10);
 }
 
 uint32_t build_get_zone_track(uint8_t* entry)
 {
-	int32_t item1off = build_get_nth_item_offset(entry, 0);
-	int32_t item2off = build_get_nth_item_offset(entry, 1);
+	int32_t item1off = ENTRY::get_nth_item_offset(entry, 0);
+	int32_t item2off = ENTRY::get_nth_item_offset(entry, 1);
 	int32_t item1len = item2off - item1off;
 
 	uint32_t music_entry = from_u32(entry + item1off + C2_MUSIC_REF + item1len - 0x318);
 	return music_entry;
 }
 
-/*
-Used during reading from the folder to prevent duplicate texture chunks.
-Searches existing chunks (base level's chunks) and if the texture eid matches
-it returns the index of the matching chunk, else returns -1
-*/
+// Used during reading from the folder to prevent duplicate texture chunks.
+// Searches existing chunks (base level's chunks) and if the texture eid matches
+// it returns the index of the matching chunk, else returns -1
 int32_t build_get_base_chunk_border(uint32_t textr, uint8_t** chunks, int32_t index_end)
 {
 	int32_t ret = -1;
@@ -65,21 +63,21 @@ uint32_t build_get_path_length(uint8_t* item)
 // Gets a zone's neighbour count.
 int32_t build_get_neighbour_count(uint8_t* entry)
 {
-	int32_t item1off = build_get_nth_item_offset(entry, 0);
+	int32_t item1off = ENTRY::get_nth_item_offset(entry, 0);
 	return entry[item1off + C2_NEIGHBOURS_START];
 }
 
 // Gets a zone's camera entity count.
 int32_t build_get_cam_item_count(uint8_t* entry)
 {
-	int32_t item1off = build_get_nth_item_offset(entry, 0);
+	int32_t item1off = ENTRY::get_nth_item_offset(entry, 0);
 	return entry[item1off + 0x188];
 }
 
 // Gets a zone's regular entity count.
 int32_t build_get_entity_count(uint8_t* entry)
 {
-	int32_t item1off = build_get_nth_item_offset(entry, 0);
+	int32_t item1off = ENTRY::get_nth_item_offset(entry, 0);
 	return entry[item1off + 0x18C];
 }
 
@@ -91,14 +89,6 @@ int32_t build_item_count(uint8_t* entry)
 int32_t build_prop_count(uint8_t* item)
 {
 	return from_u32(item + 0xC);
-}
-
-// Returns type of an entry.
-int32_t build_entry_type(ENTRY entry)
-{
-	if (entry.data.empty())
-		return -1;
-	return *(int32_t*)(entry._data() + 8);
 }
 
 int32_t build_chunk_type(uint8_t* chunk)
@@ -122,14 +112,6 @@ void build_check_item_count(ENTRY& zone)
 	}
 }
 
-DRAW_ITEM build_decode_draw_item(uint32_t value)
-{
-	DRAW_ITEM draw;
-	draw.neighbour_item_index = (value & 0xFF000000) >> 24;
-	draw.ID = (value & 0xFFFF00) >> 8;
-	draw.neighbour_zone_index = value & 0xFF;
-	return draw;
-}
 
 // Returns value of the specified property. Only works on generic, single-value (4B length 4B value) properties.
 int32_t build_get_entity_prop(uint8_t* entity, int32_t prop_code)
@@ -164,13 +146,21 @@ int32_t build_get_chunk_count_base(FILE* nsf)
 }
 
 // Checks whether the entry is meant to be placed into a normal chunk.
-bool build_is_normal_chunk_entry(ENTRY entry)
+bool build_is_normal_chunk_entry(ENTRY& entry)
 {
-	int32_t type = build_entry_type(entry);
-	if (type == ENTRY_TYPE_ANIM || type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_ZONE || type == ENTRY_TYPE_MODEL || type == ENTRY_TYPE_SCENERY || type == ENTRY_TYPE_SLST || type == ENTRY_TYPE_DEMO || type == ENTRY_TYPE_VCOL || type == ENTRY_TYPE_MIDI || type == ENTRY_TYPE_GOOL || type == ENTRY_TYPE_T21)
-		return true;
-
-	return false;
+	int32_t type = entry.entry_type();
+	return (
+		type == ENTRY_TYPE_ANIM ||
+		type == ENTRY_TYPE_DEMO ||
+		type == ENTRY_TYPE_ZONE ||
+		type == ENTRY_TYPE_MODEL ||
+		type == ENTRY_TYPE_SCENERY ||
+		type == ENTRY_TYPE_SLST ||
+		type == ENTRY_TYPE_DEMO ||
+		type == ENTRY_TYPE_VCOL ||
+		type == ENTRY_TYPE_MIDI ||
+		type == ENTRY_TYPE_GOOL ||
+		type == ENTRY_TYPE_T21);
 }
 
 // some cleanup
@@ -209,13 +199,13 @@ void build_normal_check_loaded(ELIST& elist)
 	// reads all load lists and bluntly adds all items into the list of all loaded entries
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (!(build_entry_type(elist[i]) == ENTRY_TYPE_ZONE && elist[i].data.size()))
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			LOAD_LIST ll = get_load_lists(elist[i]._data(), 2 + 3 * j);
+			LOAD_LIST ll = get_load_lists(elist[i], 2 + 3 * j);
 			for (auto& sublist : ll)
 				ever_loaded.copy_in(sublist.list);
 		}
@@ -244,11 +234,11 @@ void build_print_transitions(ELIST& elist)
 
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		LIST neighbours = ENTRY_2::get_neighbours(elist[i]._data());
-		int32_t item1off = build_get_nth_item_offset(elist[i]._data(), 0);
+		LIST neighbours = elist[i].get_neighbours();
+		int32_t item1off = elist[i].get_nth_item_offset(0);
 		for (int32_t j = 0; j < neighbours.count(); j++)
 		{
 			uint32_t neighbour_eid = from_u32(elist[i]._data() + item1off + C2_NEIGHBOURS_START + 4 + 4 * j);
@@ -256,7 +246,7 @@ void build_print_transitions(ELIST& elist)
 
 			if (neighbour_flg == 0xF || neighbour_flg == 0x1F)
 			{
-				printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", elist[i].ename, neighbour_flg, ENTRY_2::eid_to_str(neighbour_eid).c_str(), j);
+				printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", elist[i].ename, neighbour_flg, eid2str(neighbour_eid), j);
 			}
 		}
 	}
@@ -273,7 +263,7 @@ void build_main(int32_t build_type)
 	FILE* nsfnew = NULL, * nsd = NULL;	// file pointers for input nsf, output nsf (nsfnew) and output nsd
 	FILE* nsfnew2 = NULL, * nsd2 = NULL;
 	SPAWNS spawns{};		// struct with spawns found during reading and parsing of the level data
-	ELIST elist{};	
+	ELIST elist{};
 
 	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];	// array of pointers to potentially built chunks, fixed length cuz lazy
 	LIST permaloaded;							// list containing eids of permaloaded entries provided by the user
@@ -338,7 +328,7 @@ void build_main(int32_t build_type)
 	int32_t load_list_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
 	int32_t merge_tech_flag = config[CNFG_IDX_MERGE_METHOD_VALUE];
 
-	spawns.sort_spawns();	
+	spawns.sort_spawns();
 	// let the user pick the spawn, according to the spawn determine for each cam path its distance from spawn in terms of path links,
 	// which is later used to find out which of 2 paths is in the backwards direction and, where backwards loading penalty should be applied
 	// during the load list generation procedure
@@ -380,10 +370,6 @@ void build_main(int32_t build_type)
 		}
 		return;
 	}
-
-	// debug
-	/*for (int32_t i = 0; i < entry_count; i++)
-		list_add(&permaloaded, elist[i].eid);*/
 
 	if (build_type == BuildType_Rebuild_DL)
 	{

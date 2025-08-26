@@ -3,11 +3,7 @@
 
 // contains mostly functions used to get input from user (config stuff)
 
-/** \brief
- *  Asks the user for built level's ID.
- *
- * \return int32_t                          picked level ID
- */
+// Asks the user for built level's ID.
 int32_t build_ask_ID()
 {
     int32_t level_ID;
@@ -23,12 +19,8 @@ int32_t build_ask_ID()
     return level_ID;
 }
 
-/** \brief
- *  Asks for path to the list with the permaloaded stuff and type/subtype info.
- *
- * \param fpath char *                   path to the file
- * \return void
- */
+
+// Asks for path to the list with the permaloaded stuff and type/subtype info.
 void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config)
 {
     int32_t remaking_load_lists_flag = config[CNFG_IDX_LL_REMAKE_FLAG];
@@ -58,12 +50,7 @@ void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t *config)
     }
 }
 
-/** \brief
- *  Lets the user pick the spawn that's to be used as the primary spawn.
- *
- * \param spawns SPAWNS                 struct that contains all found spawns (willy or checkpoint entities' global origins)
- * \return void
- */
+// Lets the user pick the spawn that's to be used as the primary spawn.
 void build_ask_spawn(SPAWNS& spawns)
 {
     int32_t input = 0;
@@ -71,7 +58,7 @@ void build_ask_spawn(SPAWNS& spawns)
     // lets u pick a spawn point
     printf("Pick a spawn:\n");
     for (uint32_t i = 0; i < spawns.size(); i++)
-        printf("Spawn %2d:\tZone: %s\n", i + 1, eid_conv2(spawns[i].zone));
+        printf("Spawn %2d:\tZone: %s\n", i + 1, eid2str(spawns[i].zone));
 
     scanf("%d", &input);
     input--;
@@ -82,7 +69,7 @@ void build_ask_spawn(SPAWNS& spawns)
     }
 
     spawns.swap_spawns(0, input);
-    printf("Using spawn %2d: Zone: %s\n", input + 1, eid_conv2(spawns[0].zone));
+    printf("Using spawn %2d: Zone: %s\n", input + 1, eid2str(spawns[0].zone));
 }
 
 void build_ask_draw_distances(int32_t *config)
@@ -110,12 +97,7 @@ void build_ask_draw_distances(int32_t *config)
     printf("Selected %d for max allowed angle distance for 3D sections\n", input);
 }
 
-/** \brief
- *  Asks the user what distances to use for load list building.
- *
- * \param config int32_t*                   config array
- * \return void
- */
+// Asks the user what distances to use for load list building.
 void build_ask_distances(int32_t *config)
 {
     int32_t input;
@@ -171,15 +153,6 @@ void build_ask_distances(int32_t *config)
     printf("Selected %.2f for backwards loading penalty\n", backw);
 }
 
-/** \brief
- *  Swaps spawns.
- *
- * \param spawns SPAWNS                 struct that contains all spanwns
- * \param spawnA int32_t                    index1
- * \param spawnB int32_t                    index2
- * \return void
- */
-
 
 void build_ask_build_flags(int32_t *config)
 {
@@ -198,19 +171,14 @@ void build_ask_build_flags(int32_t *config)
     }
 
     printf("What merge method do you want to use?\n");
-    printf("[0] - occurence count matrix merge (absolute)\n");
-    printf("[1] - occurence count matrix merge (relative) [usually worse than option 0]\n");
-    printf("[2] - relatives & payload merge [deprecate, bad]\n");
-    printf("[3] - state set graph search based merge (A*/DFS) [slow, no guaranteed result]\n");
     printf("[4] - occurence count matrix merge (absolute) with randomness\n");
     printf("[5] - occurence count matrix merge (absolute) with randomness multithreaded\n");
-    int32_t max_ans = 5;
 
     scanf("%d", &ans);
     config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
     printf("Selected merge method %d\n", ans);
 
-    if (ans < 0 || ans > max_ans)
+    if (ans < 4 || ans > 5)
     {
         printf(" unknown, defaulting to 4\n");
         config[CNFG_IDX_MERGE_METHOD_VALUE] = 4;

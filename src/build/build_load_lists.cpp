@@ -29,180 +29,185 @@ void build_remake_load_lists(ELIST& elist, uint32_t* gool_table,
 	int32_t chunks[8]{};
 	int32_t sound_chunk_count = 0;
 	uint32_t sounds_to_load[8]{};
-	for (int32_t i = 0; i < entry_count; i++)
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
-		{
-			bool is_there = false;
-			for (int32_t j = 0; j < sound_chunk_count; j++)
-				if (chunks[j] == elist[i].chunk)
-				{
-					is_there = true;
-					break;
-				}
 
-			if (!is_there)
+	for (int32_t i = 0; i < entry_count; i++)
+	{
+		if (elist[i].entry_type() != ENTRY_TYPE_SOUND)
+			continue;
+
+		bool is_there = false;
+		for (int32_t j = 0; j < sound_chunk_count; j++)
+			if (chunks[j] == elist[i].chunk)
 			{
-				chunks[sound_chunk_count] = elist[i].chunk;
-				sounds_to_load[sound_chunk_count] = elist[i].eid;
-				sound_chunk_count++;
+				is_there = true;
+				break;
 			}
+
+		if (!is_there)
+		{
+			chunks[sound_chunk_count] = elist[i].chunk;
+			sounds_to_load[sound_chunk_count] = elist[i].eid;
+			sound_chunk_count++;
 		}
+	}
 
 	// for each zone entry do load list (also for each zone's each camera)
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
+			continue;
+
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
+		if (cam_count == 0)
+			continue;
+
+		printf("Making load lists for %s\n", elist[i].ename);
+
+		LIST special_entries = build_get_special_entries(elist[i], elist);
+		uint32_t music_ref = build_get_zone_track(elist[i]._data());
+
+		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
-			if (cam_count == 0)
-				continue;
+			printf("\t cam path %d\n", j);
+			int32_t cam_offset = elist[i].get_nth_item_offset(2 + 3 * j);
+			int32_t cam_length = build_get_path_length(elist[i]._data() + cam_offset);
 
-			printf("Making load lists for %s\n", eid_conv2(elist[i].eid));
+			// full non-delta load list used to represent the load list during building
+			std::vector<LIST> full_load(cam_length);
 
-			// get list of special entries that can be placed inside zones' first item
-			// as a special zone-specific dependency/load list
-			LIST special_entries = build_get_special_entries(elist[i], elist);
+			// add permaloaded entries
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(permaloaded);
 
-			uint32_t music_ref = build_get_zone_track(elist[i]._data());
-
-			for (int32_t j = 0; j < cam_count; j++)
+			for (auto& mus_dep : mus_deps)
 			{
-				printf("\t cam path %d\n", j);
-				int32_t cam_offset = build_get_nth_item_offset(elist[i]._data(), 2 + 3 * j);
-				int32_t cam_length = build_get_path_length(elist[i]._data() + cam_offset);
-
-				// full non-delta load list used to represent the load list during building
-				std::vector<LIST> full_load(cam_length);
-
-				// add permaloaded entries
-				for (int32_t k = 0; k < cam_length; k++)
-					full_load[k].copy_in(permaloaded);
-
-				for (auto& mus_dep : mus_deps)
-				{
-					if (mus_dep.type == music_ref)
-					{
-						for (int32_t k = 0; k < cam_length; k++)
-							full_load[k].copy_in(mus_dep.dependencies);
-
-						if (dbg_print)
-						{
-							printf("\t\tcopied in %d music deps\n", mus_dep.dependencies.count());
-							for (auto& d : mus_dep.dependencies)
-								printf("\t\t\t %s\n", ENTRY_2::eid_to_str(d).c_str());
-						}
-					}
-				}
-
-				if (dbg_print)
-					printf("Copied in permaloaded and music refs\n");
-
-				// add current zone's special entries
-				for (int32_t k = 0; k < cam_length; k++)
-					full_load[k].copy_in(special_entries);
-
-				if (dbg_print)
-					printf("Copied in special %d\n", special_entries.count());
-
-				// add relatives (directly related entries like slsts, neighbours, scenery
-				// might not be necessary								
-				for (int32_t l = 0; l < cam_length; l++)
-					full_load[l].copy_in(elist[i].related);
-
-				if (dbg_print)
-					printf("Copied in deprecate relatives\n");
-
-				// all sounds
-				if (load_list_sound_entry_inc_flag == 0)
-				{
-					for (int32_t k = 0; k < entry_count; k++)
-						if (build_entry_type(elist[k]) == ENTRY_TYPE_SOUND)
-							for (int32_t l = 0; l < cam_length; l++)
-								full_load[l].add(elist[k].eid);
-				}
-				// one sound per chunk
-				if (load_list_sound_entry_inc_flag == 1)
+				if (mus_dep.type == music_ref)
 				{
 					for (int32_t k = 0; k < cam_length; k++)
-						for (int32_t l = 0; l < sound_chunk_count; l++)
-							full_load[k].add(sounds_to_load[l]);
-				}
+						full_load[k].copy_in(mus_dep.dependencies);
 
-				if (dbg_print)
-					printf("Copied in sounds\n");
-
-				// add direct neighbours
-				LIST neighbours = ENTRY_2::get_neighbours(elist[i]._data());
-				for (int32_t k = 0; k < cam_length; k++)
-					full_load[k].copy_in(neighbours);
-
-				if (dbg_print)
-					printf("Copied in neighbours\n");
-
-				// for each scenery in current zone's scen reference list, add its
-				// textures to the load list				
-				LIST sceneries = build_get_sceneries(elist[i]._data());
-				for (auto& scenery : sceneries)
-				{
-					int32_t scenery_index = elist.get_index(scenery);
-					for (int32_t l = 0; l < cam_length; l++)
+					if (dbg_print)
 					{
-						build_add_scen_textures_to_list(elist[scenery_index]._data(),
-							&full_load[l]);
+						printf("\t\tcopied in %d music deps\n", mus_dep.dependencies.count());
+						for (auto& d : mus_dep.dependencies)
+							printf("\t\t\t %s\n", eid2str(d));
 					}
 				}
-
-				if (dbg_print)
-					printf("Copied in some scenery stuff\n");
-
-				// path link, draw list and other bs dependent additional load list
-				// improvements
-				build_load_list_util(i,
-					2 + 3 * j,
-					full_load,
-					cam_length,
-					elist,
-					subtype_info,
-					collision,
-					config);
-
-				if (dbg_print)
-					printf("Load list util ran\n");
-
-				// checks whether the load list doesnt try to load more than 8 textures,
-				build_texture_count_check(elist, full_load, cam_length, i, j);
-
-				if (dbg_print)
-					printf("Texture chunk was checked\n");
-
-				// creates and initialises delta representation of the load list
-				std::vector<LIST> listA(cam_length);
-				std::vector<LIST> listB(cam_length);
-
-				// converts full load list to delta based, then creates game-format load
-				// list properties based on the delta lists
-				build_load_list_to_delta(full_load, listA, listB, cam_length, elist, 0);
-				PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
-				PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
-
-				if (dbg_print)
-					printf("Converted full list to delta and delta to props\n");
-
-				// removes existing load list properties, inserts newly made ones
-				build_entity_alter(elist[i], 2 + 3 * j, build_rem_property, 0x208, NULL);
-				build_entity_alter(elist[i], 2 + 3 * j, build_rem_property, 0x209, NULL);
-				build_entity_alter(elist[i], 2 + 3 * j, build_add_property, 0x208, &prop_0x208);
-				build_entity_alter(elist[i], 2 + 3 * j, build_add_property, 0x209, &prop_0x209);
-
-				if (dbg_print)
-					printf("Replaced load list props\n");
-
-				if (dbg_print)
-					printf("Freed some stuff, end\n");
-				// free(prop_0x208.data);
-				// free(prop_0x209.data);
 			}
+
+			if (dbg_print)
+				printf("Copied in permaloaded and music refs\n");
+
+			// add current zone's special entries
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(special_entries);
+
+			if (dbg_print)
+				printf("Copied in special %d\n", special_entries.count());
+
+			// add relatives (directly related entries like slsts, neighbours, scenery
+			// might not be necessary								
+			for (int32_t l = 0; l < cam_length; l++)
+				full_load[l].copy_in(elist[i].related);
+
+			if (dbg_print)
+				printf("Copied in deprecate relatives\n");
+
+			// all sounds
+			if (load_list_sound_entry_inc_flag == 0)
+			{
+				for (int32_t k = 0; k < entry_count; k++)
+				{
+					if (elist[k].entry_type() != ENTRY_TYPE_SOUND)
+						continue;
+
+					for (int32_t l = 0; l < cam_length; l++)
+						full_load[l].add(elist[k].eid);
+				}
+			}
+			// one sound per chunk
+			if (load_list_sound_entry_inc_flag == 1)
+			{
+				for (int32_t k = 0; k < cam_length; k++)
+					for (int32_t l = 0; l < sound_chunk_count; l++)
+						full_load[k].add(sounds_to_load[l]);
+			}
+
+			if (dbg_print)
+				printf("Copied in sounds\n");
+
+			// add direct neighbours
+			LIST neighbours = elist[i].get_neighbours();
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(neighbours);
+
+			if (dbg_print)
+				printf("Copied in neighbours\n");
+
+			// for each scenery in current zone's scen reference list, add its
+			// textures to the load list				
+			LIST sceneries = build_get_sceneries(elist[i]._data());
+			for (auto& scenery : sceneries)
+			{
+				int32_t scenery_index = elist.get_index(scenery);
+				for (int32_t l = 0; l < cam_length; l++)
+				{
+					build_add_scen_textures_to_list(elist[scenery_index]._data(),
+						&full_load[l]);
+				}
+			}
+
+			if (dbg_print)
+				printf("Copied in some scenery stuff\n");
+
+			// path link, draw list and other bs dependent additional load list
+			// improvements
+			build_load_list_util(i,
+				2 + 3 * j,
+				full_load,
+				cam_length,
+				elist,
+				subtype_info,
+				collision,
+				config);
+
+			if (dbg_print)
+				printf("Load list util ran\n");
+
+			// checks whether the load list doesnt try to load more than 8 textures,
+			build_texture_count_check(elist, full_load, cam_length, i, j);
+
+			if (dbg_print)
+				printf("Texture chunk was checked\n");
+
+			// creates and initialises delta representation of the load list
+			std::vector<LIST> listA(cam_length);
+			std::vector<LIST> listB(cam_length);
+
+			// converts full load list to delta based, then creates game-format load
+			// list properties based on the delta lists
+			build_load_list_to_delta(full_load, listA, listB, cam_length, elist, 0);
+			PROPERTY prop_0x208 = build_make_load_list_prop(listA, cam_length, 0x208);
+			PROPERTY prop_0x209 = build_make_load_list_prop(listB, cam_length, 0x209);
+
+			if (dbg_print)
+				printf("Converted full list to delta and delta to props\n");
+
+			// removes existing load list properties, inserts newly made ones
+			build_entity_alter(elist[i], 2 + 3 * j, build_rem_property, 0x208, NULL);
+			build_entity_alter(elist[i], 2 + 3 * j, build_rem_property, 0x209, NULL);
+			build_entity_alter(elist[i], 2 + 3 * j, build_add_property, 0x208, &prop_0x208);
+			build_entity_alter(elist[i], 2 + 3 * j, build_add_property, 0x209, &prop_0x209);
+
+			if (dbg_print)
+				printf("Replaced load list props\n");
+
+			if (dbg_print)
+				printf("Freed some stuff, end\n");
+			// free(prop_0x208.data);
+			// free(prop_0x209.data);
 		}
+
 	}
 }
 
@@ -212,8 +217,8 @@ int32_t cmp_func_draw(const void* a, const void* b)
 	uint32_t int_a = *(uint32_t*)a;
 	uint32_t int_b = *(uint32_t*)b;
 
-	DRAW_ITEM item_a = build_decode_draw_item(int_a);
-	DRAW_ITEM item_b = build_decode_draw_item(int_b);
+	DRAW_ITEM item_a(int_a);
+	DRAW_ITEM item_b(int_b);
 
 	return item_a.ID - item_b.ID;
 }
@@ -283,8 +288,8 @@ void build_load_list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& l
 	{
 		auto cmp_func_draw = [](uint32_t a, uint32_t b)
 			{
-				DRAW_ITEM item_a = build_decode_draw_item(a);
-				DRAW_ITEM item_b = build_decode_draw_item(b);
+				DRAW_ITEM item_a(a);
+				DRAW_ITEM item_b(b);
 
 				return item_a.ID < item_b.ID;
 			};
@@ -314,7 +319,7 @@ void build_load_list_util(
 	int32_t* config)
 {
 	// neighbours, slsts, scenery
-	LIST links = ENTRY_2::get_links(elist[zone_index]._data(), camera_index);
+	LIST links = elist[zone_index].get_links(camera_index);
 	for (int32_t i = 0; i < links.count(); i++)
 	{
 		build_load_list_util_util(
@@ -423,18 +428,18 @@ void build_load_list_util_util(int32_t zone_index,
 	int32_t preloading_flag = config[CNFG_IDX_LL_TRNS_PRLD_FLAG];
 	int32_t backwards_penalty = config[CNFG_IDX_LL_BACKWARDS_PENALTY];
 
-	int32_t item1off = build_get_nth_item_offset(elist[zone_index]._data(), 0);
+	int32_t item1off = elist[zone_index].get_nth_item_offset(0);
 	int16_t* coords;
 	int32_t path_length = 0;
 	int32_t distance = 0;
 
-	CAMERA_LINK link = int_to_link(link_int);
+	CAMERA_LINK link(link_int);
 
 	uint32_t neighbour_eid = from_u32(elist[zone_index]._data() + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index);
 	uint32_t neighbour_flg = from_u32(elist[zone_index]._data() + item1off + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index + 0x20);
 
-	int32_t neighbour_index = elist.get_index(neighbour_eid);
-	if (neighbour_index == -1)
+	int32_t neigh_idx = elist.get_index(neighbour_eid);
+	if (neigh_idx == -1)
 		return;
 
 	// if preloading nothing
@@ -443,7 +448,7 @@ void build_load_list_util_util(int32_t zone_index,
 
 	if (preloading_flag == PRELOADING_TEXTURES_ONLY || preloading_flag == PRELOADING_ALL)
 	{
-		for (auto& scenery : build_get_sceneries(elist[neighbour_index]._data()))
+		for (auto& scenery : build_get_sceneries(elist[neigh_idx]._data()))
 		{
 			int32_t scenery_index = elist.get_index(scenery);
 
@@ -473,70 +478,68 @@ void build_load_list_util_util(int32_t zone_index,
 		return;
 
 	for (int32_t j = 0; j < cam_length; j++)
-		full_list[j].copy_in(elist[neighbour_index].related);
+		full_list[j].copy_in(elist[neigh_idx].related);
 
-	int32_t neighbour_cam_count = build_get_cam_item_count(elist[neighbour_index]._data()) / 3;
+	int32_t neighbour_cam_count = build_get_cam_item_count(elist[neigh_idx]._data()) / 3;
 	if (link.cam_index >= neighbour_cam_count)
 	{
 		printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
-			eid_conv(elist[zone_index].eid, eid1), eid_conv(elist[neighbour_index].eid, eid2), link.cam_index, neighbour_cam_count);
+			elist[zone_index].ename, elist[neigh_idx].ename, link.cam_index, neighbour_cam_count);
 		return;
 	}
 
-	int32_t offset = build_get_nth_item_offset(elist[neighbour_index]._data(),
-		2 + 3 * link.cam_index);
-	uint32_t slst = build_get_slst(elist[neighbour_index]._data() + offset);
+	uint8_t* item = elist[neigh_idx].get_nth_item(2 + 3 * link.cam_index);
+	uint32_t slst = build_get_slst(item);
 	for (int32_t i = 0; i < cam_length; i++)
 		full_list[i].add(slst);
 
-	build_add_collision_dependencies(full_list, 0, cam_length, elist[zone_index]._data(), collisisons, elist);
-	build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index]._data(), collisisons, elist);
+	build_add_collision_dependencies(full_list, 0, cam_length, elist[zone_index], collisisons, elist);
+	build_add_collision_dependencies(full_list, 0, cam_length, elist[neigh_idx], collisisons, elist);
 
-	coords = build_get_path(elist, neighbour_index, 2 + 3 * link.cam_index, &path_length);
+	coords = build_get_path(elist, neigh_idx, 2 + 3 * link.cam_index, &path_length);
 	distance += build_get_distance(coords, 0, path_length - 1, -1, NULL);
 
-	LIST layer2 = ENTRY_2::get_links(elist[neighbour_index]._data(), 2 + 3 * link.cam_index);
+	LIST layer2 = elist[neigh_idx].get_links(2 + 3 * link.cam_index);
 	for (int32_t i = 0; i < layer2.count(); i++)
 	{
-		int32_t item1off2 = from_u32(elist[neighbour_index]._data() + 0x10);
-		CAMERA_LINK link2 = int_to_link(layer2[i]);
+		int32_t item1off2 = from_u32(elist[neigh_idx]._data() + 0x10);
+		CAMERA_LINK link2(layer2[i]);
 
-		uint32_t neighbour_eid2 = from_u32(elist[neighbour_index]._data() + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index);
-		uint32_t neighbour_flg2 = from_u32(elist[neighbour_index]._data() + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);
+		uint32_t neighbour_eid2 = from_u32(elist[neigh_idx]._data() + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index);
+		uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + item1off2 + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);
 
-		int32_t neighbour_index2 = elist.get_index(neighbour_eid2);
-		if (neighbour_index2 == -1)
+		int32_t neigh_idx2 = elist.get_index(neighbour_eid2);
+		if (neigh_idx2 == -1)
 			continue;
 
 		// not preloading everything
 		if ((preloading_flag == PRELOADING_NOTHING || preloading_flag == PRELOADING_TEXTURES_ONLY) && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
 			continue;
 
-		int32_t neighbour_cam_count2 = build_get_cam_item_count(elist[neighbour_index2]._data()) / 3;
+		int32_t neighbour_cam_count2 = build_get_cam_item_count(elist[neigh_idx2]._data()) / 3;
 		if (link2.cam_index >= neighbour_cam_count2)
 		{
 			printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
-				eid_conv(elist[neighbour_index].eid, eid1), eid_conv(elist[neighbour_index2].eid, eid2), link2.cam_index, neighbour_cam_count2);
+				elist[neigh_idx].ename, elist[neigh_idx2].ename, link2.cam_index, neighbour_cam_count2);
 			continue;
 		}
 
-		int32_t offset2 = build_get_nth_item_offset(elist[neighbour_index2]._data(),
-			2 + 3 * link2.cam_index);
-		uint32_t slst2 = build_get_slst(elist[neighbour_index2]._data() + offset2);
+		uint8_t* item2 = elist[neigh_idx2].get_nth_item(2 + 3 * link2.cam_index);
+		uint32_t slst2 = build_get_slst(item2);
 
-		LIST neig_list = ENTRY_2::get_neighbours(elist[neighbour_index2]._data());
-		neig_list.copy_in(build_get_sceneries(elist[neighbour_index2]._data()));
+		LIST neig_list = elist[neigh_idx2].get_neighbours();
+		neig_list.copy_in(build_get_sceneries(elist[neigh_idx2]._data()));
 
 		LIST slst_list{};
 		slst_list.add(slst2);
 
-		build_add_collision_dependencies(full_list, 0, cam_length, elist[neighbour_index2]._data(), collisisons, elist);
+		build_add_collision_dependencies(full_list, 0, cam_length, elist[neigh_idx2], collisisons, elist);
 		coords = build_get_path(elist, zone_index, cam_index, &path_length);
 
 		int32_t slst_dist_w_orientation = slst_distance;
 		int32_t neig_dist_w_orientation = neig_distance;
 
-		if (build_is_before(elist, zone_index, cam_index / 3, neighbour_index2, link2.cam_index))
+		if (build_is_before(elist, zone_index, cam_index / 3, neigh_idx2, link2.cam_index))
 		{
 			slst_dist_w_orientation = build_dist_w_penalty(slst_distance, backwards_penalty);
 			neig_dist_w_orientation = build_dist_w_penalty(neig_distance, backwards_penalty);
@@ -555,20 +558,9 @@ void build_load_list_util_util(int32_t zone_index,
 	}
 }
 
-/** \brief
- *  Starting from the 0th index it finds a path index at which the distance
- * reaches cap distance and loads the entries specified by the additions list
- * from point 0 to end index.
- *
- * \param cam_length int32_t                length of the considered camera path
- * \param full_list LIST*               load list
- * \param distance int32_t                  distance so far
- * \param final_distance int32_t            distance cap
- * \param coords int16_t*             path of the camera
- * \param path_length int32_t               length of the camera
- * \param additions LIST                list with entries to add
- * \return void
- */
+// Starting from the 0th index it finds a path index at which the distance
+// reaches cap distance and loads the entries specified by the additions list
+// from point 0 to end index.
 void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions)
 {
 	int32_t end_index = 0;
@@ -581,27 +573,12 @@ void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_
 		full_list[j].copy_in(additions);
 }
 
-/** \brief
- *  Starting from the n-1th index it finds a path index at which the distance
- * reaches cap distance and loads the entries specified by the additions list
- * from point start index n - 1.
- *
- * \param cam_length int32_t                length of the considered camera path
- * \param full_list LIST*               load list
- * \param distance int32_t                  distance so far
- * \param final_distance int32_t            distance cap
- * \param coords int16_t*             path of the camera
- * \param path_length int32_t               length of the camera
- * \param additions LIST                list with entries to add
- * \return void
- */
-void build_load_list_util_util_forw(int32_t cam_length,
-	std::vector<LIST>& full_list,
-	int32_t distance,
-	int32_t final_distance,
-	int16_t* coords,
-	int32_t path_length,
-	LIST additions)
+
+// Starting from the n-1th index it finds a path index at which the distance
+// reaches cap distance and loads the entries specified by the additions list
+// from point start index n - 1.
+void build_load_list_util_util_forw(int32_t cam_length, std::vector<LIST>& full_list,
+	int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions)
 {
 	int32_t start_index = cam_length - 1;
 	int32_t j;
@@ -615,26 +592,9 @@ void build_load_list_util_util_forw(int32_t cam_length,
 		full_list[j].copy_in(additions);
 }
 
-/** \brief
- *  Calculates total distance the path has between given points, if cap is set
- * it stop at given cap and returns index at which it stopped (final distance).
- *
- * \param coords int16_t*             path
- * \param start_index int32_t               start point of the path to be
- * considered
- * \param end_index int32_t                 end point of the path to be
- * considered
- * \param cap int32_t                       distance at which to stop
- * \param final_index int32_t*              index of point where it reached the
- * distance cap
- * \return int32_t                          reached distance
- */
-int32_t
-build_get_distance(int16_t* coords,
-	int32_t start_index,
-	int32_t end_index,
-	int32_t cap,
-	int32_t* final_index)
+// Calculates total distance the path has between given points, if cap is set
+// it stop at given cap and returns index at which it stopped (final distance).
+int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index)
 {
 	int32_t distance = 0;
 	int32_t index = start_index;
@@ -700,10 +660,10 @@ build_dist_w_penalty(int32_t distance, int32_t backwards_penalty)
 int32_t build_is_before(ELIST& elist,
 	int32_t zone_index,
 	int32_t camera_index,
-	int32_t neighbour_index,
+	int32_t neigh_idx,
 	int32_t neighbour_cam_index)
 {
-	int32_t distance_neighbour = elist[neighbour_index].distances[neighbour_cam_index];
+	int32_t distance_neighbour = elist[neigh_idx].distances[neighbour_cam_index];
 	int32_t distance_current = elist[zone_index].distances[camera_index];
 
 	return (distance_neighbour < distance_current);
@@ -718,9 +678,9 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
 
 	LIST entity_list{};
 
-	neighbours->copy_in(ENTRY_2::get_neighbours(elist[zone_index]._data()));
+	neighbours->copy_in(elist[zone_index].get_neighbours());
 
-	std::vector<LIST> draw_list_zone = build_get_complete_draw_list(elist, zone_index, camera_index, cam_length);
+	std::vector<LIST> draw_list_zone = build_get_complete_draw_list(elist, elist[zone_index], camera_index, cam_length);
 	for (int32_t i = 0; i < cam_length; i++)
 		entity_list.copy_in(draw_list_zone[i]);
 
@@ -729,11 +689,11 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
 	if (!coords)
 		return entity_list;
 
-	LIST links = ENTRY_2::get_links(elist[zone_index]._data(), camera_index);
+	LIST links = elist[zone_index].get_links(camera_index);
 	for (int32_t i = 0; i < links.count(); i++)
 	{
 		int32_t distance = 0;
-		CAMERA_LINK link = int_to_link(links[i]);
+		CAMERA_LINK link(links[i]);
 		if (link.type == 1)
 			distance += build_get_distance(coords, point_index, 0, -1, NULL);
 		if (link.type == 2)
@@ -743,26 +703,25 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
 		uint32_t neighbour_eid = from_u32(elist[zone_index]._data() + eid_offset);
 		uint32_t neighbour_flg = from_u32(elist[zone_index]._data() + eid_offset + 0x20);
 
-		int32_t neighbour_index = elist.get_index(neighbour_eid);
-		if (neighbour_index == -1)
+		int32_t neigh_idx = elist.get_index(neighbour_eid);
+		if (neigh_idx == -1)
 			continue;
 
 		// preloading everything check
 		if (preloading_flag != PRELOADING_ALL && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
 			continue;
 
-		neighbours->copy_in(ENTRY_2::get_neighbours(elist[neighbour_index]._data()));
+		neighbours->copy_in(elist[neigh_idx].get_neighbours());
 
 		int32_t neighbour_cam_length;
-		int16_t* coords2 = build_get_path(
-			elist, neighbour_index, 2 + 3 * link.cam_index, &neighbour_cam_length);
+		int16_t* coords2 = build_get_path(elist, neigh_idx, 2 + 3 * link.cam_index, &neighbour_cam_length);
 		if (!coords2)
 			continue;
 
-		std::vector<LIST> draw_list_neighbour1 = build_get_complete_draw_list(elist, neighbour_index, 2 + 3 * link.cam_index, neighbour_cam_length);
+		std::vector<LIST> draw_list_neighbour1 = build_get_complete_draw_list(elist, elist[neigh_idx], 2 + 3 * link.cam_index, neighbour_cam_length);
 
 		int32_t draw_dist_w_orientation = draw_dist;
-		if (build_is_before(elist, zone_index, camera_index / 3, neighbour_index, link.cam_index))
+		if (build_is_before(elist, zone_index, camera_index / 3, neigh_idx, link.cam_index))
 		{
 			draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
 		}
@@ -785,34 +744,34 @@ LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t came
 		if (distance >= draw_dist_w_orientation)
 			continue;
 
-		LIST layer2 = ENTRY_2::get_links(elist[neighbour_index]._data(), 2 + 3 * link.cam_index);
+		LIST layer2 = elist[neigh_idx].get_links(2 + 3 * link.cam_index);
 		for (int32_t j = 0; j < layer2.count(); j++)
 		{
-			CAMERA_LINK link2 = int_to_link(layer2[j]);
-			uint32_t eid_offset2 = from_u32(elist[neighbour_index]._data() + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
-			uint32_t neighbour_eid2 = from_u32(elist[neighbour_index]._data() + eid_offset2);
-			uint32_t neighbour_flg2 = from_u32(elist[neighbour_index]._data() + eid_offset2 + 0x20);
+			CAMERA_LINK link2(layer2[j]);
+			uint32_t eid_offset2 = from_u32(elist[neigh_idx]._data() + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
+			uint32_t neighbour_eid2 = from_u32(elist[neigh_idx]._data() + eid_offset2);
+			uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + eid_offset2 + 0x20);
 
-			int32_t neighbour_index2 = elist.get_index(neighbour_eid2);
-			if (neighbour_index2 == -1)
+			int32_t neigh_idx2 = elist.get_index(neighbour_eid2);
+			if (neigh_idx2 == -1)
 				continue;
 
 			// preloading everything check
 			if (preloading_flag != PRELOADING_ALL && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
 				continue;
 
-			neighbours->copy_in(ENTRY_2::get_neighbours(elist[neighbour_index2]._data()));
+			neighbours->copy_in(elist[neigh_idx2].get_neighbours());
 
 			int32_t neighbour_cam_length2;
-			int16_t* coords3 = build_get_path(elist, neighbour_index2, 2 + 3 * link2.cam_index, &neighbour_cam_length2);
+			int16_t* coords3 = build_get_path(elist, neigh_idx2, 2 + 3 * link2.cam_index, &neighbour_cam_length2);
 			if (!coords3)
 				continue;
 
-			std::vector<LIST> draw_list_neighbour2 = build_get_complete_draw_list(elist, neighbour_index2, 2 + 3 * link2.cam_index, neighbour_cam_length2);
+			std::vector<LIST> draw_list_neighbour2 = build_get_complete_draw_list(elist, elist[neigh_idx2], 2 + 3 * link2.cam_index, neighbour_cam_length2);
 
 			int32_t point_index3;
 			draw_dist_w_orientation = draw_dist;
-			if (build_is_before(elist, zone_index, camera_index / 3, neighbour_index2, link2.cam_index))
+			if (build_is_before(elist, zone_index, camera_index / 3, neigh_idx2, link2.cam_index))
 			{
 				draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
 			}
@@ -853,15 +812,12 @@ LIST build_get_types_subtypes(ELIST& elist, LIST entity_list, LIST neighbour_lis
 
 		for (int32_t j = 0; j < entity_count; j++)
 		{
-			int32_t entity_offset = build_get_nth_item_offset(elist[curr_index]._data(), 2 + cam_count + j);
-			int32_t ID = build_get_entity_prop(elist[curr_index]._data() + entity_offset,
-				ENTITY_PROP_ID);
+			uint8_t* entity = elist[curr_index].get_nth_item(2 + cam_count + j);
+			int32_t ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
 			if (entity_list.find(ID) != -1)
 			{
-				int32_t type = build_get_entity_prop(
-					elist[curr_index]._data() + entity_offset, ENTITY_PROP_TYPE);
-				int32_t subtype = build_get_entity_prop(
-					elist[curr_index]._data() + entity_offset, ENTITY_PROP_SUBTYPE);
+				int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+				int32_t subtype = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
 				type_subtype_list.add((type << 16) + subtype);
 			}
 		}
@@ -872,7 +828,6 @@ LIST build_get_types_subtypes(ELIST& elist, LIST entity_list, LIST neighbour_lis
 
 
 // checks/prints if there are any entities whose type/subtype has no dependencies.
-
 void build_find_unspecified_entities(ELIST& elist, DEPENDENCIES sub_info)
 {
 	int32_t entry_count = elist.count();
@@ -881,58 +836,58 @@ void build_find_unspecified_entities(ELIST& elist, DEPENDENCIES sub_info)
 	LIST considered{};
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
+			continue;
+
+		int32_t cam_count = build_get_cam_item_count(elist[i]._data());
+		int32_t entity_count = build_get_entity_count(elist[i]._data());
+		for (int32_t j = 0; j < entity_count; j++)
 		{
-			int32_t cam_count = build_get_cam_item_count(elist[i]._data());
-			int32_t entity_count = build_get_entity_count(elist[i]._data());
-			for (int32_t j = 0; j < entity_count; j++)
+			uint8_t* entity = elist[i]._data() + from_u32(elist[i]._data() + 0x10 + (2 + cam_count + j) * 4);
+			int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
+			int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+			int32_t enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
+			if (type >= 64 || type < 0 || subt < 0)
 			{
-				uint8_t* entity = elist[i]._data() + from_u32(elist[i]._data() + 0x10 + (2 + cam_count + j) * 4);
-				int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-				int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-				int32_t enID = build_get_entity_prop(entity, ENTITY_PROP_ID);
-				if (type >= 64 || type < 0 || subt < 0)
+				printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", elist[i].ename, j, type, subt);
+				continue;
+			}
+
+			if (considered.find((type << 16) + subt) != -1)
+				continue;
+
+			considered.add((type << 16) + subt);
+
+			bool found = false;
+			for (auto& dep : sub_info)
+			{
+				if (dep.subtype == subt && dep.type == type)
 				{
-					printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n",
-						eid_conv2(elist[i].eid), j, type, subt);
-					continue;
-				}
-
-				if (considered.find((type << 16) + subt) != -1)
-					continue;
-
-				considered.add((type << 16) + subt);
-
-				bool found = false;
-				for (auto& dep : sub_info)
-				{
-					if (dep.subtype == subt && dep.type == type)
-					{
-						found = true;
-						break;
-					}
-				}
-
-				if (!found)
-				{
-					printf("[warning] Entity with type %2d subtype %2d has no dependency list! (e.g. Zone %s entity %2d ID %3d)\n",
-						type, subt, eid_conv2(elist[i].eid), j, enID);
+					found = true;
+					break;
 				}
 			}
+
+			if (!found)
+			{
+				printf("[warning] Entity with type %2d subtype %2d has no dependency list! (e.g. Zone %s entity %2d ID %3d)\n",
+					type, subt, elist[i].ename, j, enID);
+			}
 		}
+
 	}
 }
 
 
 // reads draw lists of the camera of the zone, returns in a non-delta form.
-std::vector<LIST> build_get_complete_draw_list(ELIST& elist, int32_t zone_index, int32_t cam_index, int32_t cam_length)
+std::vector<LIST> build_get_complete_draw_list(ELIST& elist, ENTRY& zone, int32_t cam_index, int32_t cam_length)
 {
 	std::vector<LIST> draw_list{};
 	draw_list.resize(cam_length);
 
 	LIST list = {};
 
-	DRAW_LIST draw_list2 = get_draw_lists(elist[zone_index]._data(), cam_index);
+	DRAW_LIST draw_list2 = get_draw_lists(zone, cam_index);
 
 	int32_t sublist_index = 0;
 	for (size_t i = 0; i < size_t(cam_length) && sublist_index < draw_list2.size(); i++)
@@ -945,7 +900,7 @@ std::vector<LIST> build_get_complete_draw_list(ELIST& elist, int32_t zone_index,
 			{
 				for (auto& draw_uint : sublist.list)
 				{
-					DRAW_ITEM draw_item = build_decode_draw_item(draw_uint);
+					DRAW_ITEM draw_item(draw_uint);
 					list.add(draw_item.ID);
 				}
 			}
@@ -954,7 +909,7 @@ std::vector<LIST> build_get_complete_draw_list(ELIST& elist, int32_t zone_index,
 			{
 				for (auto& draw_uint : sublist.list)
 				{
-					DRAW_ITEM draw_item = build_decode_draw_item(draw_uint);
+					DRAW_ITEM draw_item(draw_uint);
 					list.remove(draw_item.ID);
 				}
 			}
@@ -977,12 +932,11 @@ std::vector<LIST> build_get_complete_draw_list(ELIST& elist, int32_t zone_index,
 void build_add_collision_dependencies(std::vector<LIST>& full_list,
 	int32_t start_index,
 	int32_t end_index,
-	uint8_t* entry,
+	ENTRY& entry,
 	DEPENDENCIES collisions,
 	ELIST& elist)
 {
-	LIST neighbours = ENTRY_2::get_neighbours(entry);
-
+	LIST neighbours = entry.get_neighbours();
 	for (int32_t x = 0; x < neighbours.count(); x++)
 	{
 		int32_t index = elist.get_index(neighbours[x]);
@@ -1021,11 +975,9 @@ void build_texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32
 		for (int32_t l = 0; l < full_load[k].count(); l++)
 		{
 			int32_t idx = elist.get_index(full_load[k][l]);
-			if (idx == -1)
-			{
-				printf("Trying to load invalid entry %s\n", eid_conv2(full_load[k][l]));
-			}
-			else if (build_entry_type(elist[idx]) == -1 && eid_conv2(full_load[k][l])[4] == 'T')
+			if (idx == -1)			
+				printf("Trying to load invalid entry %s\n", eid2str(full_load[k][l]));			
+			else if (elist[idx].entry_type() == -1 && eid2str(full_load[k][l])[4] == 'T')
 				textures[texture_count++] = full_load[k][l];
 		}
 
@@ -1043,7 +995,7 @@ void build_texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32
 			elist[i].ename, j, over_count, point);
 
 		for (int32_t k = 0; k < over_count; k++)
-			printf("\t%s", eid_conv2(over_textures[k]));
+			printf("\t%s", eid2str(over_textures[k]));
 		printf("\n");
 	}
 }
@@ -1062,7 +1014,7 @@ void build_replace_item(ENTRY& zone,
 	uint8_t** items = (uint8_t**)try_malloc(item_count * sizeof(uint8_t**));
 
 	for (int32_t i = 0; i < item_count; i++)
-		item_lengths[i] = build_get_nth_item_offset(zone._data(), i + 1) - build_get_nth_item_offset(zone._data(), i);
+		item_lengths[i] = zone.get_nth_item_offset(i + 1) - zone.get_nth_item_offset(i);
 
 	for (offset = first_item_offset, i = 0; i < item_count;
 		offset += item_lengths[i], i++)
@@ -1112,7 +1064,7 @@ void build_entity_alter(ENTRY& zone, int32_t item_index, uint8_t* (func_arg)(uin
 	int32_t* item_lengths = (int32_t*)try_malloc(item_count * sizeof(int32_t));
 	uint8_t** items = (uint8_t**)try_malloc(item_count * sizeof(uint8_t**));
 	for (int32_t i = 0; i < item_count; i++)
-		item_lengths[i] = build_get_nth_item_offset(zone._data(), i + 1) - build_get_nth_item_offset(zone._data(), i);
+		item_lengths[i] = zone.get_nth_item_offset(i + 1) - zone.get_nth_item_offset(i);
 
 	for (offset = first_item_offset, i = 0; i < item_count;
 		offset += item_lengths[i], i++)
@@ -1151,20 +1103,9 @@ void build_entity_alter(ENTRY& zone, int32_t item_index, uint8_t* (func_arg)(uin
 	free(item_lengths);
 }
 
-/** \brief
- *  Creates a load list and inserts it basically.
- *
- * \param code uint32_t             code of the property to be added
- * \param item uint8_t*           data of item where the property will be added
- * \param item_size int32_t*                item size
- * \param list LIST *                   load list to be added
- * \return uint8_t*               new item data
- */
-uint8_t*
-build_add_property(uint32_t code,
-	uint8_t* item,
-	int32_t* item_size,
-	PROPERTY* prop)
+
+// injects a property into an item
+uint8_t* build_add_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop)
 {
 	int32_t offset, property_count = build_prop_count(item);
 
@@ -1270,20 +1211,9 @@ build_add_property(uint32_t code,
 	return new_item;
 }
 
-/** \brief
- *  Removes the specified property.
- *
- * \param code uint32_t             code of the property to be removed
- * \param item uint8_t*           data of the item thats to be changed
- * \param item_size int32_t*                size of the item
- * \param prop PROPERTY                 unused
- * \return uint8_t*               new item data
- */
-uint8_t*
-build_rem_property(uint32_t code,
-	uint8_t* item,
-	int32_t* item_size,
-	PROPERTY* prop)
+
+// Removes the specified property.
+uint8_t* build_rem_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop)
 {
 	int32_t property_count = build_prop_count(item);
 
@@ -1373,11 +1303,11 @@ void build_remove_nth_item(ENTRY& entry, int32_t n)
 
 	for (int32_t i = 0; i < item_count; i++)
 	{
-		int32_t next_start = build_get_nth_item_offset(entry._data(), i + 1);
+		int32_t next_start = entry.get_nth_item_offset(i + 1);
 		if (i == n)
 			next_start = entry.esize;
 
-		item_lengths[i] = next_start - build_get_nth_item_offset(entry._data(), i);
+		item_lengths[i] = next_start - entry.get_nth_item_offset(i);
 	}
 
 	for (offset = first_item_offset, i = 0; i < item_count;
@@ -1430,13 +1360,7 @@ void build_remove_nth_item(ENTRY& entry, int32_t n)
 	free(item_lengths);
 }
 
-/** \brief
- *  Gets texture references from a model and adds them to the list.
- *
- * \param list LIST*                        list to be added to
- * \param model uint8_t*              model data
- * \return void
- */
+// Gets texture references from a model and adds them to the list.
 void build_add_model_textures_to_list(uint8_t* model, LIST* list)
 {
 	int32_t item1off = from_u32(model + 0x10);
@@ -1450,13 +1374,7 @@ void build_add_model_textures_to_list(uint8_t* model, LIST* list)
 	}
 }
 
-/** \brief
- *  Gets texture references from a scenery entry and inserts them to the list.
- *
- * \param scenery uint8_t*            scenery data
- * \param list LIST*                        list to be added to
- * \return void
- */
+// Gets texture references from a scenery entry and inserts them to the list.
 void build_add_scen_textures_to_list(uint8_t* scenery, LIST* list)
 {
 	int32_t item1off = from_u32(scenery + 0x10);
@@ -1468,11 +1386,10 @@ void build_add_scen_textures_to_list(uint8_t* scenery, LIST* list)
 	}
 }
 
-
 // Returns path the entity has & its length.
 int16_t* build_get_path(ELIST& elist, int32_t zone_index, int32_t item_index, int32_t* path_len)
 {
-	uint8_t* item = build_get_nth_item(elist[zone_index]._data(), item_index);
+	uint8_t* item = elist[zone_index].get_nth_item(item_index);
 	int32_t offset = build_get_prop_offset(item, ENTITY_PROP_PATH);
 
 	if (offset)
@@ -1488,16 +1405,10 @@ int16_t* build_get_path(ELIST& elist, int32_t zone_index, int32_t item_index, in
 	return coords;
 }
 
-/** \brief
- *  Gets zone's scenery reference count.
- *
- * \param entry uint8_t*          entry data
- * \return int32_t                          scenery reference count
- */
-int32_t
-build_get_scen_count(uint8_t* entry)
+// Gets zone's scenery reference count.
+int32_t build_get_scen_count(uint8_t* entry)
 {
-	int32_t item1off = build_get_nth_item_offset(entry, 0);
+	int32_t item1off = ENTRY::get_nth_item_offset(entry, 0);
 	return entry[item1off];
 }
 
@@ -1505,7 +1416,7 @@ build_get_scen_count(uint8_t* entry)
 LIST build_get_sceneries(uint8_t* entry)
 {
 	int32_t scen_count = build_get_scen_count(entry);
-	int32_t item1off = build_get_nth_item_offset(entry, 0);
+	int32_t item1off = ENTRY::get_nth_item_offset(entry, 0);
 	LIST list{};
 	for (int32_t i = 0; i < scen_count; i++)
 	{

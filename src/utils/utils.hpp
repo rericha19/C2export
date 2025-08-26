@@ -2,6 +2,8 @@
 
 #include <vector>
 
+class ENTRY;
+
 class LIST : public std::vector<uint32_t>
 {
 public:
@@ -70,7 +72,7 @@ public:
 class SPAWNS : public std::vector<SPAWN>
 {
 public:
-	void swap_spawns(int32_t spawnA, int32_t spawnB);	
+	void swap_spawns(int32_t spawnA, int32_t spawnB);
 	void sort_spawns();
 };
 
@@ -80,6 +82,6 @@ using DRAW_LIST = GENERIC_LOAD_LIST;
 
 
 // Deconstructs the load or draw lists and saves into a convenient struct.
-void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, uint8_t* entry, int32_t cam_index);
-LOAD_LIST get_load_lists(uint8_t* entry, int32_t cam_index);
-DRAW_LIST get_draw_lists(uint8_t* entry, int32_t cam_index);
+void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, ENTRY& ntry, int32_t cam_index);
+LOAD_LIST get_load_lists(ENTRY& entry, int32_t cam_index);
+DRAW_LIST get_draw_lists(ENTRY& entry, int32_t cam_index);

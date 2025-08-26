@@ -30,6 +30,8 @@
     <ClInclude Include="..\src\game_structs\chunk.hpp" />
     <ClInclude Include="..\src\game_structs\entry.hpp" />
     <ClInclude Include="..\src\include.h" />
+    <ClInclude Include="..\src\side_scripts\export.hpp" />
+    <ClInclude Include="..\src\side_scripts\level_analyze.hpp" />
     <ClInclude Include="..\src\utils\dirent.h" />
     <ClInclude Include="..\src\utils\dist_queue.hpp" />
     <ClInclude Include="..\src\utils\payloads.hpp" />
@@ -39,7 +41,6 @@
     <ClCompile Include="..\src\build\build.cpp" />
     <ClCompile Include="..\src\build\build_and_write_level_data.cpp" />
     <ClCompile Include="..\src\build\build_draw_lists.cpp" />
-    <ClCompile Include="..\src\build\level_analyze.cpp" />
     <ClCompile Include="..\src\build\build_load_lists.cpp" />
     <ClCompile Include="..\src\build\build_merge_matrix_random.cpp" />
     <ClCompile Include="..\src\build\build_merge_occurence_matrix.cpp" />
@@ -51,6 +52,7 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\side_scripts\export.cpp" />
     <ClCompile Include="..\src\side_scripts\level_alter.cpp" />
+    <ClCompile Include="..\src\side_scripts\level_analyze.cpp" />
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp" />
     <ClCompile Include="..\src\utils\misc.cpp" />
     <ClCompile Include="..\src\utils\payloads.cpp" />
@@ -169,6 +171,9 @@
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>6031;4244;4068</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -218,6 +223,10 @@
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>6031;4244;4068</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

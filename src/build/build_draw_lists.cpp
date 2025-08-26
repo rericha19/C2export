@@ -1,12 +1,5 @@
 #include "../include.h"
 
-#ifdef __GNUC__
-int32_t abs(int32_t val)
-{
-	return (val >= 0) ? val : -val;
-}
-#endif
-
 // caps the angle to 0-360
 int32_t normalize_angle(int32_t angle)
 {
@@ -74,11 +67,11 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 	int32_t ent_len = 0;
 	int32_t angles_len = 0;
 
-	ENTRY curr = elist[curr_idx];
-	ENTRY neighbour = elist[neigh_idx];
+	ENTRY& curr = elist[curr_idx];
+	ENTRY& neighbour = elist[neigh_idx];
 	LIST remember_nopath{};
 
-	int32_t cam_mode = build_get_entity_prop(build_get_nth_item(curr._data(), 2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
+	int32_t cam_mode = build_get_entity_prop(curr.get_nth_item(2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
 	int16_t* path = build_get_path(elist, curr_idx, 2 + cam_idx * 3, &cam_len);
 	int16_t* angles = build_get_path(elist, curr_idx, 2 + cam_idx * 3 + 1, &angles_len);
 
@@ -104,14 +97,14 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 	// for each point of the camera path
 	for (int32_t m = 0; m < cam_len; m++)
 	{
-		int32_t cam_x = path[3 * m + 0] + from_u32(build_get_nth_item(curr._data(), 1) + 0);
-		int32_t cam_y = path[3 * m + 1] + from_u32(build_get_nth_item(curr._data(), 1) + 4);
-		int32_t cam_z = path[3 * m + 2] + from_u32(build_get_nth_item(curr._data(), 1) + 8);
+		int32_t cam_x = path[3 * m + 0] + from_u32(curr.get_nth_item(1) + 0);
+		int32_t cam_y = path[3 * m + 1] + from_u32(curr.get_nth_item(1) + 4);
+		int32_t cam_z = path[3 * m + 2] + from_u32(curr.get_nth_item(1) + 8);
 
 		// check all neighbour entities
 		for (int32_t n = 0; n < neigh_ents; n++)
 		{
-			uint8_t* entity = build_get_nth_item(neighbour._data(), 2 + neigh_cams + n);
+			uint8_t* entity = neighbour.get_nth_item(2 + neigh_cams + n);
 			int32_t ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
 			int32_t ent_override_mult = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_MULT);
 			int32_t pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_ID);
@@ -128,7 +121,7 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 				pos_override_id = pos_override_id / 0x100;
 				for (int32_t o = 0; o < neigh_ents; o++)
 				{
-					int32_t ent_id2 = build_get_entity_prop(build_get_nth_item(neighbour._data(), 2 + neigh_cams + o), ENTITY_PROP_ID);
+					int32_t ent_id2 = build_get_entity_prop(neighbour.get_nth_item(2 + neigh_cams + o), ENTITY_PROP_ID);
 					if (ent_id2 == pos_override_id)
 					{
 						ref_ent_idx = o;
@@ -156,7 +149,7 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 
 			if (ent_len == 0)
 			{
-				int32_t id = build_get_entity_prop(build_get_nth_item(elist[neigh_idx]._data(), 2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
+				int32_t id = build_get_entity_prop(elist[neigh_idx].get_nth_item(2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
 				if (remember_nopath.find(id) == -1)
 				{
 					printf("[warning] entity %d in zone %s has no path\n", id, elist[neigh_idx].ename);
@@ -167,9 +160,9 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 			// check all entity points to see whether its visible
 			for (int32_t o = 0; o < ent_len; o++)
 			{
-				int32_t ent_x = (4 * ent_path[3 * o + 0]) + from_s32(build_get_nth_item(neighbour._data(), 1) + 0);
-				int32_t ent_y = (4 * ent_path[3 * o + 1]) + from_s32(build_get_nth_item(neighbour._data(), 1) + 4);
-				int32_t ent_z = (4 * ent_path[3 * o + 2]) + from_s32(build_get_nth_item(neighbour._data(), 1) + 8);
+				int32_t ent_x = (4 * ent_path[3 * o + 0]) + from_s32(neighbour.get_nth_item(1) + 0);
+				int32_t ent_y = (4 * ent_path[3 * o + 1]) + from_s32(neighbour.get_nth_item(1) + 4);
+				int32_t ent_z = (4 * ent_path[3 * o + 2]) + from_s32(neighbour.get_nth_item(1) + 8);
 
 				int32_t dist_x = abs(cam_x - ent_x);
 				int32_t dist_y = abs(cam_y - ent_y);
@@ -231,14 +224,14 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		if (!cam_count)
 			continue;
 
-		uint32_t skipflag = from_u32(build_get_nth_item(elist[i]._data(), 0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_SKIPFLAG;
+		uint32_t skipflag = from_u32(elist[i].get_nth_item(0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_SKIPFLAG;
 		if (skipflag)
 		{
 			printf("\nSkipping draw list making for %s\n", elist[i].ename);
@@ -249,7 +242,7 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t cam_offset = build_get_nth_item_offset(elist[i]._data(), 2 + 3 * j);
+			int32_t cam_offset = elist[i].get_nth_item_offset(2 + 3 * j);
 
 			int32_t cam_length = build_get_path_length(elist[i]._data() + cam_offset);
 			printf("\tcam path %d (%d points)\n", j, cam_length);
@@ -262,11 +255,11 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 			LIST visited_neighbours{};
 			for (int32_t l = 0; l < neighbour_count; l++)
 			{
-				ENTRY curr = elist[i];
-				uint32_t neighbour_eid = from_u32(build_get_nth_item(curr._data(), 0) + C2_NEIGHBOURS_START + 4 + (4 * l));
+				ENTRY& curr = elist[i];
+				uint32_t neighbour_eid = from_u32(curr.get_nth_item(0) + C2_NEIGHBOURS_START + 4 + (4 * l));
 				if (visited_neighbours.find(neighbour_eid) != -1)
 				{
-					printf("[warning] Duplicate neighbour %s, skipping\n", eid_conv2(neighbour_eid));
+					printf("[warning] Duplicate neighbour %s, skipping\n", eid2str(neighbour_eid));
 					continue;
 				}
 
@@ -274,7 +267,7 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 				int32_t idx = elist.get_index(neighbour_eid);
 				if (idx == -1)
 				{
-					printf("[warning] Invalid neighbour %s\n", eid_conv2(neighbour_eid));
+					printf("[warning] Invalid neighbour %s\n", eid2str(neighbour_eid));
 					continue;
 				}
 				build_draw_list_util(elist, full_draw, config, i, idx, j, l, &pos_overrides);

@@ -41,9 +41,9 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 
 		perma.add(eid_to_int(eid_buff));
 
-		if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+		if (elist[index].entry_type() == ENTRY_TYPE_ANIM)
 		{
-			LIST models = ENTRY_2::get_models(elist[index]._data());
+			LIST models = elist[index].get_models();
 			perma.copy_in(models);
 
 			for (auto& model : models)
@@ -51,7 +51,8 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 				int32_t model_index = elist.get_index(model);
 				if (model_index == -1)
 				{
-					printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv(model, eid_buff));
+					printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", 
+						eid2str(model));
 					continue;
 				}
 
@@ -98,6 +99,7 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 			{
 				if (sscanf(line + line_r_off, ", %5[^\n]", eid_buff) < 1)
 					break;
+				eid_buff[5] = 0;
 				line_r_off += 7;
 				int32_t index = elist.get_index(eid_to_int(eid_buff));
 				if (index == -1)
@@ -107,15 +109,15 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 				}
 				new_subt_dep.dependencies.add(eid_to_int(eid_buff));
 
-				if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+				if (elist[index].entry_type() == ENTRY_TYPE_ANIM)
 				{
-					LIST models = ENTRY_2::get_models(elist[index]._data());
-					for (auto& model : models)
+					for (auto& model : elist[index].get_models())
 					{
 						int32_t model_index = elist.get_index(model);
 						if (model_index == -1)
 						{
-							printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", eid_conv2(model));
+							printf("[warning] unknown entry reference in object dependency list, will be skipped:\t %s\n", 
+								eid2str(model));
 							continue;
 						}
 
@@ -170,15 +172,15 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 
 					new_coll_dep.dependencies.add(eid_to_int(eid_buff));
 
-					if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+					if (elist[index].entry_type() == ENTRY_TYPE_ANIM)
 					{
-						LIST models = ENTRY_2::get_models(elist[index]._data());
-						for (auto& model : models)
+						for (auto& model : elist[index].get_models())
 						{
 							int32_t model_index = elist.get_index(model);
 							if (model_index == -1)
 							{
-								printf("[warning] unknown entry reference in collision dependency list, will be skipped: %5s\n", eid_conv2(model));
+								printf("[warning] unknown entry reference in collision dependency list, will be skipped: %5s\n",
+									eid2str(model));
 								continue;
 							}
 
@@ -233,15 +235,15 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 
 					new_mus_dep.dependencies.add(eid_to_int(eid_buf));
 
-					if (build_entry_type(elist[index]) == ENTRY_TYPE_ANIM)
+					if (elist[index].entry_type() == ENTRY_TYPE_ANIM)
 					{
-						LIST models = ENTRY_2::get_models(elist[index]._data());
-						for (auto& model : models)
+						for (auto& model : elist[index].get_models())
 						{
 							int32_t model_index = elist.get_index(model);
 							if (model_index == -1)
 							{
-								printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %5s\n", eid_conv2(model));
+								printf("[warning] unknown entry reference in music ref dependency list, will be skipped: %5s\n", 
+									eid2str(model));
 								continue;
 							}
 
@@ -258,48 +260,38 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 	return true;
 }
 
-/** \brief
- *  Adds entries specified in the zone's first item by the user. Usually entries that cannot be tied to a specific object or collision.
- *  Similar to the permaloaded and dependency list, it also checks whether the items are valid and in the case of animations adds their model
- *  and the model's texture to the list.
- *
- * \param full_load LIST*               non-delta load lists
- * \param cam_length int32_t                length of the camera path and load list array
- * \param zone ENTRY                    zone to get the stuff from
- * \return void
- */
+// Adds entries explicitly specified in the zone's first item by the user.
+// Similar to the permaloaded and dependency list, it also checks validity
+// and adds models and textures used by animations.
 LIST build_get_special_entries(ENTRY& zone, ELIST& elist)
 {
-	LIST special_entries = ENTRY_2::get_special_entries(zone._data());
+	LIST special_entries = zone.get_special_entries_raw();
 	LIST iteration_clone = {};
 	iteration_clone.copy_in(special_entries);
 
 	for (int32_t i = 0; i < iteration_clone.count(); i++)
 	{
-		char eid1[100] = "";
-		char eid2[100] = "";
-		char eid3[100] = "";
 		int32_t item = iteration_clone[i];
 		int32_t index = elist.get_index(item);
 		if (index == -1)
 		{
-			printf("[error] Zone %s special entry list contains entry %s which is not present.\n", eid_conv(zone.eid, eid1), eid_conv(item, eid2));
+			printf("[error] Zone %s special entry list contains entry %s which is not present.\n", 
+				zone.ename, eid2str(item));
 			special_entries.remove(item);
 			continue;
 		}
 
-		if (build_entry_type(elist[index]) != ENTRY_TYPE_ANIM)
+		if (elist[index].entry_type() != ENTRY_TYPE_ANIM)
 			continue;
 
-		auto models = ENTRY_2::get_models(elist[index]._data());
-		for (auto& model : models)
-		{			
+		for (auto& model : elist[index].get_models())
+		{
 			uint32_t model = build_get_model(elist[index]._data(), 0);
 			int32_t model_index = elist.get_index(model);
-			if (model_index == -1 || build_entry_type(elist[model_index]) != ENTRY_TYPE_MODEL)
+			if (model_index == -1 || elist[model_index].entry_type() != ENTRY_TYPE_MODEL)
 			{
 				printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
-					zone.ename, eid_conv(item, eid2), eid_conv(model, eid3));
+					zone.ename, eid2str(item), eid2str(model));
 				continue;
 			}
 
@@ -315,8 +307,8 @@ LIST build_get_special_entries(ENTRY& zone, ELIST& elist)
 void build_get_zone_relatives(ENTRY& ntry, SPAWNS* spawns)
 {
 	auto entry = ntry._data();
-	int32_t item0off = build_get_nth_item_offset(entry, 0);
-	int32_t item1off = build_get_nth_item_offset(entry, 1);
+	int32_t item0off = ntry.get_nth_item_offset(0);
+	int32_t item1off = ntry.get_nth_item_offset(1);
 	int32_t item0len = item1off - item0off;
 
 	if (!(item0len == 0x358 || item0len == 0x318))
@@ -328,11 +320,11 @@ void build_get_zone_relatives(ENTRY& ntry, SPAWNS* spawns)
 	int32_t camcount = build_get_cam_item_count(entry);
 	for (int32_t i = 0; i < (camcount / 3); i++)
 	{
-		uint8_t* item = build_get_nth_item(entry, 2 + 3 * i);
+		uint8_t* item = ntry.get_nth_item(2 + 3 * i);
 		ntry.related.add(build_get_slst(item));
 	}
 
-	ntry.related.copy_in(ENTRY_2::get_neighbours(entry));
+	ntry.related.copy_in(ntry.get_neighbours());
 	ntry.related.copy_in(build_get_sceneries(entry));
 
 	uint32_t music_ref = build_get_zone_track(entry);
@@ -356,13 +348,7 @@ void build_get_zone_relatives(ENTRY& ntry, SPAWNS* spawns)
 	}
 }
 
-/** \brief
- *  Searches the entity, if it has (correct) type and subtype and coords property,
- *  returns them as int32_t[3]. Usually set to accept willy and checkpoint entities.
- *
- * \param item uint8_t*           entity data
- * \return int32_t*                         int32_t[3] with xyz coords the entity if it meets criteria or NULL
- */
+// if entity has willy/check type and subtype and coords property, returns as int32_t[3]
 int32_t* build_seek_spawn(uint8_t* item)
 {
 	int32_t code, offset, type = -1, subtype = -1, coords_offset = -1;
@@ -378,14 +364,16 @@ int32_t* build_seek_spawn(uint8_t* item)
 			coords_offset = offset + 4;
 	}
 
-	if (coords_offset != -1)
-		if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4))
-		{
-			int32_t* coords = (int32_t*)try_malloc(3 * sizeof(int32_t)); // freed by caller
-			for (int32_t i = 0; i < 3; i++)
-				coords[i] = (*(int16_t*)(item + coords_offset + 2 * i)) * 4;
-			return coords;
-		}
+	if (coords_offset == -1)
+		return NULL;
+
+	if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4))
+	{
+		int32_t* coords = (int32_t*)try_malloc(3 * sizeof(int32_t)); // freed by caller
+		for (int32_t i = 0; i < 3; i++)
+			coords[i] = (*(int16_t*)(item + coords_offset + 2 * i)) * 4;
+		return coords;
+	}
 
 	return NULL;
 }
@@ -462,8 +450,9 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 				memcpy(chunks[lcl_chunk_border_texture], buffer, CHUNKSIZE);
 			}
 			ENTRY tpage{};
+			tpage.is_tpage = true;
 			tpage.eid = from_u32(buffer + 4);
-			strncpy(tpage.ename, ENTRY_2::eid_to_str(tpage.eid).c_str(), 5);			
+			strncpy(tpage.ename, ENTRY::eid2s(tpage.eid).c_str(), 5);
 			tpage.chunk = lcl_chunk_border_texture;
 			lcl_chunk_border_texture++;
 			elist.push_back(tpage);
@@ -474,29 +463,29 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 			int32_t chunk_entry_count = from_u32(buffer + 0x8);
 			for (int32_t j = 0; j < chunk_entry_count; j++)
 			{
-				int32_t start_offset = build_get_nth_item_offset(buffer, j);
-				int32_t end_offset = build_get_nth_item_offset(buffer, j + 1);
+				int32_t start_offset = ENTRY::get_nth_item_offset(buffer, j);
+				int32_t end_offset = ENTRY::get_nth_item_offset(buffer, j + 1);
 				int32_t entry_size = end_offset - start_offset;
 
 				ENTRY ntry{};
 				ntry.eid = from_u32(buffer + start_offset + 0x4);
-				strncpy(ntry.ename, ENTRY_2::eid_to_str(ntry.eid).c_str(), 5);
+				strncpy(ntry.ename, ENTRY::eid2s(ntry.eid).c_str(), 5);
 				ntry.esize = entry_size;
 				ntry.data.resize(entry_size);
 				memcpy(ntry._data(), buffer + start_offset, entry_size);
 
-				if (!stats_only || build_entry_type(ntry) == ENTRY_TYPE_SOUND)
+				if (!stats_only || ntry.entry_type() == ENTRY_TYPE_SOUND)
 					ntry.chunk = -1;
 				else
 					ntry.chunk = i;
 
-				if (build_entry_type(ntry) == ENTRY_TYPE_ZONE)
+				if (ntry.entry_type() == ENTRY_TYPE_ZONE)
 				{
 					build_check_item_count(ntry);
 					build_get_zone_relatives(ntry, spawns);
 				}
 
-				if (build_entry_type(ntry) == ENTRY_TYPE_GOOL && build_item_count(ntry._data()) == 6)
+				if (ntry.entry_type() == ENTRY_TYPE_GOOL && build_item_count(ntry._data()) == 6)
 				{
 					int32_t item1_offset = *(int32_t*)(ntry._data() + 0x10);
 					int32_t gool_type = *(int32_t*)(ntry._data() + item1_offset);

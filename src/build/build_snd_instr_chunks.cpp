@@ -10,7 +10,7 @@ void build_instrument_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunk
 	// wavebank chunks are one entry per chunk, not much to it
 	for (auto& ntry : elist)
 	{
-		if (build_entry_type(ntry) != ENTRY_TYPE_INST)
+		if (ntry.entry_type() != ENTRY_TYPE_INST)
 			continue;
 
 		ntry.chunk = chunk_index;
@@ -40,12 +40,12 @@ void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
 	// count sound entries, create an array of entries for them
 	ELIST sound_list{};
 	for (int32_t i = 0; i < entry_count; i++)
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_SOUND)
+		if (elist[i].entry_type() == ENTRY_TYPE_SOUND)
 			sound_list.push_back(elist[i]);
 
 	int32_t sound_entry_count = sound_list.count();
 	// sort entries in the list by size cuz largest first packing algorithm is used
-	qsort(sound_list.data(), sound_entry_count, sizeof(ENTRY), cmp_func_esize);
+	sound_list.sort_by_esize();
 
 	// 8 sound chunks max
 	int32_t sizes[8] = { 0 };
@@ -73,8 +73,8 @@ void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
 		if (sizes[i] > 0x14)
 			snd_chunk_count = i + 1;
 
-	// not sure why this is here anymore, but i remember things not working properly without this
-	qsort(sound_list.data(), sound_entry_count, sizeof(ENTRY), cmp_func_eid);
+	// not sure why this is here anymore, but i remember things not working properly without this	
+	sound_list.sort_by_eid();
 
 	// build the actual chunks, almost identical to the build_normal_chunks function
 	for (int32_t i = 0; i < snd_chunk_count; i++)
@@ -134,12 +134,7 @@ void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
 	*chunk_count = start_chunk_idx + snd_chunk_count;
 }
 
-/** \brief
- *  Returns a value that makes sound entries aligned as they should be (hopefully).
- *
- * \param input int32_t                     input offset
- * \return int32_t                          aligned offset
- */
+// Returns a value that makes sound entries aligned as they should be (hopefully).
 int32_t build_align_sound(int32_t input)
 {
 	for (int32_t i = 0; i < 16; i++)

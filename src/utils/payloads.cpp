@@ -18,7 +18,7 @@ int32_t PAYLOAD::tpage_count() const
 void PAYLOAD::print_info() const
 {
 	printf("Zone: %s cam path %d: payload: %3d, textures %2d, entities %2d",
-		eid_conv2(zone), cam_path, page_count(), tpage_count(), entcount);
+		eid2str(zone), cam_path, page_count(), tpage_count(), entcount);
 	printf("\n");
 }
 
@@ -40,7 +40,7 @@ PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, i
 			if (chunks[j] == curr_chunk)
 				is_there = true;
 
-		if (!is_there && eid_conv2(elist[elist_index].eid)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
+		if (!is_there && eid2str(elist[elist_index].eid)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
 		{
 			chunks[count] = curr_chunk;
 			count++;
@@ -69,7 +69,7 @@ PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, i
 			if (tchunks[j] == curr_chunk)
 				is_there = true;
 
-		if (!is_there && eid_conv2(elist[elist_index].eid)[4] == 'T' && curr_chunk != -1)
+		if (!is_there && eid2str(elist[elist_index].eid)[4] == 'T' && curr_chunk != -1)
 		{
 			tchunks[tcount] = curr_chunk;
 			tcount++;
@@ -144,7 +144,7 @@ int64_t PAYLOADS::calculate_score() const
 }
 
 // for ll_analyze
-PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist, int32_t chunk_min)
+PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 {
 	auto get_max_draw = [](LOAD_LIST& draw_list) -> int32_t
 		{
@@ -165,16 +165,16 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist, int32_t chunk_min)
 
 	PAYLOADS payloads{};
 
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
-		if (!(build_entry_type(ntry) == ENTRY_TYPE_ZONE && !ntry.data.empty()))
+		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_count = build_get_cam_item_count(ntry._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
-		{			
-			LOAD_LIST load_list = get_load_lists(ntry._data(), 2 + 3 * j);
-			DRAW_LIST draw_list = get_draw_lists(ntry._data(), 2 + 3 * j);
+		{
+			LOAD_LIST load_list = get_load_lists(ntry, 2 + 3 * j);
+			DRAW_LIST draw_list = get_draw_lists(ntry, 2 + 3 * j);
 
 			int32_t max_draw = get_max_draw(draw_list);
 
@@ -194,7 +194,7 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist, int32_t chunk_min)
 						if (sublist.index == load_list[idx + 1].index)
 							continue;
 
-				PAYLOAD payload = PAYLOAD::get_payload_single(elist, list, ntry.eid, chunk_min, 1);
+				PAYLOAD payload = PAYLOAD::get_payload_single(elist, list, ntry.eid, 0, true);
 				payload.cam_path = j;
 				payload.entcount = max_draw;
 				payloads.insert(payload);
@@ -248,5 +248,5 @@ void WORST_ZONE_INFO::print_summary()
 	printf("\nWorst zone average:\n");
 	for (int32_t i = 0; i < int32_t(size()) && i < 10; i++)
 		printf("\t%s-%d - %4dx, worst-avg payload %4.2f\n",
-			eid_conv2(at(i).zone), at(i).cam_path, at(i).count, ((double)at(i).sum) / at(i).count);
+			eid2str(at(i).zone), at(i).cam_path, at(i).count, ((double)at(i).sum) / at(i).count);
 }

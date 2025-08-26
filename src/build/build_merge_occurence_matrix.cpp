@@ -29,16 +29,16 @@ int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries, int32_t* config
 	// for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			LOAD_LIST load_list = get_load_lists(elist[i]._data(), 2 + 3 * j);
+			LOAD_LIST load_list = get_load_lists(elist[i], 2 + 3 * j);
 
-			int32_t cam_offset = build_get_nth_item_offset(elist[i]._data(), 2 + 3 * j);
-			int32_t cam_length = build_get_path_length(elist[i]._data() + cam_offset);
+			uint8_t* cam_item = elist[i].get_nth_item(2 + 3 * j);
+			int32_t cam_length = build_get_path_length(cam_item);
 
 			LIST list{};
 			switch (ll_pollin_flag)
@@ -97,30 +97,6 @@ int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries, int32_t* config
 	return entry_matrix;
 }
 
-// get a list of all normal chunk entries in elist
-LIST build_get_normal_entry_list(ELIST& elist)
-{
-	LIST entries{};
-	for (int32_t i = 0; i < elist.count(); i++)
-	{
-		switch (build_entry_type(elist[i]))
-		{
-		case -1:
-		case 5:
-		case 6:
-		case 12:
-		case 14:
-		case 20:
-		case 21:
-			continue;
-		default:;
-		}
-
-		entries.add(elist[i].eid);
-	}
-	return entries;
-}
-
 // Current best chunk merge method based on common load list occurence count of each pair of entries,
 // therefore relies on proper and good load lists ideally with delta items.
 // After the matrix is created and transformed into a sorted array it attemps to merge.
@@ -129,7 +105,7 @@ void build_matrix_merge(ELIST& elist, int32_t chunk_border_sounds, int32_t* chun
 	int32_t entry_count = elist.count();
 	int32_t permaloaded_include_flag = config[CNFG_IDX_MTRX_PERMA_INC_FLAG];
 
-	LIST entries = build_get_normal_entry_list(elist);
+	LIST entries = elist.get_normal_entries();
 	if (permaloaded_include_flag == 0)
 	{
 		entries.remove_all(permaloaded);
@@ -159,15 +135,7 @@ void build_matrix_merge(ELIST& elist, int32_t chunk_border_sounds, int32_t* chun
 	*chunk_count = build_remove_empty_chunks(chunk_border_sounds, *chunk_count, elist);
 }
 
-/** \brief
- *  For each pair of entries it increments corresponding triangular matrix tile.
- *
- * \param list LIST                     current load list
- * \param entries LIST                  list of valid normal chunk entries
- * \param entry_matrix int32_t**            triangle matrix that contains amount of common load list occurences of entries[i], entries[j] on each tile [i][j]
- * \param rating int32_t                    increment value (used to properly consider all camera points without doing it for every single point)
- * \return void
- */
+// For each pair of entries it increments corresponding triangular matrix tile.
 void build_increment_common(LIST list, LIST entries, int32_t** entry_matrix, int32_t rating)
 {
 	for (int32_t i = 0; i < list.count(); i++)
@@ -305,7 +273,7 @@ RELATIONS build_transform_matrix(LIST entries, int32_t** entry_matrix, int32_t* 
 	relations.count = rel_counter;
 	relations.relations = (RELATION*)try_malloc(rel_counter * sizeof(RELATION)); // freed by caller
 
-	for (int32_t i = 0; i < entries.count(); i++) 
+	for (int32_t i = 0; i < entries.count(); i++)
 	{
 		for (int32_t j = 0; j < i; j++)
 		{
@@ -324,7 +292,7 @@ RELATIONS build_transform_matrix(LIST entries, int32_t** entry_matrix, int32_t* 
 
 			indexer++;
 		}
-}
+	}
 
 	if (relation_array_sort_flag == 0)
 		qsort(relations.relations, relations.count, sizeof(RELATION), relations_cmp); // the 'consistent' one
@@ -350,13 +318,13 @@ int32_t build_permaloaded_merge(ELIST& elist, int32_t chunk_border_sounds, int32
 
 	ELIST perma_elist{};
 	perma_elist.resize(perma_normal_entry_count);
-	
+
 	int32_t indexer = 0;
 	for (int32_t i = 0; i < entry_count; i++)
 		if (permaloaded.find(elist[i].eid) != -1 && build_is_normal_chunk_entry(elist[i]))
 			perma_elist[indexer++] = elist[i];
 
-	qsort(perma_elist.data(), perma_normal_entry_count, sizeof(ENTRY), cmp_func_esize);
+	perma_elist.sort_by_esize();
 
 	// keep putting them into existing chunks if they fit
 	int32_t perma_chunk_count = perma_normal_entry_count;                        // idrc about optimising this

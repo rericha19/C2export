@@ -151,6 +151,13 @@ void build_write_nsd(FILE* nsd, FILE* nsd2, ELIST& elist, int32_t chunk_count, S
 // Sorts load lists according to the NSD entry table order. I think.
 void build_sort_load_lists(ELIST& elist)
 {
+	// used to sort load lists
+	struct LOAD_LIST_ITEM_UTIL
+	{
+		int32_t eid;
+		int32_t index;
+	};
+
 	// sort load list items by elist index
 	auto ll_item_sort = [](const LOAD_LIST_ITEM_UTIL& x, const LOAD_LIST_ITEM_UTIL& y)
 		{
@@ -162,13 +169,13 @@ void build_sort_load_lists(ELIST& elist)
 	// sorts the load list entries so that the order matches the nsd's entry table's order
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t cam_offset = build_get_nth_item_offset(elist[i]._data(), 2 + 3 * j);
+			int32_t cam_offset = elist[i].get_nth_item_offset(2 + 3 * j);
 			for (int32_t k = 0; k < build_prop_count(elist[i]._data() + cam_offset); k++)
 			{
 				int32_t code = from_u16(elist[i]._data() + cam_offset + 0x10 + 8 * k);

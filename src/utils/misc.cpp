@@ -24,25 +24,6 @@ void* try_calloc(uint32_t count, uint32_t size)
 	return ret;
 }
 
-void* try_realloc(void* ptr, uint32_t size)
-{
-	if (size == 0)
-	{
-		if (ptr)
-			free(ptr);
-		return NULL;
-	}
-
-	void* ret = realloc(ptr, size);
-	if (ret == NULL)
-	{
-		printf("[ERROR] Failed to realloc memory (%d), exiting\n", size);
-		getchar();
-		exit(EXIT_FAILURE);
-	}
-	return ret;
-}
-
 // text at the start when you open the program or wipe
 void intro_text()
 {
@@ -213,82 +194,35 @@ void clrscr()
 }
 
 // helper for reading signed 32b
-int32_t from_s32(uint8_t* data)
+int32_t from_s32(const uint8_t* data)
 {
 	return *(int32_t*)data;
 }
 
 // helper for reading unsigned 32b
-uint32_t from_u32(uint8_t* data)
+uint32_t from_u32(const uint8_t* data)
 {
 	return *(uint32_t*)data;
 }
 
 // helper for reading signed 16b
-int32_t from_s16(uint8_t* data)
+int32_t from_s16(const uint8_t* data)
 {
 	return *(int16_t*)(data);
 }
 
 // helper for reading unsigned 16b
-uint32_t from_u16(uint8_t* data)
+uint32_t from_u16(const uint8_t* data)
 {
 	return *(uint16_t*)data;
 }
 
 // helper for reading unsigned 8b
-uint32_t from_u8(uint8_t* data)
+uint32_t from_u8(const uint8_t* data)
 {
     const uint8_t *p = data;
 	uint32_t result = p[0];
 	return result;
-}
-
-// converts int32_t eid to string eid
-// doesnt copy
-const char *eid_conv2(uint32_t value)
-{
-    return eid_conv(value, NULL);
-}
-
-#if COMPILE_WITH_THREADS
-pthread_mutex_t g_eidconv_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
-// converts int32_t eid to string eid
-const char *eid_conv(uint32_t value, char *eid)
-{
-#if COMPILE_WITH_THREADS
-    pthread_mutex_lock(&g_eidconv_mutex);
-#endif
-
-    const char charset[] =
-        "0123456789"
-        "abcdefghijklmnopqrstuvwxyz"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "_!";
-
-    static char s_buf[6] = "abcde";
-    s_buf[0] = charset[(value >> 25) & 0x3F];
-    s_buf[1] = charset[(value >> 19) & 0x3F];
-    s_buf[2] = charset[(value >> 13) & 0x3F];
-    s_buf[3] = charset[(value >> 7) & 0x3F];
-    s_buf[4] = charset[(value >> 1) & 0x3F];
-    s_buf[5] = '\0';
-
-    if (eid == NULL)
-    {
-#if COMPILE_WITH_THREADS
-        pthread_mutex_unlock(&g_eidconv_mutex);
-#endif
-        return s_buf;
-    }
-
-    memcpy(eid, s_buf, 6);
-#if COMPILE_WITH_THREADS
-    pthread_mutex_unlock(&g_eidconv_mutex);
-#endif
-    return eid;
 }
 
 // conversion of eid from string form to u32int form
@@ -335,43 +269,10 @@ int32_t cmp_func_int(const void* a, const void* b)
 	return (*(int32_t*)a - *(int32_t*)b);
 }
 
-// used in LIST struct
-int32_t cmp_func_uint(const void* a, const void* b)
-{
-	uint32_t x = *(uint32_t*)a;
-	uint32_t y = *(uint32_t*)b;
-
-	return (x - y);
-}
-
-// for sorting by entry eid
-int32_t cmp_func_eid(const void* a, const void* b)
-{
-	return ((*(ENTRY*)a).eid - (*(ENTRY*)b).eid);
-}
-
-// used to sort entries by size
-int32_t cmp_func_esize(const void* a, const void* b)
-{
-	return ((*(ENTRY*)b).esize - (*(ENTRY*)a).esize);
-}
-
 // calculates distance of two 3D points
 int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2)
 {
 	return (int32_t)sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
-}
-
-// misc convertion thing
-CAMERA_LINK int_to_link(uint32_t link)
-{
-	CAMERA_LINK result;
-	result.type = (link & 0xFF000000) >> 24;
-	result.zone_index = (link & 0xFF0000) >> 16;
-	result.cam_index = (link & 0xFF00) >> 8;
-	result.flag = link & 0xFF;
-
-	return result;
 }
 
 // fixes path string supplied by the user, if it starts with "
@@ -383,19 +284,6 @@ void path_fix(char* fpath)
 		*(strchr(fpath, '\0') - 1) = '\0';
 	}
 }
-
-// gets offset of the nth item in an entry
-int32_t build_get_nth_item_offset(uint8_t* entry, int32_t n)
-{
-	return from_u32(entry + 0x10 + 4 * n);
-}
-
-// gets pointer to the nth item in an entry
-uint8_t* build_get_nth_item(uint8_t* entry, int32_t n)
-{
-	return entry + build_get_nth_item_offset(entry, n);
-}
-
 // for reading txt files
 // copied from stackoverflow
 int32_t getdelim(char** linep, int32_t* n, int32_t delim, FILE* fp)
@@ -420,7 +308,7 @@ int32_t getdelim(char** linep, int32_t* n, int32_t delim, FILE* fp)
 	{
 		if (i + 1 >= *n)
 		{
-			char* buf = (char*)try_realloc(*linep, *n + 128);
+			char* buf = (char*)realloc(*linep, *n + 128);
 			if (!buf)
 			{
 				errno = ENOMEM;
@@ -441,4 +329,11 @@ int32_t getdelim(char** linep, int32_t* n, int32_t delim, FILE* fp)
 int32_t getline(char** linep, int32_t* n, FILE* fp)
 {
 	return getdelim(linep, n, '\n', fp);
+}
+
+double randfrom(double min, double max)
+{
+	double range = (max - min);
+	double div = RAND_MAX / range;
+	return min + (rand() / div);
 }

@@ -1,7 +1,7 @@
 
 #include "../include.h"
 #include "utils.hpp"
-
+#include "../game_structs/entry.hpp"
 
 int32_t LIST::count() const
 {
@@ -22,7 +22,7 @@ void LIST::remove(uint32_t eid)
 		return;
 
 	auto it = std::find(begin(), end(), eid);
-	if (it != end())		
+	if (it != end())
 		erase(it);
 }
 
@@ -52,7 +52,7 @@ bool LIST::is_subset(const LIST& subset, const LIST& superset)
 void LIST::copy_in(const LIST& other)
 {
 	for (auto& eid : other)
-	{		
+	{
 		if (std::find(begin(), end(), eid) == end())
 			push_back(eid);
 	}
@@ -86,9 +86,10 @@ void SPAWNS::sort_spawns()
 
 
 // Deconstructs the load or draw lists and saves into a convenient struct.
-void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, uint8_t* entry, int32_t cam_index)
+void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, ENTRY& ntry, int32_t cam_index)
 {
-	int32_t cam_offset = build_get_nth_item_offset(entry, cam_index);
+	int32_t cam_offset = ntry.get_nth_item_offset(cam_index);
+	auto entry = ntry._data();
 	int32_t prop_count = from_u32(entry + cam_offset + OFFSET);
 
 	for (int32_t k = 0; k < prop_count; k++)
@@ -165,7 +166,7 @@ void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, uint8_t*
 	}
 }
 
-LOAD_LIST get_load_lists(uint8_t* entry, int32_t cam_index)
+LOAD_LIST get_load_lists(ENTRY& entry, int32_t cam_index)
 {
 	auto ll_sort = [](LOAD x, LOAD y)
 		{
@@ -181,7 +182,7 @@ LOAD_LIST get_load_lists(uint8_t* entry, int32_t cam_index)
 	return ll;
 }
 
-DRAW_LIST get_draw_lists(uint8_t* entry, int32_t cam_index)
+DRAW_LIST get_draw_lists(ENTRY& entry, int32_t cam_index)
 {
 	auto dl_sort = [](LOAD x, LOAD y)
 		{

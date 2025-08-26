@@ -1,4 +1,5 @@
 #include "../include.h"
+#include "../side_scripts/export.hpp"
 
 // removes draw list properties from cameras of all zone entries
 void wipe_draw_lists(ELIST& elist)
@@ -6,7 +7,7 @@ void wipe_draw_lists(ELIST& elist)
 	int32_t entry_count = elist.count();
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
@@ -24,7 +25,7 @@ void wipe_entities(ELIST& elist)
 	int32_t entry_count = elist.count();
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t cam_item_count = build_get_cam_item_count(elist[i]._data());
@@ -35,7 +36,7 @@ void wipe_entities(ELIST& elist)
 			build_remove_nth_item(elist[i], 2 + cam_item_count + j);
 		}
 
-		int32_t item1off = build_get_nth_item_offset(elist[i]._data(), 0);
+		int32_t item1off = elist[i].get_nth_item_offset(0);
 		*(int32_t*)(elist[i]._data() + item1off + 0x18C) = 0;
 	}
 }
@@ -46,7 +47,7 @@ void convert_old_dl_override(ELIST& elist)
 {
 	for (int32_t i = 0; i < elist.count(); i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
 		int32_t entity_count = build_get_entity_count(elist[i]._data());
@@ -55,7 +56,7 @@ void convert_old_dl_override(ELIST& elist)
 		for (int32_t j = 0; j < entity_count; j++)
 		{
 			int32_t entity_n = 2 + cam_item_count + j;
-			uint8_t* nth_entity = build_get_nth_item(elist[i]._data(), entity_n);
+			uint8_t* nth_entity = elist[i].get_nth_item(entity_n);
 			int32_t id = build_get_entity_prop(nth_entity, ENTITY_PROP_ID);
 			int32_t type = build_get_entity_prop(nth_entity, ENTITY_PROP_TYPE);
 			int32_t subt = build_get_entity_prop(nth_entity, ENTITY_PROP_SUBTYPE);
@@ -68,7 +69,7 @@ void convert_old_dl_override(ELIST& elist)
 			PROPERTY* prop_override_id = build_get_prop_full(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD);
 			PROPERTY* prop_override_mult = build_get_prop_full(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD);
 
-			printf("zone %s -id %d: -ts %d-%d\t\tid %d mult %d\n", eid_conv2(elist[i].eid), id, type, subt, (int16_t)(old_override_id >> 8), (int16_t)(old_override_mult >> 8));
+			printf("zone %s -id %d: -ts %d-%d\t\tid %d mult %d\n", eid2str(elist[i].eid), id, type, subt, (int16_t)(old_override_id >> 8), (int16_t)(old_override_mult >> 8));
 
 			if (old_override_id != -1)
 			{
@@ -366,11 +367,11 @@ void flip_level_y(ELIST& elist, int32_t* chunk_count)
 {
 	for (int32_t i = 0; i < elist.count(); i++)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_SCENERY)
+		if (elist[i].entry_type() == ENTRY_TYPE_SCENERY)
 		{
 			// vertices
-			uint8_t* item0 = build_get_nth_item(elist[i]._data(), 0);
-			uint8_t* item1 = build_get_nth_item(elist[i]._data(), 1);
+			uint8_t* item0 = elist[i].get_nth_item(0);
+			uint8_t* item1 = elist[i].get_nth_item(1);
 
 			int32_t vert_count = from_u32(item0 + 0x10);
 			for (int32_t j = 0; j < vert_count; j++)
@@ -387,10 +388,11 @@ void flip_level_y(ELIST& elist, int32_t* chunk_count)
 			*(int32_t*)(item0 + 0x4) *= -1;
 		}
 
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() == ENTRY_TYPE_ZONE)
 		{
-			uint8_t* item1 = build_get_nth_item(elist[i]._data(), 1);
-			int32_t size = build_get_nth_item_offset(elist[i]._data(), 2) - build_get_nth_item_offset(elist[i]._data(), 1);
+			uint8_t* item1 = elist[i].get_nth_item(1);
+			int32_t size = 
+				elist[i].get_nth_item_offset(2) - elist[i].get_nth_item_offset(1);
 
 			// zone position
 			*(int32_t*)(item1 + 0x4) *= -1;
@@ -400,7 +402,7 @@ void flip_level_y(ELIST& elist, int32_t* chunk_count)
 			int32_t maxx = from_u16(item1 + 0x1E);
 			int32_t maxy = from_u16(item1 + 0x20);
 			int32_t maxz = from_u16(item1 + 0x22);
-			printf("y flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
+			printf("y flipping coll in zone %s, %d %d %d\n", eid2str(elist[i].eid), maxx, maxy, maxz);
 			uint8_t* item1_edited = coll_get_expanded(item1, &size, maxx, maxy, maxz);
 			LIST flipped{};
 			collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 0);
@@ -412,13 +414,13 @@ void flip_level_y(ELIST& elist, int32_t* chunk_count)
 
 			for (int32_t j = 0; j < cam_item_count / 3; j++)
 			{
-				uint8_t* item = build_get_nth_item(elist[i]._data(), 2 + 3 * j);
+				uint8_t* item = elist[i].get_nth_item(2 + 3 * j);
 				flip_entity_y(item, from_s32(item1 + 0x10));
 			}
 
 			for (int32_t j = 0; j < entity_count; j++)
 			{
-				uint8_t* item = build_get_nth_item(elist[i]._data(), 2 + cam_item_count + j);
+				uint8_t* item = elist[i].get_nth_item(2 + cam_item_count + j);
 				flip_entity_y(item, from_s32(item1 + 0x10) / 4);
 			}
 
@@ -557,11 +559,11 @@ void flip_level_x(ELIST& elist, int32_t* chunk_count)
 
 	for (int32_t i = 0; i < elist.count(); i++)
 	{
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_SCENERY)
+		if (elist[i].entry_type() == ENTRY_TYPE_SCENERY)
 		{
 			// vertices
-			uint8_t* item0 = build_get_nth_item(elist[i]._data(), 0);
-			uint8_t* item1 = build_get_nth_item(elist[i]._data(), 1);
+			uint8_t* item0 = elist[i].get_nth_item(0);
+			uint8_t* item1 = elist[i].get_nth_item(1);
 
 			int32_t vert_count = from_u32(item0 + 0x10);
 			for (int32_t j = 0; j < vert_count; j++)
@@ -579,10 +581,11 @@ void flip_level_x(ELIST& elist, int32_t* chunk_count)
 			*(int32_t*)(item0 + 0x0) += xmove_off;
 		}
 
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_ZONE)
+		if (elist[i].entry_type() == ENTRY_TYPE_ZONE)
 		{
-			uint8_t* item1 = build_get_nth_item(elist[i]._data(), 1);
-			int32_t new_size = build_get_nth_item_offset(elist[i]._data(), 2) - build_get_nth_item_offset(elist[i]._data(), 1);
+			uint8_t* item1 = elist[i].get_nth_item(1);
+			int32_t new_size = 
+				elist[i].get_nth_item_offset(2) - elist[i].get_nth_item_offset(1);
 
 			// zone position
 			*(int32_t*)(item1 + 0x0) *= -1;
@@ -593,7 +596,7 @@ void flip_level_x(ELIST& elist, int32_t* chunk_count)
 			int32_t maxx = from_u16(item1 + 0x1E);
 			int32_t maxy = from_u16(item1 + 0x20);
 			int32_t maxz = from_u16(item1 + 0x22);
-			printf("x flipping coll in zone %s, %d %d %d\n", eid_conv2(elist[i].eid), maxx, maxy, maxz);
+			printf("x flipping coll in zone %s, %d %d %d\n", eid2str(elist[i].eid), maxx, maxy, maxz);
 			uint8_t* item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
 			LIST flipped{};
 			collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 1);
@@ -605,11 +608,11 @@ void flip_level_x(ELIST& elist, int32_t* chunk_count)
 
 			for (int32_t j = 0; j < cam_item_count / 3; j++)
 			{
-				uint8_t* cam_item0 = build_get_nth_item(elist[i]._data(), 2 + 3 * j);
+				uint8_t* cam_item0 = elist[i].get_nth_item(2 + 3 * j);
 				flip_entity_x(cam_item0, from_s32(item1 + 0xC));
 				flip_fix_prop_198_x(cam_item0);
 
-				uint8_t* cam_item1 = build_get_nth_item(elist[i]._data(), 2 + 3 * j + 1);
+				uint8_t* cam_item1 = elist[i].get_nth_item(2 + 3 * j + 1);
 				flip_camera_angle_x(cam_item1);
 				flip_camera_dist_2D_x(cam_item0, cam_item1);
 				// todo camera switching property fix?
@@ -617,7 +620,7 @@ void flip_level_x(ELIST& elist, int32_t* chunk_count)
 
 			for (int32_t j = 0; j < entity_count; j++)
 			{
-				uint8_t* item = build_get_nth_item(elist[i]._data(), 2 + cam_item_count + j);
+				uint8_t* item = elist[i].get_nth_item(2 + cam_item_count + j);
 				flip_entity_x(item, from_s32(item1 + 0xC) / 4);
 				flip_fix_misc_entity_props(item);
 			}
@@ -626,9 +629,9 @@ void flip_level_x(ELIST& elist, int32_t* chunk_count)
 			*chunk_count += 1;
 		}
 
-		if (build_entry_type(elist[i]) == ENTRY_TYPE_VCOL)
+		if (elist[i].entry_type() == ENTRY_TYPE_VCOL)
 		{
-			printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid_conv2(elist[i].eid));
+			printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid2str(elist[i].eid));
 
 			// todo fix/implement
 			/*
@@ -668,14 +671,14 @@ void level_recolor(ELIST& elist)
 
 	for (int i = 0; i < elist.count(); i++)
 	{
-		if (build_entry_type(elist[i]) != ENTRY_TYPE_SCENERY)
+		if (elist[i].entry_type() != ENTRY_TYPE_SCENERY)
 			continue;
 
-		int32_t offset5 = build_get_nth_item_offset(elist[i]._data(), 5);
-		int32_t offset6 = build_get_nth_item_offset(elist[i]._data(), 6);
-		uint8_t* item5 = build_get_nth_item(elist[i]._data(), 5);
+		int32_t offset5 = elist[i].get_nth_item_offset(5);
+		int32_t offset6 = elist[i].get_nth_item_offset(6);
+		uint8_t* item5 = elist[i].get_nth_item(5);
 
-		printf("%s colors: %d\n", eid_conv2(elist[i].eid), (offset6 - offset5) / 4);
+		printf("%s colors: %d\n", eid2str(elist[i].eid), (offset6 - offset5) / 4);
 		for (int32_t j = 0; j < (offset6 - offset5) / 4; j++)
 		{
 			// read current color
@@ -829,7 +832,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
 		break;
 	case Alter_Type_LevelExport:
 		// export doesnt make an output nsf
-		export_level(level_ID, elist, chunks, chunks2, chunk_count);
+		ll_export::export_level(level_ID, elist, chunks, chunks2, chunk_count);
 		for (int32_t i = 0; i < chunk_count; i++)
 		{
 			if (chunks2[i])
@@ -846,7 +849,7 @@ void level_alter_pseudorebuild(int32_t alter_type)
 	// start repacking stuff
 	for (int32_t i = 0; i < elist.count(); i++)
 	{
-		int32_t et = build_entry_type(elist[i]);
+		int32_t et = elist[i].entry_type();
 		if (et == ENTRY_TYPE_SOUND || et == ENTRY_TYPE_INST || et == -1)
 			elist[i].chunk = -1;
 	}
