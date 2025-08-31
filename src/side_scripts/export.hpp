@@ -1,6 +1,5 @@
 #pragma once
-#include <stdint.h>
-#include "../game_structs/entry.hpp"
+#include "../include.h"
 
 namespace ll_export
 {

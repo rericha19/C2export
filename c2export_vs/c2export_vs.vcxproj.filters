@@ -22,19 +22,10 @@
     <Filter Include="Source Files\utils">
       <UniqueIdentifier>{77e2eb20-d7db-44a4-b0ec-381fc723bff7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\game_structs">
-      <UniqueIdentifier>{ea943ec5-c39c-4b21-aac8-2334ba334874}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\include.h">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\game_structs\chunk.hpp">
-      <Filter>Source Files\game_structs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\game_structs\entry.hpp">
-      <Filter>Source Files\game_structs</Filter>
     </ClInclude>
     <ClInclude Include="..\src\utils\dirent.h">
       <Filter>Source Files\utils</Filter>
@@ -52,6 +43,15 @@
       <Filter>Source Files\side_scripts</Filter>
     </ClInclude>
     <ClInclude Include="..\src\side_scripts\level_analyze.hpp">
+      <Filter>Source Files\side_scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\side_scripts\level_alter.hpp">
+      <Filter>Source Files\side_scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\entry.hpp">
+      <Filter>Source Files\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\side_scripts\side_scripts.hpp">
       <Filter>Source Files\side_scripts</Filter>
     </ClInclude>
   </ItemGroup>
@@ -95,12 +95,6 @@
     <ClCompile Include="..\src\build\build_user_input.cpp">
       <Filter>Source Files\build</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\game_structs\chunk.cpp">
-      <Filter>Source Files\game_structs</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\game_structs\entry.cpp">
-      <Filter>Source Files\game_structs</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\utils\misc.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
@@ -112,6 +106,9 @@
     </ClCompile>
     <ClCompile Include="..\src\side_scripts\level_analyze.cpp">
       <Filter>Source Files\side_scripts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\entry.cpp">
+      <Filter>Source Files\utils</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

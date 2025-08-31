@@ -1,5 +1,6 @@
 #include "../include.h"
 #include "../utils/utils.hpp"
+#include "../utils/entry.hpp"
 
 // contains mostly functions used to get input from user (config stuff)
 

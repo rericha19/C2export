@@ -1,7 +1,7 @@
 
 #include "../include.h"
 #include "utils.hpp"
-#include "../game_structs/entry.hpp"
+#include "entry.hpp"
 
 int32_t LIST::count() const
 {
@@ -197,3 +197,52 @@ DRAW_LIST get_draw_lists(ENTRY& entry, int32_t cam_index)
 	std::sort(dl.begin(), dl.end(), dl_sort);
 	return dl;
 }
+
+PROPERTY PROPERTY::get_full(uint8_t* item, uint32_t prop_code)
+{
+	PROPERTY prop{};
+	int32_t property_count = build_prop_count(item);
+	uint8_t property_header[8];
+
+	for (int32_t i = 0; i < property_count; i++)
+	{
+		memcpy(property_header, item + 0x10 + 8 * i, 8);
+		if (from_u16(property_header) == prop_code)
+		{
+			memcpy(prop.header, property_header, 8);
+			int32_t next_offset = 0;
+			if (i == property_count - 1)
+				next_offset = *(uint16_t*)(item);
+			else
+				next_offset = *(uint16_t*)(item + 0x12 + (i * 8) + 8) + OFFSET;
+			int32_t curr_offset = *(uint16_t*)(item + 0x12 + 8 * i) + OFFSET;
+			prop.length = next_offset - curr_offset;
+			prop.data.reset((uint8_t*)try_malloc(prop.length));
+			memcpy(prop.data.get(), item + curr_offset, prop.length);
+			break;
+		}
+	}
+
+	return prop;
+}
+
+int32_t PROPERTY::get_value(uint8_t* entity, uint32_t prop_code)
+{
+	int32_t offset = get_offset(entity, prop_code);
+	if (offset == 0)
+		return -1;
+
+	return from_u32(entity + offset + 4);
+}
+
+int32_t PROPERTY::get_offset(uint8_t* item, uint32_t prop_code)
+{
+	int32_t offset = 0;
+	int32_t prop_count = build_prop_count(item);
+	for (int32_t i = 0; i < prop_count; i++)
+		if ((from_u16(item + 0x10 + 8 * i)) == prop_code)
+			offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
+
+	return offset;
+}
+

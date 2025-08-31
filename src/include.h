@@ -1,9 +1,10 @@
 #pragma once 
 
 #define eid2str(x) (ENTRY::eid2s(x).c_str())
+#define min(a, b) ((b < a) ? b : a)
+#define max(a, b) ((b > a) ? b : a)
 
 #define _CRT_SECURE_NO_WARNINGS
-// #define HAVE_STRUCT_TIMESPEC
 
 #include <stdlib.h>
 #include <cstdint>
@@ -16,27 +17,37 @@
 #include <chrono>
 #include <vector>
 #include <mutex>
-#include "game_structs/entry.hpp"
+#include <thread>
+#include <fstream>
 
-#if COMPILE_WITH_THREADS
-#include <pthread.h>
-#endif
+struct PROPERTY;
+struct RELATION;
+class LOAD;
+class ENTRY;
+class LIST;
+class ELIST;
+class DEPENDENCY;
+class DEPENDENCI;
+class SPAWNS;
+class MATRIX_STORED_LL;
+class RELATIONS;
 
-#include "utils/dirent.h" // todo remove
-#include "utils/utils.hpp"
+using DEPENDENCIES = std::vector<DEPENDENCY>;
+using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
+using GENERIC_LOAD_LIST = std::vector<LOAD>;
+using LOAD_LIST = GENERIC_LOAD_LIST;
+using DRAW_LIST = GENERIC_LOAD_LIST;
 
-// various constants
-
-#define CNFG_IDX_DPR_MERGE_GOOL_FLAG 0
-#define CNFG_IDX_DPR_MERGE_ZONE_FLAG 1
+#define CNFG_IDX_UNUSED_0 0
+#define CNFG_IDX_UNUSED_1 1
 #define CNFG_IDX_MTRX_LL_POLL_FLAG 2
 #define CNFG_IDX_LL_SLST_DIST_VALUE 3
 #define CNFG_IDX_LL_NEIGH_DIST_VALUE 4
 #define CNFG_IDX_LL_DRAW_DIST_VALUE 5
 #define CNFG_IDX_LL_TRNS_PRLD_FLAG 6
 #define CNFG_IDX_LL_BACKWARDS_PENALTY 7
-#define CNFG_IDX_MTRI_REL_SORT_FLAG 8
-#define CNFG_IDX_LL_SND_INCLUSION_FLAG 9
+#define CNFG_IDX_UNUSED_8 8
+#define CNFG_IDX_UNUSED_9 9
 #define CNFG_IDX_LL_REMAKE_FLAG 10
 #define CNFG_IDX_MERGE_METHOD_VALUE 11
 #define CNFG_IDX_MTRX_PERMA_INC_FLAG 12
@@ -60,17 +71,20 @@
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
-#define ELIST_DEFAULT_SIZE 2000
 #define CHUNK_LIST_DEFAULT_SIZE 2000
 #define PENALTY_MULT_CONSTANT 1000000
 
 #define SPECIAL_METADATA_MASK_LLCOUNT 0xFF
 #define SPECIAL_METADATA_MASK_SKIPFLAG 0xFF000000
 
+#define C2_SCEN_OFFSET 0
+#define C2_CAMERA_COUNT_OFF 0x188
+#define C2_ENTITY_COUNT_OFF 0x18C
 #define C2_NEIGHBOURS_START 0x190
 #define C2_NEIGHBOURS_END 0x1B4
 #define C2_NEIGHBOURS_FLAGS_END 0x1D4
 #define C2_SPECIAL_METADATA_OFFSET 0x1DC
+
 #define C2_NSD_CHUNK_COUNT_OFFSET 0x400
 #define C2_NSD_ENTRY_COUNT_OFFSET 0x404
 #define C2_NSD_DATxL_EID 0x408
@@ -93,13 +107,13 @@ enum
 
 enum
 {
-	Alter_Type_WipeDL,
-	Alter_Type_WipeEnts,
-	Alter_Type_Old_DL_Override,
-	Alter_Type_FlipScenY,
-	Alter_Type_FlipScenX,
-	Alter_Type_LevelRecolor,
-	Alter_Type_LevelExport,
+	AT_WipeDL,
+	AT_WipeEnts,
+	AT_Old_DL_Override,
+	AT_FlipScenY,
+	AT_FlipScenX,
+	AT_LevelRecolor,
+	AT_LevelExport,
 };
 
 #define ENTRY_TYPE_ANIM 0x1
@@ -157,31 +171,6 @@ enum
 #define ENTITY_PROP_CAM_BG_COLORS 0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY 0x27F
 
-// used in matrix merge to store what entries are loaded simultaneously and how much/often
-typedef struct relation
-{
-	int32_t value;
-	int32_t total_occurences;
-	int32_t index1;
-	int32_t index2;
-} RELATION;
-
-// used to keep all relations
-typedef struct relations
-{
-	int32_t count;
-	RELATION* relations;
-} RELATIONS;
-
-
-// entity/item property
-struct PROPERTY
-{
-	uint8_t header[8];
-	uint8_t* data;
-	int32_t length;
-};
-
 // misc.c
 
 void* try_malloc(uint32_t size);
@@ -199,8 +188,6 @@ uint32_t eid_to_int(std::string eid);
 uint32_t crcChecksum(const uint8_t* data, int32_t size);
 uint32_t nsfChecksum(const uint8_t* data);
 int32_t cmp_func_int(const void* a, const void* b);
-int32_t relations_cmp(const void* a, const void* b);
-int32_t relations_cmp2(const void* a, const void* b);
 int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
 void path_fix(char* fpath);
 int32_t getline(char** linep, int32_t* n, FILE* fp);
@@ -209,54 +196,38 @@ double randfrom(double min, double max);
 
 // build files in no particular order
 
-int32_t build_item_count(uint8_t* entry);
 int32_t build_prop_count(uint8_t* item);
-int32_t build_align_sound(int32_t input);
-LIST build_get_special_entries(ENTRY& zone, ELIST& elist);
-uint32_t build_get_zone_track(uint8_t* entry);
-uint32_t build_get_model(uint8_t* anim, int32_t item);
-int32_t build_remove_empty_chunks(int32_t index_start, int32_t index_end, ELIST& elist);
 int32_t build_get_base_chunk_border(uint32_t textr, uint8_t** chunks, int32_t index_end);
 uint32_t build_get_slst(uint8_t* item);
 uint32_t build_get_path_length(uint8_t* item);
 int16_t* build_get_path(ELIST& elist, int32_t zone_index, int32_t item_index, int32_t* path_len);
 int32_t* build_seek_spawn(uint8_t* item);
-int32_t build_get_neighbour_count(uint8_t* entry);
-int32_t build_get_cam_item_count(uint8_t* entry);
-int32_t build_get_scen_count(uint8_t* entry);
-int32_t build_get_entity_count(uint8_t* entry);
 int32_t build_chunk_type(uint8_t* chunk);
 void build_write_nsd(FILE* nsd, FILE* nsd2, ELIST& elist, int32_t chunk_count, SPAWNS spawns, uint32_t* gool_table, int32_t level_ID);
 void build_increment_common(LIST list, LIST entries, int32_t** entry_matrix, int32_t rating);
 int32_t dsu_find_set(int32_t i);
 void dsu_union_sets(int32_t a, int32_t b);
-void build_matrix_merge_util(RELATIONS relations, ELIST& elist, double merge_ratio);
-RELATIONS build_transform_matrix(LIST entries, int32_t** entry_matrix, int32_t* config, ELIST& elist);
-void build_matrix_merge(ELIST& elist, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded, double merge_ratio, double mult);
+void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ratio);
+RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, int32_t* config, ELIST& elist);
 void build_normal_chunks(ELIST& elist, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t** chunks, int32_t do_end_print);
-int32_t build_get_prop_offset(uint8_t* item, int32_t prop_code);
-int32_t build_get_entity_prop(uint8_t* entity, int32_t prop_code);
 void build_add_scen_textures_to_list(uint8_t* scenery, LIST* list);
 void build_add_model_textures_to_list(uint8_t* model, LIST* list);
 uint8_t* build_add_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 uint8_t* build_rem_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 void build_replace_item(ENTRY& zone, int32_t item_index, uint8_t* new_item, int32_t new_size);
 void build_entity_alter(ENTRY& zone, int32_t item_index, uint8_t* (func_arg)(uint32_t, uint8_t*, int32_t*, PROPERTY*), int32_t property_code, PROPERTY* prop);
-void build_remove_nth_item(ENTRY& zone, int32_t n);
 void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
 void build_load_list_util_util_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
 void build_add_collision_dependencies(std::vector<LIST>& full_list, int32_t start_index, int32_t end_index, ENTRY& entry,
 	DEPENDENCIES collisions, ELIST& elist);
 int32_t build_dist_w_penalty(int32_t distance, int32_t backwards_penalty);
-void build_load_list_util_util(int32_t zone_index, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list,
+void build_load_list_util_util(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list,
 	int32_t cam_length, ELIST& elist, int32_t* config, DEPENDENCIES collisisons);
 std::vector<LIST> build_get_complete_draw_list(ELIST& elist, ENTRY& zone, int32_t cam_index, int32_t cam_length);
 LIST build_get_types_subtypes(ELIST& elist, LIST entity_list, LIST neighbour_list);
 int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
-LIST build_get_entity_list(int32_t point_index, int32_t zone_index, int32_t camera_index, int32_t cam_length, ELIST& elist, LIST* neighbours, int32_t* config);
-void build_load_list_util(int32_t zone_index, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist, DEPENDENCIES sub_info, DEPENDENCIES collisions, int32_t* config);
+void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist, DEPENDENCIES sub_info, DEPENDENCIES collisions, int32_t* config);
 PROPERTY build_make_load_list_prop(std::vector<LIST>& list_array, int32_t cam_length, int32_t code);
-void build_find_unspecified_entities(ELIST& elist, DEPENDENCIES sub_info);
 void build_load_list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, int32_t cam_length, ELIST& elist, bool is_draw);
 void build_remake_draw_lists(ELIST& elist, int32_t* config);
 void build_remake_load_lists(ELIST& elist, uint32_t* gool_table, LIST permaloaded, DEPENDENCIES& subtype_info, DEPENDENCIES& collision, DEPENDENCIES& mus_deps, int32_t* config);
@@ -267,27 +238,21 @@ int32_t build_ask_ID();
 void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t* config);
 void build_instrument_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks);
 void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks);
-int32_t build_assign_primary_chunks_all(ELIST& elist, int32_t* chunk_count);
 int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries, int32_t* config);
-bool build_is_normal_chunk_entry(ENTRY& entry);
 void build_final_cleanup(uint8_t** chunks, int32_t chunk_count, FILE* nsfnew, FILE* nsd);
 void build_ask_spawn(SPAWNS& spawns);
 void build_main(int32_t build_rebuild_flag);
 void build_write_nsf(FILE* nsfnew, int32_t chunk_count, uint8_t** chunks, FILE* nsfnew2);
-LIST build_get_sceneries(uint8_t* entry);
-void build_check_item_count(ENTRY& zone);
 void build_ask_draw_distances(int32_t* config);
 void build_ask_distances(int32_t* config);
 int32_t build_is_before(ELIST& elist, int32_t zone_index, int32_t camera_index, int32_t neighbour_index, int32_t neighbour_cam_index);
-int32_t build_permaloaded_merge(ELIST& elist, int32_t chunk_border_sounds, int32_t* chunk_count, LIST permaloaded);
 void build_texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_length, int32_t i, int32_t j);
 int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd, int32_t* chunk_border_texture, uint32_t* gool_table,
-	ELIST& elist, uint8_t** chunks, SPAWNS* spawns, bool stats_only, char* fpath);
-void build_sort_load_lists(ELIST& elist);
+	ELIST& elist, uint8_t** chunks, SPAWNS* spawns, bool stats_only, const char* fpath);
 void build_ask_build_flags(int32_t* config);
 MATRIX_STORED_LLS build_matrix_store_lls(ELIST& elist);
-void build_matrix_merge_random_main(ELIST& elist, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded, bool eat_thrc);
-void build_matrix_merge_random_thr_main(ELIST& elist, int32_t chunk_border_sounds, int32_t* chunk_count, int32_t* config, LIST permaloaded);
+void build_matrix_merge_random_main(ELIST& elist, int32_t chunk_border_sounds, int32_t& chunk_count, int32_t* config, LIST& permaloaded, bool eat_thrc);
+void build_matrix_merge_random_thr_main(ELIST& elist, int32_t chunk_border_sounds, int32_t& chunk_count, int32_t* config, LIST& permaloaded);
 void build_try_second_output(FILE** nsfnew2, FILE** nsd2, int32_t levelID);
 int32_t normalize_angle(int32_t angle);
 int32_t c2yaw_to_deg(int32_t yaw);
@@ -296,55 +261,3 @@ int32_t angle_distance(int32_t angle1, int32_t angle2);
 int32_t average_angles(int32_t angle1, int32_t angle2);
 void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);
 void build_remake_draw_lists(ELIST& elist, int32_t* config);
-
-// side_scripts.c
-
-void texture_recolor_stupid();
-void scenery_recolor_main();
-void scenery_recolor_main2();
-void texture_copy_main();
-void prop_main();
-void resize_main();
-void resize_level(FILE* level, char* filepath, double scale[3], char* time, int32_t game);
-void resize_chunk_handler(uint8_t* chunk, int32_t game, double scale[3]);
-void resize_folder(DIR* df, char* path, double scale[3], char* time, int32_t game);
-void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game);
-void resize_entity(uint8_t* item, int32_t itemsize, double scale[3]);
-void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game);
-void rotate_main();
-void rotate_scenery(uint8_t* buffer, char* filepath, double rotation, char* time, int32_t filesize);
-void rotate_rotate(uint32_t* y, uint32_t* x, double rotation);
-void crate_rotation_angle();
-void nsd_gool_table_print_cmd();
-PROPERTY* build_get_prop_full(uint8_t* item, int32_t prop_code);
-void prop_remove_script();
-void prop_replace_script();
-void generate_spawn();
-void time_convert();
-void c3_ent_resize();
-void entity_move_scr();
-void print_model_tex_refs();
-void print_model_tex_refs_nsf();
-void print_all_entries_perma();
-void entity_usage_folder();
-void nsf_props_scr();
-void generate_slst();
-void cmd_payload_info();
-void warp_spawns_generate();
-void special_load_lists_list();
-void checkpoint_stats();
-void nsd_util();
-void fov_stats();
-void draw_util();
-void tpage_util();
-void gool_util();
-void eid_cmd();
-
-// level_alter.c
-
-void level_alter_pseudorebuild(int32_t alter_type);
-void wipe_draw_lists(ELIST& elist);
-void wipe_entities(ELIST& elist);
-void convert_old_dl_override(ELIST& elist);
-void flip_level_y(ELIST& elist, int32_t* chunk_count);
-void flip_level_x(ELIST& elist, int32_t* chunk_count);

@@ -1,5 +1,7 @@
 #include "../include.h"
 #include "../utils/utils.hpp"
+#include "../utils/entry.hpp"
+
 // contains functions responsible for transforming existing entry->chunk assignmened data
 // into playable/output nsd/nsf files
 
@@ -42,11 +44,13 @@ void build_normal_chunks(ELIST& elist, int32_t chunk_border_sounds, int32_t chun
 		offsets[0] = 0x10 + (local_entry_count + 1) * 4;
 
 		for (int32_t j = 0; j < entry_count; j++)
+		{
 			if (elist[j].chunk == i)
 			{
 				offsets[indexer + 1] = offsets[indexer] + elist[j].esize;
 				indexer++;
 			}
+		}
 
 		// writes offsets
 		for (int32_t j = 0; j < local_entry_count + 1; j++)
@@ -119,7 +123,7 @@ void build_write_nsd(FILE* nsd, FILE* nsd2, ELIST& elist, int32_t chunk_count, S
 	*(int32_t*)(nsddata + real_nsd_size + 8) = level_ID;
 	real_nsd_size += 0x10;
 
-	// gool table, idr why nsd size gets incremented by 0x1CC, theres some dumb gap in the nsd after the table
+	// gool table, idr why nsd size gets incremented by 0x1CC
 	for (int32_t i = 0; i < 0x40; i++)
 		*(int32_t*)(nsddata + real_nsd_size + i * 4) = gool_table[i];
 	real_nsd_size += 0x1CC;
@@ -145,63 +149,5 @@ void build_write_nsd(FILE* nsd, FILE* nsd2, ELIST& elist, int32_t chunk_count, S
 	if (nsd2 != NULL)
 		fwrite(nsddata, 1, real_nsd_size, nsd2);
 	free(nsddata);
-}
-
-
-// Sorts load lists according to the NSD entry table order. I think.
-void build_sort_load_lists(ELIST& elist)
-{
-	// used to sort load lists
-	struct LOAD_LIST_ITEM_UTIL
-	{
-		int32_t eid;
-		int32_t index;
-	};
-
-	// sort load list items by elist index
-	auto ll_item_sort = [](const LOAD_LIST_ITEM_UTIL& x, const LOAD_LIST_ITEM_UTIL& y)
-		{
-			return (x.index < y.index);
-		};
-
-	int32_t entry_count = elist.count();
-	// for each zone entry's each camera path it searches properties, if its a load list property it reads the sublists one by one,
-	// sorts the load list entries so that the order matches the nsd's entry table's order
-	for (int32_t i = 0; i < entry_count; i++)
-	{
-		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
-			continue;
-
-		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
-		for (int32_t j = 0; j < cam_count; j++)
-		{
-			int32_t cam_offset = elist[i].get_nth_item_offset(2 + 3 * j);
-			for (int32_t k = 0; k < build_prop_count(elist[i]._data() + cam_offset); k++)
-			{
-				int32_t code = from_u16(elist[i]._data() + cam_offset + 0x10 + 8 * k);
-				int32_t offset = from_u16(elist[i]._data() + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
-				int32_t list_count = from_u16(elist[i]._data() + cam_offset + 0x16 + 8 * k);
-				if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
-				{
-					int32_t sub_list_offset = offset + 4 * list_count;
-					for (int32_t l = 0; l < list_count; l++)
-					{
-						int32_t item_count = from_u16(elist[i]._data() + offset + l * 2);
-						std::vector<LOAD_LIST_ITEM_UTIL> item_list{};
-						item_list.resize(item_count);
-						for (int32_t m = 0; m < item_count; m++)
-						{
-							item_list[m].eid = from_u32(elist[i]._data() + sub_list_offset + 4 * m);
-							item_list[m].index = elist.get_index(item_list[m].eid);
-						}
-						std::sort(item_list.begin(), item_list.end(), ll_item_sort);							
-						for (int32_t m = 0; m < item_count; m++)
-							*(uint32_t*)(elist[i]._data() + sub_list_offset + 4 * m) = item_list[m].eid;
-						sub_list_offset += item_count * 4;
-					}
-				}
-			}
-		}
-	}
 }
 

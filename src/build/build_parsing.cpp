@@ -3,7 +3,7 @@
 
 #include "../include.h"
 #include "../utils/utils.hpp"
-#include "../game_structs/entry.hpp"
+#include "../utils/entry.hpp"
 
 // Reads the info from file the user has to provide, first part has permaloaded entries,
 // second has a list of type/subtype dependencies
@@ -19,14 +19,14 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 	char fpaths[BUILD_FPATH_COUNT][MAX] = { 0 }; // paths to files, fpaths contains user-input metadata like perma list file
 	build_ask_list_paths(fpaths, config);
 
-	FILE* file = fopen(fpaths[0], "r");
-	if (file == NULL)
+	File file0(fpaths[0], "r");
+	if (file0.f == NULL)
 	{
 		printf("[ERROR] File with permaloaded entries could not be opened\n");
 		return false;
 	}
 
-	while ((read = getline(&line, &line_len, file)) != -1)
+	while ((read = getline(&line, &line_len, file0.f)) != -1)
 	{
 		if (line[0] == '#')
 			continue;
@@ -60,13 +60,12 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 			}
 		}
 	}
-	fclose(file);
 
 	// if making load lists
 	if (remaking_load_lists_flag == 1)
 	{
-		file = fopen(fpaths[1], "r");
-		if (file == NULL)
+		File file1(fpaths[1], "r");
+		if (file1.f == NULL)
 		{
 			printf("[ERROR] File with type/subtype dependencies could not be opened\n");
 			return false;
@@ -78,7 +77,7 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 
 		while (1)
 		{
-			read = getline(&line, &line_len, file);
+			read = getline(&line, &line_len, file1.f);
 			if (read == -1)
 			{
 				break;
@@ -128,10 +127,9 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 			}
 			subinfo.push_back(new_subt_dep);
 		}
-		fclose(file);
 
-		file = fopen(fpaths[2], "r");
-		if (file == NULL)
+		File file2(fpaths[2], "r");
+		if (file2.f == NULL)
 		{
 			printf("\nFile with collision dependencies could not be opened\n");
 			printf("Assuming file is not necessary\n");
@@ -143,7 +141,7 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 
 			while (1)
 			{
-				read = getline(&line, &line_len, file);
+				read = getline(&line, &line_len, file2.f);
 				if (read == -1)
 				{
 					break;
@@ -162,6 +160,7 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 				{
 					if (sscanf(line + line_r_off, ", %5[^\n]", eid_buff) < 1)
 						break;
+					eid_buff[5] = 0;
 					line_r_off += 7;
 					int32_t index = elist.get_index(eid_to_int(eid_buff));
 					if (index == -1)
@@ -191,11 +190,10 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 				}
 				coll.push_back(new_coll_dep);
 			}
-			fclose(file);
 		}
 
-		file = fopen(fpaths[3], "r");
-		if (file == NULL)
+		File file3(fpaths[3], "r");
+		if (file3.f == NULL)
 		{
 			printf("\nFile with music entry dependencies could not be opened\n");
 			printf("Assuming file is not necessary\n");
@@ -207,7 +205,7 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 			while (1)
 			{
 
-				read = getline(&line, &line_len, file);
+				read = getline(&line, &line_len, file3.f);
 				if (read == -1)
 					break;
 
@@ -260,49 +258,6 @@ int32_t build_read_entry_config(LIST& perma, DEPENDENCIES& subinfo, DEPENDENCIES
 	return true;
 }
 
-// Adds entries explicitly specified in the zone's first item by the user.
-// Similar to the permaloaded and dependency list, it also checks validity
-// and adds models and textures used by animations.
-LIST build_get_special_entries(ENTRY& zone, ELIST& elist)
-{
-	LIST special_entries = zone.get_special_entries_raw();
-	LIST iteration_clone = {};
-	iteration_clone.copy_in(special_entries);
-
-	for (int32_t i = 0; i < iteration_clone.count(); i++)
-	{
-		int32_t item = iteration_clone[i];
-		int32_t index = elist.get_index(item);
-		if (index == -1)
-		{
-			printf("[error] Zone %s special entry list contains entry %s which is not present.\n", 
-				zone.ename, eid2str(item));
-			special_entries.remove(item);
-			continue;
-		}
-
-		if (elist[index].entry_type() != ENTRY_TYPE_ANIM)
-			continue;
-
-		for (auto& model : elist[index].get_models())
-		{
-			uint32_t model = build_get_model(elist[index]._data(), 0);
-			int32_t model_index = elist.get_index(model);
-			if (model_index == -1 || elist[model_index].entry_type() != ENTRY_TYPE_MODEL)
-			{
-				printf("[error] Zone %s special entry list contains animation %s that uses model %s that is not present or is not a model\n",
-					zone.ename, eid2str(item), eid2str(model));
-				continue;
-			}
-
-			special_entries.add(model);
-			build_add_model_textures_to_list(elist[model_index]._data(), &special_entries);
-		}
-	}
-
-	return special_entries;
-}
-
 //  Gets relatives of zones.
 void build_get_zone_relatives(ENTRY& ntry, SPAWNS* spawns)
 {
@@ -317,24 +272,24 @@ void build_get_zone_relatives(ENTRY& ntry, SPAWNS* spawns)
 		return;
 	}
 
-	int32_t camcount = build_get_cam_item_count(entry);
-	for (int32_t i = 0; i < (camcount / 3); i++)
+	int32_t cam_count = ntry.cam_item_count() / 3;
+	for (int32_t i = 0; i < cam_count; i++)
 	{
-		uint8_t* item = ntry.get_nth_item(2 + 3 * i);
+		uint8_t* item = ntry.get_nth_main_cam(i);
 		ntry.related.add(build_get_slst(item));
 	}
 
 	ntry.related.copy_in(ntry.get_neighbours());
-	ntry.related.copy_in(build_get_sceneries(entry));
+	ntry.related.copy_in(ntry.get_sceneries());
 
-	uint32_t music_ref = build_get_zone_track(entry);
+	uint32_t music_ref = ntry.get_zone_track();
 	if (music_ref != EID_NONE)
 		ntry.related.add(music_ref);
 
-	int32_t entity_count = build_get_entity_count(entry);
+	int32_t entity_count = ntry.entity_count();
 	for (int32_t i = 0; i < entity_count; i++)
 	{
-		int32_t* coords_ptr = build_seek_spawn(entry + from_u32(entry + 0x18 + 4 * camcount + 4 * i));
+		int32_t* coords_ptr = build_seek_spawn(entry + from_u32(entry + 0x18 + 12 * cam_count + 4 * i));
 		if (coords_ptr != NULL && spawns != NULL)
 		{
 			SPAWN new_spawn{};
@@ -381,7 +336,7 @@ int32_t* build_seek_spawn(uint8_t* item)
 
 // parsing input info for rebuilding from a nsf file
 int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd, int32_t* chunk_border_texture, uint32_t* gool_table,
-	ELIST& elist, uint8_t** chunks, SPAWNS* spawns, bool stats_only, char* fpath)
+	ELIST& elist, uint8_t** chunks, SPAWNS* spawns, bool stats_only, const char* fpath)
 {
 	FILE* nsf = NULL;
 	char nsfpath[MAX], fname[MAX + 20];
@@ -396,7 +351,6 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 	}
 	else
 	{
-
 		if (!stats_only)
 		{
 			printf("Input the path to the level (.nsf) you want to rebuild:\n");
@@ -434,7 +388,7 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 	int32_t nsf_chunk_count = build_get_chunk_count_base(nsf);
 	int32_t lcl_chunk_border_texture = 0;
 
-	uint8_t* buffer = (uint8_t*)calloc(CHUNKSIZE, sizeof(uint8_t));
+	static uint8_t buffer[CHUNKSIZE]{};
 	for (int32_t i = 0; i < nsf_chunk_count; i++)
 	{
 		fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf);
@@ -459,7 +413,7 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 			elist.sort_by_eid();
 		}
 		else
-		{
+		{			
 			int32_t chunk_entry_count = from_u32(buffer + 0x8);
 			for (int32_t j = 0; j < chunk_entry_count; j++)
 			{
@@ -481,11 +435,12 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 
 				if (ntry.entry_type() == ENTRY_TYPE_ZONE)
 				{
-					build_check_item_count(ntry);
+					if (!ntry.check_item_count())
+						return false;
 					build_get_zone_relatives(ntry, spawns);
 				}
 
-				if (ntry.entry_type() == ENTRY_TYPE_GOOL && build_item_count(ntry._data()) == 6)
+				if (ntry.entry_type() == ENTRY_TYPE_GOOL && ntry.item_count() == 6)
 				{
 					int32_t item1_offset = *(int32_t*)(ntry._data() + 0x10);
 					int32_t gool_type = *(int32_t*)(ntry._data() + item1_offset);
@@ -503,7 +458,6 @@ int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd,
 			}
 		}
 	}
-	free(buffer);
 	fclose(nsf);
 	if (chunk_border_texture != NULL)
 		*chunk_border_texture = lcl_chunk_border_texture;

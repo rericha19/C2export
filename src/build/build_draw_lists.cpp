@@ -1,4 +1,5 @@
 #include "../include.h"
+#include "../utils/entry.hpp"
 
 // caps the angle to 0-360
 int32_t normalize_angle(int32_t angle)
@@ -71,19 +72,21 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 	ENTRY& neighbour = elist[neigh_idx];
 	LIST remember_nopath{};
 
-	int32_t cam_mode = build_get_entity_prop(curr.get_nth_item(2 + 3 * cam_idx), ENTITY_PROP_CAMERA_MODE);
+	int32_t cam_mode = PROPERTY::get_value(curr.get_nth_main_cam(cam_idx), ENTITY_PROP_CAMERA_MODE);
 	int16_t* path = build_get_path(elist, curr_idx, 2 + cam_idx * 3, &cam_len);
 	int16_t* angles = build_get_path(elist, curr_idx, 2 + cam_idx * 3 + 1, &angles_len);
 
-	int32_t neigh_ents = build_get_entity_count(neighbour._data());
-	int32_t neigh_cams = build_get_cam_item_count(neighbour._data());
+	int32_t neigh_ents = neighbour.entity_count();
+	int32_t neigh_camitems = neighbour.cam_item_count();
 
 	if (cam_len != angles_len / 2)
 	{
 		printf("[warning] Zone %s camera %d camera path and angles path length mismatch (%d %d)\n", curr.ename, cam_idx, cam_len, angles_len);
 	}
 
-	int32_t* avg_angles = (int32_t*)try_malloc(cam_len * sizeof(int32_t));
+	std::vector<int32_t> avg_angles{};
+	avg_angles.reserve(cam_len);
+
 	if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
 	{
 		for (int32_t n = 0; n < angles_len; n += 2)
@@ -104,13 +107,13 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 		// check all neighbour entities
 		for (int32_t n = 0; n < neigh_ents; n++)
 		{
-			uint8_t* entity = neighbour.get_nth_item(2 + neigh_cams + n);
-			int32_t ent_id = build_get_entity_prop(entity, ENTITY_PROP_ID);
-			int32_t ent_override_mult = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_MULT);
-			int32_t pos_override_id = build_get_entity_prop(entity, ENTITY_PROP_OVERRIDE_DRAW_ID);
+			uint8_t* entity = neighbour.get_nth_entity(n);
+			int32_t ent_id = PROPERTY::get_value(entity, ENTITY_PROP_ID);
+			int32_t ent_override_mult = PROPERTY::get_value(entity, ENTITY_PROP_OVERRIDE_DRAW_MULT);
+			int32_t pos_override_id = PROPERTY::get_value(entity, ENTITY_PROP_OVERRIDE_DRAW_ID);
 
-			int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-			int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
+			int32_t type = PROPERTY::get_value(entity, ENTITY_PROP_TYPE);
+			int32_t subt = PROPERTY::get_value(entity, ENTITY_PROP_SUBTYPE);
 
 			if (ent_id == -1)
 				continue;
@@ -121,7 +124,7 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 				pos_override_id = pos_override_id / 0x100;
 				for (int32_t o = 0; o < neigh_ents; o++)
 				{
-					int32_t ent_id2 = build_get_entity_prop(neighbour.get_nth_item(2 + neigh_cams + o), ENTITY_PROP_ID);
+					int32_t ent_id2 = PROPERTY::get_value(neighbour.get_nth_entity(o), ENTITY_PROP_ID);
 					if (ent_id2 == pos_override_id)
 					{
 						ref_ent_idx = o;
@@ -145,11 +148,11 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 			int32_t allowed_dist_xz = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ]) / 100);
 			int32_t allowed_angledist = config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D];
 
-			int16_t* ent_path = build_get_path(elist, neigh_idx, 2 + neigh_cams + ref_ent_idx, &ent_len);
+			int16_t* ent_path = build_get_path(elist, neigh_idx, 2 + neigh_camitems + ref_ent_idx, &ent_len);
 
 			if (ent_len == 0)
 			{
-				int32_t id = build_get_entity_prop(elist[neigh_idx].get_nth_item(2 + neigh_cams + ref_ent_idx), ENTITY_PROP_ID);
+				int32_t id = PROPERTY::get_value(elist[neigh_idx].get_nth_entity(ref_ent_idx), ENTITY_PROP_ID);
 				if (remember_nopath.find(id) == -1)
 				{
 					printf("[warning] entity %d in zone %s has no path\n", id, elist[neigh_idx].ename);
@@ -210,8 +213,6 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* c
 			}
 		}
 	}
-
-	free(avg_angles);
 }
 
 // main function for remaking draw lists according to config and zone data
@@ -227,7 +228,7 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 		if (elist[i].entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(elist[i]._data()) / 3;
+		int32_t cam_count = elist[i].cam_item_count() / 3;
 		if (!cam_count)
 			continue;
 
@@ -251,7 +252,7 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 			std::vector<LIST> full_draw{};
 			full_draw.resize(cam_length);
 
-			int32_t neighbour_count = build_get_neighbour_count(elist[i]._data());
+			int32_t neighbour_count = elist[i].neighbour_count();
 			LIST visited_neighbours{};
 			for (int32_t l = 0; l < neighbour_count; l++)
 			{
@@ -317,8 +318,6 @@ void build_remake_draw_lists(ELIST& elist, int32_t* config)
 
 			if (dbg_print)
 				printf("Freed some stuff, end\n");
-			// free(prop_0x208.data);
-			// free(prop_0x209.data);
 		}
 	}
 }

@@ -1,5 +1,7 @@
 #include "../include.h"
+#include "../utils/entry.hpp"
 #include "../side_scripts/level_analyze.hpp"
+#include "../side_scripts/side_scripts.hpp"
 
 // one of old texture recoloring utils
 void texture_recolor_stupid()
@@ -532,39 +534,6 @@ void prop_remove_script()
 	printf("Done. Altered file saved as %s\n\n", fpath2);
 }
 
-// command for retrieving full property data
-PROPERTY* build_get_prop_full(uint8_t* item, int32_t prop_code)
-{
-	PROPERTY* prop = (PROPERTY*)try_malloc(sizeof(PROPERTY));
-	prop->length = 0;
-	int32_t property_count = build_prop_count(item);
-	uint8_t property_header[8];
-
-	for (int32_t i = 0; i < property_count; i++)
-	{
-		memcpy(property_header, item + 0x10 + 8 * i, 8);
-		if (from_u16(property_header) == prop_code)
-		{
-			memcpy(prop->header, property_header, 8);
-			int32_t next_offset = 0;
-			if (i == property_count - 1)
-				next_offset = *(uint16_t*)(item);
-			else
-				next_offset = *(uint16_t*)(item + 0x12 + (i * 8) + 8) + OFFSET;
-			int32_t curr_offset = *(uint16_t*)(item + 0x12 + 8 * i) + OFFSET;
-			prop->length = next_offset - curr_offset;
-			prop->data = (uint8_t*)try_malloc(prop->length);
-			memcpy(prop->data, item + curr_offset, prop->length);
-			break;
-		}
-	}
-
-	if (prop->length == 0)
-		return NULL;
-	else
-		return prop;
-}
-
 // command for replacing property data
 void prop_replace_script()
 {
@@ -614,8 +583,8 @@ void prop_replace_script()
 	printf("\nWhat prop do you wanna replace/insert? (hex)\n");
 	scanf("%x", &prop_code);
 
-	PROPERTY* prop = build_get_prop_full(item, prop_code);
-	if (prop == NULL)
+	PROPERTY prop = PROPERTY::get_full(item, prop_code);
+	if (prop.length == 0)
 	{
 		printf("Property wasnt found in the source file\n\n");
 		free(item);
@@ -627,7 +596,7 @@ void prop_replace_script()
 	item2 = build_rem_property(prop_code, item2, &fsize2, NULL);
 
 	fsize2_after = fsize2;
-	item2 = build_add_property(prop_code, item2, &fsize2, prop);
+	item2 = build_add_property(prop_code, item2, &fsize2, &prop);
 
 	rewind(file2);
 	fwrite(item2, 1, fsize2, file2);
@@ -659,7 +628,6 @@ void resize_main()
 	char path[MAX] = "";
 	double scale[3];
 	bool check = true;
-	DIR* df = NULL;
 
 	int32_t gamemode;
 
@@ -673,56 +641,89 @@ void resize_main()
 	scanf(" %[^\n]", path);
 	path_fix(path);
 
-	if ((df = opendir(path)) != NULL) // opendir returns NULL if couldn't open directory
-		resize_folder(df, path, scale, time_str, gamemode);
-	else if ((level = fopen(path, "rb")) != NULL)
-		resize_level(level, path, scale, time_str, gamemode);
+	if (!std::filesystem::exists(path))
+	{
+		printf("[ERROR] %s doesnt exist\n", path);
+		return;
+	}
+
+	std::error_code ec{};
+	if (std::filesystem::is_directory(path, ec)) // opendir returns NULL if couldn't open directory
+		resize_folder(path, scale, time_str, gamemode);
+	else if (std::filesystem::is_regular_file(path))
+		resize_level(path, scale, time_str, gamemode);
 	else
 	{
 		printf("Couldn't open\n");
 		check = false;
 	}
 
-	if (level)
-		fclose(level);
-	closedir(df);
-
 	if (check)
 		printf("\nEntries' dimensions resized\n\n");
 }
 
 // yep resizes level
-void resize_level(FILE* level, char* filepath, double scale[3], char* time, int32_t game)
+void resize_level(char* filepath, double scale[3], char* time, int32_t game)
 {
-	FILE* filenew;
-	char* help, fpath[MAX];
-	uint8_t* buffer = (uint8_t*)try_malloc(CHUNKSIZE);
-	if (buffer == NULL)
+	std::filesystem::path inPath(filepath);
+
+	if (!std::filesystem::exists(inPath))
 	{
-		printf("[ERROR] Memory allocation failed\n");
+		std::printf("[ERROR] Input file not found: %s\n", filepath);
 		return;
 	}
 
-	help = strrchr(filepath, '\\');
-	*help = '\0';
-	help = help + 1;
-	sprintf(fpath, "%s\\%s_%s", filepath, time, help);
+	// Build output path: same folder, new name with time prefix
+	std::string fname = inPath.filename().string();
+	std::filesystem::path outPath = inPath.parent_path() / (std::string(time) + "_" + fname);
 
-	filenew = fopen(fpath, "wb");
-	fseek(level, 0, SEEK_END);
-	int32_t chunkcount = ftell(level) / CHUNKSIZE;
-	rewind(level);
-
-	for (int32_t i = 0; i < chunkcount; i++)
+	// Open input file
+	std::ifstream inFile(inPath, std::ios::binary | std::ios::ate);
+	if (!inFile)
 	{
-		fread(buffer, sizeof(uint8_t), CHUNKSIZE, level);
-		resize_chunk_handler(buffer, game, scale);
-		fwrite(buffer, sizeof(uint8_t), CHUNKSIZE, filenew);
+		std::printf("[ERROR] Could not open input file: %s\n", filepath);
+		return;
 	}
-	fclose(filenew);
-	free(buffer);
-}
 
+	std::streamsize totalSize = inFile.tellg();
+	if (totalSize <= 0)
+	{
+		std::printf("[ERROR] Empty or invalid file: %s\n", filepath);
+		return;
+	}
+	inFile.seekg(0, std::ios::beg);
+
+	// Open output file
+	std::ofstream outFile(outPath, std::ios::binary);
+	if (!outFile)
+	{
+		std::printf("[ERROR] Could not create output file: %s\n", outPath.string().c_str());
+		return;
+	}
+
+	const std::size_t chunkSize = CHUNKSIZE;
+	std::vector<uint8_t> buffer(chunkSize);
+
+	int32_t chunkCount = static_cast<int32_t>(totalSize / chunkSize);
+
+	for (int32_t i = 0; i < chunkCount; i++)
+	{
+		if (!inFile.read(reinterpret_cast<char*>(buffer.data()), chunkSize))
+		{
+			std::printf("[ERROR] Failed reading chunk %d from %s\n", i, filepath);
+			break;
+		}
+
+		resize_chunk_handler(buffer.data(), game, scale);
+
+		outFile.write(reinterpret_cast<char*>(buffer.data()), chunkSize);
+		if (!outFile)
+		{
+			std::printf("[ERROR] Failed writing chunk %d to %s\n", i, outPath.string().c_str());
+			break;
+		}
+	}
+}
 // yep resizes model
 void resize_model(int32_t fsize, uint8_t* buffer, double scale[3])
 {
@@ -760,7 +761,7 @@ void resize_model(int32_t fsize, uint8_t* buffer, double scale[3])
 // yep resizes animation
 void resize_animation(int32_t fsize, uint8_t* buffer, double scale[3])
 {
-	int32_t itemc = build_item_count(buffer);
+	int32_t itemc = ENTRY::item_count(buffer);
 
 	for (int32_t i = 0; i < itemc; i++)
 	{
@@ -784,7 +785,7 @@ void resize_animation(int32_t fsize, uint8_t* buffer, double scale[3])
 // yep fixes camera distance
 void resize_zone_camera_distance(int32_t fsize, uint8_t* buffer, double scale[3])
 {
-	int32_t cam_c = build_get_cam_item_count(buffer);
+	int32_t cam_c = ENTRY::cam_item_count(buffer);
 
 	for (int32_t i = 0; i < cam_c; i += 3)
 	{
@@ -862,67 +863,84 @@ void resize_chunk_handler(uint8_t* chunk, int32_t game, double scale[3])
 }
 
 // yep resizes folder
-void resize_folder(DIR* df, char* path, double scale[3], char* time, int32_t game)
+void resize_folder(char* path, double scale[3], char* time, int32_t game)
 {
-	struct dirent* de;
-	char fname[6] = "", help[MAX] = "";
-	FILE* file, * filenew;
-	int32_t filesize;
-
-	sprintf(help, "%s\\%s", path, time);
-	std::filesystem::create_directory(help);
-
-	while ((de = readdir(df)) != NULL)
+	try
 	{
-		if (de->d_name[0] != '.')
-		{
-			char fpath[MAX] = "";
-			sprintf(fpath, "%s\\%s", path, de->d_name);
-			strncpy(fname, de->d_name, 5);
-			fname[5] = '\0';
+		std::filesystem::path basePath(path);
+		std::filesystem::path outDir = basePath / time;
 
-			if (!strcmp("scene", fname))
+		std::filesystem::create_directory(outDir);
+
+		for (const auto& entry : std::filesystem::directory_iterator(basePath))
+		{
+			if (!entry.is_regular_file())
+				continue;
+
+			const std::filesystem::path& fpath = entry.path();
+			const std::string fname = fpath.filename().string();
+
+			if (fname.empty() || fname[0] == '.')
+				continue;
+
+			char prefix[6] = "";
+			std::strncpy(prefix, fname.c_str(), 5);
+			prefix[5] = '\0';
+
+			// Only process "scene" or "zone "
+			if (std::strcmp(prefix, "scene") == 0 || std::strcmp(prefix, "zone ") == 0)
 			{
-				file = fopen(fpath, "rb");
-				fseek(file, 0, SEEK_END);
-				filesize = ftell(file);
-				rewind(file);
-				uint8_t* buffer = (uint8_t*)try_calloc(sizeof(uint8_t), filesize); // freed here
-				fread(buffer, sizeof(uint8_t), filesize, file);
-				resize_scenery(filesize, buffer, scale, game);
-				sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
-				filenew = fopen(help, "wb");
-				fwrite(buffer, sizeof(uint8_t), filesize, filenew);
-				free(buffer);
-				fclose(file);
-				fclose(filenew);
-			}
-			if (!strcmp("zone ", fname))
-			{
-				file = fopen(fpath, "rb");
-				fseek(file, 0, SEEK_END);
-				filesize = ftell(file);
-				rewind(file);
-				uint8_t* buffer = (uint8_t*)try_calloc(sizeof(uint8_t), filesize); // freed here
-				fread(buffer, sizeof(uint8_t), filesize, file);
-				resize_zone(filesize, buffer, scale, game);
-				sprintf(help, "%s\\%s\\%s", path, time, strrchr(fpath, '\\') + 1);
-				filenew = fopen(help, "wb");
-				fwrite(buffer, sizeof(uint8_t), filesize, filenew);
-				free(buffer);
-				fclose(file);
-				fclose(filenew);
+				// Read file into buffer
+				std::ifstream file(fpath, std::ios::binary | std::ios::ate);
+				if (!file)
+				{
+					printf("[ERROR] Could not open file %s\n", fpath.string().c_str());
+					continue;
+				}
+				std::streamsize filesize = file.tellg();
+				file.seekg(0, std::ios::beg);
+
+				std::vector<uint8_t> buffer(filesize);
+				if (!file.read(reinterpret_cast<char*>(buffer.data()), filesize))
+				{
+					printf("[ERROR] Failed reading file %s\n", fpath.string().c_str());
+					continue;
+				}
+
+				// Resize depending on prefix
+				if (std::strcmp(prefix, "scene") == 0)
+				{
+					resize_scenery(static_cast<int32_t>(filesize), buffer.data(), scale, game);
+				}
+				else if (std::strcmp(prefix, "zone ") == 0)
+				{
+					resize_zone(static_cast<int32_t>(filesize), buffer.data(), scale, game);
+				}
+
+				// Output path
+				std::filesystem::path newFile = outDir / fpath.filename();
+
+				// Write buffer back
+				std::ofstream filenew(newFile, std::ios::binary);
+				if (!filenew)
+				{
+					printf("[ERROR] Could not write file %s\n", newFile.string().c_str());
+					continue;
+				}
+				filenew.write(reinterpret_cast<const char*>(buffer.data()), filesize);
 			}
 		}
+	}
+	catch (const std::exception& e)
+	{
+		printf("[ERROR] %s\n%s\n", e.what(), path);
 	}
 }
 
 // yep resizes zone
 void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 {
-	int32_t i, itemcount;
-	uint32_t coord;
-	itemcount = build_item_count(buffer);
+	int32_t itemcount = ENTRY::item_count(buffer);
 	int32_t* itemoffs = (int32_t*)try_malloc(itemcount * sizeof(int32_t)); // freed here
 
 	for (int32_t i = 0; i < itemcount; i++)
@@ -930,7 +948,7 @@ void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 
 	for (int32_t i = 0; i < 6; i++)
 	{
-		coord = from_u32(buffer + itemoffs[1] + i * 4);
+		uint32_t coord = from_u32(buffer + itemoffs[1] + i * 4);
 		if (coord >= (1LL << 31))
 		{
 			coord = (uint32_t)((1LL << 32) - coord);
@@ -953,7 +971,7 @@ void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 		}
 	}
 
-	for (i = 2; i < itemcount; i++)
+	for (int32_t i = 2; i < itemcount; i++)
 		if (i > buffer[itemoffs[0] + 0x188] || (i % 3 == 2))
 			resize_entity(buffer + itemoffs[i], itemoffs[i + 1] - itemoffs[i], scale);
 
@@ -963,7 +981,7 @@ void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 // yep resizes entity
 void resize_entity(uint8_t* item, int32_t itemsize, double scale[3])
 {
-	for (int32_t i = 0; i < build_item_count(item); i++)
+	for (int32_t i = 0; i < ENTRY::item_count(item); i++)
 	{
 		int32_t code = from_u16(item + 0x10 + 8 * i);
 		int32_t offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
@@ -1150,7 +1168,7 @@ void generate_spawn()
 		return;
 	}
 
-	int32_t cam_count = build_get_cam_item_count(elist[elist_index]._data()) / 3;
+	int32_t cam_count = elist[elist_index].cam_item_count() / 3;
 	if (cam_count == 0)
 	{
 		printf("Zone %5s does not have a camera path\n\n", zone);
@@ -1165,10 +1183,10 @@ void generate_spawn()
 	printf("\nWhat entity's coordinates do you wanna spawn on? (entity has to be in the zone)\n");
 	scanf("%d", &entity_id);
 
-	for (int32_t i = 0; i < build_get_entity_count(elist[elist_index]._data()); i++)
+	for (int32_t i = 0; i < elist[elist_index].entity_count(); i++)
 	{
-		uint8_t* entity = elist[elist_index].get_nth_item(2 + 3 * cam_count + i);
-		int32_t ID = build_get_entity_prop(entity, ENTITY_PROP_ID);
+		uint8_t* entity = elist[elist_index].get_nth_entity(i);
+		int32_t ID = PROPERTY::get_value(entity, ENTITY_PROP_ID);
 
 		if (ID == entity_id)
 			entity_index = i;
@@ -1477,11 +1495,23 @@ void print_model_refs_util(ENTRY& model)
 		int32_t clut = from_u16(curr_off + 2);
 		int32_t tex = from_u8(curr_off + 7);
 
-		int32_t startx = min(min(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
-		int32_t starty = min(min(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
+		int32_t startx = min(min(
+			from_u8(curr_off + 0),
+			from_u8(curr_off + 4)),
+			from_u8(curr_off + 8));
+		int32_t starty = min(min(
+			from_u8(curr_off + 1),
+			from_u8(curr_off + 5)),
+			from_u8(curr_off + 9));
 
-		int32_t endx = max(max(from_u8(curr_off + 0), from_u8(curr_off + 4)), from_u8(curr_off + 8));
-		int32_t endy = max(max(from_u8(curr_off + 1), from_u8(curr_off + 5)), from_u8(curr_off + 9));
+		int32_t endx = max(max(
+			from_u8(curr_off + 0),
+			from_u8(curr_off + 4)),
+			from_u8(curr_off + 8));
+		int32_t endy = max(max(
+			from_u8(curr_off + 1),
+			from_u8(curr_off + 5)),
+			from_u8(curr_off + 9));
 
 		int32_t width = endx - startx + 1;
 		int32_t height = endy - starty + 1;
@@ -1604,7 +1634,7 @@ void print_all_entries_perma()
 }
 
 // collects entity usage info from a single nsf
-void entity_usage_single_nsf(char* fpath, DEPENDENCIES* deps, uint32_t* gool_table)
+void entity_usage_single_nsf(const char* fpath, DEPENDENCIES* deps, uint32_t* gool_table)
 {
 	printf("Checking %s\n", fpath);
 
@@ -1614,20 +1644,18 @@ void entity_usage_single_nsf(char* fpath, DEPENDENCIES* deps, uint32_t* gool_tab
 
 	int32_t total_entity_count = 0;
 
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t camera_count = build_get_cam_item_count(ntry._data());
-		int32_t entity_count = build_get_entity_count(ntry._data());
-
+		int32_t entity_count = ntry.entity_count();
 		for (int32_t j = 0; j < entity_count; j++)
 		{
-			uint8_t* entity = ntry.get_nth_item(2 + camera_count + j);
-			int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-			int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-			int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
+			uint8_t* entity = ntry.get_nth_entity(j);
+			int32_t type = PROPERTY::get_value(entity, ENTITY_PROP_TYPE);
+			int32_t subt = PROPERTY::get_value(entity, ENTITY_PROP_SUBTYPE);
+			int32_t id = PROPERTY::get_value(entity, ENTITY_PROP_ID);
 
 			if (id == -1)
 				continue;
@@ -1656,39 +1684,44 @@ void entity_usage_single_nsf(char* fpath, DEPENDENCIES* deps, uint32_t* gool_tab
 // folder iterator for getting entity usage
 void entity_usage_folder_util(const char* dpath, DEPENDENCIES* deps, uint32_t* gool_table)
 {
-	char fpath[MAX + 300] = "", fname[MAX] = "";
-	DIR* df = opendir(dpath);
-	if (df == NULL)
+	try
 	{
-		printf("[ERROR] Could not open selected directory\n");
-		return;
-	}
+		std::filesystem::path basePath(dpath);
 
-	char nsfcheck[4] = "";
-	struct dirent* de;
-	while ((de = readdir(df)) != NULL)
+		if (!std::filesystem::exists(basePath) || !std::filesystem::is_directory(basePath))
+		{
+			printf("[ERROR] Could not open selected directory\n");
+			return;
+		}
+
+		for (const auto& entry : std::filesystem::directory_iterator(basePath))
+		{
+			const std::filesystem::path& path = entry.path();
+			const std::string fname = path.filename().string();
+
+			// Skip "." and ".."
+			if (fname == "." || fname == "..")
+				continue;
+
+			if (entry.is_regular_file())
+			{
+				if (path.extension() == ".NSF")
+				{
+					std::string fpath = path.string();
+					entity_usage_single_nsf(fpath.c_str(), deps, gool_table);
+				}
+			}
+			else if (entry.is_directory())
+			{
+				std::string subdir = path.string();
+				entity_usage_folder_util(subdir.c_str(), deps, gool_table);
+			}
+		}
+	}
+	catch (const std::exception& e)
 	{
-		if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
-		{
-			continue;
-		}
-		strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
-		nsfcheck[3] = '\0'; // Ensure null-termination
-
-		strcpy(fname, de->d_name);
-		if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
-		{
-			sprintf(fpath, "%s\\%s", dpath, de->d_name);
-			entity_usage_single_nsf(fpath, deps, gool_table);
-		}
-		char filePath[256];
-		snprintf(filePath, sizeof(filePath), "%s\\%s", dpath, de->d_name);
-		if (de->d_type == DT_DIR)
-		{
-			entity_usage_folder_util(filePath, deps, gool_table);
-		}
+		printf("[ERROR] %s\n", e.what());
 	}
-	closedir(df);
 }
 
 // script for getting entity usage from folder
@@ -1730,7 +1763,7 @@ void entity_usage_folder()
 void nsf_props_scr()
 {
 	ELIST elist{};
-	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
+	uint32_t gool_table[C3_GOOL_TABLE_SIZE]{};
 	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
 		gool_table[i] = EID_NONE;
 
@@ -1744,12 +1777,12 @@ void nsf_props_scr()
 	scanf("%x", &prop_code);
 
 	printf("\n");
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(ntry._data());
+		int32_t cam_count = ntry.cam_item_count();
 		for (int32_t j = 0; j < cam_count; j++)
 		{
 			uint8_t* item = ntry.get_nth_item(2 + j);
@@ -1787,7 +1820,7 @@ void generate_slst()
 	static uint8_t empty_source[] = { 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	static uint8_t empty_delta[] = { 0x2, 0x0, 0x1, 0x0, 0x2, 0x0, 0x2, 0x0 };
 	uint32_t real_len = 0x10;
-	uint8_t buffer[0x20000];
+	uint8_t buffer[10000]{};
 	char fpath[500] = "";
 
 	printf("Camera path length?\n");
@@ -1901,12 +1934,12 @@ void warp_spawns_generate()
 				continue;
 
 			uint8_t* curr_zone = elist[j]._data();
-			int32_t camc = build_get_cam_item_count(curr_zone);
+			int32_t camc = elist[j].cam_item_count();
 
-			for (int32_t k = 0; k < build_get_entity_count(curr_zone); k++)
+			for (int32_t k = 0; k < elist[j].entity_count(); k++)
 			{
 				int32_t offset = elist[j].get_nth_item_offset(2 + camc + k);
-				int32_t ent_id = build_get_entity_prop(curr_zone + offset, ENTITY_PROP_ID);
+				int32_t ent_id = PROPERTY::get_value(curr_zone + offset, ENTITY_PROP_ID);
 				if (ent_id == spawn_ids[i])
 				{
 					int32_t pathlen;
@@ -1945,7 +1978,7 @@ void warp_spawns_generate()
 }
 
 // util for printing special load list info for single nsf
-void special_load_lists_util(char* fpath)
+void special_load_lists_util(const char* fpath)
 {
 	printf("Checking %s\n", fpath);
 	bool printed_something = false;
@@ -1980,7 +2013,7 @@ void special_load_lists_util(char* fpath)
 		printf("\n");
 }
 
-bool check_fpath_contains(char* fpath, std::string name)
+bool check_fpath_contains(const char* fpath, std::string name)
 {
 	if (strstr(fpath, name.c_str()))
 		return true;
@@ -1989,11 +2022,11 @@ bool check_fpath_contains(char* fpath, std::string name)
 }
 
 // for printing gool type and category list from nsf
-void nsd_util_util(char* fpath)
+void nsd_util_util(const char* fpath)
 {
 	ELIST elist{};
 
-	char* filename = strrchr(fpath, '\\');
+	const char* filename = strrchr(fpath, '\\');
 	if (filename != NULL)
 	{
 		filename++;
@@ -2006,7 +2039,7 @@ void nsd_util_util(char* fpath)
 	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_GOOL)
 			continue;
@@ -2021,7 +2054,7 @@ void nsd_util_util(char* fpath)
 }
 
 // util for printing fov info for a single level
-void fov_stats_util(char* fpath)
+void fov_stats_util(const char* fpath)
 {
 	printf("Level: %s\n", fpath);
 	ELIST elist{};
@@ -2029,16 +2062,16 @@ void fov_stats_util(char* fpath)
 	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t c_count = build_get_cam_item_count(ntry._data()) / 3;
+		int32_t c_count = ntry.cam_item_count() / 3;
 		for (int32_t j = 0; j < c_count; j++)
 		{
-			uint8_t* entity = ntry.get_nth_item(2 + 3 * j);
-			int32_t fov = build_get_entity_prop(entity, ENTITY_PROP_CAM_FOV);
+			uint8_t* cam = ntry.get_nth_main_cam(j);
+			int32_t fov = PROPERTY::get_value(cam, ENTITY_PROP_CAM_FOV);
 			printf("Zone %5s : fov %d\n", ntry.ename, fov);
 		}
 	}
@@ -2047,7 +2080,7 @@ void fov_stats_util(char* fpath)
 }
 
 // util function for printing checkpoint, mask and dda info
-void checkpoint_stats_util(char* fpath)
+void checkpoint_stats_util(const char* fpath)
 {
 	ELIST elist{};
 
@@ -2060,22 +2093,21 @@ void checkpoint_stats_util(char* fpath)
 	int32_t masks_non_dda = 0;
 	int32_t masks_with_dda = 0;
 
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t c_count = build_get_cam_item_count(ntry._data());
-		int32_t e_count = build_get_entity_count(ntry._data());
+		int32_t c_count = ntry.cam_item_count();
+		int32_t e_count = ntry.entity_count();
 		cam_count += (c_count / 3);
 
 		for (int32_t j = 0; j < e_count; j++)
 		{
-			uint8_t* entity = ntry.get_nth_item(2 + c_count + j);
-			int32_t type = build_get_entity_prop(entity, ENTITY_PROP_TYPE);
-			int32_t subt = build_get_entity_prop(entity, ENTITY_PROP_SUBTYPE);
-			// int32_t id = build_get_entity_prop(entity, ENTITY_PROP_ID);
-			int32_t dda_deaths = build_get_entity_prop(entity, ENTITY_PROP_DDA_DEATHS) / 256;
+			uint8_t* entity = ntry.get_nth_entity(j);
+			int32_t type = PROPERTY::get_value(entity, ENTITY_PROP_TYPE);
+			int32_t subt = PROPERTY::get_value(entity, ENTITY_PROP_SUBTYPE);
+			int32_t dda_deaths = PROPERTY::get_value(entity, ENTITY_PROP_DDA_DEATHS) / 256;
 
 			if (type == 34 && subt == 4)
 			{
@@ -2156,41 +2188,43 @@ void checkpoint_stats_util(char* fpath)
 }
 
 // function for recursively iterating over folders and calling callback
-void recursive_folder_iter(const char* dpath, void(callback)(char*))
+
+void recursive_folder_iter(std::filesystem::path dpath, void(callback)(const char*))
 {
-	char fpath[MAX + 300] = "", fname[MAX] = "";
-	DIR* df = opendir(dpath);
-	if (df == NULL)
+	try
 	{
-		printf("[ERROR] Could not open selected directory\n");
-		return;
-	}
-
-	char nsfcheck[4] = "";
-	struct dirent* de;
-	while ((de = readdir(df)) != NULL)
-	{
-		if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+		if (!std::filesystem::exists(dpath) || !std::filesystem::is_directory(dpath))
 		{
-			continue;
+			printf("[ERROR] Could not open selected directory\n");
+			return;
 		}
-		strncpy(nsfcheck, strchr(de->d_name, '\0') - 3, 3);
-		nsfcheck[3] = '\0'; // Ensure null-termination
 
-		strcpy(fname, de->d_name);
-		if (de->d_name[0] != '.' && !strcmp(nsfcheck, "NSF"))
+		for (const auto& entry : std::filesystem::directory_iterator(dpath))
 		{
-			sprintf(fpath, "%s\\%s", dpath, de->d_name);
-			callback(fpath);
-		}
-		char filePath[256];
-		snprintf(filePath, sizeof(filePath), "%s\\%s", dpath, de->d_name);
-		if (de->d_type == DT_DIR)
-		{
-			recursive_folder_iter(filePath, callback);
+			const std::filesystem::path& path = entry.path();
+			const std::string fname = path.filename().string();
+
+			// Skip "." and ".."
+			if (fname == "." || fname == "..")
+				continue;
+
+			if (entry.is_regular_file())
+			{
+				if (path.extension() == ".NSF")
+				{
+					callback(path.generic_string().c_str());
+				}
+			}
+			else if (entry.is_directory())
+			{
+				recursive_folder_iter(path, callback);
+			}
 		}
 	}
-	closedir(df);
+	catch (const std::exception& e)
+	{
+		printf("[ERROR] %s\n", e.what());
+	}
 }
 
 // command for listing modpack/rebuild special load lists from folder
@@ -2256,15 +2290,15 @@ void draw_util()
 	int32_t total = 0;
 	int32_t point_count = 0;
 
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(ntry._data()) / 3;
+		int32_t cam_count = ntry.cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = build_get_path_length(ntry.get_nth_item(2 + 3 * j));
+			int32_t path_len = build_get_path_length(ntry.get_nth_main_cam(j));
 			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, ntry, 2 + 3 * j, path_len);
 
 			for (int32_t k = 0; k < path_len - 1; k++)
@@ -2281,15 +2315,15 @@ void draw_util()
 	printf("\n");
 
 	// copypaste, cba to optimise
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(ntry._data()) / 3;
+		int32_t cam_count = ntry.cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = build_get_path_length(ntry.get_nth_item(2 + 3 * j));
+			int32_t path_len = build_get_path_length(ntry.get_nth_main_cam(j));
 			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, ntry, 2 + 3 * j, path_len);
 
 			int32_t zone_total = 0;
@@ -2311,10 +2345,10 @@ void draw_util()
 }
 
 // util for printing file texture pages
-void tpage_util_util(char* fpath)
+void tpage_util_util(const char* fpath)
 {
 	ELIST elist{ };
-	char* filename = strrchr(fpath, '\\');
+	const char* filename = strrchr(fpath, '\\');
 	if (filename != NULL)
 	{
 		filename++;
@@ -2357,20 +2391,20 @@ void tpage_util()
 }
 
 // for gool_util command, prints gool entries of a file plus their checksum
-void gool_util_util(char* fpath)
+void gool_util_util(const char* fpath)
 {
 	ELIST elist{};
 	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
-	for (auto& ntry: elist)
+	for (auto& ntry : elist)
 	{
 		if (ntry.entry_type() != ENTRY_TYPE_GOOL)
 			continue;
 
 		int32_t g_tpe = from_u32(ntry.get_nth_item(0));
-		printf("\t gool %5s-%02d \t%08X\n",ntry.ename, g_tpe, crcChecksum(ntry._data(), ntry.esize));
+		printf("\t gool %5s-%02d \t%08X\n", ntry.ename, g_tpe, crcChecksum(ntry._data(), ntry.esize));
 	}
 
 	printf("\n");

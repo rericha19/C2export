@@ -1,6 +1,8 @@
 // Crash 2 levels' entry exporter and other stuff made by Averso
 #include "include.h"
 #include "side_scripts/level_analyze.hpp"
+#include "side_scripts/level_alter.hpp"
+#include "side_scripts/side_scripts.hpp"
 
 #define CMD(str) (strcmp(p_command, str) == 0)
 
@@ -21,7 +23,7 @@ int32_t main()
 		else if (CMD("WIPE")) { clrscr();   intro_text(); }
 		else if (CMD("HELP"))               print_help();
 		else if (CMD("HELP2"))              print_help2();
-		else if (CMD("EXPORT"))             level_alter_pseudorebuild(Alter_Type_LevelExport);
+		else if (CMD("EXPORT"))             level_alter::ll_alter(AT_LevelExport);
 		else if (CMD("RESIZE"))             resize_main();
 		else if (CMD("ROTATE"))             rotate_main();
 		else if (CMD("REBUILD"))            build_main(BuildType_Rebuild);
@@ -56,12 +58,12 @@ int32_t main()
 		else if (CMD("DRAW_UTIL"))          draw_util();
 		else if (CMD("TPAGE_UTIL"))         tpage_util();
 		else if (CMD("GOOL_UTIL"))          gool_util();
-		else if (CMD("LEVEL_WIPE_DL"))      level_alter_pseudorebuild(Alter_Type_WipeDL);
-		else if (CMD("LEVEL_WIPE_ENT"))     level_alter_pseudorebuild(Alter_Type_WipeEnts);
-		else if (CMD("CONV_OLD_DL_OR"))     level_alter_pseudorebuild(Alter_Type_Old_DL_Override);
-		else if (CMD("FLIP_Y"))             level_alter_pseudorebuild(Alter_Type_FlipScenY);
-		else if (CMD("FLIP_X"))             level_alter_pseudorebuild(Alter_Type_FlipScenX);
-		else if (CMD("LEVEL_RECOLOR"))      level_alter_pseudorebuild(Alter_Type_LevelRecolor);
+		else if (CMD("LEVEL_WIPE_DL"))      level_alter::ll_alter(AT_WipeDL);
+		else if (CMD("LEVEL_WIPE_ENT"))     level_alter::ll_alter(AT_WipeEnts);
+		else if (CMD("CONV_OLD_DL_OR"))     level_alter::ll_alter(AT_Old_DL_Override);
+		else if (CMD("FLIP_Y"))             level_alter::ll_alter(AT_FlipScenY);
+		else if (CMD("FLIP_X"))             level_alter::ll_alter(AT_FlipScenX);
+		else if (CMD("LEVEL_RECOLOR"))      level_alter::ll_alter(AT_LevelRecolor);
 		else printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
 	}
 }

@@ -1,6 +1,8 @@
-#include "../include.h"
 // contains functions responsible for creating sound and instrument chunks
-// kinda simple, sound chunks have some dumb rules that this tool still doesnt properly follow but oh well
+
+#include "../include.h"
+#include "../utils/utils.hpp"
+#include "../utils/entry.hpp"
 
 //  Creates and builds chunks for the instrument entries according to their format.
 void build_instrument_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
@@ -34,14 +36,22 @@ void build_instrument_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunk
 // Creates and builds sound chunks, formats accordingly?
 void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
 {
-	int32_t entry_count = int32_t(elist.size());
+	auto align_sound = [](int32_t input)
+		{
+			for (int32_t i = 0; i < 16; i++)
+				if ((input + i) % 16 == 8)
+					return (input + i);
+
+			return input;
+		};
+
 	int32_t start_chunk_idx = *chunk_count;
 
 	// count sound entries, create an array of entries for them
 	ELIST sound_list{};
-	for (int32_t i = 0; i < entry_count; i++)
-		if (elist[i].entry_type() == ENTRY_TYPE_SOUND)
-			sound_list.push_back(elist[i]);
+	for (auto& ntry : elist)
+		if (ntry.entry_type() == ENTRY_TYPE_SOUND)
+			sound_list.push_back(ntry);
 
 	int32_t sound_entry_count = sound_list.count();
 	// sort entries in the list by size cuz largest first packing algorithm is used
@@ -94,13 +104,13 @@ void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
 		*(uint16_t*)(chunks[start_chunk_idx + i] + 8) = local_entry_count;
 
 		int32_t indexer = 0;
-		offsets[indexer] = build_align_sound(0x10 + (local_entry_count + 1) * 4);
+		offsets[indexer] = align_sound(0x10 + (local_entry_count + 1) * 4);
 
 		for (int32_t j = 0; j < sound_entry_count; j++)
 		{
 			if (sound_list[j].chunk == start_chunk_idx + i)
 			{
-				offsets[indexer + 1] = build_align_sound(offsets[indexer] + sound_list[j].esize);
+				offsets[indexer + 1] = align_sound(offsets[indexer] + sound_list[j].esize);
 				indexer++;
 			}
 		}
@@ -120,26 +130,16 @@ void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks)
 	}
 
 	// update the chunk assignment in the actual master entry list, this function only worked with copies of the entries
-	for (int32_t i = 0; i < entry_count; i++)
+	for (auto& ntry : elist)
 	{
 		for (int32_t j = 0; j < sound_entry_count; j++)
 		{
-			if (elist[i].eid != sound_list[j].eid)
+			if (ntry.eid != sound_list[j].eid)
 				continue;
 
-			elist[i].chunk = sound_list[j].chunk;
+			ntry.chunk = sound_list[j].chunk;
 		}
 	}
 	// update chunk count
 	*chunk_count = start_chunk_idx + snd_chunk_count;
-}
-
-// Returns a value that makes sound entries aligned as they should be (hopefully).
-int32_t build_align_sound(int32_t input)
-{
-	for (int32_t i = 0; i < 16; i++)
-		if ((input + i) % 16 == 8)
-			return (input + i);
-
-	return input;
 }

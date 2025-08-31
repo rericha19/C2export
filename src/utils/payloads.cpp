@@ -1,7 +1,7 @@
-
 #include "../include.h"
 #include "utils.hpp"
 #include "payloads.hpp"
+#include "entry.hpp"
 
 // used to store payload information
 
@@ -170,7 +170,7 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 			continue;
 
-		int32_t cam_count = build_get_cam_item_count(ntry._data()) / 3;
+		int32_t cam_count = ntry.cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
 			LOAD_LIST load_list = get_load_lists(ntry, 2 + 3 * j);
@@ -215,8 +215,6 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 }
 
 
-
-
 void WORST_ZONE_INFO::update(const PAYLOAD& worst)
 {
 	for (auto& info_s : *this)
@@ -247,6 +245,6 @@ void WORST_ZONE_INFO::print_summary()
 
 	printf("\nWorst zone average:\n");
 	for (int32_t i = 0; i < int32_t(size()) && i < 10; i++)
-		printf("\t%s-%d - %4dx, worst-avg payload %4.2f\n",
+		printf("\t%s - %d  -  %4dx, worst-avg payload %4.2f\n",
 			eid2str(at(i).zone), at(i).cam_path, at(i).count, ((double)at(i).sum) / at(i).count);
 }

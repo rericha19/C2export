@@ -1,8 +1,16 @@
 #pragma once
 
 #include <vector>
+#include <cstdint>
 
 class ENTRY;
+
+struct File
+{
+	FILE* f;
+	File(const char* path, const char* mode) : f(std::fopen(path, mode)) {}
+	~File() { if (f) std::fclose(f); }
+};
 
 class LIST : public std::vector<uint32_t>
 {
@@ -31,8 +39,6 @@ public:
 	int32_t subtype = 0;
 	LIST dependencies{};
 };
-using DEPENDENCIES = std::vector<DEPENDENCY>;
-
 
 class MATRIX_STORED_LL
 {
@@ -48,7 +54,6 @@ public:
 	int32_t cam_path = 0;
 	LIST full_load{};
 };
-using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
 
 // used to store load or draw list in its non-delta form
 class LOAD
@@ -76,9 +81,51 @@ public:
 	void sort_spawns();
 };
 
-using GENERIC_LOAD_LIST = std::vector<LOAD>;
-using LOAD_LIST = GENERIC_LOAD_LIST;
-using DRAW_LIST = GENERIC_LOAD_LIST;
+// entity/item property
+struct PROPERTY
+{
+	uint8_t header[8]{};
+	std::unique_ptr<uint8_t[]> data = nullptr;
+	int32_t length = 0;
+
+	static PROPERTY get_full(uint8_t* item, uint32_t prop_code);
+	static int32_t get_value(uint8_t* entity, uint32_t prop_code);
+	static int32_t get_offset(uint8_t* item, uint32_t prop_code);
+};
+
+
+// used in matrix merge to store what entries are loaded simultaneously and how much/often
+struct RELATION
+{
+	int32_t value;
+	int32_t total_occurences;
+	int32_t index1;
+	int32_t index2;
+};
+
+// used to keep all relations
+class RELATIONS
+{
+public:
+	RELATIONS(int32_t c)
+	{
+		count = c;
+		relations = std::make_unique<RELATION[]>(c);		
+	}
+
+	void do_sort()
+	{	
+		auto rel_sort = [](RELATION& x, RELATION& y)
+			{
+				return y.value < x.value;
+			};
+
+		std::sort(relations.get(), relations.get() + count, rel_sort);
+	}
+
+	int32_t count = 0;
+	std::unique_ptr<RELATION[]> relations = nullptr;
+};
 
 
 // Deconstructs the load or draw lists and saves into a convenient struct.

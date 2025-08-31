@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../include.h"
-#include "../game_structs/entry.hpp"
+#include "entry.hpp"
 
 #define QUEUE_ITEM_COUNT 500
 
@@ -57,7 +57,7 @@ public:
 			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
 				continue;
 
-			int32_t cam_count = build_get_cam_item_count(ntry._data()) / 3;
+			int32_t cam_count = ntry.cam_item_count() / 3;
 			ntry.distances = (uint32_t*)try_malloc(cam_count * sizeof(uint32_t)); // freed by build_main
 			ntry.visited = (bool*)try_malloc(cam_count * sizeof(bool));           // freed by build_main
 
@@ -86,14 +86,14 @@ public:
 				CAMERA_LINK camlink(links[i]);								
 				LIST neighbours = elist[top_zone].get_neighbours();
 				
-				int32_t neighbour_index = elist.get_index(neighbours[camlink.zone_index]);
-				if (neighbour_index == -1)
+				int32_t neigh_idx = elist.get_index(neighbours[camlink.zone_index]);
+				if (neigh_idx == -1)
 				{
 					printf("[warning] %s references %s that does not seem to be present (link %d neighbour %d)\n",
 						elist[top_zone].ename, eid2str(neighbours[camlink.zone_index]), i, camlink.zone_index);
 					continue;
 				}
-				int32_t path_count = build_get_cam_item_count(elist[neighbour_index]._data()) / 3;
+				int32_t path_count = elist[neigh_idx].cam_item_count() / 3;
 				if (camlink.cam_index >= path_count)
 				{
 					printf("[warning] %s links to %s's cam path %d which doesnt exist (link %d neighbour %d)\n",
@@ -101,8 +101,8 @@ public:
 					continue;
 				}
 
-				if (elist[neighbour_index].visited[camlink.cam_index] == 0)
-					graph.graph_add(elist, neighbour_index, camlink.cam_index);
+				if (elist[neigh_idx].visited[camlink.cam_index] == 0)
+					graph.graph_add(elist, neigh_idx, camlink.cam_index);
 			}
 		}
 	}
