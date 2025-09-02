@@ -1,11 +1,12 @@
 #include "../include.h"
 #include "../utils/utils.hpp"
 #include "../utils/entry.hpp"
+#include "../utils/elist.hpp"
 
 // builds a triangular matrix that contains the count of common load list occurences of i-th and j-th entry
-int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries, int32_t* config)
+int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries)
 {
-	int32_t ll_pollin_flag = config[CNFG_IDX_MTRX_LL_POLL_FLAG];
+	int32_t ll_pollin_flag = elist.m_config[CNFG_IDX_MTRX_LL_POLL_FLAG];
 
 	int32_t** entry_matrix = (int32_t**)try_malloc(entries.count() * sizeof(int32_t*)); // freed by caller
 	for (int32_t i = 0; i < entries.count(); i++)
@@ -14,16 +15,14 @@ int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries, int32_t* config
 	// for each zone's each camera path gets load list and based on it increments values of common load list occurences of pairs of entries
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t cam_count = ntry.cam_item_count() / 3;
+		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
 			LOAD_LIST load_list = get_load_lists(ntry, 2 + 3 * j);
-
-			uint8_t* cam_item = ntry.get_nth_main_cam(j);
-			int32_t cam_length = build_get_path_length(cam_item);
+			int32_t cam_length = ntry.get_ent_path_len(2 + 3 * j);
 
 			LIST list{};
 			switch (ll_pollin_flag)
@@ -145,8 +144,8 @@ void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ra
 	int32_t max_chunk_index = 0;
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		if (elist[i].chunk > max_chunk_index)
-			max_chunk_index = elist[i].chunk;
+		if (elist[i].m_chunk > max_chunk_index)
+			max_chunk_index = elist[i].m_chunk;
 	}
 	int32_t num_chunks = max_chunk_index + 1;
 
@@ -161,8 +160,8 @@ void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ra
 
 	for (int32_t i = 0; i < entry_count; i++)
 	{
-		int32_t c_idx = elist[i].chunk;
-		g_dsu_chunk_size[c_idx] += elist[i].esize + 4;
+		int32_t c_idx = elist[i].m_chunk;
+		g_dsu_chunk_size[c_idx] += elist[i].m_esize + 4;
 		g_dsu_entry_count[c_idx]++;
 	}
 
@@ -170,8 +169,8 @@ void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ra
 	int32_t iter_count = min((int32_t)(relations.count * merge_ratio), relations.count);
 	for (int32_t x = 0; x < iter_count; x++)
 	{
-		int32_t chunk_idx1 = elist[relations.relations[x].index1].chunk;
-		int32_t chunk_idx2 = elist[relations.relations[x].index2].chunk;
+		int32_t chunk_idx1 = elist[relations.relations[x].index1].m_chunk;
+		int32_t chunk_idx2 = elist[relations.relations[x].index2].m_chunk;
 
 		int root1 = dsu_find_set(chunk_idx1);
 		int root2 = dsu_find_set(chunk_idx2);
@@ -188,32 +187,16 @@ void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ra
 
 	// Apply the merges back to the elist
 	for (int32_t i = 0; i < entry_count; i++)
-	{
-		elist[i].chunk = dsu_find_set(elist[i].chunk);
-	}
+		elist[i].m_chunk = dsu_find_set(elist[i].m_chunk);
 }
 
 
 // Creates an array representation of the common load list occurence matrix, sorts high to low.
 // To prevent having to search the entire matrix every time in the main merge util thing.
-RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, int32_t* config, ELIST& elist)
+RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, ELIST& elist)
 {
-	int32_t zeroval_inc_flag = config[CNFG_IDX_MTRI_ZEROVAL_INC_FLAG];
-
-	int32_t rel_counter = 0;
 	int32_t indexer = 0;
-
-	if (zeroval_inc_flag == 0)
-	{
-		for (int32_t i = 0; i < entries.count(); i++)
-			for (int32_t j = 0; j < i; j++)
-				if (entry_matrix[i][j] != 0)
-					rel_counter++;
-	}
-	else
-	{
-		rel_counter = (entries.count() * (entries.count() - 1)) / 2;
-	}
+	int32_t rel_counter = (entries.count() * (entries.count() - 1)) / 2;
 
 	RELATIONS relations{ rel_counter };
 
@@ -221,8 +204,6 @@ RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, int32_t*
 	{
 		for (int32_t j = 0; j < i; j++)
 		{
-			if (zeroval_inc_flag == 0 && entry_matrix[i][j] == 0)
-				continue;
 			relations.relations[indexer].value = entry_matrix[i][j];
 			relations.relations[indexer].index1 = elist.get_index(entries[i]);
 			relations.relations[indexer].index2 = elist.get_index(entries[j]);

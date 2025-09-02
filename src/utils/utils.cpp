@@ -84,6 +84,32 @@ void SPAWNS::sort_spawns()
 	std::sort(begin(), end(), spsort);
 }
 
+// Lets the user pick the spawn that's to be used as the primary spawn.
+bool SPAWNS::ask_spawn()
+{
+	if (!size())
+		return false;
+
+	sort_spawns();
+	int32_t input = 0;
+
+	// lets u pick a spawn point
+	printf("Pick a spawn:\n");
+	for (uint32_t i = 0; i < size(); i++)
+		printf("Spawn %2d:\tZone: %s\n", i + 1, eid2str(at(i).zone));
+
+	scanf("%d", &input);
+	input--;
+	if (input >= size() || input < 0)
+	{
+		printf("No such spawn, defaulting to first one\n");
+		input = 0;
+	}
+
+	swap_spawns(0, input);
+	printf("Using spawn %2d: Zone: %s\n", input + 1, eid2str(at(0).zone));
+	return true;
+}
 
 // Deconstructs the load or draw lists and saves into a convenient struct.
 void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, ENTRY& ntry, int32_t cam_index)
@@ -127,8 +153,8 @@ void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, ENTRY& n
 			if (condensed_check1 && condensed_check2)
 			{
 				load_list_item_count = from_u16(entry + offset);
-				uint16_t* indices = (uint16_t*)try_malloc(list_count * sizeof(uint16_t));
-				memcpy(indices, entry + offset + 2, list_count * 2);
+				std::vector<uint16_t> indices(list_count);
+				memcpy(indices.data(), entry + offset + 2, list_count * 2);
 				sub_list_offset = offset + 2 + 2 * list_count;
 				if (sub_list_offset % 4)
 					sub_list_offset += 2;
@@ -142,7 +168,6 @@ void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, ENTRY& n
 					load_list.push_back(new_list);
 					sub_list_offset += load_list_item_count * 4;
 				}
-				free(indices);
 			}
 			else
 			{
@@ -198,10 +223,15 @@ DRAW_LIST get_draw_lists(ENTRY& entry, int32_t cam_index)
 	return dl;
 }
 
+int32_t PROPERTY::count(uint8_t* item)
+{
+	return from_u32(item + 0xC);
+}
+
 PROPERTY PROPERTY::get_full(uint8_t* item, uint32_t prop_code)
 {
 	PROPERTY prop{};
-	int32_t property_count = build_prop_count(item);
+	int32_t property_count = PROPERTY::count(item);
 	uint8_t property_header[8];
 
 	for (int32_t i = 0; i < property_count; i++)
@@ -217,8 +247,8 @@ PROPERTY PROPERTY::get_full(uint8_t* item, uint32_t prop_code)
 				next_offset = *(uint16_t*)(item + 0x12 + (i * 8) + 8) + OFFSET;
 			int32_t curr_offset = *(uint16_t*)(item + 0x12 + 8 * i) + OFFSET;
 			prop.length = next_offset - curr_offset;
-			prop.data.reset((uint8_t*)try_malloc(prop.length));
-			memcpy(prop.data.get(), item + curr_offset, prop.length);
+			prop.data.resize(prop.length);
+			memcpy(prop.data.data(), item + curr_offset, prop.length);
 			break;
 		}
 	}
@@ -238,11 +268,66 @@ int32_t PROPERTY::get_value(uint8_t* entity, uint32_t prop_code)
 int32_t PROPERTY::get_offset(uint8_t* item, uint32_t prop_code)
 {
 	int32_t offset = 0;
-	int32_t prop_count = build_prop_count(item);
+	int32_t prop_count = PROPERTY::count(item);
 	for (int32_t i = 0; i < prop_count; i++)
 		if ((from_u16(item + 0x10 + 8 * i)) == prop_code)
 			offset = OFFSET + from_u16(item + 0x10 + 8 * i + 2);
 
 	return offset;
+}
+
+// Makes a load/draw list property from the input arrays
+PROPERTY PROPERTY::make_list_prop(std::vector<LIST>& list_array, int32_t code)
+{
+	int32_t cam_length = int32_t(list_array.size());
+	int32_t delta_counter = 0;
+	int32_t total_length = 0;
+	PROPERTY prop;
+
+	// count total length and individual deltas
+	for (int32_t i = 0; i < cam_length; i++)
+	{
+		if (list_array[i].count() == 0)
+			continue;
+
+		total_length += list_array[i].count() * 4; // space individual load list items of
+		// current sublist will take up
+		total_length += 4; // each load list sublist uses 2 bytes for its length
+		// and 2 bytes for its index
+		delta_counter++;
+	}
+
+	// header info
+	*(int16_t*)(prop.header) = code;
+	if (code == ENTITY_PROP_CAM_LOAD_LIST_A || code == ENTITY_PROP_CAM_LOAD_LIST_B)
+	{
+		*(int16_t*)(prop.header + 4) = (delta_counter > 1) ? 0x0464 : 0x424;
+	}
+
+	if (code == ENTITY_PROP_CAM_DRAW_LIST_A || code == ENTITY_PROP_CAM_DRAW_LIST_B)
+	{
+		*(int16_t*)(prop.header + 4) = (delta_counter > 1) ? 0x0473 : 0x0433;
+	}
+	*(int16_t*)(prop.header + 6) = delta_counter;
+
+	prop.length = total_length;
+	prop.data.resize(total_length);
+
+	int32_t indexer = 0;
+	int32_t offset = 4 * delta_counter;
+	for (int32_t i = 0; i < cam_length; i++)
+	{
+		if (list_array[i].count() == 0)
+			continue;
+
+		*(int16_t*)(prop.data.data() + 2 * indexer) = list_array[i].count(); // i-th sublist's length (item count)
+		*(int16_t*)(prop.data.data() + 2 * (indexer + delta_counter)) = i;   // i-th sublist's index
+		for (int32_t j = 0; j < list_array[i].count(); j++)
+			*(int32_t*)(prop.data.data() + offset + 4 * j) = list_array[i][j]; // individual items
+		offset += list_array[i].count() * 4;
+		indexer++;
+	}
+
+	return prop;
 }
 

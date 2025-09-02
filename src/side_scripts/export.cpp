@@ -2,6 +2,7 @@
 #include "export.hpp"
 #include "../utils/utils.hpp"
 #include "../utils/entry.hpp"
+#include "../utils/elist.hpp"
 
 namespace ll_export
 {
@@ -112,7 +113,7 @@ namespace ll_export
 		if (!porting)
 			return;
 
-		int32_t lcl_entrysize = zone->esize;
+		int32_t lcl_entrysize = zone->m_esize;
 		int32_t curr_off, val, irrelitems, next_off;
 
 		uint8_t* cpy = (uint8_t*)try_calloc(lcl_entrysize, sizeof(uint8_t));
@@ -194,9 +195,9 @@ namespace ll_export
 			}
 		}
 
-		zone->esize = lcl_entrysize;
-		zone->data.resize(lcl_entrysize);
-		memcpy(zone->data.data(), cpy, lcl_entrysize);
+		zone->m_esize = lcl_entrysize;
+		zone->m_data.resize(lcl_entrysize);
+		memcpy(zone->m_data.data(), cpy, lcl_entrysize);
 	}
 
 	void gool_patch(ENTRY* gool, int32_t game, bool porting)
@@ -204,7 +205,7 @@ namespace ll_export
 		if (!porting)
 			return;
 
-		int entrysize = gool->esize;
+		int entrysize = gool->m_esize;
 		int32_t curr_off = 0;
 
 		uint8_t* cpy = (uint8_t*)try_calloc(entrysize, sizeof(uint8_t));
@@ -247,9 +248,9 @@ namespace ll_export
 			}
 		}
 
-		gool->esize = entrysize;
-		gool->data.resize(entrysize);
-		memcpy(gool->data.data(), cpy, entrysize);
+		gool->m_esize = entrysize;
+		gool->m_data.resize(entrysize);
+		memcpy(gool->m_data.data(), cpy, entrysize);
 	}
 
 	void model_patch(ENTRY* model, int32_t game, bool porting)
@@ -327,7 +328,7 @@ namespace ll_export
 		int32_t entry_counter = 0;
 		for (int32_t i = 0; i < chunk_count; i++)
 		{
-			if (build_chunk_type(chunks2[i]) != CHUNK_TYPE_TEXTURE)
+			if (chunk_type(chunks2[i]) != ChunkType::TEXTURE)
 				continue;
 
 			char* path = make_path(out_dir, "texture", from_u32(chunks2[i] + 4), ++entry_counter);
@@ -362,21 +363,21 @@ namespace ll_export
 		};
 		for (int32_t i = 0; i < elist.count(); i++)
 		{
-			int32_t entry_type = elist[i].entry_type();
-			if (entry_type == -1)
+			EntryType entry_type = elist[i].get_entry_type();
+			if (entry_type == EntryType::__invalid)
 				continue;
 
-			uint32_t eid = elist[i].eid;
-			if (entry_type == ENTRY_TYPE_ZONE)
+			uint32_t eid = elist[i].m_eid;
+			if (entry_type == EntryType::Zone)
 				zone_patch(&elist[i], zonetype, game, porting);
-			else if (entry_type == ENTRY_TYPE_GOOL)
+			else if (entry_type == EntryType::GOOL)
 				gool_patch(&elist[i], game, porting);
-			else if (entry_type == ENTRY_TYPE_MODEL)
+			else if (entry_type == EntryType::Model)
 				model_patch(&elist[i], game, porting);
 
-			char* path = make_path(out_dir, entry_type_list[entry_type], eid, ++entry_counter);
+			char* path = make_path(out_dir, entry_type_list[int32_t(entry_type)], eid, ++entry_counter);
 			FILE* f = fopen(path, "wb");
-			fwrite(elist[i]._data(), sizeof(uint8_t), elist[i].esize, f);
+			fwrite(elist[i]._data(), sizeof(uint8_t), elist[i].m_esize, f);
 			fclose(f);
 		}
 

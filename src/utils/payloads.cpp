@@ -2,6 +2,7 @@
 #include "utils.hpp"
 #include "payloads.hpp"
 #include "entry.hpp"
+#include "elist.hpp"
 
 // used to store payload information
 
@@ -33,14 +34,14 @@ PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, i
 	for (int32_t i = 0; i < loaded.count(); i++)
 	{
 		int32_t elist_index = elist.get_index(loaded[i]);
-		curr_chunk = elist[elist_index].chunk;
+		curr_chunk = elist[elist_index].m_chunk;
 
 		is_there = false;
 		for (int32_t j = 0; j < count; j++)
 			if (chunks[j] == curr_chunk)
 				is_there = true;
 
-		if (!is_there && eid2str(elist[elist_index].eid)[4] != 'T' && curr_chunk != -1 && curr_chunk >= chunk_min)
+		if (!is_there && !elist[elist_index].m_is_tpage && curr_chunk != -1 && curr_chunk >= chunk_min)
 		{
 			chunks[count] = curr_chunk;
 			count++;
@@ -62,14 +63,14 @@ PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, i
 	for (int32_t i = 0; i < loaded.count(); i++)
 	{
 		int32_t elist_index = elist.get_index(loaded[i]);
-		curr_chunk = elist[elist_index].eid;
+		curr_chunk = elist[elist_index].m_chunk;
 
 		is_there = false;
 		for (int32_t j = 0; j < tcount; j++)
 			if (tchunks[j] == curr_chunk)
 				is_there = true;
 
-		if (!is_there && eid2str(elist[elist_index].eid)[4] == 'T' && curr_chunk != -1)
+		if (!is_there && elist[elist_index].m_is_tpage)
 		{
 			tchunks[tcount] = curr_chunk;
 			tcount++;
@@ -81,7 +82,6 @@ PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, i
 
 	return payload;
 }
-
 
 
 // insert payload into payloads ladder
@@ -167,10 +167,10 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t cam_count = ntry.cam_item_count() / 3;
+		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
 			LOAD_LIST load_list = get_load_lists(ntry, 2 + 3 * j);
@@ -194,7 +194,7 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 						if (sublist.index == load_list[idx + 1].index)
 							continue;
 
-				PAYLOAD payload = PAYLOAD::get_payload_single(elist, list, ntry.eid, 0, true);
+				PAYLOAD payload = PAYLOAD::get_payload_single(elist, list, ntry.m_eid, 0, true);
 				payload.cam_path = j;
 				payload.entcount = max_draw;
 				payloads.insert(payload);

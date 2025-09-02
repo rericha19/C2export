@@ -1,19 +1,19 @@
 #include "../include.h"
 #include "../side_scripts/export.hpp"
 #include "../utils/entry.hpp"
+#include "../utils/elist.hpp"
 
 namespace level_alter
 {
-
 	// removes draw list properties from cameras of all zone entries
 	void wipe_draw_lists(ELIST& elist)
 	{
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t cam_count = ntry.cam_item_count() / 3;
+			int32_t cam_count = ntry.get_cam_item_count() / 3;
 			for (int32_t j = 0; j < cam_count; j++)
 			{
 				build_entity_alter(ntry, 2 + 3 * j, build_rem_property, ENTITY_PROP_CAM_DRAW_LIST_A, NULL);
@@ -27,11 +27,11 @@ namespace level_alter
 	{
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t cam_item_count = ntry.cam_item_count();
-			int32_t entity_count = ntry.entity_count();
+			int32_t cam_item_count = ntry.get_cam_item_count();
+			int32_t entity_count = ntry.get_entity_count();
 
 			for (int32_t j = entity_count - 1; j >= 0; j--)
 			{
@@ -49,11 +49,11 @@ namespace level_alter
 	{
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t entity_count = ntry.entity_count();
-			int32_t cam_item_count = ntry.cam_item_count();
+			int32_t entity_count = ntry.get_entity_count();
+			int32_t cam_item_count = ntry.get_cam_item_count();
 
 			for (int32_t j = 0; j < entity_count; j++)
 			{
@@ -71,7 +71,7 @@ namespace level_alter
 				PROPERTY prop_override_id = PROPERTY::get_full(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD);
 				PROPERTY prop_override_mult = PROPERTY::get_full(nth_entity, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD);
 
-				printf("zone %s -id %d: -ts %d-%d\t\tid %d mult %d\n", eid2str(ntry.eid), id, type, subt, (int16_t)(old_override_id >> 8), (int16_t)(old_override_mult >> 8));
+				printf("zone %s -id %d: -ts %d-%d\t\tid %d mult %d\n", eid2str(ntry.m_eid), id, type, subt, (int16_t)(old_override_id >> 8), (int16_t)(old_override_mult >> 8));
 
 				if (old_override_id != -1)
 				{
@@ -370,7 +370,7 @@ namespace level_alter
 	{
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() == ENTRY_TYPE_SCENERY)
+			if (ntry.get_entry_type() == EntryType::Scenery)
 			{
 				// vertices
 				uint8_t* item0 = ntry.get_nth_item(0);
@@ -391,7 +391,7 @@ namespace level_alter
 				*(int32_t*)(item0 + 0x4) *= -1;
 			}
 
-			if (ntry.entry_type() == ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() == EntryType::Zone)
 			{
 				uint8_t* item1 = ntry.get_nth_item(1);
 				int32_t size =
@@ -405,15 +405,15 @@ namespace level_alter
 				int32_t maxx = from_u16(item1 + 0x1E);
 				int32_t maxy = from_u16(item1 + 0x20);
 				int32_t maxz = from_u16(item1 + 0x22);
-				printf("y flipping coll in zone %s, %d %d %d\n", eid2str(ntry.eid), maxx, maxy, maxz);
+				printf("y flipping coll in zone %s, %d %d %d\n", eid2str(ntry.m_eid), maxx, maxy, maxz);
 				uint8_t* item1_edited = coll_get_expanded(item1, &size, maxx, maxy, maxz);
 				LIST flipped{};
 				collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 0);
-				build_replace_item(ntry, 1, item1_edited, size);
+				ntry.replace_nth_item(1, item1_edited, size);
 
 				// object positions
-				int32_t cam_item_count = ntry.cam_item_count();
-				int32_t entity_count = ntry.entity_count();
+				int32_t cam_item_count = ntry.get_cam_item_count();
+				int32_t entity_count = ntry.get_entity_count();
 
 				for (int32_t j = 0; j < cam_item_count / 3; j++)
 				{
@@ -427,7 +427,7 @@ namespace level_alter
 					flip_entity_y(item, from_s32(item1 + 0x10) / 4);
 				}
 
-				ntry.chunk = *chunk_count;
+				ntry.m_chunk = *chunk_count;
 				*chunk_count += 1;
 			}
 		}
@@ -483,7 +483,7 @@ namespace level_alter
 		int32_t id = PROPERTY::get_value(item, ENTITY_PROP_ID);
 		int32_t type = PROPERTY::get_value(item, ENTITY_PROP_TYPE);
 		int32_t subtype = PROPERTY::get_value(item, ENTITY_PROP_SUBTYPE);
-		int32_t offset = PROPERTY::get_value(item, ENTITY_PROP_ARGUMENTS);
+		int32_t offset = PROPERTY::get_offset(item, ENTITY_PROP_ARGUMENTS);
 
 		if (!offset)
 			return;
@@ -562,7 +562,7 @@ namespace level_alter
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() == ENTRY_TYPE_SCENERY)
+			if (ntry.get_entry_type() == EntryType::Scenery)
 			{
 				// vertices
 				uint8_t* item0 = ntry.get_nth_item(0);
@@ -584,7 +584,7 @@ namespace level_alter
 				*(int32_t*)(item0 + 0x0) += xmove_off;
 			}
 
-			if (ntry.entry_type() == ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() == EntryType::Zone)
 			{
 				uint8_t* item1 = ntry.get_nth_item(1);
 				int32_t new_size =
@@ -599,15 +599,15 @@ namespace level_alter
 				int32_t maxx = from_u16(item1 + 0x1E);
 				int32_t maxy = from_u16(item1 + 0x20);
 				int32_t maxz = from_u16(item1 + 0x22);
-				printf("x flipping coll in zone %s, %d %d %d\n", eid2str(ntry.eid), maxx, maxy, maxz);
+				printf("x flipping coll in zone %s, %d %d %d\n", eid2str(ntry.m_eid), maxx, maxy, maxz);
 				uint8_t* item1_edited = coll_get_expanded(item1, &new_size, maxx, maxy, maxz);
 				LIST flipped{};
 				collision_flip(item1_edited, 0x1C, 0, maxx, maxy, maxz, &flipped, 1);
-				build_replace_item(ntry, 1, item1_edited, new_size);
+				ntry.replace_nth_item(1, item1_edited, new_size);
 
 				// object positions
-				int32_t cam_count = ntry.cam_item_count();
-				int32_t entity_count = ntry.entity_count();
+				int32_t cam_count = ntry.get_cam_item_count() / 3;
+				int32_t entity_count = ntry.get_entity_count();
 
 				for (int32_t j = 0; j < cam_count; j++)
 				{
@@ -628,13 +628,13 @@ namespace level_alter
 					flip_fix_misc_entity_props(item);
 				}
 
-				ntry.chunk = *chunk_count;
+				ntry.m_chunk = *chunk_count;
 				*chunk_count += 1;
 			}
 
-			if (ntry.entry_type() == ENTRY_TYPE_VCOL)
+			if (ntry.get_entry_type() == EntryType::VCOL)
 			{
-				printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid2str(ntry.eid));
+				printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid2str(ntry.m_eid));
 
 				// todo fix/implement
 				/*
@@ -674,14 +674,14 @@ namespace level_alter
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_SCENERY)
+			if (ntry.get_entry_type() != EntryType::Scenery)
 				continue;
 
 			int32_t offset5 = ntry.get_nth_item_offset(5);
 			int32_t offset6 = ntry.get_nth_item_offset(6);
 			uint8_t* item5 = ntry.get_nth_item(5);
 
-			printf("%s colors: %d\n", eid2str(ntry.eid), (offset6 - offset5) / 4);
+			printf("%s colors: %d\n", eid2str(ntry.m_eid), (offset6 - offset5) / 4);
 			for (int32_t j = 0; j < (offset6 - offset5) / 4; j++)
 			{
 				// read current color
@@ -731,30 +731,24 @@ namespace level_alter
 		strcpy(nsdpath, nsfpath);
 		nsdpath[strlen(nsdpath) - 1] = 'D';
 
-		int32_t level_ID = 0;
+		ELIST elist{};
+
 		if (alter_type == AT_LevelExport)
-			sscanf(nsfpath + strlen(nsfpath) - 6, "%02X.", &level_ID);
+			sscanf(nsfpath + strlen(nsfpath) - 6, "%02X.", &elist.m_level_ID);
 		else
-			level_ID = build_ask_ID();
+			elist.m_level_ID = ask_level_ID();
 
 		uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE] = { NULL };  // array of pointers to potentially built chunks, fixed length cuz lazy
 		uint8_t* chunks2[CHUNK_LIST_DEFAULT_SIZE] = { NULL }; // keeping original non-normal chunks to keep level order
 
-		ELIST elist{};
-		int32_t chunk_count = 0;
-
-		SPAWNS spawns{};           // struct with spawns found during reading and parsing of the level data
-		uint32_t gool_table[C3_GOOL_TABLE_SIZE]; // table w/ eids of gool entries, needed for nsd, filled using input entries
-		for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
-			gool_table[i] = EID_NONE;
-
-		if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_count, gool_table, elist, chunks, &spawns, 1, nsfpath))
+		if (build_read_and_parse_rebld(elist, chunks, 1, nsfpath))
 			return;
 
 		// get original (texture/sound/instrument) chunk data
 		// its opened and read again :))) dont care
-		FILE* nsf_og = fopen(nsfpath, "rb");
-		if (nsf_og == NULL)
+		File nsf_og;
+		nsf_og.open(nsfpath, "rb");
+		if (!nsf_og.ok())
 		{
 			printf("[ERROR] Could not open selected NSF\n\n");
 			return;
@@ -762,24 +756,23 @@ namespace level_alter
 
 		// make output paths
 		strcpy(nsfpathout, nsfpath);
-		sprintf(nsfpathout + strlen(nsfpathout) - 6, "%02X.NSF", level_ID);
+		sprintf(nsfpathout + strlen(nsfpathout) - 6, "%02X.NSF", elist.m_level_ID);
 		strcpy(nsdpathout, nsfpathout);
 		nsdpathout[strlen(nsdpathout) - 1] = 'D';
 
-		int32_t nsf_chunk_count = build_get_chunk_count_base(nsf_og);
+		int32_t nsf_chunk_count = chunk_count_base(nsf_og.f);
 		uint8_t buffer[CHUNKSIZE];
 		for (int32_t i = 0; i < nsf_chunk_count; i++)
 		{
-			fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf_og);
-			int32_t ct = build_chunk_type(buffer);
-			if (ct == CHUNK_TYPE_TEXTURE || ct == CHUNK_TYPE_SOUND || ct == CHUNK_TYPE_INSTRUMENT)
+			fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf_og.f);
+			ChunkType ct = chunk_type(buffer);
+			if (ct == ChunkType::TEXTURE || ct == ChunkType::SOUND || ct == ChunkType::INSTRUMENT)
 			{
 				chunks2[i] = (uint8_t*)try_malloc(CHUNKSIZE);
 				memcpy(chunks2[i], buffer, CHUNKSIZE);
 			}
 		}
-		chunk_count = nsf_chunk_count;
-		fclose(nsf_og);
+		elist.m_chunk_count = nsf_chunk_count;
 
 		// just to get original spawn
 		FILE* nsd_og = fopen(nsdpath, "rb");
@@ -802,9 +795,9 @@ namespace level_alter
 			s0.y = from_s32(nsd_buf + spawn0_offset + 0x10) >> 8;
 			s0.z = from_s32(nsd_buf + spawn0_offset + 0x14) >> 8;
 
-			spawns.clear();
-			spawns.push_back(s0);
-			spawns.push_back(s0);
+			elist.m_spawns.clear();
+			elist.m_spawns.push_back(s0);
+			elist.m_spawns.push_back(s0);
 		}
 		// end unpacking stuff
 
@@ -824,19 +817,19 @@ namespace level_alter
 		case AT_FlipScenY:
 			printf("!!!Zones are put into indidual chunks at the end\n\n");
 			printf("!!!Y flip does not (yet) patch camera distances/angles, t15col and warps/elevator links!");
-			flip_level_y(elist, &chunk_count);
+			flip_level_y(elist, &elist.m_chunk_count);
 			break;
 		case AT_FlipScenX:
 			printf("!!!Zones are put into indidual chunks at the end\n\n");
-			flip_level_x(elist, &chunk_count);
+			flip_level_x(elist, &elist.m_chunk_count);
 			break;
 		case AT_LevelRecolor:
 			level_recolor(elist);
 			break;
 		case AT_LevelExport:
 			// export doesnt make an output nsf
-			ll_export::export_level(level_ID, elist, chunks, chunks2, chunk_count);
-			for (int32_t i = 0; i < chunk_count; i++)
+			ll_export::export_level(elist.m_level_ID, elist, chunks, chunks2, elist.m_chunk_count);
+			for (int32_t i = 0; i < elist.m_chunk_count; i++)
 			{
 				if (chunks2[i])
 					free(chunks2[i]);
@@ -852,31 +845,30 @@ namespace level_alter
 		// start repacking stuff
 		for (auto& ntry : elist)
 		{
-			int32_t et = ntry.entry_type();
-			if (et == ENTRY_TYPE_SOUND || et == ENTRY_TYPE_INST || et == -1)
-				ntry.chunk = -1;
+			EntryType et = ntry.get_entry_type();
+			if (et == EntryType::Sound || et == EntryType::Inst || et == EntryType::__invalid)
+				ntry.m_chunk = -1;
 		}
 
-		FILE* nsfnew = fopen(nsfpathout, "wb");
-		if (nsfnew == NULL)
+		elist.m_nsf_out.open(nsfpathout, "wb");
+		if (!elist.m_nsf_out.ok())
 		{
 			printf("\n[ERROR] Couldn't open out NSF - path %s\n\n", nsfpathout);
 			return;
 		}
 
-		FILE* nsdnew = fopen(nsdpathout, "wb");
-		if (nsdnew == NULL)
+		elist.m_nsd_out.open(nsdpathout, "wb");
+		if (!elist.m_nsd_out.ok())
 		{
-			fclose(nsfnew);
 			printf("\n[ERROR] Couldn't open out NSD - path %s\n\n", nsdpathout);
 			return;
 		}
 
-		build_write_nsd(nsdnew, NULL, elist, chunk_count, spawns, gool_table, level_ID);
+		elist.write_nsd();
 		elist.sort_load_lists();
-		build_normal_chunks(elist, 0, chunk_count, chunks, 0);
+		elist.build_normal_chunks(chunks);
 		// re-use original non-normal chunks
-		for (int32_t i = 0; i < chunk_count; i++)
+		for (int32_t i = 0; i < elist.m_chunk_count; i++)
 		{
 			if (chunks2[i] != NULL)
 			{
@@ -884,12 +876,10 @@ namespace level_alter
 				memcpy(chunks[i], chunks2[i], CHUNKSIZE);
 			}
 		}
-		build_write_nsf(nsfnew, chunk_count, chunks, NULL);
+		elist.write_nsf(chunks);
 
 		// cleanup
-		fclose(nsfnew);
-		fclose(nsdnew);
-		for (int32_t i = 0; i < chunk_count; i++)
+		for (int32_t i = 0; i < elist.m_chunk_count; i++)
 		{
 			if (chunks2[i])
 				free(chunks2[i]);

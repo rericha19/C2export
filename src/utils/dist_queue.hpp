@@ -2,6 +2,7 @@
 
 #include "../include.h"
 #include "entry.hpp"
+#include "elist.hpp"
 
 #define QUEUE_ITEM_COUNT 500
 
@@ -33,8 +34,8 @@ public:
 		camera_indices[n] = camera_index;
 		add_index++;
 
-		elist[zone_index].distances[camera_index] = n;
-		elist[zone_index].visited[camera_index] = true;
+		elist[zone_index].m_graph_distances[camera_index] = n;
+		elist[zone_index].m_graph_visited |= 1 << camera_index;
 	}
 
 	// graph pop out
@@ -51,21 +52,14 @@ public:
 	// to level's path links.
 	static void run_distance_graph(ELIST& elist, SPAWN& spawn0)
 	{
-
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t cam_count = ntry.cam_item_count() / 3;
-			ntry.distances = (uint32_t*)try_malloc(cam_count * sizeof(uint32_t)); // freed by build_main
-			ntry.visited = (bool*)try_malloc(cam_count * sizeof(bool));           // freed by build_main
-
-			for (int32_t j = 0; j < cam_count; j++)
-			{
-				ntry.distances[j] = INT_MAX;
-				ntry.visited[j] = false;
-			}
+			int32_t cam_count = ntry.get_cam_item_count() / 3;
+			ntry.m_graph_distances.resize(cam_count, INT_MAX);
+			ntry.m_graph_visited = 0;
 		}
 
 		DIST_GRAPH_Q graph{};
@@ -90,18 +84,18 @@ public:
 				if (neigh_idx == -1)
 				{
 					printf("[warning] %s references %s that does not seem to be present (link %d neighbour %d)\n",
-						elist[top_zone].ename, eid2str(neighbours[camlink.zone_index]), i, camlink.zone_index);
+						elist[top_zone].m_ename, eid2str(neighbours[camlink.zone_index]), i, camlink.zone_index);
 					continue;
 				}
-				int32_t path_count = elist[neigh_idx].cam_item_count() / 3;
+				int32_t path_count = elist[neigh_idx].get_cam_item_count() / 3;
 				if (camlink.cam_index >= path_count)
 				{
 					printf("[warning] %s links to %s's cam path %d which doesnt exist (link %d neighbour %d)\n",
-						elist[top_zone].ename, eid2str(neighbours[camlink.zone_index]), camlink.cam_index, i, camlink.zone_index);
+						elist[top_zone].m_ename, eid2str(neighbours[camlink.zone_index]), camlink.cam_index, i, camlink.zone_index);
 					continue;
 				}
 
-				if (elist[neigh_idx].visited[camlink.cam_index] == 0)
+				if (!(elist[neigh_idx].m_graph_visited & 1 << camlink.cam_index))
 					graph.graph_add(elist, neigh_idx, camlink.cam_index);
 			}
 		}

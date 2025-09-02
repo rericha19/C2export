@@ -7,7 +7,7 @@ public:
 	std::vector<int32_t> chunks{};
 	int16_t entcount;
 	int16_t cam_path;
-	std::vector<int32_t> tchunks;
+	std::vector<int32_t> tchunks{};
 	uint32_t zone;
 
 	int32_t page_count() const;

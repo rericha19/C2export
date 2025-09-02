@@ -19,6 +19,9 @@
 #include <mutex>
 #include <thread>
 #include <fstream>
+#include <cstring>
+#include <array>
+#include <sstream>
 
 struct PROPERTY;
 struct RELATION;
@@ -31,6 +34,7 @@ class DEPENDENCI;
 class SPAWNS;
 class MATRIX_STORED_LL;
 class RELATIONS;
+class ENTITY_PATH;
 
 using DEPENDENCIES = std::vector<DEPENDENCY>;
 using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
@@ -50,8 +54,8 @@ using DRAW_LIST = GENERIC_LOAD_LIST;
 #define CNFG_IDX_UNUSED_9 9
 #define CNFG_IDX_LL_REMAKE_FLAG 10
 #define CNFG_IDX_MERGE_METHOD_VALUE 11
-#define CNFG_IDX_MTRX_PERMA_INC_FLAG 12
-#define CNFG_IDX_MTRI_ZEROVAL_INC_FLAG 13
+#define CNFG_IDX_UNUSED_12 12
+#define CNFG_IDX_UNUSED_13 13
 #define CNFG_IDX_DRAW_LIST_GEN_CAP_X 14
 #define CNFG_IDX_DRAW_LIST_GEN_CAP_Y 15
 #define CNFG_IDX_DRAW_LIST_GEN_CAP_XZ 16
@@ -84,28 +88,24 @@ using DRAW_LIST = GENERIC_LOAD_LIST;
 #define C2_NEIGHBOURS_END 0x1B4
 #define C2_NEIGHBOURS_FLAGS_END 0x1D4
 #define C2_SPECIAL_METADATA_OFFSET 0x1DC
+#define C2_MUSIC_REF 0x2A4
 
 #define C2_NSD_CHUNK_COUNT_OFFSET 0x400
 #define C2_NSD_ENTRY_COUNT_OFFSET 0x404
 #define C2_NSD_DATxL_EID 0x408
 #define C2_NSD_ENTRY_TABLE_OFFSET 0x520
+
 #define MAGIC_ENTRY 0x100FFFF
 #define MAGIC_CHUNK 0x1234
-#define CHUNK_TYPE_NORMAL 0
-#define CHUNK_TYPE_TEXTURE 1
-#define CHUNK_TYPE_PROTO_SOUND 2
-#define CHUNK_TYPE_SOUND 3
-#define CHUNK_TYPE_INSTRUMENT 4
-#define C2_MUSIC_REF 0x2A4
 #define EID_NONE 0x6396347Fu
 
-enum
+enum BuildType
 {
 	BuildType_Rebuild,
 	BuildType_Rebuild_DL,
 };
 
-enum
+enum AlterType
 {
 	AT_WipeDL,
 	AT_WipeEnts,
@@ -116,19 +116,43 @@ enum
 	AT_LevelExport,
 };
 
-#define ENTRY_TYPE_ANIM 0x1
-#define ENTRY_TYPE_MODEL 0x2
-#define ENTRY_TYPE_SCENERY 0x3
-#define ENTRY_TYPE_SLST 0x4
-#define ENTRY_TYPE_TEXTURE 0x5
-#define ENTRY_TYPE_ZONE 0x7
-#define ENTRY_TYPE_GOOL 0xB
-#define ENTRY_TYPE_SOUND 0xC
-#define ENTRY_TYPE_MIDI 0xD
-#define ENTRY_TYPE_INST 0xE
-#define ENTRY_TYPE_VCOL 0xF
-#define ENTRY_TYPE_DEMO 0x13
-#define ENTRY_TYPE_T21 21
+enum class EntryType : int32_t
+{
+	__invalid = -1,
+	// 0
+	Anim = 1,
+	Model = 2,
+	Scenery = 3,
+	SLST = 4,
+	Texture = 5,
+	LDAT = 6,
+	Zone = 7,
+	// 8
+	// 9
+	// 10
+	GOOL = 11,
+	Sound = 12,
+	MIDI = 13,
+	Inst = 14,
+	VCOL = 15,
+	// 16
+	// 17
+	// 18
+	Demo = 19,
+	SDIO = 20,
+	T21 = 21,
+};
+
+enum class ChunkType : int32_t
+{
+	__invalid = -1,
+	NORMAL = 0,
+	TEXTURE = 1,
+	PROTO_SOUND = 2,
+	SOUND = 3,
+	INSTRUMENT = 4,
+	SPEECH = 5,
+};
 
 #define C2_CAM_MODE_3D 0
 #define C2_CAM_MODE_CUTSCENE 2
@@ -171,7 +195,7 @@ enum
 #define ENTITY_PROP_CAM_BG_COLORS 0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY 0x27F
 
-// misc.c
+// misc
 
 void* try_malloc(uint32_t size);
 void* try_calloc(uint32_t count, uint32_t size);
@@ -185,36 +209,28 @@ int32_t from_s16(const uint8_t* data);
 uint32_t from_u16(const uint8_t* data);
 uint32_t from_u8(const uint8_t* data);
 uint32_t eid_to_int(std::string eid);
-uint32_t crcChecksum(const uint8_t* data, int32_t size);
-uint32_t nsfChecksum(const uint8_t* data);
+uint32_t nsfChecksum(const uint8_t* data, int32_t size = CHUNKSIZE);
 int32_t cmp_func_int(const void* a, const void* b);
 int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
 void path_fix(char* fpath);
-int32_t getline(char** linep, int32_t* n, FILE* fp);
-int32_t getdelim(char** linep, int32_t* n, int32_t delim, FILE* fp);
 double randfrom(double min, double max);
+int32_t normalize_angle(int32_t angle);
+int32_t c2yaw_to_deg(int32_t yaw);
+int32_t deg_to_c2yaw(int32_t deg);
+int32_t angle_distance(int32_t angle1, int32_t angle2);
+int32_t average_angles(int32_t angle1, int32_t angle2);
+int32_t chunk_count_base(FILE* nsf);
+int32_t ask_level_ID();
+ChunkType chunk_type(uint8_t* chunk);
 
 // build files in no particular order
-
-int32_t build_prop_count(uint8_t* item);
-int32_t build_get_base_chunk_border(uint32_t textr, uint8_t** chunks, int32_t index_end);
-uint32_t build_get_slst(uint8_t* item);
-uint32_t build_get_path_length(uint8_t* item);
-int16_t* build_get_path(ELIST& elist, int32_t zone_index, int32_t item_index, int32_t* path_len);
-int32_t* build_seek_spawn(uint8_t* item);
-int32_t build_chunk_type(uint8_t* chunk);
-void build_write_nsd(FILE* nsd, FILE* nsd2, ELIST& elist, int32_t chunk_count, SPAWNS spawns, uint32_t* gool_table, int32_t level_ID);
 void build_increment_common(LIST list, LIST entries, int32_t** entry_matrix, int32_t rating);
 int32_t dsu_find_set(int32_t i);
 void dsu_union_sets(int32_t a, int32_t b);
 void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ratio);
-RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, int32_t* config, ELIST& elist);
-void build_normal_chunks(ELIST& elist, int32_t chunk_border_sounds, int32_t chunk_count, uint8_t** chunks, int32_t do_end_print);
-void build_add_scen_textures_to_list(uint8_t* scenery, LIST* list);
-void build_add_model_textures_to_list(uint8_t* model, LIST* list);
+RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, ELIST& elist);
 uint8_t* build_add_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 uint8_t* build_rem_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
-void build_replace_item(ENTRY& zone, int32_t item_index, uint8_t* new_item, int32_t new_size);
 void build_entity_alter(ENTRY& zone, int32_t item_index, uint8_t* (func_arg)(uint32_t, uint8_t*, int32_t*, PROPERTY*), int32_t property_code, PROPERTY* prop);
 void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
 void build_load_list_util_util_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
@@ -222,42 +238,19 @@ void build_add_collision_dependencies(std::vector<LIST>& full_list, int32_t star
 	DEPENDENCIES collisions, ELIST& elist);
 int32_t build_dist_w_penalty(int32_t distance, int32_t backwards_penalty);
 void build_load_list_util_util(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list,
-	int32_t cam_length, ELIST& elist, int32_t* config, DEPENDENCIES collisisons);
+	int32_t cam_length, ELIST& elist);
 std::vector<LIST> build_get_complete_draw_list(ELIST& elist, ENTRY& zone, int32_t cam_index, int32_t cam_length);
 LIST build_get_types_subtypes(ELIST& elist, LIST entity_list, LIST neighbour_list);
 int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
-void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist, DEPENDENCIES sub_info, DEPENDENCIES collisions, int32_t* config);
-PROPERTY build_make_load_list_prop(std::vector<LIST>& list_array, int32_t cam_length, int32_t code);
+void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist);
 void build_load_list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, int32_t cam_length, ELIST& elist, bool is_draw);
-void build_remake_draw_lists(ELIST& elist, int32_t* config);
-void build_remake_load_lists(ELIST& elist, uint32_t* gool_table, LIST permaloaded, DEPENDENCIES& subtype_info, DEPENDENCIES& collision, DEPENDENCIES& mus_deps, int32_t* config);
-int32_t build_read_entry_config(LIST& permaloaded, DEPENDENCIES& subtype_info, DEPENDENCIES& collisions, DEPENDENCIES& music_deps,
-	ELIST& elist, uint32_t* gool_table, int32_t* config);
-int32_t build_get_chunk_count_base(FILE* nsf);
-int32_t build_ask_ID();
-void build_ask_list_paths(char fpaths[BUILD_FPATH_COUNT][MAX], int32_t* config);
-void build_instrument_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks);
-void build_sound_chunks(ELIST& elist, int32_t* chunk_count, uint8_t** chunks);
-int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries, int32_t* config);
-void build_final_cleanup(uint8_t** chunks, int32_t chunk_count, FILE* nsfnew, FILE* nsd);
-void build_ask_spawn(SPAWNS& spawns);
+void build_remake_draw_lists(ELIST& elist);
+void build_remake_load_lists(ELIST& elist);
+int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries);
 void build_main(int32_t build_rebuild_flag);
-void build_write_nsf(FILE* nsfnew, int32_t chunk_count, uint8_t** chunks, FILE* nsfnew2);
-void build_ask_draw_distances(int32_t* config);
-void build_ask_distances(int32_t* config);
-int32_t build_is_before(ELIST& elist, int32_t zone_index, int32_t camera_index, int32_t neighbour_index, int32_t neighbour_cam_index);
 void build_texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_length, int32_t i, int32_t j);
-int32_t build_read_and_parse_rebld(int32_t* level_ID, FILE** nsfnew, FILE** nsd, int32_t* chunk_border_texture, uint32_t* gool_table,
-	ELIST& elist, uint8_t** chunks, SPAWNS* spawns, bool stats_only, const char* fpath);
-void build_ask_build_flags(int32_t* config);
+bool build_read_and_parse_rebld(ELIST& elist, uint8_t** chunks, bool stats_only, const char* fpath);
 MATRIX_STORED_LLS build_matrix_store_lls(ELIST& elist);
-void build_matrix_merge_random_main(ELIST& elist, int32_t chunk_border_sounds, int32_t& chunk_count, int32_t* config, LIST& permaloaded, bool eat_thrc);
-void build_matrix_merge_random_thr_main(ELIST& elist, int32_t chunk_border_sounds, int32_t& chunk_count, int32_t* config, LIST& permaloaded);
-void build_try_second_output(FILE** nsfnew2, FILE** nsd2, int32_t levelID);
-int32_t normalize_angle(int32_t angle);
-int32_t c2yaw_to_deg(int32_t yaw);
-int32_t deg_to_c2yaw(int32_t deg);
-int32_t angle_distance(int32_t angle1, int32_t angle2);
-int32_t average_angles(int32_t angle1, int32_t angle2);
-void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t* config, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);
-void build_remake_draw_lists(ELIST& elist, int32_t* config);
+void build_matrix_merge_random_main(ELIST& elist);
+void build_matrix_merge_random_thr_main(ELIST& elist);
+void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);

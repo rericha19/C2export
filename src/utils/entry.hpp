@@ -2,24 +2,28 @@
 
 #include "../include.h"
 #include "../utils/utils.hpp"
-#include <string>
-#include <cstdint>
+
+class ENTITY_PATH : public std::vector<int16_t>
+{
+public:
+	inline int32_t length() { return int32_t(size() / 3); }
+};
 
 class ENTRY
 {
 public:
-	uint32_t eid;
-	char ename[6] = "";
-	bool norm_chunk_ent_is_loaded = false;
-	bool is_tpage = false;
-	int32_t esize;
-	int32_t chunk;
-	std::vector<uint8_t> data{};
-	LIST related{};
-	uint32_t* distances = NULL;
-	bool* visited = NULL;
+	uint32_t m_eid = 0;
+	char m_ename[6] = "";
+	bool m_is_loaded = true;
+	bool m_is_tpage = false;
+	int32_t m_esize = 0;
+	int32_t m_chunk = -1;
+	uint32_t m_graph_visited{}; // bitset
+	std::vector<int32_t> m_graph_distances{};
+	std::vector<uint8_t> m_data{};
+	LIST m_related{};
 
-	inline uint8_t* _data() { return data.data(); }
+	inline uint8_t* _data() { return m_data.data(); }
 
 	LIST get_neighbours();
 	LIST get_models();
@@ -27,50 +31,43 @@ public:
 	LIST get_special_entries_raw();
 	LIST get_special_entries_extended(ELIST& elist);
 	LIST get_sceneries();
-	LIST get_entities_to_load(ELIST& elist, int32_t* config, LIST& neighbours, int32_t camera_index, int32_t point_index);	
+	LIST get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_index, int32_t point_index);
+	LIST get_scenery_textures();
+	LIST get_model_textures();
+	LIST get_anim_refs(ELIST& elist);
+	uint32_t get_nth_slst(int32_t main_cam_idx);
+	uint32_t get_zone_track();
 
+	void parse_relatives();
+	void parse_spawns(SPAWNS& spawns);
+
+	ENTITY_PATH get_ent_path(int32_t item_index);
+	int32_t get_ent_path_len(int32_t item_index);
 	int32_t get_nth_item_offset(int32_t n);
 	uint8_t* get_nth_item(int32_t n);
 	uint8_t* get_nth_entity(int32_t entity_n);
 	uint8_t* get_nth_main_cam(int32_t cam_n);
-	int32_t entry_type();
+	EntryType get_entry_type();
+	int32_t get_item_count();
+	int32_t get_entity_count();
+	int32_t get_cam_item_count();
+	int32_t get_neighbour_count();
+	int32_t get_scenery_count();
 	bool is_normal_chunk_entry();
-	int32_t item_count();
-	int32_t entity_count();
-	int32_t cam_item_count();
-	int32_t neighbour_count();
-	int32_t scenery_count();
-	bool check_item_count();
+
+	bool check_get_item_count();
 	void remove_nth_item(int32_t n);
-	uint32_t get_zone_track();
+	void replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t new_size);
 
 	static std::string eid2s(uint32_t eid);
 	static int32_t get_nth_item_offset(uint8_t* entry, int32_t n);
 	static uint8_t* get_nth_item(uint8_t* entry, int32_t n);
-	static int32_t item_count(uint8_t* entry);
-	static int32_t entity_count(uint8_t* entry);
-	static int32_t cam_item_count(uint8_t* entry);
-	static int32_t neighbour_count(uint8_t* entry);
-	static int32_t scenery_count(uint8_t* entry);
-};
-
-class ELIST : public std::vector<ENTRY>
-{
-public:
-	void sort_by_eid();
-	void sort_by_esize();
-	void update_gool_references();
-	int32_t get_index(uint32_t eid);
-	int32_t count();
-	LIST get_normal_entries();
-
-	int32_t assign_primary_chunks_all(int32_t chunk_count);
-	int32_t remove_empty_chunks(int32_t chunk_border_sounds, int32_t chunk_count);
-	int32_t merge_permaloaded(int32_t chunk_obder_sounds, int32_t chunk_count, LIST& permaloaded);
-	void print_transitions();
-	void sort_load_lists();
-	void check_unspecified_entities(DEPENDENCIES& sub_info);
-	void check_loaded();
+	static int32_t get_item_count(uint8_t* entry);
+	static int32_t get_entity_count(uint8_t* entry);
+	static int32_t get_cam_item_count(uint8_t* entry);
+	static int32_t get_neighbour_count(uint8_t* entry);
+	static int32_t get_scenery_count(uint8_t* entry);
+	static bool is_before(ENTRY& zone, int32_t cam_index, ENTRY& neigh, int32_t neigh_cam_idx);
 };
 
 // stores a camera path link

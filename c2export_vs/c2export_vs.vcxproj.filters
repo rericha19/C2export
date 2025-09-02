@@ -26,10 +26,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\include.h">
       <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\utils\dirent.h">
-      <Filter>Source Files\utils</Filter>
-    </ClInclude>
+    </ClInclude>   
     <ClInclude Include="..\src\utils\dist_queue.hpp">
       <Filter>Source Files\utils</Filter>
     </ClInclude>

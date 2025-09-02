@@ -24,27 +24,27 @@
     <ClInclude Include="..\src\side_scripts\level_alter.hpp" />
     <ClInclude Include="..\src\side_scripts\level_analyze.hpp" />
     <ClInclude Include="..\src\side_scripts\side_scripts.hpp" />
-    <ClInclude Include="..\src\utils\dirent.h" />
     <ClInclude Include="..\src\utils\dist_queue.hpp" />
+    <ClInclude Include="..\src\utils\elist.hpp" />
     <ClInclude Include="..\src\utils\entry.hpp" />
     <ClInclude Include="..\src\utils\payloads.hpp" />
     <ClInclude Include="..\src\utils\utils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\build\build.cpp" />
-    <ClCompile Include="..\src\build\build_and_write_level_data.cpp" />
     <ClCompile Include="..\src\build\build_draw_lists.cpp" />
+    <ClCompile Include="..\src\build\build_input.cpp" />
     <ClCompile Include="..\src\build\build_load_lists.cpp" />
     <ClCompile Include="..\src\build\build_merge_matrix_random.cpp" />
     <ClCompile Include="..\src\build\build_merge_occurence_matrix.cpp" />
+    <ClCompile Include="..\src\build\build_output.cpp" />
     <ClCompile Include="..\src\build\build_parsing.cpp" />
-    <ClCompile Include="..\src\build\build_snd_instr_chunks.cpp" />
-    <ClCompile Include="..\src\build\build_user_input.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\side_scripts\export.cpp" />
     <ClCompile Include="..\src\side_scripts\level_alter.cpp" />
     <ClCompile Include="..\src\side_scripts\level_analyze.cpp" />
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp" />
+    <ClCompile Include="..\src\utils\elist.cpp" />
     <ClCompile Include="..\src\utils\entry.cpp" />
     <ClCompile Include="..\src\utils\misc.cpp" />
     <ClCompile Include="..\src\utils\payloads.cpp" />
@@ -63,7 +63,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -76,7 +76,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -97,7 +97,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>  
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -109,7 +109,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\bin\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)\bin\interm_$(Configuration)_$(Platform)\</IntDir>
-  </PropertyGroup>  
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)\bin\$(Configuration)_$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)\bin\interm_$(Configuration)_$(Platform)\</IntDir>
@@ -131,7 +131,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-  </ItemDefinitionGroup>  
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>

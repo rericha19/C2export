@@ -10,7 +10,7 @@ namespace level_analyze
 	void ll_check_sound_refs(ELIST& elist);
 	void ll_check_tpage_refs(ELIST& elist);
 	void ll_check_gool_types(ELIST& elist);
-	void ll_check_gool_refs(ELIST& elist, uint32_t* gool_table);
+	void ll_check_gool_refs(ELIST& elist);
 	void ll_id_usage(ELIST& elist);
 	void ll_various_stats(ELIST& elist);
 	void ll_get_box_count(ELIST& elist);

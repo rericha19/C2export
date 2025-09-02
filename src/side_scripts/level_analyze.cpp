@@ -2,6 +2,7 @@
 #include "../utils/payloads.hpp"
 #include "../utils/utils.hpp"
 #include "../utils/entry.hpp"
+#include "../utils/elist.hpp"
 #include "level_analyze.hpp"
 
 namespace level_analyze
@@ -15,10 +16,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t cam_count = ntry.cam_item_count() / 3;
+			int32_t cam_count = ntry.get_cam_item_count() / 3;
 			for (int32_t j = 0; j < cam_count; j++)
 			{
 				LOAD_LIST load_list = get_load_lists(ntry, 2 + 3 * j);
@@ -35,7 +36,7 @@ namespace level_analyze
 							{
 								issue_found = true;
 								printf("Duplicate/already loaded entry %s in zone %s path %d load list A point %d\n",
-									eid2str(item), ntry.ename, j, sublist.index);
+									eid2str(item), ntry.m_ename, j, sublist.index);
 							}
 						}
 					}
@@ -62,7 +63,7 @@ namespace level_analyze
 							{
 								issue_found = true;
 								printf("Duplicate/already loaded entry %s in zone %s path %d load list B point %d\n",
-									eid2str(item), ntry.ename, j, sublist.index);
+									eid2str(item), ntry.m_ename, j, sublist.index);
 							}
 						}
 					}
@@ -71,7 +72,7 @@ namespace level_analyze
 				if (list.count() || list2.count())
 				{
 					issue_found = true;
-					printf("Zone %5s cam path %d load list incorrect:\n", eid2str(ntry.eid), j);
+					printf("Zone %5s cam path %d load list incorrect:\n", eid2str(ntry.m_eid), j);
 				}
 
 				for (int32_t l = 0; l < list.count(); l++)
@@ -93,10 +94,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t cam_count = ntry.cam_item_count() / 3;
+			int32_t cam_count = ntry.get_cam_item_count() / 3;
 			for (int32_t j = 0; j < cam_count; j++)
 			{
 				DRAW_LIST draw_list = get_draw_lists(ntry, 2 + 3 * j);
@@ -113,7 +114,7 @@ namespace level_analyze
 							{
 								issue_found = true;
 								printf("Duplicate/already drawn ID %4d in zone %s path %d load list B point %d\n",
-									draw_item.ID, eid2str(ntry.eid), j, sublist.index);
+									draw_item.ID, eid2str(ntry.m_eid), j, sublist.index);
 							}
 						}
 					}
@@ -148,7 +149,7 @@ namespace level_analyze
 							{
 								issue_found = true;
 								printf("Duplicate/already drawn ID %4d in zone %s path %d load list B point %d\n",
-									draw_item.ID, ntry.ename, j, sublist.index);
+									draw_item.ID, ntry.m_ename, j, sublist.index);
 							}
 						}
 					}
@@ -159,7 +160,7 @@ namespace level_analyze
 				if (ids.count() || ids2.count())
 				{
 					issue_found = true;
-					printf("Zone %s cam path %d draw list incorrect:\n", ntry.ename, j);
+					printf("Zone %s cam path %d draw list incorrect:\n", ntry.m_ename, j);
 				}
 
 				for (int32_t l = 0; l < ids.count(); l++)
@@ -181,19 +182,19 @@ namespace level_analyze
 						{
 							issue_found = true;
 							printf("Zone %s cam path %d drawing ent %4d (list%c pt %2d), tied to invalid neighbour %s (neigh.index %d)\n",
-								ntry.ename, j, draw_item.ID, sublist.type, sublist.index,
+								ntry.m_ename, j, draw_item.ID, sublist.type, sublist.index,
 								eid2str(neighbour_eid), draw_item.neighbour_zone_index);
 							continue;
 						}
 
-						int32_t neigh_camitem_count = elist[neigh_idx].cam_item_count();
-						int32_t neigh_entity_count = ntry.entity_count();
+						int32_t neigh_camitem_count = elist[neigh_idx].get_cam_item_count();
+						int32_t neigh_entity_count = elist[neigh_idx].get_entity_count();
 
 						if (draw_item.neighbour_item_index >= neigh_entity_count)
 						{
 							issue_found = true;
 							printf("Zone %s cam path %d drawing ent %4d (list%c pt %2d), tied to %s's %2d. entity, which doesnt exist\n",
-								ntry.ename, j, draw_item.ID, sublist.type, sublist.index,
+								ntry.m_ename, j, draw_item.ID, sublist.type, sublist.index,
 								eid2str(neighbour_eid), draw_item.neighbour_item_index);
 							continue;
 						}
@@ -206,7 +207,7 @@ namespace level_analyze
 						{
 							issue_found = true;
 							printf("Zone %s cam path %d drawing ent %4d (list%c pt %2d), tied to %s's %2d. entity, which has ID %4d\n",
-								ntry.ename, j, draw_item.ID, sublist.type, sublist.index,
+								ntry.m_ename, j, draw_item.ID, sublist.type, sublist.index,
 								eid2str(neighbour_eid), draw_item.neighbour_item_index, neighbour_entity_ID);
 						}
 					}
@@ -221,26 +222,24 @@ namespace level_analyze
 
 	void ll_print_avg_chunkfill(ELIST& elist)
 	{
-		int32_t entry_count = int32_t(elist.size());
 		int32_t chunk_count = 0;
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.chunk >= chunk_count)
-				chunk_count = ntry.chunk + 1;
+			if (ntry.m_chunk >= chunk_count)
+				chunk_count = ntry.m_chunk + 1;
 		}
 
-		std::vector<int32_t> chunksizes{};
-		chunksizes.resize(chunk_count);
+		std::vector<int32_t> chunksizes(chunk_count);		
 
 		for (auto& ntry : elist)
 		{
 			if (ntry.is_normal_chunk_entry())
 			{
-				int32_t chunk = ntry.chunk;
+				int32_t chunk = ntry.m_chunk;
 				if (chunksizes[chunk] == 0)
 					chunksizes[chunk] = 0x14;
-				chunksizes[chunk] += 4 + ntry.esize;
+				chunksizes[chunk] += 4 + ntry.m_esize;
 			}
 		}
 
@@ -304,10 +303,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t entity_count = ntry.entity_count();
+			int32_t entity_count = ntry.get_entity_count();
 			for (int32_t j = 0; j < entity_count; j++)
 			{
 				uint8_t* entity = ntry.get_nth_entity(j);
@@ -363,10 +362,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() == ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t cam_count = ntry.cam_item_count() / 3;
+			int32_t cam_count = ntry.get_cam_item_count() / 3;
 			if (!cam_count)
 				continue;
 
@@ -376,7 +375,7 @@ namespace level_analyze
 			{
 				issue_found = true;
 				printf("Zone %5s references track %5s, which isnt present in the level\n",
-					ntry.ename, eid2str(music_entry));
+					ntry.m_ename, eid2str(music_entry));
 			}
 			else
 			{
@@ -391,7 +390,7 @@ namespace level_analyze
 				{
 					issue_found = true;
 					printf("Zone %5s references scenery %5s, which isnt present in the level\n",
-						ntry.ename, eid2str(scenery_ref));
+						ntry.m_ename, eid2str(scenery_ref));
 				}
 				else
 					valid_referenced_eids.add(scenery_ref);
@@ -405,22 +404,21 @@ namespace level_analyze
 				{
 					issue_found = true;
 					printf("Zone %5s references neighbour %5s, which isnt present in the level\n",
-						ntry.ename, eid2str(neighbour_ref));
+						ntry.m_ename, eid2str(neighbour_ref));
 				}
 				else
 					valid_referenced_eids.add(neighbour_ref);
 			}
 
 			for (int32_t j = 0; j < cam_count; j++)
-			{
-				uint8_t* item = ntry.get_nth_main_cam(j);
-				uint32_t slst = build_get_slst(item);
+			{				
+				uint32_t slst = ntry.get_nth_slst(j);
 				int32_t slst_index = elist.get_index(slst);
 				if (slst_index == -1)
 				{
 					issue_found = true;
 					printf("Zone %s cam path %d references SLST %5s, which isnt present in the level\n",
-						ntry.ename, j, eid2str(slst));
+						ntry.m_ename, j, eid2str(slst));
 				}
 				else
 					valid_referenced_eids.add(slst);
@@ -436,13 +434,13 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			int32_t entry_type = ntry.entry_type();
-			if (!(entry_type == ENTRY_TYPE_SCENERY || entry_type == ENTRY_TYPE_ZONE || entry_type == ENTRY_TYPE_MIDI || entry_type == ENTRY_TYPE_SLST))
+			EntryType entry_type = ntry.get_entry_type();
+			if (!(entry_type == EntryType::Scenery || entry_type == EntryType::Zone || entry_type == EntryType::MIDI || entry_type == EntryType::SLST))
 				continue;
 
-			if (valid_referenced_eids.find(ntry.eid) == -1)
+			if (valid_referenced_eids.find(ntry.m_eid) == -1)
 			{
-				printf("Entry %5s not referenced\n", eid2str(ntry.eid));
+				printf("Entry %5s not referenced\n", eid2str(ntry.m_eid));
 				unused_entries_found = true;
 			}
 		}
@@ -451,16 +449,16 @@ namespace level_analyze
 			printf("No unused entries were found\n");
 	}
 
-	void ll_check_gool_refs(ELIST& elist, uint32_t* gool_table)
+	void ll_check_gool_refs(ELIST& elist)
 	{
 		LIST used_types{};
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t entity_count = ntry.entity_count();
+			int32_t entity_count = ntry.get_entity_count();
 			for (int32_t j = 0; j < entity_count; j++)
 			{
 				uint8_t* entity = ntry.get_nth_entity(j);
@@ -476,14 +474,14 @@ namespace level_analyze
 		printf("\nUnused GOOL entries:\n");
 		for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
 		{
-			if (gool_table[i] == EID_NONE)
+			if (elist.m_gool_table[i] == EID_NONE)
 				continue;
 
 			if (used_types.find(i) == -1)
 			{
 				unused_gool_entries = true;
 				printf("GOOL entry %5s type %2d not directly used by any entity (could still be used by other means)\n",
-					eid2str(gool_table[i]), i);
+					eid2str(elist.m_gool_table[i]), i);
 			}
 		}
 
@@ -493,7 +491,7 @@ namespace level_analyze
 		LIST gool_i6_references{};
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() == ENTRY_TYPE_GOOL && ntry.item_count() == 6)
+			if (ntry.get_entry_type() == EntryType::GOOL && ntry.get_item_count() == 6)
 			{
 				uint32_t i6_off = ntry.get_nth_item_offset(5);
 				uint32_t i6_end = ntry.get_nth_item_offset(6);
@@ -515,13 +513,13 @@ namespace level_analyze
 		LIST model_references{};
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ANIM)
+			if (ntry.get_entry_type() != EntryType::Anim)
 				continue;
 
-			if (gool_i6_references.find(ntry.eid) == -1)
+			if (gool_i6_references.find(ntry.m_eid) == -1)
 			{
 				unreferenced_animations = true;
-				printf("Animation %5s not referenced by any GOOL's i6\n", ntry.ename);
+				printf("Animation %5s not referenced by any GOOL's i6\n", ntry.m_ename);
 			}
 
 			model_references.copy_in(ntry.get_models());
@@ -534,13 +532,13 @@ namespace level_analyze
 		printf("\nModels not referenced by any animation:\n");
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_MODEL)
+			if (ntry.get_entry_type() != EntryType::Model)
 				continue;
 
-			if (model_references.find(ntry.eid) == -1)
+			if (model_references.find(ntry.m_eid) == -1)
 			{
 				unreferenced_models = true;
-				printf("Model %5s not referenced by any animation\n", ntry.ename);
+				printf("Model %5s not referenced by any animation\n", ntry.m_ename);
 			}
 		}
 
@@ -557,10 +555,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t entity_count = ntry.entity_count();
+			int32_t entity_count = ntry.get_entity_count();
 			for (int32_t j = 0; j < entity_count; j++)
 			{
 				uint8_t* entity = ntry.get_nth_entity(j);
@@ -570,7 +568,7 @@ namespace level_analyze
 					continue;
 
 				max_id = max(max_id, id);
-				lists[id].push_back(ntry.ename);
+				lists[id].push_back(ntry.m_ename);
 			}
 		}
 
@@ -597,17 +595,17 @@ namespace level_analyze
 		LIST text_refs{};
 		for (auto& ntry : elist)
 		{
-			switch (ntry.entry_type())
+			switch (ntry.get_entry_type())
 			{
-			case ENTRY_TYPE_MODEL:
-				build_add_model_textures_to_list(ntry._data(), &text_refs);
+			case EntryType::Model:
+				text_refs.copy_in(ntry.get_model_textures());				
 				break;
-			case ENTRY_TYPE_SCENERY:
-				build_add_scen_textures_to_list(ntry._data(), &text_refs);
+			case EntryType::Scenery:
+				text_refs.copy_in(ntry.get_scenery_textures());
 				break;
-			case ENTRY_TYPE_GOOL:
+			case EntryType::GOOL:
 			{
-				int32_t ic = ntry.item_count();
+				int32_t ic = ntry.get_item_count();
 				if (ic == 6)
 				{
 					uint32_t i6_off = ntry.get_nth_item_offset(5);
@@ -632,13 +630,13 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (!ntry.is_tpage)
+			if (!ntry.m_is_tpage)
 				continue;
 
 			bool reffound = false;
 			for (int32_t j = 0; j < text_refs.count(); j++)
 			{
-				if (ntry.eid == text_refs[j])
+				if (ntry.m_eid == text_refs[j])
 				{
 					reffound = true;
 					break;
@@ -648,7 +646,7 @@ namespace level_analyze
 			if (!reffound)
 			{
 				unreferenced_textures = true;
-				printf("Texture %5s not referenced by any GOOL, scenery or model\n", ntry.ename);
+				printf("Texture %5s not referenced by any GOOL, scenery or model\n", ntry.m_ename);
 			}
 		}
 
@@ -664,10 +662,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_GOOL)
+			if (ntry.get_entry_type() != EntryType::GOOL)
 				continue;
 
-			if (ntry.item_count() != 6)
+			if (ntry.get_item_count() != 6)
 				continue;
 
 			uint32_t i2off = ntry.get_nth_item_offset(2);
@@ -686,13 +684,13 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_SOUND)
+			if (ntry.get_entry_type() != EntryType::Sound)
 				continue;
 
 			bool reffound = false;
 			for (int32_t j = 0; j < potential_sounds.count(); j++)
 			{
-				if (potential_sounds[j] == ntry.eid)
+				if (potential_sounds[j] == ntry.m_eid)
 				{
 					reffound = true;
 					break;
@@ -702,7 +700,7 @@ namespace level_analyze
 			if (!reffound)
 			{
 				unreferenced_sounds = true;
-				printf("Sound %5s not referenced by any GOOL\n", ntry.ename);
+				printf("Sound %5s not referenced by any GOOL\n", ntry.m_ename);
 			}
 		}
 
@@ -718,18 +716,18 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_GOOL)
+			if (ntry.get_entry_type() != EntryType::GOOL)
 				continue;
 
 			int32_t item1_offset = ntry.get_nth_item_offset(0);
 			int32_t gool_type = from_u32(ntry._data() + item1_offset);
 			if (gool_type < 0 || gool_type >= C3_GOOL_TABLE_SIZE)
 			{
-				printf("Invalid GOOL type: %s type %d\n", ntry.ename, gool_type);
+				printf("Invalid GOOL type: %s type %d\n", ntry.m_ename, gool_type);
 			}
 			else
 			{
-				lists[gool_type].push_back(ntry.ename);
+				lists[gool_type].push_back(ntry.m_ename);
 			}
 		}
 
@@ -753,10 +751,10 @@ namespace level_analyze
 
 		for (auto& ntry : elist)
 		{
-			if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+			if (ntry.get_entry_type() != EntryType::Zone)
 				continue;
 
-			int32_t entity_count = ntry.entity_count();
+			int32_t entity_count = ntry.get_entity_count();
 			for (int32_t j = 0; j < entity_count; j++)
 			{
 				uint8_t* entity = ntry.get_nth_entity(j);
@@ -788,11 +786,8 @@ namespace level_analyze
 	void ll_analyze_main()
 	{
 		ELIST elist{};
-		uint32_t gool_table[C3_GOOL_TABLE_SIZE]{};
-		for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
-			gool_table[i] = EID_NONE;
 
-		if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
+		if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 			return;
 
 		ll_id_usage(elist);
@@ -801,7 +796,7 @@ namespace level_analyze
 		ll_print_avg_chunkfill(elist);
 		ll_print_full_payload_info(elist, 0);
 		ll_check_gool_types(elist);
-		ll_check_gool_refs(elist, gool_table);
+		ll_check_gool_refs(elist);
 		ll_check_tpage_refs(elist);
 		ll_check_sound_refs(elist);
 		ll_check_zone_refs(elist);

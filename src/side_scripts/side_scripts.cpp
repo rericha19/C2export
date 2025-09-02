@@ -1,5 +1,6 @@
 #include "../include.h"
 #include "../utils/entry.hpp"
+#include "../utils/elist.hpp"
 #include "../side_scripts/level_analyze.hpp"
 #include "../side_scripts/side_scripts.hpp"
 
@@ -410,12 +411,12 @@ void prop_main()
 	fread(arr, fsize, sizeof(uint8_t), file);
 
 	printf("\n");
-	for (int32_t i = 0; i < build_prop_count(arr); i++)
+	for (int32_t i = 0; i < PROPERTY::count(arr); i++)
 	{
 		code = from_u16(arr + 0x10 + 8 * i);
 		offset = from_u16(arr + 0x12 + 8 * i) + OFFSET;
 		offset_next = from_u16(arr + 0x1A + 8 * i) + OFFSET;
-		if (i == (build_prop_count(arr) - 1))
+		if (i == (PROPERTY::count(arr) - 1))
 			offset_next = from_u16(arr);
 		printf("0x%03X\t", code);
 		switch (code)
@@ -761,7 +762,7 @@ void resize_model(int32_t fsize, uint8_t* buffer, double scale[3])
 // yep resizes animation
 void resize_animation(int32_t fsize, uint8_t* buffer, double scale[3])
 {
-	int32_t itemc = ENTRY::item_count(buffer);
+	int32_t itemc = ENTRY::get_item_count(buffer);
 
 	for (int32_t i = 0; i < itemc; i++)
 	{
@@ -785,14 +786,14 @@ void resize_animation(int32_t fsize, uint8_t* buffer, double scale[3])
 // yep fixes camera distance
 void resize_zone_camera_distance(int32_t fsize, uint8_t* buffer, double scale[3])
 {
-	int32_t cam_c = ENTRY::cam_item_count(buffer);
+	int32_t cam_c = ENTRY::get_cam_item_count(buffer);
 
 	for (int32_t i = 0; i < cam_c; i += 3)
 	{
 		int32_t o = ENTRY::get_nth_item_offset(buffer, 2 + i + 1);
 
 		uint8_t* entity = buffer + o;
-		for (int32_t j = 0; j < build_prop_count(entity); j++)
+		for (int32_t j = 0; j < PROPERTY::count(entity); j++)
 		{
 			int32_t code = from_u16(entity + 0x10 + 8 * j);
 			int32_t offset = from_u16(entity + 0x12 + 8 * j) + OFFSET;
@@ -835,21 +836,21 @@ void resize_chunk_handler(uint8_t* chunk, int32_t game, double scale[3])
 		entry = chunk + offset_start;
 
 		ENTRY curr_entry{};
-		curr_entry.esize = offset_end - offset_start;
-		curr_entry.data.resize(curr_entry.esize);
-		memcpy(curr_entry.data.data(), entry, curr_entry.esize);
-		int32_t etype = curr_entry.entry_type();
+		curr_entry.m_esize = offset_end - offset_start;
+		curr_entry.m_data.resize(curr_entry.m_esize);
+		memcpy(curr_entry.m_data.data(), entry, curr_entry.m_esize);
+		EntryType etype = curr_entry.get_entry_type();
 
-		if (etype == ENTRY_TYPE_ZONE)
+		if (etype == EntryType::Zone)
 			resize_zone(offset_end - offset_start, entry, scale, game);
-		else if (etype == ENTRY_TYPE_SCENERY)
+		else if (etype == EntryType::Scenery)
 			resize_scenery(offset_end - offset_start, entry, scale, game);
-		else if (etype == ENTRY_TYPE_MODEL)
+		else if (etype == EntryType::Model)
 			resize_model(offset_end - offset_start, entry, scale);
-		else if (etype == ENTRY_TYPE_ANIM)
+		else if (etype == EntryType::Anim)
 			resize_animation(offset_end - offset_start, entry, scale);
 
-		if (etype == ENTRY_TYPE_ZONE)
+		if (etype == EntryType::Zone)
 			resize_zone_camera_distance(offset_end - offset_start, entry, scale);
 	}
 
@@ -933,14 +934,14 @@ void resize_folder(char* path, double scale[3], char* time, int32_t game)
 	}
 	catch (const std::exception& e)
 	{
-		printf("[ERROR] %s\n%s\n", e.what(), path);
+		printf("[warning] %s\n%s\n", e.what(), path);
 	}
 }
 
 // yep resizes zone
 void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 {
-	int32_t itemcount = ENTRY::item_count(buffer);
+	int32_t itemcount = ENTRY::get_item_count(buffer);
 	int32_t* itemoffs = (int32_t*)try_malloc(itemcount * sizeof(int32_t)); // freed here
 
 	for (int32_t i = 0; i < itemcount; i++)
@@ -981,7 +982,7 @@ void resize_zone(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 // yep resizes entity
 void resize_entity(uint8_t* item, int32_t itemsize, double scale[3])
 {
-	for (int32_t i = 0; i < ENTRY::item_count(item); i++)
+	for (int32_t i = 0; i < ENTRY::get_item_count(item); i++)
 	{
 		int32_t code = from_u16(item + 0x10 + 8 * i);
 		int32_t offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
@@ -1148,14 +1149,13 @@ void generate_spawn()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	char zone[100] = "";
 	printf("\nWhat zone do you wanna spawn in?\n");
 	scanf("%s", zone);
 
-	int32_t pathlen;
 	int32_t entity_id;
 	int32_t path_to_spawn_on = 0;
 	int32_t entity_index = -1;
@@ -1168,7 +1168,7 @@ void generate_spawn()
 		return;
 	}
 
-	int32_t cam_count = elist[elist_index].cam_item_count() / 3;
+	int32_t cam_count = elist[elist_index].get_cam_item_count() / 3;
 	if (cam_count == 0)
 	{
 		printf("Zone %5s does not have a camera path\n\n", zone);
@@ -1183,7 +1183,7 @@ void generate_spawn()
 	printf("\nWhat entity's coordinates do you wanna spawn on? (entity has to be in the zone)\n");
 	scanf("%d", &entity_id);
 
-	for (int32_t i = 0; i < elist[elist_index].entity_count(); i++)
+	for (int32_t i = 0; i < elist[elist_index].get_entity_count(); i++)
 	{
 		uint8_t* entity = elist[elist_index].get_nth_entity(i);
 		int32_t ID = PROPERTY::get_value(entity, ENTITY_PROP_ID);
@@ -1198,10 +1198,9 @@ void generate_spawn()
 		return;
 	}
 
-	int16_t* path = build_get_path(elist, elist_index, 2 + 3 * cam_count + entity_index, &pathlen);
-	if (pathlen == 0)
+	ENTITY_PATH path = elist[elist_index].get_ent_path(2 + 3 * cam_count + entity_index);
+	if (path.length() == 0)
 	{
-		free(path);
 		printf("\n Entity doesnt have a position\n");
 		return;
 	}
@@ -1233,7 +1232,6 @@ void generate_spawn()
 			printf("\n");
 	}
 
-	free(path);
 	printf("\nDone.\n\n");
 }
 
@@ -1309,17 +1307,6 @@ void scenery_recolor_main2()
 	free(buffer);
 }
 
-// converts time from nice format to hex/data value
-void time_convert()
-{
-	int32_t m, s, ms;
-	printf("time: (eg 00:51:40)\n");
-	scanf("%d:%02d:%02d", &m, &s, &ms);
-	if (ms % 4)
-		printf("hundredths should be a multiple of 4\n");
-	int32_t relictime = 1500 * m + 25 * s + ms / 4;
-	printf("relictime values:\n%d\n%02X %02X 00 00\n\n", relictime, relictime & 0xFF, (relictime >> 8) & 0xFF);
-}
 
 // script for resizing c3 entity coords to c2 scale?
 void c3_ent_resize()
@@ -1346,9 +1333,8 @@ void c3_ent_resize()
 
 	uint32_t offset = 0;
 
-	for (int32_t i = 0; i < build_prop_count(buffer); i++)
+	for (int32_t i = 0; i < PROPERTY::count(buffer); i++)
 	{
-
 		if ((from_u16(buffer + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
 			offset = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
 
@@ -1401,78 +1387,11 @@ void c3_ent_resize()
 	printf("Done.\n\n");
 }
 
-// script for moving whole entity by xyz
-void entity_move_scr()
-{
-	char fpath[1000];
-	printf("Path to entity item:\n");
-	scanf(" %[^\n]", fpath);
-	path_fix(fpath);
 
-	FILE* file1;
-	if ((file1 = fopen(fpath, "rb+")) == NULL)
-	{
-		printf("[ERROR] Couldn't open file.\n\n");
-		return;
-	}
-
-	printf("xyz move? (%%d %%d %%d)\n");
-	int32_t xm, ym, zm;
-	scanf("%d %d %d", &xm, &ym, &zm);
-
-	fseek(file1, 0, SEEK_END);
-	int32_t fsize = ftell(file1);
-	rewind(file1);
-
-	uint8_t* buffer = (uint8_t*)try_malloc(fsize);
-	fread(buffer, fsize, 1, file1);
-
-	uint32_t offset = 0;
-
-	for (int32_t i = 0; i < build_prop_count(buffer); i++)
-	{
-
-		if ((from_u16(buffer + 0x10 + 8 * i)) == ENTITY_PROP_PATH)
-			offset = OFFSET + from_u16(buffer + 0x10 + 8 * i + 2);
-	}
-
-	if (offset)
-	{
-		int32_t path_len = from_u32(buffer + offset);
-		printf("path len: %d\n", path_len);
-		for (int32_t i = 0; i < path_len * 3; i++)
-		{
-			int32_t off_curr = offset + 4 + i * 2;
-			int32_t add;
-			if (i % 3 == 0)
-				add = xm;
-			else if (i % 3 == 1)
-				add = ym;
-			else
-				add = zm;
-			*(int16_t*)(buffer + off_curr) = (*(int16_t*)(buffer + off_curr)) + add;
-		}
-	}
-	else
-	{
-		printf("[error] no path property found\n");
-	}
-
-	rewind(file1);
-	fwrite(buffer, 1, fsize, file1);
-	free(buffer);
-	fclose(file1);
-	printf("Done.\n\n");
-}
-
-// prints a model's texture references
 void print_model_refs_util(ENTRY& model)
 {
-	char* strs[200];
-	int32_t str_cnt = 0;
-	for (int32_t i = 0; i < 200; i++)
-		strs[i] = (char*)try_malloc(50);
-	char curr_str[50] = "";
+	std::vector<std::string> strs;
+	char buffer[128]; // big enough for the formatted string
 
 	int32_t item1off = model.get_nth_item_offset(0);
 	int32_t item4off = model.get_nth_item_offset(3);
@@ -1481,6 +1400,7 @@ void print_model_refs_util(ENTRY& model)
 
 	printf("\nTexture references: \n");
 	printf("TEXTURE CLUT B S-X  Y  W  H\n");
+
 	for (int32_t i = 0; i < tex_ref_item_size; i += 12)
 	{
 		uint8_t* curr_off = model._data() + item4off + i;
@@ -1516,42 +1436,32 @@ void print_model_refs_util(ENTRY& model)
 		int32_t width = endx - startx + 1;
 		int32_t height = endy - starty + 1;
 
-		sprintf(curr_str, " %5s: %04X %d %d-%02X %02X %02X %02X",
-			eid2str(from_u32(model._data() + item1off + 0xC + tex)), clut, bit, seg, startx, starty, width, height);
+		std::snprintf(buffer, sizeof(buffer),
+			" %5s: %04X %d %d-%02X %02X %02X %02X",
+			eid2str(from_u32(model._data() + item1off + 0xC + tex)),
+			clut, bit, seg, startx, starty, width, height);
 
-		bool str_listed = false;
-		for (int32_t j = 0; j < str_cnt; j++)
-		{
-			if (strcmp(curr_str, strs[j]) == 0)
-			{
-				str_listed = true;
-				break;
-			}
-		}
+		std::string curr_str(buffer);
 
-		if (!str_listed)
+		if (std::find(strs.begin(), strs.end(), curr_str) == strs.end())
 		{
-			strcpy(strs[str_cnt], curr_str);
-			str_cnt++;
+			strs.push_back(std::move(curr_str));
 		}
 	}
 
-	for (int32_t i = 0; i < str_cnt; i++)
+	for (const auto& s : strs)
 	{
-		printf("%s\n", strs[i]);
-		free(strs[i]);
+		printf("%s\n", s.c_str());
 	}
 }
+
 
 // prints texture references of a model or all models from a nsf
 void print_model_tex_refs_nsf()
 {
 	ELIST elist{};
-	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
-	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
-		gool_table[i] = EID_NONE;
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	bool printed_something = false;
@@ -1561,12 +1471,12 @@ void print_model_tex_refs_nsf()
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_MODEL)
+		if (ntry.get_entry_type() != EntryType::Model)
 			continue;
 
-		if (strcmp(eid2str(ntry.eid), ename) == 0 || strcmp(ename, "all") == 0)
+		if (strcmp(eid2str(ntry.m_eid), ename) == 0 || strcmp(ename, "all") == 0)
 		{
-			printf("\nModel %s:", ntry.ename);
+			printf("\nModel %s:", ntry.m_ename);
 			print_model_refs_util(ntry);
 			printed_something = true;
 		}
@@ -1603,8 +1513,8 @@ void print_model_tex_refs()
 
 	rewind(file1);
 	ENTRY model{};
-	model.esize = fsize;
-	model.data.resize(fsize);
+	model.m_esize = fsize;
+	model.m_data.resize(fsize);
 	fread(model._data(), fsize, 1, file1);
 	fclose(file1);
 
@@ -1617,17 +1527,13 @@ void print_all_entries_perma()
 {
 	ELIST elist{};
 
-	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
-	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
-		gool_table[i] = EID_NONE;
-
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_INST)
-			printf("%5s\n", ntry.ename);
+		if (ntry.get_entry_type() != EntryType::Inst)
+			printf("%5s\n", ntry.m_ename);
 	}
 
 	printf("Done.\n\n");
@@ -1639,17 +1545,23 @@ void entity_usage_single_nsf(const char* fpath, DEPENDENCIES* deps, uint32_t* go
 	printf("Checking %s\n", fpath);
 
 	ELIST elist{};
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
 		return;
+
+	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
+	{
+		if (gool_table[i] == EID_NONE)
+			gool_table[i] = elist.m_gool_table[i];
+	}
 
 	int32_t total_entity_count = 0;
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t entity_count = ntry.entity_count();
+		int32_t entity_count = ntry.get_entity_count();
 		for (int32_t j = 0; j < entity_count; j++)
 		{
 			uint8_t* entity = ntry.get_nth_entity(j);
@@ -1720,7 +1632,7 @@ void entity_usage_folder_util(const char* dpath, DEPENDENCIES* deps, uint32_t* g
 	}
 	catch (const std::exception& e)
 	{
-		printf("[ERROR] %s\n", e.what());
+		printf("[warning] %s\n%s\n", e.what(), dpath);
 	}
 }
 
@@ -1763,11 +1675,8 @@ void entity_usage_folder()
 void nsf_props_scr()
 {
 	ELIST elist{};
-	uint32_t gool_table[C3_GOOL_TABLE_SIZE]{};
-	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
-		gool_table[i] = EID_NONE;
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	bool printed_something = false;
@@ -1779,16 +1688,16 @@ void nsf_props_scr()
 	printf("\n");
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t cam_count = ntry.cam_item_count();
+		int32_t cam_count = ntry.get_cam_item_count();
 		for (int32_t j = 0; j < cam_count; j++)
 		{
 			uint8_t* item = ntry.get_nth_item(2 + j);
-			int32_t prop_count = build_prop_count(item);
+			int32_t prop_count = PROPERTY::count(item);
 
-			for (int32_t l = 0; l < build_prop_count(item); l++)
+			for (int32_t l = 0; l < PROPERTY::count(item); l++)
 			{
 				int32_t code = from_u16(item + 0x10 + 8 * l);
 				int32_t offset = from_u16(item + 0x12 + 8 * l) + OFFSET;
@@ -1799,7 +1708,7 @@ void nsf_props_scr()
 				if (code == prop_code)
 				{
 					printed_something = true;
-					printf("Zone %5s path %d item %d", ntry.ename, j / 3, j % 3);
+					printf("Zone %5s path %d item %d", ntry.m_ename, j / 3, j % 3);
 					print_prop_header(item, 0x10 + 8 * l);
 					print_prop_body(item, offset, offset_next);
 				}
@@ -1844,7 +1753,7 @@ void generate_slst()
 
 	*(uint32_t*)(buffer) = MAGIC_ENTRY;
 	*(uint32_t*)(buffer + 0x4) = eid_to_int(name);
-	*(uint32_t*)(buffer + 0x8) = ENTRY_TYPE_SLST;
+	*(uint32_t*)(buffer + 0x8) = int32_t(EntryType::SLST);
 	*(uint32_t*)(buffer + 0xC) = cam_len + 1;
 
 	for (int32_t i = 0; i < cam_len + 2; i++)
@@ -1879,7 +1788,7 @@ void warp_spawns_generate()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	/* older, hardcoded spawns
@@ -1930,20 +1839,19 @@ void warp_spawns_generate()
 	{
 		for (int32_t j = 0; j < elist.count(); j++)
 		{
-			if (elist[j].entry_type() != ENTRY_TYPE_ZONE)
+			if (elist[j].get_entry_type() != EntryType::Zone)
 				continue;
 
 			uint8_t* curr_zone = elist[j]._data();
-			int32_t camc = elist[j].cam_item_count();
+			int32_t camc = elist[j].get_cam_item_count();
 
-			for (int32_t k = 0; k < elist[j].entity_count(); k++)
+			for (int32_t k = 0; k < elist[j].get_entity_count(); k++)
 			{
 				int32_t offset = elist[j].get_nth_item_offset(2 + camc + k);
 				int32_t ent_id = PROPERTY::get_value(curr_zone + offset, ENTITY_PROP_ID);
 				if (ent_id == spawn_ids[i])
 				{
-					int32_t pathlen;
-					int16_t* path = build_get_path(elist, j, 2 + camc + k, &pathlen);
+					ENTITY_PATH path = elist[j].get_ent_path(2 + camc + k);
 
 					uint8_t* coll_item = elist[j].get_nth_item(1);
 					uint32_t zone_x = from_u32(coll_item);
@@ -1955,7 +1863,7 @@ void warp_spawns_generate()
 					uint32_t z = (zone_z + 4 * path[2]) << 8;
 
 					uint8_t arr[0x18] = { 0 };
-					*(uint32_t*)arr = elist[j].eid;
+					*(uint32_t*)arr = elist[j].m_eid;
 					*(uint32_t*)(arr + 0x4) = 0;
 					*(uint32_t*)(arr + 0x8) = 0;
 					*(uint32_t*)(arr + 0xC) = x;
@@ -1985,19 +1893,19 @@ void special_load_lists_util(const char* fpath)
 
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
 		return;
 
 	for (auto& curr : elist)
 	{
-		if (curr.entry_type() != ENTRY_TYPE_ZONE)
+		if (curr.get_entry_type() != EntryType::Zone)
 			continue;
 
 		LIST special_entries = curr.get_special_entries_raw();
 		if (special_entries.count())
 		{
 			printed_something = true;
-			printf("Zone %5s:\t", curr.ename);
+			printf("Zone %5s:\t", curr.m_ename);
 			for (int32_t j = 0; j < special_entries.count(); j++)
 			{
 				printf("%5s ", eid2str(special_entries[j]));
@@ -2036,12 +1944,12 @@ void nsd_util_util(const char* fpath)
 		filename = fpath;
 	}
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
 		return;
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_GOOL)
+		if (ntry.get_entry_type() != EntryType::GOOL)
 			continue;
 
 		int32_t off0 = ntry.get_nth_item_offset(0);
@@ -2049,7 +1957,7 @@ void nsd_util_util(const char* fpath)
 		int32_t tpe = from_u32(ntry._data() + off0);
 		int32_t cat = from_u32(ntry._data() + off0 + 4) >> 8;
 
-		printf("%s %5s, type %d category %d\n", filename, ntry.ename, tpe, cat);
+		printf("%s %5s, type %d category %d\n", filename, ntry.m_ename, tpe, cat);
 	}
 }
 
@@ -2059,20 +1967,20 @@ void fov_stats_util(const char* fpath)
 	printf("Level: %s\n", fpath);
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
 		return;
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t c_count = ntry.cam_item_count() / 3;
+		int32_t c_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < c_count; j++)
 		{
 			uint8_t* cam = ntry.get_nth_main_cam(j);
 			int32_t fov = PROPERTY::get_value(cam, ENTITY_PROP_CAM_FOV);
-			printf("Zone %5s : fov %d\n", ntry.ename, fov);
+			printf("Zone %5s : fov %d\n", ntry.m_ename, fov);
 		}
 	}
 
@@ -2084,7 +1992,7 @@ void checkpoint_stats_util(const char* fpath)
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
 		return;
 
 	int32_t cam_count = 0;
@@ -2095,11 +2003,11 @@ void checkpoint_stats_util(const char* fpath)
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t c_count = ntry.cam_item_count();
-		int32_t e_count = ntry.entity_count();
+		int32_t c_count = ntry.get_cam_item_count();
+		int32_t e_count = ntry.get_entity_count();
 		cam_count += (c_count / 3);
 
 		for (int32_t j = 0; j < e_count; j++)
@@ -2223,7 +2131,7 @@ void recursive_folder_iter(std::filesystem::path dpath, void(callback)(const cha
 	}
 	catch (const std::exception& e)
 	{
-		printf("[ERROR] %s\n", e.what());
+		printf("[warning] %s\n%s\n", e.what(), dpath.generic_string().c_str());
 	}
 }
 
@@ -2284,7 +2192,7 @@ void draw_util()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	int32_t total = 0;
@@ -2292,19 +2200,19 @@ void draw_util()
 
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t cam_count = ntry.cam_item_count() / 3;
+		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = build_get_path_length(ntry.get_nth_main_cam(j));
+			int32_t path_len = ntry.get_ent_path_len(2 + 3 * j);
 			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, ntry, 2 + 3 * j, path_len);
 
 			for (int32_t k = 0; k < path_len - 1; k++)
 			{
 				int32_t drawn = draw_list[k].count();
-				printf("%s-%d, point %2d/%2d - drawing %d entities\n", ntry.ename, j, k, path_len, drawn);
+				printf("%s-%d, point %2d/%2d - drawing %d entities\n", ntry.m_ename, j, k, path_len, drawn);
 
 				total += drawn;
 				point_count += 1;
@@ -2317,13 +2225,13 @@ void draw_util()
 	// copypaste, cba to optimise
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_ZONE)
+		if (ntry.get_entry_type() != EntryType::Zone)
 			continue;
 
-		int32_t cam_count = ntry.cam_item_count() / 3;
+		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = build_get_path_length(ntry.get_nth_main_cam(j));
+			int32_t path_len = ntry.get_ent_path_len(2 + 3 * j);
 			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, ntry, 2 + 3 * j, path_len);
 
 			int32_t zone_total = 0;
@@ -2336,7 +2244,7 @@ void draw_util()
 				zone_points += 1;
 			}
 
-			printf("%s-%d average entities drawn: %d\n", ntry.ename, j, zone_total / zone_points);
+			printf("%s-%d average entities drawn: %d\n", ntry.m_ename, j, zone_total / zone_points);
 		}
 	}
 
@@ -2347,7 +2255,7 @@ void draw_util()
 // util for printing file texture pages
 void tpage_util_util(const char* fpath)
 {
-	ELIST elist{ };
+	ELIST elist{};
 	const char* filename = strrchr(fpath, '\\');
 	if (filename != NULL)
 	{
@@ -2359,16 +2267,15 @@ void tpage_util_util(const char* fpath)
 	}
 
 	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];
-	int32_t chunk_border_texture = 0;
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, &chunk_border_texture, NULL, elist, chunks, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, chunks, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
-	for (int32_t i = 0; i < chunk_border_texture; i++)
+	for (int32_t i = 0; i < elist.m_chunk_count; i++)
 	{
 		if (chunks[i] == NULL)
 			continue;
-		if (from_u16(chunks[i] + 0x2) != CHUNK_TYPE_TEXTURE)
+		if (chunk_type(chunks[i]) != ChunkType::TEXTURE)
 			continue;
 
 		int32_t checksum = from_u32(chunks[i] + CHUNK_CHECKSUM_OFFSET);
@@ -2394,17 +2301,17 @@ void tpage_util()
 void gool_util_util(const char* fpath)
 {
 	ELIST elist{};
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, NULL, elist, NULL, NULL, 1, fpath))
+	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
 	for (auto& ntry : elist)
 	{
-		if (ntry.entry_type() != ENTRY_TYPE_GOOL)
+		if (ntry.get_entry_type() != EntryType::GOOL)
 			continue;
 
 		int32_t g_tpe = from_u32(ntry.get_nth_item(0));
-		printf("\t gool %5s-%02d \t%08X\n", ntry.ename, g_tpe, crcChecksum(ntry._data(), ntry.esize));
+		printf("\t gool %5s-%02d \t%08X\n", ntry.m_ename, g_tpe, nsfChecksum(ntry._data(), ntry.m_esize));
 	}
 
 	printf("\n");
@@ -2434,11 +2341,8 @@ void eid_cmd()
 void cmd_payload_info()
 {
 	ELIST elist{};
-	uint32_t gool_table[C3_GOOL_TABLE_SIZE];
-	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
-		gool_table[i] = EID_NONE;
 
-	if (build_read_and_parse_rebld(NULL, NULL, NULL, NULL, gool_table, elist, NULL, NULL, 1, NULL))
+	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
 		return;
 
 	level_analyze::ll_print_full_payload_info(elist, 1);

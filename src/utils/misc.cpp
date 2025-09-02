@@ -245,7 +245,7 @@ uint32_t eid_to_int(std::string eid)
 }
 
 // calculates chunk checksum (CRC)
-uint32_t crcChecksum(const uint8_t* data, int32_t size)
+uint32_t nsfChecksum(const uint8_t* data, int32_t size)
 {
 	uint32_t checksum = 0x12345678;
 	for (int32_t i = 0; i < size; i++)
@@ -255,12 +255,6 @@ uint32_t crcChecksum(const uint8_t* data, int32_t size)
 		checksum = checksum << 3 | checksum >> 29;
 	}
 	return checksum;
-}
-
-// calculates chunk checksum
-uint32_t nsfChecksum(const uint8_t* data)
-{
-	return crcChecksum(data, CHUNKSIZE);
 }
 
 // integer comparison func for qsort
@@ -284,56 +278,103 @@ void path_fix(char* fpath)
 		*(strchr(fpath, '\0') - 1) = '\0';
 	}
 }
-// for reading txt files
-// copied from stackoverflow
-int32_t getdelim(char** linep, int32_t* n, int32_t delim, FILE* fp)
-{
-	int32_t ch;
-	int32_t i = 0;
-	if (!linep || !n || !fp)
-	{
-		errno = EINVAL;
-		return -1;
-	}
-	if (*linep == NULL)
-	{
-		if (NULL == (*linep = (char*)try_malloc(*n = 128)))
-		{
-			*n = 0;
-			errno = ENOMEM;
-			return -1;
-		}
-	}
-	while ((ch = fgetc(fp)) != EOF)
-	{
-		if (i + 1 >= *n)
-		{
-			char* buf = (char*)realloc(*linep, *n + 128);
-			if (!buf)
-			{
-				errno = ENOMEM;
-				return -1;
-			}
-			*n += 128;
-			*linep = buf;
-		}
-		(*linep)[i++] = ch;
-		if (ch == delim)
-			break;
-	}
-	(*linep)[i] = '\0';
-	return !i && ch == EOF ? -1 : i;
-}
-
-// for reading text files
-int32_t getline(char** linep, int32_t* n, FILE* fp)
-{
-	return getdelim(linep, n, '\n', fp);
-}
 
 double randfrom(double min, double max)
 {
 	double range = (max - min);
 	double div = RAND_MAX / range;
 	return min + (rand() / div);
+}
+
+
+// caps the angle to 0-360
+int32_t normalize_angle(int32_t angle)
+{
+	while (angle < 0)
+		angle += 360;
+	while (angle >= 360)
+		angle -= 360;
+
+	return angle;
+}
+
+// converts the ingame yaw value range to regular range
+int32_t c2yaw_to_deg(int32_t yaw)
+{
+	int32_t angle = (yaw * 360) / 4096;
+	angle += 90;
+
+	return normalize_angle(angle);
+}
+
+// converts 0-360 range angle to ingame angle value
+int32_t deg_to_c2yaw(int32_t deg)
+{
+	int32_t angle = deg - 90;
+	int32_t yaw = (angle * 4096) / 360;
+	while (yaw < 0)
+		yaw += 4096;
+	yaw = yaw % 4096;
+	return yaw;
+}
+
+// calculates angle distance between 2 angles
+int32_t angle_distance(int32_t angle1, int32_t angle2)
+{
+	angle1 = normalize_angle(angle1);
+	angle2 = normalize_angle(angle2);
+
+	int32_t diff1 = normalize_angle(angle2 - angle1);
+	int32_t diff2 = normalize_angle(angle1 - angle2);
+
+	return min(diff1, diff2);
+}
+
+// averages 2 angles
+int32_t average_angles(int32_t angle1, int32_t angle2)
+{
+	// Convert degrees to radians
+	double a1 = angle1 * PI / 180.0;
+	double a2 = angle2 * PI / 180.0;
+
+	// Convert to Cartesian coordinates
+	double x = cos(a1) + cos(a2);
+	double y = sin(a1) + sin(a2);
+
+	// Compute the averaged angle in degrees
+	return (int32_t)round(atan2(y, x) * 180.0 / PI);
+}
+
+
+// calculates the amount of chunks based on the nsf size
+int32_t chunk_count_base(FILE* nsf)
+{
+	fseek(nsf, 0, SEEK_END);
+	int32_t result = ftell(nsf) / CHUNKSIZE;
+	rewind(nsf);
+
+	return result;
+}
+
+int32_t ask_level_ID()
+{
+	int32_t level_ID;
+	printf("\nWhat ID do you want your level to have? (hex 0 - 3F) [CAN OVERWRITE EXISTING FILES!]\n");
+	scanf("%x", &level_ID);
+	if (level_ID < 0 || level_ID > 0x3F)
+	{
+		printf("Invalid ID, defaulting to 1\n");
+		level_ID = 1;
+	}
+	printf("Selected level ID %02X\n", level_ID);
+
+	return level_ID;
+}
+
+ChunkType chunk_type(uint8_t* chunk)
+{
+	if (chunk == NULL)
+		return ChunkType(-1);
+
+	return ChunkType(from_u16(chunk + 0x2));
 }

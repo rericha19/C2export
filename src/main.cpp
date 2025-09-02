@@ -40,9 +40,7 @@ int32_t main()
 		else if (CMD("PROP_REPLACE"))       prop_replace_script();
 		else if (CMD("LL_ANALYZE"))         level_analyze::ll_analyze_main();
 		else if (CMD("GEN_SPAWN"))          generate_spawn();
-		else if (CMD("TIME"))               time_convert();
 		else if (CMD("ENT_RESIZE"))         c3_ent_resize();
-		else if (CMD("ENT_MOVE"))           entity_move_scr();
 		else if (CMD("MODEL_REFS"))         print_model_tex_refs();
 		else if (CMD("MODEL_REFS_NSF"))     print_model_tex_refs_nsf();
 		else if (CMD("ALL_PERMA"))          print_all_entries_perma();
