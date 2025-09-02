@@ -66,9 +66,9 @@ LIST ENTRY::get_links(int32_t item_idx)
 		}
 		else
 		{
-			int32_t link_count = max(1, from_u16(entry + offset)) + max(1, from_u16(entry + offset + 2));
+			uint32_t link_count = max(1u, from_u16(entry + offset)) + max(1u, from_u16(entry + offset + 2));
 			links.resize(link_count);
-			for (int32_t l = 0; l < link_count; l++)
+			for (uint32_t l = 0; l < link_count; l++)
 				links[l] = from_u32(entry + offset + 0x8 + 4 * l);
 		}
 	}

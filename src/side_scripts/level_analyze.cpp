@@ -11,8 +11,6 @@ namespace level_analyze
 	{
 		printf("\nLoad list integrity check:\n");
 		bool issue_found = false;
-		char eid1[6] = "";
-		char eid2[6] = "";
 
 		for (auto& ntry : elist)
 		{
@@ -155,8 +153,6 @@ namespace level_analyze
 					}
 				}
 
-				char eid1[100] = "";
-				char eid2[100] = "";
 				if (ids.count() || ids2.count())
 				{
 					issue_found = true;
@@ -356,8 +352,6 @@ namespace level_analyze
 	{
 		printf("\nZones' references check (only zones with camera paths are checked):\n");
 		bool issue_found = false;
-		char eid1[100] = "";
-		char eid2[100] = "";
 		LIST valid_referenced_eids{};
 
 		for (auto& ntry : elist)

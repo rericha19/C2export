@@ -165,7 +165,6 @@ void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ra
 		g_dsu_entry_count[c_idx]++;
 	}
 
-	// Optimized Merge Loop
 	int32_t iter_count = min((int32_t)(relations.count * merge_ratio), relations.count);
 	for (int32_t x = 0; x < iter_count; x++)
 	{

@@ -20,7 +20,6 @@ void ELIST::write_nsd()
 			return eid_to_int(eid);
 		};
 
-	int32_t entry_count = count();
 	int32_t real_entry_count = 0;
 
 	uint8_t nsddata[20 * 1024]{};
@@ -65,13 +64,13 @@ void ELIST::write_nsd()
 
 	// write and close nsd
 	fwrite(nsddata, 1, real_nsd_size, m_nsd_out.f);
-	printf("\nNSD #1 saved as \"%s\"\n",
+	printf("\nNSD #1 saved as '%s'\n",
 		std::filesystem::absolute(m_nsd_out.rem_path).generic_string().c_str());
 
 	if (m_nsd_out2.ok())
 	{
 		fwrite(nsddata, 1, real_nsd_size, m_nsd_out2.f);
-		printf("NSD #2 saved as %s\n",
+		printf("NSD #2 saved as '%s'\n",
 			std::filesystem::absolute(m_nsd_out2.rem_path).generic_string().c_str());
 	}
 }
@@ -82,7 +81,7 @@ void ELIST::write_nsf(uint8_t** chunks)
 	for (int32_t i = 0; i < m_chunk_count; i++)
 		fwrite(chunks[i], sizeof(uint8_t), CHUNKSIZE, m_nsf_out.f);
 
-	printf("NSF #1 saved as \"%s\"\n",
+	printf("NSF #1 saved as '%s'\n",
 		std::filesystem::absolute(m_nsf_out.rem_path).generic_string().c_str());
 
 	if (m_nsf_out2.ok())
@@ -90,7 +89,7 @@ void ELIST::write_nsf(uint8_t** chunks)
 		for (int32_t i = 0; i < m_chunk_count; i++)
 			fwrite(chunks[i], sizeof(uint8_t), CHUNKSIZE, m_nsf_out2.f);
 
-		printf("NSF #2 saved as %s\n",
+		printf("NSF #2 saved as '%s'\n",
 			std::filesystem::absolute(m_nsf_out2.rem_path).generic_string().c_str());
 	}
 

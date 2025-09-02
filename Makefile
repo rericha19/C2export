@@ -1,64 +1,48 @@
 # Compiler and flags
 CXX = g++
 CXXFLAGS = -Wall -Wextra -Ofast -Wno-unused-parameter -Wno-sign-compare -Wunused-function -std=c++17 
-LDFLAGS_MT = -lpthread -mconsole
-LDFLAGS_ST = -mconsole
+LDFLAGS = -mconsole
 
 # Debug flags
 DEBUG_CFLAGS = -DDEBUG -g -O0
 
 # Source files
 SRCDIR = src
-SRC = $(wildcard $(SRCDIR)/*.cpp)
+rwildcard = $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
+SRC := $(call rwildcard,$(SRCDIR)/,*.cpp)
 
 # Object files - separate for threaded and non-threaded versions
-OBJ_MT = $(SRC:%.cpp=%_mt.o)
-OBJ_ST = $(SRC:%.cpp=%_st.o)
-OBJ_MT_DEBUG = $(SRC:%.cpp=%_mt_debug.o)
-OBJ_ST_DEBUG = $(SRC:%.cpp=%_st_debug.o)
+OBJ = $(SRC:%.cpp=%.o)
+OBJ_DEBUG = $(SRC:%.cpp=%_debug.o)
 
 # Executable names
-TARGET_MT = bin/c2export_multithr.exe
-TARGET_ST = bin/c2export_singlethr.exe
-TARGET_MT_DEBUG = bin/c2export_multithr_debug.exe
-TARGET_ST_DEBUG = bin/c2export_singlethr_debug.exe
+TARGET_MT = bin/c2export_gcc.exe
+TARGET_MT_DEBUG = bin/c2exportgcc_debug.exe
 
-all: $(TARGET_MT) $(TARGET_ST)
-debug: $(TARGET_MT_DEBUG) $(TARGET_ST_DEBUG)
+all: $(TARGET_MT) 
+debug: $(TARGET_MT_DEBUG) 
 
 # Release versions
-$(TARGET_MT): $(OBJ_MT)
-	$(CXX) -o $@ $^ $(LDFLAGS_MT)
-
-$(TARGET_ST): $(OBJ_ST)
-	$(CXX) -o $@ $^ $(LDFLAGS_ST)
+$(TARGET_MT): $(OBJ)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 # Debug versions
-$(TARGET_MT_DEBUG): $(OBJ_MT_DEBUG)
-	$(CXX) -o $@ $^ $(LDFLAGS_MT)
-
-$(TARGET_ST_DEBUG): $(OBJ_ST_DEBUG)
-	$(CXX) -o $@ $^ $(LDFLAGS_ST)
+$(TARGET_MT_DEBUG): $(OBJ_DEBUG)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 # Rules for building release object files
-%_mt.o: %.cpp
-	$(CXX) $(CXXFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
-
-%_st.o: %.cpp
-	$(CXX) $(CXXFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Rules for building debug object files
-%_mt_debug.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(DEBUG_CFLAGS) -DCOMPILE_WITH_THREADS=1 -c $< -o $@
-
-%_st_debug.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(DEBUG_CFLAGS) -DCOMPILE_WITH_THREADS=0 -c $< -o $@
+%_debug.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(DEBUG_CFLAGS) -c $< -o $@
 
 # Clean up
 clean:
-	del /Q src\*_mt.o src\*_st.o src\*_mt_debug.o src\*_st_debug.o
+	del /Q src\*.o
 
-$(TARGET_MT) $(TARGET_ST) $(TARGET_MT_DEBUG) $(TARGET_ST_DEBUG): | bin
+$(TARGET_MT) $(TARGET_MT_DEBUG) : | bin
 
 bin:
 	if not exist bin mkdir bin

@@ -625,7 +625,6 @@ void resize_main()
 		if (!isalnum(time_str[i]))
 			time_str[i] = '_';
 
-	FILE* level = NULL;
 	char path[MAX] = "";
 	double scale[3];
 	bool check = true;

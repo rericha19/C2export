@@ -1,8 +1,6 @@
 #pragma once 
 
 #define eid2str(x) (ENTRY::eid2s(x).c_str())
-#define min(a, b) ((b < a) ? b : a)
-#define max(a, b) ((b > a) ? b : a)
 
 #define _CRT_SECURE_NO_WARNINGS
 
@@ -222,6 +220,17 @@ int32_t average_angles(int32_t angle1, int32_t angle2);
 int32_t chunk_count_base(FILE* nsf);
 int32_t ask_level_ID();
 ChunkType chunk_type(uint8_t* chunk);
+
+template <typename T1, typename T2>
+auto min(T1 a, T2 b) {
+	return (b < a) ? b : a;
+}
+
+template <typename T1, typename T2>
+auto max(T1 a, T2 b)
+{
+	return (b > a) ? b : a;
+}
 
 // build files in no particular order
 void build_increment_common(LIST list, LIST entries, int32_t** entry_matrix, int32_t rating);
