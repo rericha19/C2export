@@ -80,10 +80,10 @@ void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t cu
 			else
 				ent_override_mult = ent_override_mult / 0x100;
 
-			int32_t allowed_dist_x = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_X]) / 100);
-			int32_t allowed_dist_y = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y]) / 100);
-			int32_t allowed_dist_xz = ((ent_override_mult * config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ]) / 100);
-			int32_t allowed_angledist = config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D];
+			int32_t allowed_dist_x = ((ent_override_mult * config[DL_Distance_Cap_X]) / 100);
+			int32_t allowed_dist_y = ((ent_override_mult * config[DL_Distance_Cap_Y]) / 100);
+			int32_t allowed_dist_xz = ((ent_override_mult * config[DL_Distance_Cap_XZ]) / 100);
+			int32_t allowed_angledist = config[DL_Distance_Cap_Angle3D];
 
 			ENTITY_PATH ent_path = neighbour.get_ent_path(2 + neigh_camitems + ref_ent_idx);
 

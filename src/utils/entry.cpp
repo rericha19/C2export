@@ -155,16 +155,15 @@ LIST ENTRY::get_sceneries()
 // collects list of IDs using draw lists of neighbouring camera paths
 LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_index, int32_t point_index)
 {
-	auto& config = elist.m_config;
-	LIST entity_list{};
-
-	int32_t draw_dist = config[CNFG_IDX_LL_DRAW_DIST_VALUE];
-	int32_t preloading_flag = config[CNFG_IDX_LL_TRNS_PRLD_FLAG];
-	int32_t backwards_penalty = config[CNFG_IDX_LL_BACKWARDS_PENALTY];
-
 	ENTITY_PATH coords = get_ent_path(camera_index);
 	if (!coords.length())
-		return entity_list;
+		return {};
+
+	LIST entity_list{};
+
+	int32_t draw_dist = elist.m_config[LL_Drawlist_Distance];
+	int32_t preloading_flag = elist.m_config[LL_Transition_Preloading_Type];
+	double backwards_penalty = config_to_double(elist.m_config[LL_Backwards_Loading_Penalty_DBL]);
 
 	neighbours.copy_in(get_neighbours());
 
@@ -705,3 +704,115 @@ uint32_t ENTRY::get_zone_track()
 }
 
 
+// Deconstructs the load or draw lists
+GENERIC_LOAD_LIST ENTRY::get_generic_lists(int32_t prop_code, int32_t item_index)
+{
+	GENERIC_LOAD_LIST return_list{};
+	int32_t cam_offset = get_nth_item_offset(item_index);
+	auto entry = _data();
+	int32_t prop_count = PROPERTY::count(entry + cam_offset);
+
+	for (int32_t k = 0; k < prop_count; k++)
+	{
+		int32_t code = from_u16(entry + cam_offset + 0x10 + 8 * k);
+		int32_t offset = from_u16(entry + cam_offset + 0x12 + 8 * k) + OFFSET + cam_offset;
+		int32_t list_count = from_u16(entry + cam_offset + 0x16 + 8 * k);
+
+		int32_t next_offset = (k + 1 < prop_count)
+			? (from_u16(entry + cam_offset + 0x12 + 8 * (k + 1)) + OFFSET + cam_offset)
+			: (from_u16(entry + cam_offset) + cam_offset);
+		int32_t prop_length = next_offset - offset;
+
+		if (code == prop_code || code == prop_code + 1)
+		{
+			int32_t sub_list_offset;
+			int32_t load_list_item_count;
+			bool condensed_check1 = false;
+			bool condensed_check2 = false;
+
+			// i should use 0x40 flag in prop header[4] but my spaghetti doesnt work with it so this thing stays here
+			int32_t potentially_condensed_length = from_u16(entry + offset) * 4 * list_count;
+			potentially_condensed_length += 2 + 2 * list_count;
+			if (from_u16(entry + offset + 2 + 2 * list_count) == 0)
+				potentially_condensed_length += 2;
+			if (potentially_condensed_length == prop_length && list_count > 1)
+				condensed_check1 = true;
+
+			int32_t len = 4 * list_count;
+			for (int32_t l = 0; l < list_count; l++)
+				len += from_u16(entry + offset + l * 2) * 4;
+			if (len != prop_length)
+				condensed_check2 = true;
+
+			if (condensed_check1 && condensed_check2)
+			{
+				load_list_item_count = from_u16(entry + offset);
+				std::vector<uint16_t> indices(list_count);
+				memcpy(indices.data(), entry + offset + 2, list_count * 2);
+				sub_list_offset = offset + 2 + 2 * list_count;
+				if (sub_list_offset % 4)
+					sub_list_offset += 2;
+				for (int32_t l = 0; l < list_count; l++)
+				{
+					LOAD new_list{};
+					new_list.type = (code == prop_code) ? 'A' : 'B';
+					for (int32_t m = 0; m < load_list_item_count; m++)
+						new_list.list.add(from_u32(entry + sub_list_offset + m * 4));
+					new_list.index = indices[l];
+					return_list.push_back(new_list);
+					sub_list_offset += load_list_item_count * 4;
+				}
+			}
+			else
+			{
+				sub_list_offset = offset + 4 * list_count;
+				;
+				for (int32_t l = 0; l < list_count; l++)
+				{
+					load_list_item_count = from_u16(entry + offset + l * 2);
+					int32_t index = from_u16(entry + offset + l * 2 + list_count * 2);
+
+					LOAD new_list{};
+					new_list.type = (code == prop_code) ? 'A' : 'B';
+					new_list.index = index;
+					for (int32_t m = 0; m < load_list_item_count; m++)
+						new_list.list.add(from_u32(entry + sub_list_offset + m * 4));
+					return_list.push_back(new_list);
+					sub_list_offset += load_list_item_count * 4;
+				}
+			}
+		}
+	}
+
+	return return_list;
+}
+
+LOAD_LIST ENTRY::get_load_lists(int32_t item_index)
+{
+	auto ll_sort = [](LOAD x, LOAD y)
+		{
+			if (x.index != y.index)
+				return (x.index < y.index);
+			else
+				return (x.type < y.type);
+		};
+
+	LOAD_LIST ll = get_generic_lists(ENTITY_PROP_CAM_LOAD_LIST_A, item_index);
+	std::sort(ll.begin(), ll.end(), ll_sort);
+	return ll;
+}
+
+DRAW_LIST ENTRY::get_draw_lists(int32_t item_index)
+{
+	auto dl_sort = [](LOAD x, LOAD y)
+		{
+			if (x.index != y.index)
+				return (x.index < y.index);
+			else
+				return (y.type > x.type);
+		};
+
+	DRAW_LIST dl = get_generic_lists(ENTITY_PROP_CAM_DRAW_LIST_A, item_index);
+	std::sort(dl.begin(), dl.end(), dl_sort);
+	return dl;
+}

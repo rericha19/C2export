@@ -20,9 +20,14 @@
 #include <cstring>
 #include <array>
 #include <sstream>
+#include <unordered_set>
+#include <random>
+#include <variant>
+#include <map>
 
 struct PROPERTY;
 struct RELATION;
+
 class LOAD;
 class ENTRY;
 class LIST;
@@ -33,6 +38,7 @@ class SPAWNS;
 class MATRIX_STORED_LL;
 class RELATIONS;
 class ENTITY_PATH;
+class WORST_ZONE_INFO;
 
 using DEPENDENCIES = std::vector<DEPENDENCY>;
 using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
@@ -40,41 +46,50 @@ using GENERIC_LOAD_LIST = std::vector<LOAD>;
 using LOAD_LIST = GENERIC_LOAD_LIST;
 using DRAW_LIST = GENERIC_LOAD_LIST;
 
-#define CNFG_IDX_UNUSED_0 0
-#define CNFG_IDX_UNUSED_1 1
-#define CNFG_IDX_MTRX_LL_POLL_FLAG 2
-#define CNFG_IDX_LL_SLST_DIST_VALUE 3
-#define CNFG_IDX_LL_NEIGH_DIST_VALUE 4
-#define CNFG_IDX_LL_DRAW_DIST_VALUE 5
-#define CNFG_IDX_LL_TRNS_PRLD_FLAG 6
-#define CNFG_IDX_LL_BACKWARDS_PENALTY 7
-#define CNFG_IDX_UNUSED_8 8
-#define CNFG_IDX_UNUSED_9 9
-#define CNFG_IDX_LL_REMAKE_FLAG 10
-#define CNFG_IDX_MERGE_METHOD_VALUE 11
-#define CNFG_IDX_UNUSED_12 12
-#define CNFG_IDX_UNUSED_13 13
-#define CNFG_IDX_DRAW_LIST_GEN_CAP_X 14
-#define CNFG_IDX_DRAW_LIST_GEN_CAP_Y 15
-#define CNFG_IDX_DRAW_LIST_GEN_CAP_XZ 16
-#define CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D 17
+using RebuildConfig = std::map<uint32_t, int32_t>;
+
+enum __conf_enum
+{
+	LL_Matrix_Polling_Type_CONST,
+
+	Remake_Load_Lists,
+	Remake_Draw_Lists,
+	Chunk_Merge_Method,
+
+	LL_SLST_Distance,
+	LL_Neighbour_Distance,
+	LL_Drawlist_Distance,
+	LL_Transition_Preloading_Type,
+	LL_Backwards_Loading_Penalty_DBL,
+
+	DL_Distance_Cap_X,
+	DL_Distance_Cap_Y,
+	DL_Distance_Cap_XZ,
+	DL_Distance_Cap_Angle3D,
+
+	Rebuild_Payload_Limit,
+	Rebuild_Iteration_Limit,
+	Rebuild_Random_Mult_DBL,
+	Rebuild_Base_Seed,
+	Rebuild_Thread_Count,
+};
+
+#define CONFIG_FLOAT_MULT 1000000
 
 #define PRELOADING_NOTHING 0
 #define PRELOADING_TEXTURES_ONLY 1
 #define PRELOADING_REG_ENTRIES_ONLY 2
 #define PRELOADING_ALL 3
 
-#define C3_GOOL_TABLE_SIZE 0x80
-
 #define BUILD_FPATH_COUNT 4
 #define OFFSET 0xC // bad name
+#define C3_GOOL_TABLE_SIZE 0x80
 #define CHUNKSIZE 65536
 #define CHUNK_CHECKSUM_OFFSET 0xC
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
-#define CHUNK_LIST_DEFAULT_SIZE 2000
-#define PENALTY_MULT_CONSTANT 1000000
+#define CHUNK_LIST_DEFAULT_SIZE 1000 // todo remove
 
 #define SPECIAL_METADATA_MASK_LLCOUNT 0xFF
 #define SPECIAL_METADATA_MASK_SKIPFLAG 0xFF000000
@@ -193,51 +208,29 @@ enum class ChunkType : int32_t
 #define ENTITY_PROP_CAM_BG_COLORS 0x1FA
 #define ENTITY_PROP_CAM_UPDATE_SCENERY 0x27F
 
-// misc
-
-void* try_malloc(uint32_t size);
-void* try_calloc(uint32_t count, uint32_t size);
-void intro_text();
-void print_help();
-void print_help2();
-void clrscr();
-int32_t from_s32(const uint8_t* data);
-uint32_t from_u32(const uint8_t* data);
-int32_t from_s16(const uint8_t* data);
-uint32_t from_u16(const uint8_t* data);
-uint32_t from_u8(const uint8_t* data);
-uint32_t eid_to_int(std::string eid);
-uint32_t nsfChecksum(const uint8_t* data, int32_t size = CHUNKSIZE);
-int32_t cmp_func_int(const void* a, const void* b);
-int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
-void path_fix(char* fpath);
-double randfrom(double min, double max);
-int32_t normalize_angle(int32_t angle);
-int32_t c2yaw_to_deg(int32_t yaw);
-int32_t deg_to_c2yaw(int32_t deg);
-int32_t angle_distance(int32_t angle1, int32_t angle2);
-int32_t average_angles(int32_t angle1, int32_t angle2);
-int32_t chunk_count_base(FILE* nsf);
-int32_t ask_level_ID();
-ChunkType chunk_type(uint8_t* chunk);
-
 template <typename T1, typename T2>
-auto min(T1 a, T2 b) {
+auto min(T1 a, T2 b)
+{
 	return (b < a) ? b : a;
 }
-
 template <typename T1, typename T2>
 auto max(T1 a, T2 b)
 {
 	return (b > a) ? b : a;
 }
 
+inline int32_t double_to_config_int(double val)
+{
+	return int32_t(CONFIG_FLOAT_MULT * val);
+};
+inline double config_to_double(int32_t v)
+{
+	return ((double)v / CONFIG_FLOAT_MULT);
+};
+
 // build files in no particular order
-void build_increment_common(LIST list, LIST entries, int32_t** entry_matrix, int32_t rating);
 int32_t dsu_find_set(int32_t i);
 void dsu_union_sets(int32_t a, int32_t b);
-void build_matrix_merge_util(RELATIONS& relations, ELIST& elist, double merge_ratio);
-RELATIONS build_transform_matrix(LIST& entries, int32_t** entry_matrix, ELIST& elist);
 uint8_t* build_add_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 uint8_t* build_rem_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 void build_entity_alter(ENTRY& zone, int32_t item_index, uint8_t* (func_arg)(uint32_t, uint8_t*, int32_t*, PROPERTY*), int32_t property_code, PROPERTY* prop);
@@ -245,7 +238,7 @@ void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_
 void build_load_list_util_util_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
 void build_add_collision_dependencies(std::vector<LIST>& full_list, int32_t start_index, int32_t end_index, ENTRY& entry,
 	DEPENDENCIES collisions, ELIST& elist);
-int32_t build_dist_w_penalty(int32_t distance, int32_t backwards_penalty);
+int32_t build_dist_w_penalty(int32_t distance, double backwards_penalty);
 void build_load_list_util_util(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list,
 	int32_t cam_length, ELIST& elist);
 std::vector<LIST> build_get_complete_draw_list(ELIST& elist, ENTRY& zone, int32_t cam_index, int32_t cam_length);
@@ -255,11 +248,8 @@ void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& 
 void build_load_list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, int32_t cam_length, ELIST& elist, bool is_draw);
 void build_remake_draw_lists(ELIST& elist);
 void build_remake_load_lists(ELIST& elist);
-int32_t** build_get_occurence_matrix(ELIST& elist, LIST entries);
 void build_main(int32_t build_rebuild_flag);
 void build_texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_length, int32_t i, int32_t j);
 bool build_read_and_parse_rebld(ELIST& elist, uint8_t** chunks, bool stats_only, const char* fpath);
-MATRIX_STORED_LLS build_matrix_store_lls(ELIST& elist);
 void build_matrix_merge_random_main(ELIST& elist);
-void build_matrix_merge_random_thr_main(ELIST& elist);
 void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);

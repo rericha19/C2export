@@ -58,7 +58,7 @@ public:
 				continue;
 
 			int32_t cam_count = ntry.get_cam_item_count() / 3;
-			ntry.m_graph_distances.resize(cam_count, INT_MAX);
+			ntry.m_graph_distances.resize(cam_count, INT32_MAX);
 			ntry.m_graph_visited = 0;
 		}
 

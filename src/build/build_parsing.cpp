@@ -6,6 +6,9 @@
 #include "../utils/entry.hpp"
 #include "../utils/elist.hpp"
 
+
+// todo move
+// todo fix the mess at the start
 // parsing input info for rebuilding from a nsf file
 bool build_read_and_parse_rebld(ELIST& elist, uint8_t** chunks, bool stats_only, const char* fpath)
 {

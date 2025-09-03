@@ -9,12 +9,12 @@ void ELIST::ask_build_flags()
 	scanf("%d", &ans);
 	if (ans)
 	{
-		m_config[CNFG_IDX_LL_REMAKE_FLAG] = 1;
+		m_config[Remake_Load_Lists] = 1;
 		printf("Will remake load lists\n\n");
 	}
 	else
 	{
-		m_config[CNFG_IDX_LL_REMAKE_FLAG] = 0;
+		m_config[Remake_Load_Lists] = 0;
 		printf("Won't remake load lists\n\n");
 	}
 
@@ -23,15 +23,41 @@ void ELIST::ask_build_flags()
 	printf("[5] - occurence count matrix merge (absolute) with randomness multithreaded\n");
 
 	scanf("%d", &ans);
-	m_config[CNFG_IDX_MERGE_METHOD_VALUE] = ans;
+	m_config[Chunk_Merge_Method] = ans;
 	printf("Selected merge method %d\n", ans);
 
 	if (ans < 4 || ans > 5)
 	{
 		printf(" unknown, defaulting to 4\n");
-		m_config[CNFG_IDX_MERGE_METHOD_VALUE] = 4;
+		m_config[Chunk_Merge_Method] = 4;
 	}
 	printf("\n");
+}
+
+void ELIST::ask_build_paths(char* perma_path, char* subt_deps_path, char* coll_deps_path, char* mus_deps_path)
+{
+	printf("\nInput path to file with permaloaded entries:\n");
+	scanf(" %[^\n]", perma_path);
+	path_fix(perma_path);
+	printf("Using %s for permaloaded entries\n", perma_path);
+
+	if (m_config[Remake_Load_Lists])
+	{
+		printf("\nInput path to file with type/subtype dependencies:\n");
+		scanf(" %[^\n]", subt_deps_path);
+		path_fix(subt_deps_path);
+		printf("Using %s for type/subtype dependencies\n", subt_deps_path);
+
+		printf("\nInput path to file with collision dependencies [assumes file is not necessary if path is invalid]:\n");
+		scanf(" %[^\n]", coll_deps_path);
+		path_fix(coll_deps_path);
+		printf("Using %s for collision dependencies\n", coll_deps_path);
+
+		printf("\nInput path to file with music entry dependencies [assumes file is not necessary if path is invalid]:\n");
+		scanf(" %[^\n]", mus_deps_path);
+		path_fix(mus_deps_path);
+		printf("Using %s for music entry dependencies\n\n", mus_deps_path);
+	}
 }
 
 // Reads the info from file the user has to provide, first part has permaloaded entries,
@@ -61,36 +87,11 @@ bool ELIST::read_entry_config()
 			}
 		};
 
-	int32_t remaking_load_lists_flag = m_config[CNFG_IDX_LL_REMAKE_FLAG];
-
 	char perma_path[MAX] = "";
 	char subt_deps_path[MAX] = "";
 	char coll_deps_path[MAX] = "";
 	char mus_deps_path[MAX] = "";
-
-	printf("\nInput path to file with permaloaded entries:\n");
-	scanf(" %[^\n]", perma_path);
-	path_fix(perma_path);
-	printf("Using %s for permaloaded entries\n", perma_path);
-
-	// if building load lists
-	if (!remaking_load_lists_flag)
-		return true;
-
-	printf("\nInput path to file with type/subtype dependencies:\n");
-	scanf(" %[^\n]", subt_deps_path);
-	path_fix(subt_deps_path);
-	printf("Using %s for type/subtype dependencies\n", subt_deps_path);
-
-	printf("\nInput path to file with collision dependencies [assumes file is not necessary if path is invalid]:\n");
-	scanf(" %[^\n]", coll_deps_path);
-	path_fix(coll_deps_path);
-	printf("Using %s for collision dependencies\n", coll_deps_path);
-
-	printf("\nInput path to file with music entry dependencies [assumes file is not necessary if path is invalid]:\n");
-	scanf(" %[^\n]", mus_deps_path);
-	path_fix(mus_deps_path);
-	printf("Using %s for music entry dependencies\n\n", mus_deps_path);
+	ask_build_paths(perma_path, subt_deps_path, coll_deps_path, mus_deps_path);
 
 	std::ifstream permafile(perma_path);
 	if (!permafile.is_open())
@@ -115,8 +116,7 @@ bool ELIST::read_entry_config()
 			m_permaloaded.copy_in(at(index).get_anim_refs(*this));
 	}
 
-	// if making load lists
-	if (!remaking_load_lists_flag)
+	if (!m_config[Remake_Load_Lists])
 		return true;
 
 	std::ifstream subtfile(subt_deps_path);
@@ -240,22 +240,22 @@ void ELIST::ask_draw_distances()
 
 	printf("\nDraw distance 2D horizontal (x-dist) (set 0 to make infinite)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_DRAW_LIST_GEN_CAP_X] = input;
+	m_config[DL_Distance_Cap_X] = input;
 	printf("Selected %d for horizontal draw distance\n", input);
 
 	printf("\nDraw distance 2D vertical (y-dist) (set 0 to make infinite)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_DRAW_LIST_GEN_CAP_Y] = input;
+	m_config[DL_Distance_Cap_Y] = input;
 	printf("Selected %d for vertical draw distance\n", input);
 
 	printf("\nDraw distance 3D sections (xz-dist) (set 0 to make infinite)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_DRAW_LIST_GEN_CAP_XZ] = input;
+	m_config[DL_Distance_Cap_XZ] = input;
 	printf("Selected %d for 3D sections draw distance\n", input);
 
 	printf("\nMax allowed angle distance for 3D sections (default to 90)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_DRAW_LIST_GEN_ANGLE_3D] = input;
+	m_config[DL_Distance_Cap_Angle3D] = input;
 	printf("Selected %d for max allowed angle distance for 3D sections\n", input);
 }
 
@@ -266,27 +266,27 @@ void ELIST::ask_load_distances()
 
 	printf("\nSLST distance?      (recommended is approx 7250)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_LL_SLST_DIST_VALUE] = input;
+	m_config[LL_SLST_Distance] = input;
 	printf("Selected %d for SLST distance\n", input);
 
 	printf("\nNeighbour distance? (recommended is approx 7250)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_LL_NEIGH_DIST_VALUE] = input;
+	m_config[LL_Neighbour_Distance] = input;
 	printf("Selected %d for neighbour distance\n", input);
 
 	printf("\nDraw list distance? (recommended is approx 7250)\n");
 	scanf("%d", &input);
-	m_config[CNFG_IDX_LL_DRAW_DIST_VALUE] = input;
+	m_config[LL_Drawlist_Distance] = input;
 	printf("Selected %d for draw list distance\n", input);
 
 	printf("\nTransition pre-loading? [0 - none / 1 - textures / 2 - normal chunk entries only / 3 - all]\n");
 	scanf("%d", &input);
 	if (input >= 0 && input <= 3)
-		m_config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = input;
+		m_config[LL_Transition_Preloading_Type] = input;
 	else
-		m_config[CNFG_IDX_LL_TRNS_PRLD_FLAG] = 0;
+		m_config[LL_Transition_Preloading_Type] = 0;
 
-	switch (m_config[CNFG_IDX_LL_TRNS_PRLD_FLAG])
+	switch (m_config[LL_Transition_Preloading_Type])
 	{
 	default:
 	case PRELOADING_NOTHING:
@@ -311,7 +311,64 @@ void ELIST::ask_load_distances()
 		printf("Invalid, defaulting to 0\n");
 		backw = 0;
 	}
-	m_config[CNFG_IDX_LL_BACKWARDS_PENALTY] = (int32_t)(PENALTY_MULT_CONSTANT * backw);
+	m_config[LL_Backwards_Loading_Penalty_DBL] = double_to_config_int(backw);
 	printf("Selected %.2f for backwards loading penalty\n", backw);
 }
 
+// asking user parameters for the matrix merges
+void ELIST::ask_params_matrix()
+{
+	int32_t input_int = 0;
+	double input_double = 0;
+
+	printf("\nMax payload limit? (usually 21 or 20)\n");
+	scanf("%d", &input_int);
+	m_config[Rebuild_Payload_Limit] = input_int;
+	printf("Max payload limit used: %d\n", m_config[Rebuild_Payload_Limit]);
+	printf("\n");
+
+	printf("Max iteration count? (0 for no limit)\n");
+	scanf("%d", &input_int);
+	if (input_int < 0)
+	{
+		printf("Negative iteration count not allowed, defaulting to 100");
+		input_int = 100;
+	}
+	m_config[Rebuild_Iteration_Limit] = input_int;
+	printf("Max iteration count used: %d\n", m_config[Rebuild_Iteration_Limit]);
+	printf("\n");
+
+	printf("Randomness rand_multiplier? (> 1, use 1.5 if not sure)\n");
+	scanf("%lf", &input_double);
+	if (input_double < 1.0)
+	{
+		input_double = 1.5;
+		printf("Invalid rand_multiplier, defaulting to 1.5\n");
+	}
+	m_config[Rebuild_Random_Mult_DBL] = double_to_config_int(input_double);
+	printf("rand_multiplier used: %.2f\n", input_double);
+	printf("\n");
+
+	printf("Seed? (0 for random)\n");
+	scanf("%d", &input_int);
+	if (input_int == 0)
+	{
+		time_t raw_time;
+		time(&raw_time);
+		srand((uint32_t)raw_time);
+		input_int = rand();
+	}
+	m_config[Rebuild_Base_Seed] = input_int;
+	printf("Seed used: %d\n", m_config[Rebuild_Base_Seed]);
+	printf("\n");
+
+	if (m_config[Chunk_Merge_Method] == 5)
+	{
+		printf("Thread count? (64 max)\n");
+		scanf("%d", &input_int);
+		m_config[Rebuild_Thread_Count] = std::clamp(input_int, 1, 64);
+		printf("Thread count: %d\n\n", m_config[Rebuild_Thread_Count]);
+	}
+
+	m_config[Rebuild_Iteration_Limit] -= m_config[Rebuild_Thread_Count];
+}

@@ -323,7 +323,7 @@ void ELIST::check_loaded()
 		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			LOAD_LIST ll = get_load_lists(ntry, 2 + 3 * j);
+			LOAD_LIST ll = ntry.get_load_lists(2 + 3 * j);
 			for (auto& sublist : ll)
 				ever_loaded.copy_in(sublist.list);
 		}

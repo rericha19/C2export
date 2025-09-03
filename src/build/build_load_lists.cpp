@@ -289,10 +289,10 @@ void build_load_list_util(
 // Deals with slst and neighbour/scenery references of path linked entries.
 void build_load_list_util_util(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist)
 {
-	int32_t slst_distance = elist.m_config[CNFG_IDX_LL_SLST_DIST_VALUE];
-	int32_t neig_distance = elist.m_config[CNFG_IDX_LL_NEIGH_DIST_VALUE];
-	int32_t preloading_flag = elist.m_config[CNFG_IDX_LL_TRNS_PRLD_FLAG];
-	int32_t backwards_penalty = elist.m_config[CNFG_IDX_LL_BACKWARDS_PENALTY];
+	int32_t slst_distance = elist.m_config[LL_SLST_Distance];
+	int32_t neig_distance = elist.m_config[LL_Neighbour_Distance];
+	int32_t preloading_flag = elist.m_config[LL_Transition_Preloading_Type];
+	double backwards_penalty = config_to_double(elist.m_config[LL_Backwards_Loading_Penalty_DBL]);
 
 	int32_t distance = 0;
 
@@ -506,9 +506,9 @@ int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_ind
 }
 
 // recalculated distance cap for backwards loading
-int32_t build_dist_w_penalty(int32_t distance, int32_t backwards_penalty)
+int32_t build_dist_w_penalty(int32_t distance, double backwards_penalty)
 {
-	return ((int32_t)((1.0 - ((double)backwards_penalty) / PENALTY_MULT_CONSTANT) * distance));
+	return int32_t(distance * (1.0 - backwards_penalty));
 }
 
 
@@ -547,7 +547,7 @@ std::vector<LIST> build_get_complete_draw_list(ELIST& elist, ENTRY& zone, int32_
 
 	LIST list = {};
 
-	DRAW_LIST draw_list2 = get_draw_lists(zone, cam_index);
+	DRAW_LIST draw_list2 = zone.get_draw_lists(cam_index);
 
 	int32_t sublist_index = 0;
 	for (size_t i = 0; i < size_t(cam_length) && sublist_index < draw_list2.size(); i++)

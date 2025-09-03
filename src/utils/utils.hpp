@@ -116,10 +116,10 @@ struct PROPERTY
 // used in matrix merge to store what entries are loaded simultaneously and how much/often
 struct RELATION
 {
+	int32_t save_value;
 	int32_t value;
-	int32_t total_occurences;
-	int32_t index1;
-	int32_t index2;
+	int16_t index1;
+	int16_t index2;
 };
 
 // used to keep all relations
@@ -146,8 +146,45 @@ public:
 	std::unique_ptr<RELATION[]> relations = nullptr;
 };
 
+struct MTRX_THRD_IN_STR
+{
+	WORST_ZONE_INFO* worst_zones_info;
+	ELIST* elist;
+	MATRIX_STORED_LLS* stored_lls;
+	RELATIONS* rel_array;
+	ELIST* best_elist;
+	uint32_t* best_zone_ptr;
+	int64_t* best_max_ptr;
+	int32_t* curr_iter_ptr;
+	std::mutex* mutex_best;
+	std::mutex* mutex_iter;
+	int16_t thread_idx;
+	int32_t rnd_seed;
+};
 
-// Deconstructs the load or draw lists and saves into a convenient struct.
-void get_generic_lists(GENERIC_LOAD_LIST& load_list, int32_t prop_code, ENTRY& ntry, int32_t cam_index);
-LOAD_LIST get_load_lists(ENTRY& entry, int32_t cam_index);
-DRAW_LIST get_draw_lists(ENTRY& entry, int32_t cam_index);
+void* try_malloc(uint32_t size);
+void* try_calloc(uint32_t count, uint32_t size);
+void intro_text();
+void print_help();
+void print_help2();
+void clrscr();
+int32_t from_s32(const uint8_t* data);
+uint32_t from_u32(const uint8_t* data);
+int32_t from_s16(const uint8_t* data);
+uint32_t from_u16(const uint8_t* data);
+uint32_t from_u8(const uint8_t* data);
+uint32_t eid_to_int(std::string eid);
+uint32_t nsfChecksum(const uint8_t* data, int32_t size = CHUNKSIZE);
+int32_t cmp_func_int(const void* a, const void* b);
+int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
+void path_fix(char* fpath);
+void rand_seed(int32_t seed);
+double randfrom(double min, double max);
+int32_t normalize_angle(int32_t angle);
+int32_t c2yaw_to_deg(int32_t yaw);
+int32_t deg_to_c2yaw(int32_t deg);
+int32_t angle_distance(int32_t angle1, int32_t angle2);
+int32_t average_angles(int32_t angle1, int32_t angle2);
+int32_t chunk_count_base(FILE* nsf);
+int32_t ask_level_ID();
+ChunkType chunk_type(uint8_t* chunk);

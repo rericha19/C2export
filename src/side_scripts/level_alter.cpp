@@ -208,8 +208,8 @@ namespace level_alter
 
 				// if A is a subset of B its ok i think?
 				int32_t case4 = (offsetA == offsetB && childrenA != childrenB);
-				int32_t a_in_b = LIST::is_subset(nodeA.found_at, nodeB.found_at);
-				int32_t b_in_a = LIST::is_subset(nodeB.found_at, nodeA.found_at);
+				bool a_in_b = LIST::is_subset(nodeA.found_at, nodeB.found_at);
+				bool b_in_a = LIST::is_subset(nodeB.found_at, nodeA.found_at);
 				if (a_in_b || b_in_a)
 					case4 = 0;
 

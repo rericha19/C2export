@@ -36,7 +36,6 @@
     <ClCompile Include="..\src\build\build_input.cpp" />
     <ClCompile Include="..\src\build\build_load_lists.cpp" />
     <ClCompile Include="..\src\build\build_merge_matrix_random.cpp" />
-    <ClCompile Include="..\src\build\build_merge_occurence_matrix.cpp" />
     <ClCompile Include="..\src\build\build_output.cpp" />
     <ClCompile Include="..\src\build\build_parsing.cpp" />
     <ClCompile Include="..\src\main.cpp" />
@@ -46,7 +45,6 @@
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp" />
     <ClCompile Include="..\src\utils\elist.cpp" />
     <ClCompile Include="..\src\utils\entry.cpp" />
-    <ClCompile Include="..\src\utils\misc.cpp" />
     <ClCompile Include="..\src\utils\payloads.cpp" />
     <ClCompile Include="..\src\utils\utils.cpp" />
   </ItemGroup>

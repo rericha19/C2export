@@ -24,7 +24,7 @@ public:
 	void insert(const PAYLOAD& insertee);
 	int64_t calculate_score() const;
 
-	static PAYLOADS get_payload_ladder(MATRIX_STORED_LLS& stored_lls, ELIST& elist, int32_t chunk_min, int32_t get_tpages);
+	static PAYLOADS get_payload_ladder(MATRIX_STORED_LLS& stored_lls, ELIST& elist, int32_t chunk_min, bool get_tpages);
 	static PAYLOADS get_payload_ladder_ll(ELIST& elist);
 };
 

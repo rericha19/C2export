@@ -16,7 +16,7 @@ public:
 	File m_nsd_out;
 	File m_nsf_out2;
 	File m_nsd_out2;
-	
+
 	int32_t m_chunk_count = 0;
 	int32_t m_chunk_border_sounds = 0;
 
@@ -27,33 +27,31 @@ public:
 	DEPENDENCIES m_musi_deps{};			// dependencies for zones using certain music track 
 	uint32_t m_gool_table[C3_GOOL_TABLE_SIZE]{};
 	SPAWNS m_spawns{};
+	
+	RebuildConfig m_config = 
+	{
+		{LL_Matrix_Polling_Type_CONST, 1}, // const
 
-	// todo turn into a proper struct or just vars
-	// config:
-	int32_t m_config[18] = {
-		0, // 0 - unused
-		0, // 1 - unused
-		1, // 2 - merge type value             0 - per delta   |   1 - weird per point |   2 - per point   set here, used by matrix merge
+		{Remake_Load_Lists, 0},
+		{Remake_Draw_Lists, 0},
+		{Chunk_Merge_Method, 0},
 
-		0, // 3 - slst distance value              set by user in function build_ask_load_distances(config); affects load lists
-		0, // 4 - neighbour distance value         set by user in function build_ask_load_distances(config); affects load lists
-		0, // 5 - draw list distance value         set by user in function build_ask_load_distances(config); affects load lists
-		0, // 6 - transition pre-load flag         set by user in function build_ask_load_distances(config); affects load lists
-		0, // 7 - backwards penalty value          set by user in function build_ask_dist...;  aff LLs     is 1M times the float value because int32_t, range 0 - 0.5
+		{LL_SLST_Distance, 0},
+		{LL_Neighbour_Distance, 0},
+		{LL_Drawlist_Distance, 0},
+		{LL_Transition_Preloading_Type, 0},
+		{LL_Backwards_Loading_Penalty_DBL, 0},
 
-		0, // 8 - unused
-		0, // 9 - unused
+		{DL_Distance_Cap_X, 0},
+		{DL_Distance_Cap_Y, 0},
+		{DL_Distance_Cap_XZ, 0},
+		{DL_Distance_Cap_Angle3D, 0},
 
-		0, // 10 - load list remake flag        0 - dont remake |   1 - remake load lists                   set by user in build_ask_build_flags
-		0, // 11 - merge technique value                                                                    set by user in build_ask_build_flags
-
-		1, // 12 - unused
-		1, // 13 - unused
-
-		0, // 14 - draw list gen dist 2D            set by user in build_ask_draw_distances
-		0, // 15 - draw list gen dist 3D            set by user in build_ask_draw_distances
-		0, // 16 - draw list gen dist 2D vertictal| set by user in build_ask_draw_distances
-		0, // 17 - draw list gen angle 3D           set by user in build_ask_draw_distances - allowed angle distance
+		{Rebuild_Payload_Limit, 0},
+		{Rebuild_Iteration_Limit, 0},
+		{Rebuild_Random_Mult_DBL, 0},
+		{Rebuild_Base_Seed, 0},
+		{Rebuild_Thread_Count, 0},
 	};
 
 	void sort_by_eid();
@@ -72,15 +70,23 @@ public:
 
 	// input
 	void ask_build_flags();
+	void ask_build_paths(char* perma_path, char* subt_deps_path, char* coll_deps_path, char* mus_deps_path);
 	bool read_entry_config();
 	void ask_second_output();
 	void ask_draw_distances();
 	void ask_load_distances();
+	void ask_params_matrix();
+
+	// matrix merge
+	void matrix_merge_util(RELATIONS& relations);
+	RELATIONS get_occurence_array();
+
+	MATRIX_STORED_LLS matrix_store_lls();
 
 	// output
 	void write_nsd();
 	void write_nsf(uint8_t** chunks);
 	void build_normal_chunks(uint8_t** chunks);
 	void build_sound_chunks(uint8_t** chunks);
-	void build_instrument_chunks( uint8_t** chunks);
+	void build_instrument_chunks(uint8_t** chunks);
 };

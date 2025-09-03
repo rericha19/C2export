@@ -1,5 +1,6 @@
 // Crash 2 levels' entry exporter and other stuff made by Averso
 #include "include.h"
+#include "utils/utils.hpp"
 #include "side_scripts/level_analyze.hpp"
 #include "side_scripts/level_alter.hpp"
 #include "side_scripts/side_scripts.hpp"

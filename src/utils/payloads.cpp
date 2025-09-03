@@ -26,59 +26,48 @@ void PAYLOAD::print_info() const
 //  Calculates the amount of normal chunks loaded by the zone, their list.	
 PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, int32_t chunk_min, bool get_tpages)
 {
-	int32_t chunks[1024] = { 0 };
-	int32_t count = 0;
-	int32_t curr_chunk;
-	bool is_there = false;
+	std::unordered_set<int32_t> unique_chunks;
+	unique_chunks.reserve(30);
 
 	for (int32_t i = 0; i < loaded.count(); i++)
 	{
 		int32_t elist_index = elist.get_index(loaded[i]);
-		curr_chunk = elist[elist_index].m_chunk;
+		auto& e = elist[elist_index];
+		int32_t curr_chunk = e.m_chunk;
 
-		is_there = false;
-		for (int32_t j = 0; j < count; j++)
-			if (chunks[j] == curr_chunk)
-				is_there = true;
-
-		if (!is_there && !elist[elist_index].m_is_tpage && curr_chunk != -1 && curr_chunk >= chunk_min)
+		if (curr_chunk != -1 && curr_chunk >= chunk_min && !e.m_is_tpage)
 		{
-			chunks[count] = curr_chunk;
-			count++;
+			unique_chunks.insert(curr_chunk);
 		}
 	}
 
+	// copy to payload vector
 	PAYLOAD payload{};
 	payload.zone = zone;
+	payload.chunks.reserve(unique_chunks.size());
 
-	for (int32_t i = 0; i < count; i++)
-		payload.chunks.push_back(chunks[i]);
+	for (int32_t chunk : unique_chunks)
+		payload.chunks.push_back(chunk);
 
 	if (!get_tpages)
 		return payload;
 
-	int32_t tchunks[128] = { 0 };
-	int32_t tcount = 0;
+	std::unordered_set<int32_t> tchunks_set;
+	tchunks_set.reserve(10);
 
 	for (int32_t i = 0; i < loaded.count(); i++)
 	{
 		int32_t elist_index = elist.get_index(loaded[i]);
-		curr_chunk = elist[elist_index].m_chunk;
+		auto& e = elist[elist_index];
+		int32_t curr_chunk = e.m_chunk;
 
-		is_there = false;
-		for (int32_t j = 0; j < tcount; j++)
-			if (tchunks[j] == curr_chunk)
-				is_there = true;
-
-		if (!is_there && elist[elist_index].m_is_tpage)
-		{
-			tchunks[tcount] = curr_chunk;
-			tcount++;
-		}
+		if (e.m_is_tpage)
+			tchunks_set.insert(curr_chunk);
 	}
 
-	for (int32_t i = 0; i < tcount; i++)
-		payload.tchunks.push_back(tchunks[i]);
+	// copy to payload vector
+	for (int32_t chunk : tchunks_set)
+		payload.tchunks.push_back(chunk);
 
 	return payload;
 }
@@ -108,7 +97,7 @@ void PAYLOADS::insert(const PAYLOAD& insertee)
 }
 
 // get payloads ladder for matrix merge eval
-PAYLOADS PAYLOADS::get_payload_ladder(MATRIX_STORED_LLS& stored_lls, ELIST& elist, int32_t chunk_min, int32_t get_tpages)
+PAYLOADS PAYLOADS::get_payload_ladder(MATRIX_STORED_LLS& stored_lls, ELIST& elist, int32_t chunk_min, bool get_tpages)
 {
 	PAYLOADS payloads{};
 	for (auto& curr_ll : stored_lls)
@@ -173,8 +162,8 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			LOAD_LIST load_list = get_load_lists(ntry, 2 + 3 * j);
-			DRAW_LIST draw_list = get_draw_lists(ntry, 2 + 3 * j);
+			LOAD_LIST load_list = ntry.get_load_lists(2 + 3 * j);
+			DRAW_LIST draw_list = ntry.get_draw_lists(2 + 3 * j);
 
 			int32_t max_draw = get_max_draw(draw_list);
 

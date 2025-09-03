@@ -41,6 +41,11 @@ public:
 	void parse_relatives();
 	void parse_spawns(SPAWNS& spawns);
 
+	// Deconstructs the load or draw lists and saves into a convenient struct.
+	GENERIC_LOAD_LIST get_generic_lists(int32_t prop_code, int32_t cam_index);
+	LOAD_LIST get_load_lists(int32_t cam_index);
+	DRAW_LIST get_draw_lists(int32_t cam_index);
+
 	ENTITY_PATH get_ent_path(int32_t item_index);
 	int32_t get_ent_path_len(int32_t item_index);
 	int32_t get_nth_item_offset(int32_t n);
