@@ -98,16 +98,18 @@ bool SPAWNS::ask_spawn()
 	for (uint32_t i = 0; i < size(); i++)
 		printf("Spawn %2d:\tZone: %s\n", i + 1, eid2str(at(i).zone));
 
-	scanf("%d", &input);
-	input--;
-	if (input >= size() || input < 0)
+	scanf("%d", &input);	
+	if (input >= size() || input <= 1)
 	{
 		printf("No such spawn, defaulting to first one\n");
-		input = 0;
+		input = 1;
 	}
 
-	swap_spawns(0, input);
-	printf("Using spawn %2d: Zone: %s\n", input + 1, eid2str(at(0).zone));
+	// insert the picked spawn 2x at the start
+	auto& picked_spawn = at(input);
+	insert(begin(), picked_spawn);
+	insert(begin(), picked_spawn);	
+	printf("Using spawn %2d: Zone: %s\n", input, eid2str(at(0).zone));
 	return true;
 }
 

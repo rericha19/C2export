@@ -781,7 +781,7 @@ namespace level_analyze
 	{
 		ELIST elist{};
 
-		if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+		if (elist.read_and_parse_nsf(NULL, 1, NULL))
 			return;
 
 		ll_id_usage(elist);

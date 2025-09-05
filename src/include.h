@@ -24,6 +24,7 @@
 #include <random>
 #include <variant>
 #include <map>
+#include <functional>
 
 struct PROPERTY;
 struct RELATION;
@@ -52,8 +53,8 @@ enum __conf_enum
 {
 	LL_Matrix_Polling_Type_CONST,
 
-	Remake_Load_Lists,
 	Remake_Draw_Lists,
+	Remake_Load_Lists,
 	Chunk_Merge_Method,
 
 	LL_SLST_Distance,
@@ -89,7 +90,7 @@ enum __conf_enum
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
-#define CHUNK_LIST_DEFAULT_SIZE 1000 // todo remove
+#define CHUNK_LIST_DEFAULT_SIZE 1000
 
 #define SPECIAL_METADATA_MASK_LLCOUNT 0xFF
 #define SPECIAL_METADATA_MASK_SKIPFLAG 0xFF000000
@@ -229,27 +230,15 @@ inline double config_to_double(int32_t v)
 };
 
 // build files in no particular order
-int32_t dsu_find_set(int32_t i);
-void dsu_union_sets(int32_t a, int32_t b);
 uint8_t* build_add_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 uint8_t* build_rem_property(uint32_t code, uint8_t* item, int32_t* item_size, PROPERTY* prop);
 void build_entity_alter(ENTRY& zone, int32_t item_index, uint8_t* (func_arg)(uint32_t, uint8_t*, int32_t*, PROPERTY*), int32_t property_code, PROPERTY* prop);
-void build_load_list_util_util_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
-void build_load_list_util_util_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
-void build_add_collision_dependencies(std::vector<LIST>& full_list, int32_t start_index, int32_t end_index, ENTRY& entry,
-	DEPENDENCIES collisions, ELIST& elist);
+void build_load_list_zone_refs_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
+void build_load_list_zone_refs_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
 int32_t build_dist_w_penalty(int32_t distance, double backwards_penalty);
-void build_load_list_util_util(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list,
-	int32_t cam_length, ELIST& elist);
-std::vector<LIST> build_get_complete_draw_list(ELIST& elist, ENTRY& zone, int32_t cam_index, int32_t cam_length);
-LIST build_get_types_subtypes(ELIST& elist, LIST entity_list, LIST neighbour_list);
+void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist);
 int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
 void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist);
 void build_load_list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, int32_t cam_length, ELIST& elist, bool is_draw);
-void build_remake_draw_lists(ELIST& elist);
 void build_remake_load_lists(ELIST& elist);
-void build_main(int32_t build_rebuild_flag);
-void build_texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_length, int32_t i, int32_t j);
-bool build_read_and_parse_rebld(ELIST& elist, uint8_t** chunks, bool stats_only, const char* fpath);
-void build_matrix_merge_random_main(ELIST& elist);
-void build_draw_list_util(ELIST& elist, std::vector<LIST>& full_draw, int32_t curr_idx, int32_t neigh_idx, int32_t cam_idx, int32_t neigh_ref_idx, LIST* pos_overrides);
+void build_main(int32_t build_type);

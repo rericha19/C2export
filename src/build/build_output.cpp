@@ -42,7 +42,7 @@ void ELIST::write_nsd()
 
 	// write spawn count, level ID
 	int32_t real_nsd_size = C2_NSD_ENTRY_TABLE_OFFSET + real_entry_count * 8;
-	*(int32_t*)(nsddata + real_nsd_size) = int32_t(m_spawns.size() + 1);
+	*(int32_t*)(nsddata + real_nsd_size) = int32_t(m_spawns.size());
 	*(int32_t*)(nsddata + real_nsd_size + 8) = m_level_ID;
 	real_nsd_size += 0x10;
 
@@ -52,9 +52,8 @@ void ELIST::write_nsd()
 	real_nsd_size += 0x1CC;
 
 	// write spawns, assumes camera 'spawns' on the zone's first cam path's first point (first == 0th)
-	for (int32_t _i = -1; _i < int32_t(m_spawns.size()); _i++)
+	for (int32_t i = 0; i < int32_t(m_spawns.size()); i++)
 	{
-		int32_t i = (_i > 0) ? _i : 0; // write the first one twice
 		*(int32_t*)(nsddata + real_nsd_size) = m_spawns[i].zone;
 		*(int32_t*)(nsddata + real_nsd_size + 0x0C) = m_spawns[i].x << 8;
 		*(int32_t*)(nsddata + real_nsd_size + 0x10) = m_spawns[i].y << 8;

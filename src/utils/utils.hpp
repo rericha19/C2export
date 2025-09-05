@@ -149,7 +149,6 @@ public:
 struct MTRX_THRD_IN_STR
 {
 	WORST_ZONE_INFO* worst_zones_info;
-	ELIST* elist;
 	MATRIX_STORED_LLS* stored_lls;
 	RELATIONS* rel_array;
 	ELIST* best_elist;

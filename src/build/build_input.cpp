@@ -255,6 +255,8 @@ void ELIST::ask_draw_distances()
 
 	printf("\nMax allowed angle distance for 3D sections (default to 90)\n");
 	scanf("%d", &input);
+	if (!input)
+		input = 90;
 	m_config[DL_Distance_Cap_Angle3D] = input;
 	printf("Selected %d for max allowed angle distance for 3D sections\n", input);
 }
@@ -371,4 +373,143 @@ void ELIST::ask_params_matrix()
 	}
 
 	m_config[Rebuild_Iteration_Limit] -= m_config[Rebuild_Thread_Count];
+}
+
+// todo fix the mess at the start
+// parsing input info for rebuilding from a nsf file
+bool ELIST::read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fpath)
+{
+	File nsf;
+	char nsfpath[MAX], fname[MAX + 20];
+
+	if (fpath)
+	{
+		if (nsf.open(fpath, "rb") == false)
+		{
+			printf("[ERROR] Could not open selected NSF\n\n");
+			return true;
+		}
+	}
+	else
+	{
+		if (!stats_only)
+		{
+			printf("Input the path to the level (.nsf) you want to rebuild:\n");
+			scanf(" %[^\n]", nsfpath);
+			path_fix(nsfpath);
+
+			if (nsf.open(nsfpath, "rb") == false)
+			{
+				printf("[ERROR] Could not open selected NSF\n\n");
+				return true;
+			}
+
+			m_level_ID = ask_level_ID();
+
+			*(strrchr(nsfpath, '\\') + 1) = '\0';
+			sprintf(fname, "%s\\S00000%02X.NSF", nsfpath, m_level_ID);
+			m_nsf_out.open(fname, "wb");
+			*(strchr(fname, '\0') - 1) = 'D';
+			m_nsd_out.open(fname, "wb");
+
+			if (!m_nsd_out.ok() || !m_nsf_out.ok())
+			{
+				printf("[ERROR] Could not open default outputs \n");
+				return true;
+			}
+		}
+		else
+		{
+			printf("Input the path to the level (.nsf):\n");
+			scanf(" %[^\n]", nsfpath);
+			path_fix(nsfpath);
+
+			if (nsf.open(nsfpath, "rb") == false)
+			{
+				printf("[ERROR] Could not open selected NSF\n\n");
+				return true;
+			}
+		}
+	}
+
+	int32_t nsf_chunk_count = chunk_count_base(nsf.f);
+	m_chunk_count = 0;
+
+	static uint8_t buffer[CHUNKSIZE]{};
+	for (int32_t i = 0; i < nsf_chunk_count; i++)
+	{
+		fread(buffer, sizeof(uint8_t), CHUNKSIZE, nsf.f);
+		uint32_t checksum_calc = nsfChecksum(buffer);
+		uint32_t checksum_used = *(uint32_t*)(buffer + CHUNK_CHECKSUM_OFFSET);
+		if (checksum_calc != checksum_used)
+			printf("Chunk %3d has invalid checksum\n", 2 * i + 1);
+
+		if (chunk_type(buffer) == ChunkType::TEXTURE)
+		{
+			if (chunks != NULL)
+			{
+				chunks[m_chunk_count] = (uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+				memcpy(chunks[m_chunk_count], buffer, CHUNKSIZE);
+			}
+
+			ENTRY tpage{};
+			tpage.m_is_tpage = true;
+			tpage.m_eid = from_u32(buffer + 4);
+			tpage.m_chunk = m_chunk_count;
+			strncpy(tpage.m_ename, ENTRY::eid2s(tpage.m_eid).c_str(), 5);
+
+			m_chunk_count++;
+			push_back(tpage);
+			sort_by_eid();
+		}
+		else
+		{
+			int32_t chunk_entry_count = from_u32(buffer + 0x8);
+			for (int32_t j = 0; j < chunk_entry_count; j++)
+			{
+				int32_t start_offset = ENTRY::get_nth_item_offset(buffer, j);
+				int32_t end_offset = ENTRY::get_nth_item_offset(buffer, j + 1);
+				int32_t entry_size = end_offset - start_offset;
+
+				ENTRY ntry{};
+				ntry.m_eid = from_u32(buffer + start_offset + 0x4);
+				ntry.m_esize = entry_size;
+				ntry.m_data.resize(entry_size);
+				memcpy(ntry._data(), buffer + start_offset, entry_size);
+				strncpy(ntry.m_ename, ENTRY::eid2s(ntry.m_eid).c_str(), 5);
+
+				if (!stats_only || ntry.get_entry_type() == EntryType::Sound)
+					ntry.m_chunk = -1;
+				else
+					ntry.m_chunk = i;
+
+				if (ntry.get_entry_type() == EntryType::Zone)
+				{
+					if (!ntry.check_get_item_count())
+						return false;
+					ntry.parse_relatives();
+					ntry.parse_spawns(m_spawns);
+				}
+
+				if (ntry.get_entry_type() == EntryType::GOOL && ntry.get_item_count() == 6)
+				{
+					int32_t gool_type = from_u32(ntry.get_nth_item(0) + 0);
+					if (gool_type < 0)
+					{
+						printf("[warning] GOOL entry %s has invalid type specified in the third item (%2d)!\n", ntry.m_ename, gool_type);
+					}
+					else
+					{
+						if (m_gool_table[gool_type] == EID_NONE)
+							m_gool_table[gool_type] = ntry.m_eid;
+					}
+				}
+
+				push_back(ntry);
+				sort_by_eid();
+			}
+		}
+	}
+
+	return false;
 }

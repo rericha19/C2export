@@ -32,12 +32,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\build\build.cpp" />
-    <ClCompile Include="..\src\build\build_draw_lists.cpp" />
     <ClCompile Include="..\src\build\build_input.cpp" />
+    <ClCompile Include="..\src\build\build_lists.cpp" />
     <ClCompile Include="..\src\build\build_load_lists.cpp" />
-    <ClCompile Include="..\src\build\build_merge_matrix_random.cpp" />
+    <ClCompile Include="..\src\build\build_matrix_merge.cpp" />
     <ClCompile Include="..\src\build\build_output.cpp" />
-    <ClCompile Include="..\src\build\build_parsing.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\side_scripts\export.cpp" />
     <ClCompile Include="..\src\side_scripts\level_alter.cpp" />

@@ -14,11 +14,12 @@ void build_main(int32_t build_type)
 	ELIST elist{};
 	elist.m_config[Remake_Draw_Lists] = (build_type == BuildType_Rebuild_DL);
 
-	//std::vector<std::vector<uint8_t>> chunks{};	
+	// todo replace with vector of smart pointers?
+	//std::vector<std::unique_ptr<uint8_t[]>> chunks(CHUNK_LIST_DEFAULT_SIZE, nullptr);
 	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];
 
 	// reading contents of the nsf to be rebuilt and collecting metadata
-	bool input_parse_err = build_read_and_parse_rebld(elist, chunks, 0, NULL);
+	bool input_parse_err = elist.read_and_parse_nsf(chunks, 0, NULL);
 	if (input_parse_err)
 	{
 		printf("[ERROR] something went wrong during parsing\n");
@@ -56,7 +57,8 @@ void build_main(int32_t build_type)
 	if (elist.m_config[Remake_Draw_Lists])
 	{
 		elist.ask_draw_distances();
-		build_remake_draw_lists(elist);
+		elist.print_draw_position_overrides();
+		elist.remake_draw_lists();
 	}
 
 	if (elist.m_config[Remake_Load_Lists])
@@ -82,8 +84,9 @@ void build_main(int32_t build_type)
 	clock_t time_start = clock();
 	switch (elist.m_config[Chunk_Merge_Method])
 	{
+	case 4:
 	case 5:
-		build_matrix_merge_random_main(elist);
+		elist.matrix_merge_random_main();
 		break;
 	default:
 		printf("[ERROR] unknown/deprecated merge\n");

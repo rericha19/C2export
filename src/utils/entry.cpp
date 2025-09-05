@@ -167,7 +167,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 
 	neighbours.copy_in(get_neighbours());
 
-	std::vector<LIST> draw_list_zone = build_get_complete_draw_list(elist, *this, camera_index, coords.length());
+	std::vector<LIST> draw_list_zone = get_expanded_draw_list(camera_index);
 	for (int32_t i = 0; i < coords.length(); i++)
 		entity_list.copy_in(draw_list_zone[i]);
 
@@ -200,7 +200,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 		if (!coords2.length())
 			continue;
 
-		std::vector<LIST> draw_list_neighbour1 = build_get_complete_draw_list(elist, elist[neigh_idx], 2 + 3 * link.cam_index, coords2.length());
+		std::vector<LIST> draw_list_neighbour1 = elist[neigh_idx].get_expanded_draw_list(2 + 3 * link.cam_index);
 
 		int32_t draw_dist_w_orientation = draw_dist;
 		if (ENTRY::is_before(*this, camera_index / 3, elist[neigh_idx], link.cam_index))
@@ -249,7 +249,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			if (!coords3.length())
 				continue;
 
-			std::vector<LIST> draw_list_neighbour2 = build_get_complete_draw_list(elist, elist[neigh_idx2], 2 + 3 * link2.cam_index, coords3.length());
+			std::vector<LIST> draw_list_neighbour2 = elist[neigh_idx2].get_expanded_draw_list(2 + 3 * link2.cam_index);
 
 			int32_t point_index3;
 			draw_dist_w_orientation = draw_dist;
@@ -815,4 +815,68 @@ DRAW_LIST ENTRY::get_draw_lists(int32_t item_index)
 	DRAW_LIST dl = get_generic_lists(ENTITY_PROP_CAM_DRAW_LIST_A, item_index);
 	std::sort(dl.begin(), dl.end(), dl_sort);
 	return dl;
+}
+
+//  Checks for whether the current camera isnt trying to load more than 8 textures
+void ENTRY::texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_idx)
+{
+	int32_t max_count = 0;
+	uint32_t max_textures[20];
+
+	for (auto& sublist : full_load)
+	{
+		int32_t texture_count = 0;
+		uint32_t textures[20]{};
+		for (int32_t l = 0; l < sublist.count(); l++)
+		{
+			int32_t idx = elist.get_index(sublist[l]);
+			if (idx == -1)
+				printf("Trying to load invalid entry %s\n", eid2str(sublist[l]));
+			else if (elist[idx].m_is_tpage)
+				textures[texture_count++] = sublist[l];
+		}
+
+		if (texture_count > max_count)
+		{
+			max_count = texture_count;
+			memcpy(max_textures, textures, texture_count * sizeof(uint32_t));
+		}
+	}
+
+	if (max_count > 8)
+	{
+		printf("[warning] Zone %s cam path %d trying to load %d textures! \n", m_ename, cam_idx, max_count);
+
+		for (int32_t k = 0; k < max_count; k++)
+			printf("\t%s", eid2str(max_textures[k]));
+		printf("\n");
+	}
+}
+
+int32_t ENTRY::get_nth_entity_draw_override_mult(int32_t entity_idx)
+{
+	int32_t draw_mult = PROPERTY::get_value(get_nth_entity(entity_idx), ENTITY_PROP_OVERRIDE_DRAW_MULT);
+	if (draw_mult == -1)
+		return 100;
+	else
+		return draw_mult >> 8;
+}
+
+std::tuple<bool, int32_t> ENTRY::get_nth_entity_draw_override_ent_idx(int32_t entity_idx)
+{
+	int32_t pos_override_id = PROPERTY::get_value(get_nth_entity(entity_idx), ENTITY_PROP_OVERRIDE_DRAW_ID);
+	if (pos_override_id == -1)
+		return { false, -1 };
+
+	pos_override_id = pos_override_id / 0x100;
+	for (int32_t o = 0; o < get_entity_count(); o++)
+	{
+		int32_t ent_id2 = PROPERTY::get_value(get_nth_entity(o), ENTITY_PROP_ID);
+		if (ent_id2 == pos_override_id)
+		{
+			return { true, o };
+		}
+	}
+
+	return { true, -1 };
 }

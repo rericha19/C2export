@@ -27,13 +27,13 @@ public:
 	DEPENDENCIES m_musi_deps{};			// dependencies for zones using certain music track 
 	uint32_t m_gool_table[C3_GOOL_TABLE_SIZE]{};
 	SPAWNS m_spawns{};
-	
-	RebuildConfig m_config = 
+
+	RebuildConfig m_config =
 	{
 		{LL_Matrix_Polling_Type_CONST, 1}, // const
 
-		{Remake_Load_Lists, 0},
 		{Remake_Draw_Lists, 0},
+		{Remake_Load_Lists, 0},
 		{Chunk_Merge_Method, 0},
 
 		{LL_SLST_Distance, 0},
@@ -76,12 +76,22 @@ public:
 	void ask_draw_distances();
 	void ask_load_distances();
 	void ask_params_matrix();
+	bool read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fpath);
+
+	// load list and draw list gen
+	void print_draw_position_overrides();
+	void add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY& ntry);
+	void remake_draw_lists();
+	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
+	LIST get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours)
 
 	// matrix merge
 	void matrix_merge_util(RELATIONS& relations);
 	RELATIONS get_occurence_array();
-
+	RELATIONS matrix_transform_to_array(std::vector<std::vector<int32_t>>& entry_matrix, LIST& normal_entries);
 	MATRIX_STORED_LLS matrix_store_lls();
+	void matrix_merge_random_util(MTRX_THRD_IN_STR inp_args);
+	void matrix_merge_random_main();
 
 	// output
 	void write_nsd();

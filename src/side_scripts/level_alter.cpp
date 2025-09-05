@@ -634,7 +634,7 @@ namespace level_alter
 
 			if (ntry.get_entry_type() == EntryType::VCOL)
 			{
-				printf("TODO (unimplemented) x flip of t15 vcol collision entry %s\n", eid2str(ntry.m_eid));
+				printf("(unimplemented) x flip of t15 vcol collision entry %s\n", ntry.m_ename);
 
 				// todo fix/implement
 				/*
@@ -653,7 +653,6 @@ namespace level_alter
 					// *(uint8_t *)(ntry.data + data_start + off + 1) = flags2;
 					// *(uint8_t *)(ntry.data + data_start + off + 3) = flags1;
 
-					// todo fix
 					*(uint8_t *)(ntry.data + data_start + off) = 0xFF - val2;
 					*(uint8_t *)(ntry.data + data_start + off + 2) = 0xFF - val1;
 				}*/
@@ -741,7 +740,7 @@ namespace level_alter
 		uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE] = { NULL };  // array of pointers to potentially built chunks, fixed length cuz lazy
 		uint8_t* chunks2[CHUNK_LIST_DEFAULT_SIZE] = { NULL }; // keeping original non-normal chunks to keep level order
 
-		if (build_read_and_parse_rebld(elist, chunks, 1, nsfpath))
+		if (elist.read_and_parse_nsf(chunks, 1, nsfpath))
 			return;
 
 		// get original (texture/sound/instrument) chunk data

@@ -26,7 +26,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\include.h">
       <Filter>Source Files</Filter>
-    </ClInclude>   
+    </ClInclude>
     <ClInclude Include="..\src\utils\dist_queue.hpp">
       <Filter>Source Files\utils</Filter>
     </ClInclude>
@@ -51,6 +51,9 @@
     <ClInclude Include="..\src\side_scripts\side_scripts.hpp">
       <Filter>Source Files\side_scripts</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\utils\elist.hpp">
+      <Filter>Source Files\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -68,32 +71,8 @@
     <ClCompile Include="..\src\build\build.cpp">
       <Filter>Source Files\build</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\build\build_and_write_level_data.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build_draw_lists.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\build\build_load_lists.cpp">
       <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build_merge_matrix_random.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build_merge_occurence_matrix.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build_parsing.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build_snd_instr_chunks.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build_user_input.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\utils\misc.cpp">
-      <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\src\utils\payloads.cpp">
       <Filter>Source Files\utils</Filter>
@@ -106,6 +85,21 @@
     </ClCompile>
     <ClCompile Include="..\src\utils\entry.cpp">
       <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\elist.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\build\build_output.cpp">
+      <Filter>Source Files\build</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\build\build_input.cpp">
+      <Filter>Source Files\build</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\build\build_lists.cpp">
+      <Filter>Source Files\build</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\build\build_matrix_merge.cpp">
+      <Filter>Source Files\build</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

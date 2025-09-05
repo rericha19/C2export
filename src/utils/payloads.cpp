@@ -232,7 +232,7 @@ void WORST_ZONE_INFO::print_summary()
 			return b.count < a.count;
 		});
 
-	printf("\nWorst zone average:\n");
+	printf("\nWorst zone averages:\n");
 	for (int32_t i = 0; i < int32_t(size()) && i < 10; i++)
 		printf("\t%s - %d  -  %4dx, worst-avg payload %4.2f\n",
 			eid2str(at(i).zone), at(i).cam_path, at(i).count, ((double)at(i).sum) / at(i).count);

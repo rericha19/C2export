@@ -1148,7 +1148,7 @@ void generate_spawn()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	char zone[100] = "";
@@ -1460,7 +1460,7 @@ void print_model_tex_refs_nsf()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	bool printed_something = false;
@@ -1526,7 +1526,7 @@ void print_all_entries_perma()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	for (auto& ntry : elist)
@@ -1544,7 +1544,7 @@ void entity_usage_single_nsf(const char* fpath, DEPENDENCIES* deps, uint32_t* go
 	printf("Checking %s\n", fpath);
 
 	ELIST elist{};
-	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
@@ -1675,7 +1675,7 @@ void nsf_props_scr()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	bool printed_something = false;
@@ -1787,7 +1787,7 @@ void warp_spawns_generate()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	/* older, hardcoded spawns
@@ -1892,7 +1892,7 @@ void special_load_lists_util(const char* fpath)
 
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	for (auto& curr : elist)
@@ -1943,7 +1943,7 @@ void nsd_util_util(const char* fpath)
 		filename = fpath;
 	}
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	for (auto& ntry : elist)
@@ -1966,7 +1966,7 @@ void fov_stats_util(const char* fpath)
 	printf("Level: %s\n", fpath);
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	for (auto& ntry : elist)
@@ -1991,7 +1991,7 @@ void checkpoint_stats_util(const char* fpath)
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	int32_t cam_count = 0;
@@ -2191,7 +2191,7 @@ void draw_util()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	int32_t total = 0;
@@ -2205,10 +2205,10 @@ void draw_util()
 		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = ntry.get_ent_path_len(2 + 3 * j);
-			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, ntry, 2 + 3 * j, path_len);
+			std::vector<LIST> draw_list = ntry.get_expanded_draw_list(2 + 3 * j);
+			int32_t path_len = int32_t(draw_list.size());
 
-			for (int32_t k = 0; k < path_len - 1; k++)
+			for (int32_t k = 0; k < path_len; k++)
 			{
 				int32_t drawn = draw_list[k].count();
 				printf("%s-%d, point %2d/%2d - drawing %d entities\n", ntry.m_ename, j, k, path_len, drawn);
@@ -2230,15 +2230,14 @@ void draw_util()
 		int32_t cam_count = ntry.get_cam_item_count() / 3;
 		for (int32_t j = 0; j < cam_count; j++)
 		{
-			int32_t path_len = ntry.get_ent_path_len(2 + 3 * j);
-			std::vector<LIST> draw_list = build_get_complete_draw_list(elist, ntry, 2 + 3 * j, path_len);
+			std::vector<LIST> draw_list = ntry.get_expanded_draw_list(2 + 3 * j);
 
 			int32_t zone_total = 0;
 			int32_t zone_points = 0;
 
-			for (int32_t k = 0; k < path_len - 1; k++)
+			for (auto& sublist : draw_list)
 			{
-				int32_t drawn = draw_list[k].count();
+				int32_t drawn = sublist.count();
 				zone_total += drawn;
 				zone_points += 1;
 			}
@@ -2266,7 +2265,7 @@ void tpage_util_util(const char* fpath)
 	}
 
 	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];
-	if (build_read_and_parse_rebld(elist, chunks, 1, fpath))
+	if (elist.read_and_parse_nsf(chunks, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
@@ -2300,7 +2299,7 @@ void tpage_util()
 void gool_util_util(const char* fpath)
 {
 	ELIST elist{};
-	if (build_read_and_parse_rebld(elist, NULL, 1, fpath))
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
@@ -2341,7 +2340,7 @@ void cmd_payload_info()
 {
 	ELIST elist{};
 
-	if (build_read_and_parse_rebld(elist, NULL, 1, NULL))
+	if (elist.read_and_parse_nsf(NULL, 1, NULL))
 		return;
 
 	level_analyze::ll_print_full_payload_info(elist, 1);
