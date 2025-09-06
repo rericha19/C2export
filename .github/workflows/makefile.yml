@@ -25,12 +25,7 @@ jobs:
     - name: Upload Executable
       uses: actions/upload-artifact@v4
       with:
-        name: c2export_singlethr
-        path: bin/c2export_singlethr.exe 
-    - name: Upload Executable 2
-      uses: actions/upload-artifact@v4
-      with:
-        name: c2export_multithr
-        path: bin/c2export_multithr.exe
+        name: c2export_gcc
+        path: bin/c2export_gcc.exe 
       
 
