@@ -205,7 +205,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 		int32_t draw_dist_w_orientation = draw_dist;
 		if (ENTRY::is_before(*this, camera_index / 3, elist[neigh_idx], link.cam_index))
 		{
-			draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
+			draw_dist_w_orientation = distance_with_penalty(draw_dist, backwards_penalty);
 		}
 
 		int32_t point_index2;
@@ -255,7 +255,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			draw_dist_w_orientation = draw_dist;
 			if (ENTRY::is_before(*this, camera_index / 3, elist[neigh_idx2], link2.cam_index))
 			{
-				draw_dist_w_orientation = build_dist_w_penalty(draw_dist, backwards_penalty);
+				draw_dist_w_orientation = distance_with_penalty(draw_dist, backwards_penalty);
 			}
 
 			// start to end

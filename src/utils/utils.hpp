@@ -187,3 +187,4 @@ int32_t average_angles(int32_t angle1, int32_t angle2);
 int32_t chunk_count_base(FILE* nsf);
 int32_t ask_level_ID();
 ChunkType chunk_type(uint8_t* chunk);
+int32_t distance_with_penalty(int32_t distance, double backw_penalty);

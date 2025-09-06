@@ -83,7 +83,7 @@ public:
 	void add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY& ntry);
 	void remake_draw_lists();
 	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
-	LIST get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours)
+	LIST get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours);
 
 	// matrix merge
 	void matrix_merge_util(RELATIONS& relations);

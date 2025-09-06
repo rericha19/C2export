@@ -605,3 +605,8 @@ ChunkType chunk_type(uint8_t* chunk)
 
 	return ChunkType(from_u16(chunk + 0x2));
 }
+
+int32_t distance_with_penalty(int32_t distance, double backw_penalty)
+{	
+	return int32_t(distance * (1.0 - backw_penalty));
+};

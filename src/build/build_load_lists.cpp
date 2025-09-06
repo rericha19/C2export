@@ -290,11 +290,7 @@ void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int,
 	int32_t neig_distance = elist.m_config[LL_Neighbour_Distance];
 	int32_t preloading_flag = elist.m_config[LL_Transition_Preloading_Type];
 
-	auto distance_with_penalty = [&](int32_t distance)
-		{
-			double backwards_penalty = config_to_double(elist.m_config[LL_Backwards_Loading_Penalty_DBL]);
-			return int32_t(distance * (1.0 - backwards_penalty));
-		};
+	double backwards_penalty = config_to_double(elist.m_config[LL_Backwards_Loading_Penalty_DBL]);
 
 	int32_t distance = 0;
 
@@ -399,8 +395,8 @@ void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int,
 		coords = ntry.get_ent_path(cam_index);
 
 		bool is_before = ENTRY::is_before(ntry, cam_index / 3, elist[neigh_idx2], link2.cam_index);
-		int32_t slst_dist_w_orientation = is_before ? slst_distance : distance_with_penalty(slst_distance);
-		int32_t neig_dist_w_orientation = is_before ? neig_distance : distance_with_penalty(neig_distance);
+		int32_t slst_dist_w_orientation = is_before ? slst_distance : distance_with_penalty(slst_distance, backwards_penalty);
+		int32_t neig_dist_w_orientation = is_before ? neig_distance : distance_with_penalty(neig_distance, backwards_penalty);
 
 		if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
 		{
