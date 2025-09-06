@@ -48,4 +48,4 @@ clean:
 $(TARGET) $(TARGET_DEBUG) : | bin
 
 bin:
-	if not exist bin mkdir bin
+	mkdir -p bin
