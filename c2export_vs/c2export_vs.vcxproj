@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\build\build.hpp" />
     <ClInclude Include="..\src\include.h" />
     <ClInclude Include="..\src\side_scripts\export.hpp" />
     <ClInclude Include="..\src\side_scripts\level_alter.hpp" />
@@ -31,7 +32,6 @@
     <ClInclude Include="..\src\utils\utils.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\build\build.cpp" />
     <ClCompile Include="..\src\build\build_input.cpp" />
     <ClCompile Include="..\src\build\build_lists.cpp" />
     <ClCompile Include="..\src\build\build_load_lists.cpp" />

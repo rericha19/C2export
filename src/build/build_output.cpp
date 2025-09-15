@@ -226,6 +226,9 @@ void ELIST::build_sound_chunks(uint8_t** chunks)
 			}
 		}
 
+		// seems to fix alignment ? hacky
+		offsets[indexer] -= 8;
+
 		for (int32_t j = 0; j < chunk_entry_count + 1; j++)
 			*(uint32_t*)(chunks[m_chunk_count + i] + 0x10 + j * 4) = offsets[j];
 

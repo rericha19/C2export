@@ -54,6 +54,9 @@
     <ClInclude Include="..\src\utils\elist.hpp">
       <Filter>Source Files\utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\build\build.hpp">
+      <Filter>Source Files\build</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -67,9 +70,6 @@
     </ClCompile>
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp">
       <Filter>Source Files\side_scripts</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\build\build.cpp">
-      <Filter>Source Files\build</Filter>
     </ClCompile>
     <ClCompile Include="..\src\build\build_load_lists.cpp">
       <Filter>Source Files\build</Filter>

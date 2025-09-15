@@ -2,13 +2,12 @@
 #include "../include.h"
 #include "../utils/utils.hpp"
 #include "../utils/dist_queue.hpp"
-#include "../utils/entry.hpp"
 
 // Reads nsf, reads inputs, 
 // makes draw lists, makes load lists and draw lists if selected, 
 // merges entries into chunks, writes outputs
-void build_main(int32_t build_type)
-{	
+inline void build_main(int32_t build_type)
+{
 	clock_t time_build_start = clock();
 
 	ELIST elist{};
@@ -74,7 +73,7 @@ void build_main(int32_t build_type)
 
 		// build load lists based on user input and metadata, and already or not yet collected metadata
 		printf("\nNumber of permaloaded entries: %d\n\n", elist.m_permaloaded.count());
-		build_remake_load_lists(elist);
+		elist.remake_load_lists();
 	}
 
 	// entry omitting stuff

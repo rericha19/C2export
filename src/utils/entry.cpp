@@ -152,6 +152,7 @@ LIST ENTRY::get_sceneries()
 	return list;
 }
 
+// todo maybe make more readable
 // collects list of IDs using draw lists of neighbouring camera paths
 LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_index, int32_t point_index)
 {
@@ -182,19 +183,18 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			distance += build_get_distance(coords.data(), point_index, coords.length() - 1, -1, NULL);
 
 		uint32_t eid_offset = get_nth_item_offset(0) + 4 + link.zone_index * 4 + C2_NEIGHBOURS_START;
-		uint32_t neighbour_eid = from_u32(_data() + eid_offset);
-		uint32_t neighbour_flg = from_u32(_data() + eid_offset + 0x20);
 
+		uint32_t neighbour_eid = from_u32(_data() + eid_offset);
 		int32_t neigh_idx = elist.get_index(neighbour_eid);
 		if (neigh_idx == -1)
 			continue;
 
 		// preloading everything check
+		uint32_t neighbour_flg = from_u32(_data() + eid_offset + 0x20);
 		if (preloading_flag != PRELOADING_ALL && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
 			continue;
 
-		ENTRY& neigh1 = elist[neigh_idx];
-		neighbours.copy_in(neigh1.get_neighbours());
+		neighbours.copy_in(elist[neigh_idx].get_neighbours());
 
 		ENTITY_PATH coords2 = elist[neigh_idx].get_ent_path(2 + 3 * link.cam_index);
 		if (!coords2.length())
@@ -212,7 +212,6 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 		if (link.flag == 1)
 		{
 			distance += build_get_distance(coords2.data(), 0, coords2.length() - 1, draw_dist_w_orientation - distance, &point_index2);
-
 			for (int32_t j = 0; j < point_index2; j++)
 				entity_list.copy_in(draw_list_neighbour1[j]);
 		}
@@ -227,23 +226,23 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			continue;
 
 		LIST layer2 = elist[neigh_idx].get_links(2 + 3 * link.cam_index);
-		for (int32_t j = 0; j < layer2.count(); j++)
+		for (auto _l2: layer2)
 		{
-			CAMERA_LINK link2(layer2[j]);
-			uint32_t eid_offset2 = from_u32(elist[neigh_idx]._data() + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
-			uint32_t neighbour_eid2 = from_u32(elist[neigh_idx]._data() + eid_offset2);
-			uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + eid_offset2 + 0x20);
+			CAMERA_LINK link2(_l2);
 
+			uint32_t eid_offset2 = from_u32(elist[neigh_idx]._data() + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;			
+
+			uint32_t neighbour_eid2 = from_u32(elist[neigh_idx]._data() + eid_offset2);
 			int32_t neigh_idx2 = elist.get_index(neighbour_eid2);
 			if (neigh_idx2 == -1)
 				continue;
 
 			// preloading everything check
+			uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + eid_offset2 + 0x20);
 			if (preloading_flag != PRELOADING_ALL && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
 				continue;
-
-			ENTRY& neigh2 = elist[neigh_idx2];
-			neighbours.copy_in(neigh2.get_neighbours());
+			
+			neighbours.copy_in(elist[neigh_idx2].get_neighbours());
 
 			ENTITY_PATH coords3 = elist[neigh_idx2].get_ent_path(2 + 3 * link2.cam_index);
 			if (!coords3.length())
@@ -357,20 +356,9 @@ void ENTRY::parse_spawns(SPAWNS& spawns)
 	auto seek_spawn = [&](int32_t entity_n) -> ENTITY_PATH
 		{
 			uint8_t* item = get_nth_entity(entity_n);
-
-			int32_t type = -1, subtype = -1, coords_offset = -1;
-			for (int32_t i = 0; i < PROPERTY::count(item); i++)
-			{
-				int32_t code = from_u16(item + 0x10 + 8 * i);
-				int32_t offset = from_u16(item + 0x12 + 8 * i) + OFFSET;
-
-				if (code == ENTITY_PROP_TYPE)
-					type = from_u32(item + offset + 4);
-				if (code == ENTITY_PROP_SUBTYPE)
-					subtype = from_u32(item + offset + 4);
-				if (code == ENTITY_PROP_PATH)
-					coords_offset = offset + 4;
-			}
+			int32_t type = PROPERTY::get_value(item, ENTITY_PROP_TYPE);
+			int32_t subtype = PROPERTY::get_value(item, ENTITY_PROP_SUBTYPE);
+			int32_t coords_offset = PROPERTY::get_offset(item, ENTITY_PROP_PATH);
 
 			if (coords_offset == -1)
 				return {};
@@ -380,7 +368,7 @@ void ENTRY::parse_spawns(SPAWNS& spawns)
 				ENTITY_PATH coords{};
 
 				for (int32_t i = 0; i < 3; i++)
-					coords.push_back((*(int16_t*)(item + coords_offset + 2 * i)) * 4);
+					coords.push_back((*(int16_t*)(item + coords_offset + 4 + 2 * i)) * 4);
 				return coords;
 			}
 
@@ -558,7 +546,7 @@ int32_t ENTRY::get_scenery_count()
 	return get_scenery_count(_data());
 }
 
-bool ENTRY::check_get_item_count()
+bool ENTRY::check_zone_item_count()
 {
 	int32_t item_cnt = get_item_count();
 	int32_t cam_cnt = get_cam_item_count();
@@ -672,7 +660,8 @@ void ENTRY::replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t item
 	}
 
 	item_lengths[item_index] = item_size;
-	items[item_index].reset(new_item);
+	items[item_index].reset((uint8_t*)try_malloc(item_size));
+	memcpy(items[item_index].get(), new_item, item_size);
 
 	int32_t new_size = first_item_off;
 	for (int32_t i = 0; i < item_cnt; i++)
@@ -680,6 +669,7 @@ void ENTRY::replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t item
 
 	m_esize = new_size;
 	m_data.resize(new_size);
+
 	uint8_t* new_data = _data();
 	*(int32_t*)(new_data) = MAGIC_ENTRY;
 	*(int32_t*)(new_data + 0x4) = m_eid;
@@ -691,6 +681,18 @@ void ENTRY::replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t item
 
 	for (offset = first_item_off, i = 0; i < item_cnt; offset += item_lengths[i], i++)
 		memcpy(new_data + offset, items[i].get(), item_lengths[i]);
+}
+
+
+// alters specified item using the func_arg function, replaces within the entry
+void ENTRY::entity_alter(int32_t item_index, std::vector<uint8_t>(func_arg)(uint32_t, std::vector<uint8_t>&, PROPERTY*), int32_t property_code, PROPERTY* prop)
+{
+	int32_t item_length = get_nth_item_offset(item_index + 1) - get_nth_item_offset(item_index);
+	std::vector<uint8_t> item(item_length);
+	memcpy(item.data(), _data() + get_nth_item_offset(item_index), item_length);
+
+	item = func_arg(property_code, item, prop);
+	replace_nth_item(item_index, item.data(), int32_t(item.size()));
 }
 
 uint32_t ENTRY::get_zone_track()
@@ -817,7 +819,7 @@ DRAW_LIST ENTRY::get_draw_lists(int32_t item_index)
 	return dl;
 }
 
-//  Checks for whether the current camera isnt trying to load more than 8 textures
+// Checks for whether the current camera isnt trying to load more than 8 textures
 void ENTRY::texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_idx)
 {
 	int32_t max_count = 0;
@@ -853,6 +855,7 @@ void ENTRY::texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int3
 	}
 }
 
+// gets draw list generation override multiplier to be used immediately
 int32_t ENTRY::get_nth_entity_draw_override_mult(int32_t entity_idx)
 {
 	int32_t draw_mult = PROPERTY::get_value(get_nth_entity(entity_idx), ENTITY_PROP_OVERRIDE_DRAW_MULT);
@@ -862,6 +865,7 @@ int32_t ENTRY::get_nth_entity_draw_override_mult(int32_t entity_idx)
 		return draw_mult >> 8;
 }
 
+// gets index of entity to be drawn, taking draw list generation override index into consideration
 std::tuple<bool, int32_t> ENTRY::get_nth_entity_draw_override_ent_idx(int32_t entity_idx)
 {
 	int32_t pos_override_id = PROPERTY::get_value(get_nth_entity(entity_idx), ENTITY_PROP_OVERRIDE_DRAW_ID);
@@ -879,4 +883,52 @@ std::tuple<bool, int32_t> ENTRY::get_nth_entity_draw_override_ent_idx(int32_t en
 	}
 
 	return { true, -1 };
+}
+
+
+// reads draw lists of the camera of the zone, returns in a non-delta form.
+std::vector<LIST> ENTRY::get_expanded_draw_list(int32_t cam_index)
+{
+	int32_t cam_length = get_ent_path_len(cam_index);
+
+	std::vector<LIST> draw_list_full(cam_length);
+	DRAW_LIST draw_list_delta = get_draw_lists(cam_index);
+
+	LIST list = {};
+	int32_t sublist_index = 0;
+	for (size_t i = 0; i < size_t(cam_length) && sublist_index < draw_list_delta.size(); i++)
+	{
+		bool new_read = false;
+		auto& sublist = draw_list_delta[sublist_index];
+		if (sublist.index == i)
+		{
+			if (draw_list_delta[sublist_index].type == 'B')
+			{
+				for (auto& draw_uint : sublist.list)
+				{
+					DRAW_ITEM draw_item(draw_uint);
+					list.add(draw_item.ID);
+				}
+			}
+
+			if (draw_list_delta[sublist_index].type == 'A')
+			{
+				for (auto& draw_uint : sublist.list)
+				{
+					DRAW_ITEM draw_item(draw_uint);
+					list.remove(draw_item.ID);
+				}
+			}
+
+			sublist_index++;
+			new_read = true;
+		}
+		draw_list_full[i].copy_in(list);
+
+		// fixes case when both draw list A and B containsn sublist w/ the same index
+		if (new_read)
+			i--;
+	}
+
+	return draw_list_full;
 }

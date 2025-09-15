@@ -16,8 +16,8 @@ namespace level_alter
 			int32_t cam_count = ntry.get_cam_item_count() / 3;
 			for (int32_t j = 0; j < cam_count; j++)
 			{
-				build_entity_alter(ntry, 2 + 3 * j, build_rem_property, ENTITY_PROP_CAM_DRAW_LIST_A, NULL);
-				build_entity_alter(ntry, 2 + 3 * j, build_rem_property, ENTITY_PROP_CAM_DRAW_LIST_B, NULL);
+				ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, ENTITY_PROP_CAM_DRAW_LIST_A, NULL);
+				ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, ENTITY_PROP_CAM_DRAW_LIST_B, NULL);
 			}
 		}
 	}
@@ -75,15 +75,15 @@ namespace level_alter
 
 				if (old_override_id != -1)
 				{
-					build_entity_alter(ntry, entity_n, build_rem_property, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD, NULL);
+					ntry.entity_alter(entity_n, PROPERTY::item_rem_property, ENTITY_PROP_OVERRIDE_DRAW_ID_OLD, NULL);
 					*(int16_t*)(prop_override_id.header) = ENTITY_PROP_OVERRIDE_DRAW_ID;
-					build_entity_alter(ntry, entity_n, build_add_property, ENTITY_PROP_OVERRIDE_DRAW_ID, &prop_override_id);
+					ntry.entity_alter(entity_n, PROPERTY::item_add_property, ENTITY_PROP_OVERRIDE_DRAW_ID, &prop_override_id);
 				}
 				if (old_override_mult != -1)
 				{
-					build_entity_alter(ntry, entity_n, build_rem_property, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD, NULL);
+					ntry.entity_alter(entity_n, PROPERTY::item_rem_property, ENTITY_PROP_OVERRIDE_DRAW_MULT_OLD, NULL);
 					*(int16_t*)(prop_override_mult.header) = ENTITY_PROP_OVERRIDE_DRAW_MULT;
-					build_entity_alter(ntry, entity_n, build_add_property, ENTITY_PROP_OVERRIDE_DRAW_MULT, &prop_override_mult);
+					ntry.entity_alter(entity_n, PROPERTY::item_add_property, ENTITY_PROP_OVERRIDE_DRAW_MULT, &prop_override_mult);
 				}
 			}
 		}
@@ -104,7 +104,7 @@ namespace level_alter
 		LIST found_at{};
 
 		// debug print for node info struct
-		void dbg_print_info()
+		void node_print_info()
 		{
 			auto node = this;
 			printf("  NodeInfo: offset_value=0x%04X, children_count=%d, found_at.count=%d, found_at.eids=[",
@@ -217,8 +217,8 @@ namespace level_alter
 				if (case1 || case2 || case3 || case4)
 				{
 					// printf("swapping case %d%d%d%d\n", case1, case2, case3, case4);
-					//nodeA.dbg_print_info();
-					//nodeB.dbg_print_info();					
+					//nodeA.node_print_info();
+					//nodeB.node_print_info();					
 					// printf("\n");
 
 					memcpy(item + new_offset, item + offsetB, 2 * childrenB);

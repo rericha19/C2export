@@ -485,7 +485,7 @@ bool ELIST::read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fp
 
 				if (ntry.get_entry_type() == EntryType::Zone)
 				{
-					if (!ntry.check_get_item_count())
+					if (!ntry.check_zone_item_count())
 						return false;
 					ntry.parse_relatives();
 					ntry.parse_spawns(m_spawns);

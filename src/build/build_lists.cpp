@@ -221,7 +221,6 @@ LIST ELIST::get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours)
 // selects entities to draw, converts to delta form and replaces camera properties
 void ELIST::remake_draw_lists()
 {
-	bool dbg_print = false;
 	LIST pos_overrides{};
 
 	for (auto& ntry : *this)
@@ -291,26 +290,243 @@ void ELIST::remake_draw_lists()
 
 			// converts full draw list to delta based, then creates game-format draw list properties based on the delta lists
 			// listA and listB args are switched around because draw lists are like that
-			build_load_list_to_delta(full_draw, listB, listA, cam_length, *this, true);
+			list_to_delta(full_draw, listB, listA, true);
 			PROPERTY prop_0x13B = PROPERTY::make_list_prop(listA, 0x13B);
 			PROPERTY prop_0x13C = PROPERTY::make_list_prop(listB, 0x13C);
 
-			if (dbg_print)
-				printf("Converted full list to delta form and delta to props\n");
-
 			// removes existing draw list properties, inserts newly made ones
-			build_entity_alter(ntry, 2 + 3 * j, build_rem_property, 0x13B, NULL);
-			build_entity_alter(ntry, 2 + 3 * j, build_rem_property, 0x13C, NULL);
+			ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x13B, NULL);
+			ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x13C, NULL);
 
 			if (max_c && prop_0x13B.length && prop_0x13C.length)
 			{
-				build_entity_alter(ntry, 2 + 3 * j, build_add_property, 0x13b, &prop_0x13B);
-				build_entity_alter(ntry, 2 + 3 * j, build_add_property, 0x13C, &prop_0x13C);
+				ntry.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x13B, &prop_0x13B);
+				ntry.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x13C, &prop_0x13C);
 			}
-
-			if (dbg_print)
-				printf("Replaced draw list props, end\n");
 		}
 	}
 }
 
+//  Converts the full load list into delta form.
+void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw)
+{
+	int32_t cam_length = int32_t(full_load.size());
+	// full item, listA point 0
+	for (int32_t i = 0; i < full_load[0].count(); i++)
+		if (is_draw || get_index(full_load[0][i]) != -1)
+			listA[0].add(full_load[0][i]);
+
+	// full item, listB point n-1
+	int32_t n = cam_length - 1;
+	for (int32_t i = 0; i < full_load[n].count(); i++)
+		if (is_draw || get_index(full_load[n][i]) != -1)
+			listB[n].add(full_load[n][i]);
+
+	// creates delta items
+	// for each point it takes full load list and for each entry checks whether it
+	// has just become loaded/deloaded
+	for (int32_t i = 1; i < cam_length; i++)
+	{
+		for (int32_t j = 0; j < full_load[i].count(); j++)
+		{
+			uint32_t curr_eid = full_load[i][j];
+			if (!is_draw && get_index(curr_eid) == -1)
+				continue;
+
+			// is loaded on i-th point but not on i-1th point -> just became loaded,
+			// add to listA[i]
+			if (full_load[i - 1].find(curr_eid) == -1)
+				listA[i].add(curr_eid);
+		}
+
+		for (int32_t j = 0; j < full_load[i - 1].count(); j++)
+		{
+			uint32_t curr_eid = full_load[i - 1][j];
+			if (!is_draw && get_index(curr_eid) == -1)
+				continue;
+
+			// is loaded on i-1th point but not on i-th point -> no longer loaded, add
+			// to listB[i - 1]
+			if (full_load[i].find(curr_eid) == -1)
+				listB[i - 1].add(curr_eid);
+		}
+	}
+
+	// gets rid of cases when an item is in both listA and listB on the same index
+	// (getting loaded and instantly deloaded) if its in both it removes it
+	for (int32_t i = 0; i < cam_length; i++)
+	{
+		LIST iter_copy{};
+		iter_copy.copy_in(listA[i]);
+
+		for (int32_t j = 0; j < iter_copy.count(); j++)
+		{
+			if (listB[i].find(iter_copy[j]) == -1)
+				continue;
+
+			listA[i].remove(iter_copy[j]);
+			listB[i].remove(iter_copy[j]);
+		}
+	}
+
+	if (is_draw)
+	{
+		auto cmp_func_draw = [](uint32_t a, uint32_t b)
+			{
+				DRAW_ITEM item_a(a);
+				DRAW_ITEM item_b(b);
+
+				return item_a.ID < item_b.ID;
+			};
+
+		// sort by entity id
+		for (int32_t i = 0; i < cam_length; i++)
+		{
+			std::sort(listA[i].begin(), listA[i].end(), cmp_func_draw);
+			std::sort(listB[i].begin(), listB[i].end(), cmp_func_draw);
+		}
+	}
+}
+
+/*
+A function that for each zone's each camera path creates new load lists
+using the provided list of permanently loaded entries and the provided list
+of dependencies of certain entitites, gets models from the animations. For
+the zone itself and its linked neighbours it adds all relatives and their
+dependencies. Loads only one sound per sound chunk (sound chunks should
+already be built by this point). Load list properties get removed and then
+replaced by the provided list using 'camera_alter' function. Load lists get
+sorted later during the nsd writing process.
+*/
+void ELIST::remake_load_lists()
+{
+	bool dbg_print = false;
+
+	// for each zone entry do load list (also for each zone's each camera)
+	for (auto& ntry : *this)
+	{
+		if (ntry.get_entry_type() != EntryType::Zone)
+			continue;
+
+		int32_t cam_count = ntry.get_cam_item_count() / 3;
+		if (!cam_count)
+			continue;
+
+		printf("Making load lists for %s\n", ntry.m_ename);
+
+		LIST special_entries = ntry.get_special_entries_extended(*this);
+		uint32_t music_ref = ntry.get_zone_track();
+
+		for (int32_t j = 0; j < cam_count; j++)
+		{
+			printf("\t cam path %d\n", j);
+			int32_t cam_length = ntry.get_ent_path_len(2 + 3 * j);
+
+			// full non-delta load list used to represent the load list during building
+			std::vector<LIST> full_load(cam_length);
+
+			// add permaloaded entries
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(m_permaloaded);
+
+			for (auto& mus_dep : m_musi_deps)
+			{
+				if (mus_dep.type == music_ref)
+				{
+					for (int32_t k = 0; k < cam_length; k++)
+						full_load[k].copy_in(mus_dep.dependencies);
+
+					if (dbg_print)
+					{
+						printf("\t\tcopied in %d music deps\n", mus_dep.dependencies.count());
+						for (auto& d : mus_dep.dependencies)
+							printf("\t\t\t %s\n", eid2str(d));
+					}
+				}
+			}
+
+			if (dbg_print) printf("Copied in permaloaded and music refs\n");
+
+			// add current zone's special entries
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(special_entries);
+
+			if (dbg_print) printf("Copied in special %d\n", special_entries.count());
+
+			// add relatives (directly related entries like slsts, neighbours, scenery
+			// might not be necessary								
+			for (int32_t l = 0; l < cam_length; l++)
+				full_load[l].copy_in(ntry.m_related);
+
+			if (dbg_print) printf("Copied in deprecate relatives\n");
+
+			// all sounds
+			// if (load_list_sound_entry_inc_flag == 0)
+			for (auto& ntry2 : *this)
+			{
+				if (ntry2.get_entry_type() != EntryType::Sound)
+					continue;
+
+				for (int32_t l = 0; l < cam_length; l++)
+					full_load[l].add(ntry2.m_eid);
+			}
+
+			if (dbg_print) printf("Copied in sounds\n");
+
+			// add direct neighbours
+			LIST neighbours = ntry.get_neighbours();
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(neighbours);
+
+			if (dbg_print) printf("Copied in neighbours\n");
+
+			// for each scenery in current zone's scen reference list, add its
+			// textures to the load list				
+			LIST sceneries = ntry.get_sceneries();
+			for (auto& scenery : sceneries)
+			{
+				int32_t scenery_index = get_index(scenery);
+				if (scenery_index == -1)
+				{
+					printf("[warning] invalid scenery %s in zone %s\n", eid2str(scenery), ntry.m_ename);
+					continue;
+				}
+
+				for (int32_t l = 0; l < cam_length; l++)
+					full_load[l].copy_in(at(scenery_index).get_scenery_textures());
+			}
+
+			if (dbg_print) printf("Copied in some scenery stuff\n");
+
+			// oh boy
+			build_load_list_util(ntry, 2 + 3 * j, full_load, cam_length, *this);
+
+			if (dbg_print) printf("Load list util ran\n");
+
+			// checks whether the load list doesnt try to load more than 8 textures,
+			ntry.texture_count_check(*this, full_load, j);
+
+			if (dbg_print) printf("Texture chunk was checked\n");
+
+			// creates and initialises delta representation of the load list
+			std::vector<LIST> listA(cam_length);
+			std::vector<LIST> listB(cam_length);
+
+			// converts full load list to delta based, then creates game-format load
+			// list properties based on the delta lists
+			list_to_delta(full_load, listA, listB, false);
+			PROPERTY prop_0x208 = PROPERTY::make_list_prop(listA, 0x208);
+			PROPERTY prop_0x209 = PROPERTY::make_list_prop(listB, 0x209);
+
+			if (dbg_print) printf("Converted full list to delta and delta to props\n");
+
+			// removes existing load list properties, inserts newly made ones
+			ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x208, NULL);
+			ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x209, NULL);
+			ntry.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x208, &prop_0x208);
+			ntry.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x209, &prop_0x209);
+
+			if (dbg_print) printf("Replaced load list props\n");
+		}
+	}
+}

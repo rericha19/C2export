@@ -510,23 +510,23 @@ void prop_remove_script()
 	int32_t fsize = ftell(file1);
 	rewind(file1);
 
-	uint8_t* item = (uint8_t*)try_malloc(fsize * sizeof(uint8_t));
-	fread(item, 1, fsize, file1);
+	std::vector<uint8_t> item(fsize);
+	fread(item.data(), 1, fsize, file1);
 	fclose(file1);
 
 	int32_t prop_code;
 	printf("\nWhat prop do you wanna remove? (hex)\n");
 	scanf("%x", &prop_code);
 	int32_t fsize2 = fsize;
-	item = build_rem_property(prop_code, item, &fsize2, NULL);
+	item = PROPERTY::item_rem_property(prop_code, item, NULL);
+	fsize2 = int32_t(item.size());
 
 	char fpath2[1004];
 	sprintf(fpath2, "%s-alt", fpath);
 
 	FILE* file2 = fopen(fpath2, "wb");
-	fwrite(item, 1, fsize, file2);
-	fclose(file2);
-	free(item);
+	fwrite(item.data(), 1, fsize, file2);
+	fclose(file2);	
 
 	if (fsize == fsize2)
 		printf("Seems like no changes were made\n");
@@ -554,8 +554,8 @@ void prop_replace_script()
 	int32_t fsize = ftell(file1);
 	rewind(file1);
 
-	uint8_t* item = (uint8_t*)try_malloc(fsize * sizeof(uint8_t));
-	fread(item, 1, fsize, file1);
+	std::vector<uint8_t> item (fsize);
+	fread(item.data(), 1, fsize, file1);
 	fclose(file1);
 
 	char fpath2[1000];
@@ -567,7 +567,6 @@ void prop_replace_script()
 	if (file2 == NULL)
 	{
 		printf("[ERROR] File could not be opened\n\n");
-		free(item);
 		return;
 	}
 
@@ -575,8 +574,8 @@ void prop_replace_script()
 	int32_t fsize2 = ftell(file2);
 	rewind(file2);
 
-	uint8_t* item2 = (uint8_t*)try_malloc(fsize2 * sizeof(uint8_t));
-	fread(item2, 1, fsize2, file2);
+	std::vector<uint8_t> item2(fsize2);
+	fread(item2.data(), 1, fsize2, file2);
 
 	int32_t fsize2_before;
 	int32_t fsize2_after;
@@ -584,26 +583,25 @@ void prop_replace_script()
 	printf("\nWhat prop do you wanna replace/insert? (hex)\n");
 	scanf("%x", &prop_code);
 
-	PROPERTY prop = PROPERTY::get_full(item, prop_code);
+	PROPERTY prop = PROPERTY::get_full(item.data(), prop_code);
 	if (prop.length == 0)
 	{
 		printf("Property wasnt found in the source file\n\n");
-		free(item);
-		free(item2);
 		return;
 	}
 
 	fsize2_before = fsize2;
-	item2 = build_rem_property(prop_code, item2, &fsize2, NULL);
+	item2 = PROPERTY::item_rem_property(prop_code, item2, NULL);
+	fsize2 = int32_t(item2.size());
 
 	fsize2_after = fsize2;
-	item2 = build_add_property(prop_code, item2, &fsize2, &prop);
+	item2 = PROPERTY::item_add_property(prop_code, item2, &prop);
+	fsize2 = int32_t(item2.size());
 
 	rewind(file2);
-	fwrite(item2, 1, fsize2, file2);
+	fwrite(item2.data(), 1, fsize2, file2);
 	fclose(file2);
-	free(item);
-	free(item2);
+	
 	if (fsize2_before == fsize2_after)
 		printf("Property inserted. ");
 	else

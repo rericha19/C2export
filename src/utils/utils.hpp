@@ -111,6 +111,8 @@ struct PROPERTY
 	static int32_t get_value(uint8_t* entity, uint32_t prop_code);
 	static int32_t get_offset(uint8_t* item, uint32_t prop_code);
 	static PROPERTY make_list_prop(std::vector<LIST>& list_array, int32_t code);
+	static std::vector<uint8_t> item_add_property(uint32_t code, std::vector<uint8_t>& item, PROPERTY* prop);
+	static std::vector<uint8_t> item_rem_property(uint32_t code, std::vector<uint8_t>& item, PROPERTY* prop);
 };
 
 // used in matrix merge to store what entries are loaded simultaneously and how much/often
@@ -175,7 +177,7 @@ uint32_t from_u8(const uint8_t* data);
 uint32_t eid_to_int(std::string eid);
 uint32_t nsfChecksum(const uint8_t* data, int32_t size = CHUNKSIZE);
 int32_t cmp_func_int(const void* a, const void* b);
-int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2);
+int32_t point_distance_3D(const int16_t* a, const int16_t* b);
 void path_fix(char* fpath);
 void rand_seed(int32_t seed);
 double randfrom(double min, double max);

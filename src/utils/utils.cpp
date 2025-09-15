@@ -98,17 +98,17 @@ bool SPAWNS::ask_spawn()
 	for (uint32_t i = 0; i < size(); i++)
 		printf("Spawn %2d:\tZone: %s\n", i + 1, eid2str(at(i).zone));
 
-	scanf("%d", &input);	
-	if (input >= size() || input <= 1)
+	scanf("%d", &input);
+	if (input > size() || input < 1)
 	{
 		printf("No such spawn, defaulting to first one\n");
 		input = 1;
 	}
 
 	// insert the picked spawn 2x at the start
-	auto& picked_spawn = at(input);
+	SPAWN picked_spawn = at(input - 1);
 	insert(begin(), picked_spawn);
-	insert(begin(), picked_spawn);	
+	insert(begin(), picked_spawn);
 	printf("Using spawn %2d: Zone: %s\n", input, eid2str(at(0).zone));
 	return true;
 }
@@ -219,6 +219,168 @@ PROPERTY PROPERTY::make_list_prop(std::vector<LIST>& list_array, int32_t code)
 	}
 
 	return prop;
+}
+
+// injects a property into an item
+std::vector<uint8_t> PROPERTY::item_add_property(uint32_t code, std::vector<uint8_t>& item, PROPERTY* prop)
+{
+	int32_t offset;
+	int32_t property_count = PROPERTY::count(item.data());
+
+	std::vector<int32_t> property_sizes(property_count + 1);
+	std::vector<uint8_t[8]> property_headers(property_count + 1);
+
+	for (auto& prop_header : property_headers)
+	{
+		memset(prop_header, 0, 8);
+	}
+
+	for (int32_t i = 0; i < property_count; i++)
+	{
+		int32_t idx = (from_u16(item.data() + 0x10 + 8 * i) > code) ? i + 1 : i;
+		memcpy(property_headers[idx], item.data() + 0x10 + 8 * i, 8);
+	}
+
+	int32_t insertion_index = 0;
+	for (int32_t i = 0; i < property_count + 1; i++)
+	{
+		if (from_u32(property_headers[i]) == 0 && from_u32(property_headers[i] + 4) == 0)
+			insertion_index = i;
+	}
+
+	if (insertion_index != property_count)
+	{
+		for (int32_t i = 0; i < property_count + 1; i++)
+		{
+			property_sizes[i] = 0;
+			if (i <= insertion_index - 1)
+				property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+			if (i == insertion_index - 1)
+				property_sizes[i] = from_u16(property_headers[i + 2] + 2) - from_u16(property_headers[i] + 2);
+			// if (i == insertion_index) {}
+			if (i > insertion_index)
+			{
+				if (i == property_count)
+					property_sizes[i] = from_u16(item.data()) - from_u16(property_headers[i] + 2);
+				else
+					property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+			}
+		}
+	}
+	else
+	{
+		// last prop
+		for (int32_t i = 0; i < property_count; i++)
+		{
+			if (i != property_count - 1)
+				property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+			else
+				property_sizes[i] = from_u16(item.data()) - OFFSET - from_u16(property_headers[i] + 2);
+		}
+	}
+
+	std::vector<std::vector<uint8_t>> properties(property_count + 1);
+	offset = 0x10 + 8 * property_count;
+	for (int32_t i = 0; i < property_count + 1; i++)
+	{
+		if (i == insertion_index)
+			continue;
+
+		properties[i].resize(property_sizes[i]);
+		memcpy(properties[i].data(), item.data() + offset, property_sizes[i]);
+		offset += property_sizes[i];
+	}
+
+	property_sizes[insertion_index] = prop->length;
+	memcpy(property_headers[insertion_index], prop->header, 8);
+	properties[insertion_index].resize(prop->length);
+	memcpy(properties[insertion_index].data(), prop->data.data(), prop->length);
+
+	int32_t new_size = 0x10 + 8 * (property_count + 1);
+	for (int32_t i = 0; i < property_count + 1; i++)
+		new_size += property_sizes[i];
+
+	std::vector<uint8_t> new_item(new_size);
+	*(int32_t*)(new_item.data()) = new_size - OFFSET;
+	*(int32_t*)(new_item.data() + 0x4) = 0;
+	*(int32_t*)(new_item.data() + 0x8) = 0;
+	*(int32_t*)(new_item.data() + 0xC) = property_count + 1;
+
+	offset = 0x10 + 8 * (property_count + 1);
+	for (int32_t i = 0; i < property_count + 1; i++)
+	{
+		*(int16_t*)(property_headers[i] + 2) = offset - OFFSET;
+		memcpy(new_item.data() + 0x10 + 8 * i, property_headers[i], 8);
+		memcpy(new_item.data() + offset, properties[i].data(), property_sizes[i]);
+		offset += property_sizes[i];
+	}
+
+	new_item.resize(new_item.size() - OFFSET);
+	return new_item;
+}
+
+
+// Removes the specified property.
+std::vector<uint8_t> PROPERTY::item_rem_property(uint32_t code, std::vector<uint8_t>& item, PROPERTY* prop)
+{
+	int32_t property_count = PROPERTY::count(item.data());
+
+	std::vector<int32_t> property_sizes(property_count);
+	std::vector<uint8_t[8]> property_headers(property_count);
+
+	bool found = false;
+	for (int32_t i = 0; i < property_count; i++)
+	{
+		memcpy(property_headers[i], item.data() + 0x10 + 8 * i, 8);
+		if (from_u16(property_headers[i]) == code)
+			found = true;
+	}
+
+	if (!found)
+		return item;
+
+	for (int32_t i = 0; i < property_count - 1; i++)
+		property_sizes[i] = from_u16(property_headers[i + 1] + 2) - from_u16(property_headers[i] + 2);
+	property_sizes[property_count - 1] = from_u16(item.data()) - OFFSET - from_u16(property_headers[property_count - 1] + 2);
+
+	std::vector<std::vector<uint8_t>> properties(property_count);
+
+	int32_t offset = 0x10 + 8 * property_count;
+	for (int32_t i = 0; i < property_count; offset += property_sizes[i], i++)
+	{
+		properties[i].resize(property_sizes[i]);
+		memcpy(properties[i].data(), item.data() + offset, property_sizes[i]);
+	}
+
+	int32_t new_size = 0x10 + 8 * (property_count - 1);
+	for (int32_t i = 0; i < property_count; i++)
+	{
+		if (from_u16(property_headers[i]) == code)
+			continue;
+		new_size += property_sizes[i];
+	}
+
+	std::vector<uint8_t> new_item(new_size);
+	*(int32_t*)(new_item.data()) = new_size;
+	*(int32_t*)(new_item.data() + 4) = 0;
+	*(int32_t*)(new_item.data() + 8) = 0;
+	*(int32_t*)(new_item.data() + 0xC) = property_count - 1;
+
+	offset = 0x10 + 8 * (property_count - 1);
+	int32_t indexer = 0;
+	for (int32_t i = 0; i < property_count; i++)
+	{
+		if (from_u16(property_headers[i]) != code)
+		{
+			*(int16_t*)(property_headers[i] + 2) = offset - OFFSET;
+			memcpy(new_item.data() + 0x10 + 8 * indexer, property_headers[i], 8);
+			memcpy(new_item.data() + offset, properties[i].data(), property_sizes[i]);
+			indexer++;
+			offset += property_sizes[i];
+		}
+	}
+
+	return new_item;
 }
 
 
@@ -486,9 +648,12 @@ int32_t cmp_func_int(const void* a, const void* b)
 }
 
 // calculates distance of two 3D points
-int32_t point_distance_3D(int16_t x1, int16_t x2, int16_t y1, int16_t y2, int16_t z1, int16_t z2)
+int32_t point_distance_3D(const int16_t* a, const int16_t* b)
 {
-	return (int32_t)sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2) + pow(z1 - z2, 2));
+	int32_t dx = a[0] - b[0];
+	int32_t dy = a[1] - b[1];
+	int32_t dz = a[2] - b[2];
+	return static_cast<int32_t>(std::sqrt(dx * dx + dy * dy + dz * dz));
 }
 
 // fixes path string supplied by the user, if it starts with "
@@ -607,6 +772,6 @@ ChunkType chunk_type(uint8_t* chunk)
 }
 
 int32_t distance_with_penalty(int32_t distance, double backw_penalty)
-{	
+{
 	return int32_t(distance * (1.0 - backw_penalty));
 };

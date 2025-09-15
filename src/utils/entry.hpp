@@ -65,10 +65,11 @@ public:
 	int32_t get_scenery_count();
 	bool is_normal_chunk_entry();
 
-	bool check_get_item_count();
+	bool check_zone_item_count();
 	void remove_nth_item(int32_t n);
 	void replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t new_size);
-
+	void entity_alter(int32_t item_index, std::vector<uint8_t>(func_arg)(uint32_t, std::vector<uint8_t>&, PROPERTY*), int32_t property_code, PROPERTY* prop);
+	
 	static std::string eid2s(uint32_t eid);
 	static int32_t get_nth_item_offset(uint8_t* entry, int32_t n);
 	static uint8_t* get_nth_item(uint8_t* entry, int32_t n);

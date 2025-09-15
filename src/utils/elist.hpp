@@ -80,10 +80,12 @@ public:
 
 	// load list and draw list gen
 	void print_draw_position_overrides();
-	void add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY& ntry);
 	void remake_draw_lists();
+	void add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY& ntry);
 	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
 	LIST get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours);
+	void list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw);
+	void remake_load_lists();
 
 	// matrix merge
 	void matrix_merge_util(RELATIONS& relations);
