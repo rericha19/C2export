@@ -2,13 +2,9 @@
 
 
 ##### Compile/run
-
-- C
-- MinGW/gcc
-- pthreads
-- Windows (?)
-
-use **make** to compile
+**make** (gcc) \
+or \
+use msvc .sln \
 
 ##### How to use
 
