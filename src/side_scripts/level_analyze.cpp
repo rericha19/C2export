@@ -275,7 +275,7 @@ namespace level_analyze
 
 			if (payload.tpage_count() >= 9 || print_full)
 			{
-				if (payload.page_count() >= 9)
+				if (payload.tpage_count() >= 9)
 					printf("    !!!tpages:");
 				else
 					printf("    tpages:");

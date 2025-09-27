@@ -349,19 +349,22 @@ void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 				{
 					printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_iter, thr_id);
 				}
-				else if (m_config[Rebuild_Thread_Count] > 1)
+				else if (goal_reached || is_new_best || *inp_args.curr_iter_ptr % 20 == 0)
 				{
-					printf("Iter %3d, thr %2d, current %lld (%5s), best %lld (%5s) %s\n",
-						curr_iter, thr_id, curr_score, eid2str(payloads[0].zone),
-						*inp_args.best_max_ptr, eid2str(*inp_args.best_zone_ptr),
-						goal_reached ? "-- DONE" : (is_new_best ? "-- NEW BEST" : ""));
-				}
-				else
-				{
-					printf("Iter %3d, current %lld (%5s), best %lld (%5s) %s\n",
-						curr_iter, curr_score, eid2str(payloads[0].zone),
-						*inp_args.best_max_ptr, eid2str(*inp_args.best_zone_ptr),
-						goal_reached ? "-- DONE" : (is_new_best ? "-- NEW BEST" : ""));
+					if (m_config[Rebuild_Thread_Count] > 1)
+					{
+						printf("Iter %3d, thr %2d, current %lld (%5s), best %lld (%5s) %s\n",
+							curr_iter, thr_id, curr_score, eid2str(payloads[0].zone),
+							*inp_args.best_max_ptr, eid2str(*inp_args.best_zone_ptr),
+							goal_reached ? "-- DONE" : (is_new_best ? "-- NEW BEST" : ""));
+					}
+					else
+					{
+						printf("Iter %3d, current %lld (%5s), best %lld (%5s) %s\n",
+							curr_iter, curr_score, eid2str(payloads[0].zone),
+							*inp_args.best_max_ptr, eid2str(*inp_args.best_zone_ptr),
+							goal_reached ? "-- DONE" : (is_new_best ? "-- NEW BEST" : ""));
+					}
 				}
 				*inp_args.curr_iter_ptr += 1;
 			} // mutex iter

@@ -59,7 +59,7 @@ PAYLOAD PAYLOAD::get_payload_single(ELIST& elist, LIST& loaded, uint32_t zone, i
 	{
 		int32_t elist_index = elist.get_index(loaded[i]);
 		auto& e = elist[elist_index];
-		int32_t curr_chunk = e.m_chunk;
+		int32_t curr_chunk = e.m_eid;
 
 		if (e.m_is_tpage)
 			tchunks_set.insert(curr_chunk);
