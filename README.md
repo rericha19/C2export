@@ -105,3 +105,6 @@ CrashEdit:Re fork has UI support for them
 - conversion from string version of an eid to game's hex representation
 
 ... for full list see in-program's HELP / HELP2 commands
+
+### json
+- uses nlohmann's json library (https://github.com/nlohmann/json)

@@ -98,7 +98,10 @@ inline void build_main(int32_t build_type)
 	elist.sort_load_lists();
 	elist.build_normal_chunks(chunks);
 	elist.write_nsf(chunks);
+	elist.write_ll_log();
 
+	printf("\n");
 	printf("Build/rebuild took %.3fs\n", ((double)clock() - time_build_start) / CLOCKS_PER_SEC);
 	printf("Done. It is recommended to save and patch NSD/NSF with current CrashEdit\n\n");
+
 }

@@ -2,6 +2,25 @@
 #include "../utils/elist.hpp"
 #include "../utils/entry.hpp"
 
+void ELIST::write_ll_log()
+{
+	if (m_config[Remake_Load_Lists] != 2)
+		return;
+
+	std::string log_path = std::filesystem::path(m_nsf_out.rem_path).parent_path().generic_string()
+		+ "\\load_list_log.json";
+
+	File log_out{};
+	if (log_out.open(log_path.c_str(), "w") && log_out.f)
+	{
+		std::string log_dump = m_load_list_logs.dump(1, '\t');
+		fwrite(log_dump.c_str(), 1, log_dump.length(), log_out.f);
+
+		printf("LL log saved as '%s'\n",
+			std::filesystem::absolute(log_path).generic_string().c_str());
+	}
+}
+
 // builds nsd, saves at the specified path.
 void ELIST::write_nsd()
 {
@@ -91,8 +110,6 @@ void ELIST::write_nsf(uint8_t** chunks)
 		printf("NSF #2 saved as '%s'\n",
 			std::filesystem::absolute(m_nsf_out2.rem_path).generic_string().c_str());
 	}
-
-	printf("\n");
 }
 
 // Builds chunks according to entries' assigned chunks

@@ -12,7 +12,7 @@ Handles most load list creating, except for permaloaded and sound entries.
 First part is used for neighbours & scenery & slsts.
 Second part is used for draw lists.
 */
-void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist)
+void build_load_list_util(ENTRY& ntry, int32_t camera_index, FULL_LABELED_LL& full_list, int32_t cam_length, ELIST& elist)
 {
 	// neighbours, slsts, scenery
 	LIST links = ntry.get_links(camera_index);
@@ -41,7 +41,7 @@ void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& 
 				if (info.subtype != subtype || info.type != type)
 					continue;
 
-				full_list[i].copy_in(info.dependencies);
+				full_list[i].copy_in(info.dependencies, "dep_" + std::to_string(type) + "_" + std::to_string(subtype));
 			}
 		}
 	}
@@ -50,7 +50,7 @@ void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& 
 
 
 // Deals with slst and neighbour/scenery references of path linked entries.
-void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist)
+void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, FULL_LABELED_LL& full_list, int32_t cam_length, ELIST& elist)
 {
 	int32_t slst_distance = elist.m_config[LL_SLST_Distance];
 	int32_t neig_distance = elist.m_config[LL_Neighbour_Distance];
@@ -76,21 +76,21 @@ void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int,
 	{
 		for (auto& scenery : elist[neigh_idx].get_sceneries())
 		{
-			int32_t scenery_index = elist.get_index(scenery);
-			if (scenery_index == -1)
+			int32_t scen_index = elist.get_index(scenery);
+			if (scen_index == -1)
 				continue;
 
 			if (link.type == 1)
 			{
 				int32_t end_index = (cam_length - 1) / 2 - 1;
-				for (int32_t j = 0; j < end_index; j++)				
-					full_list[j].copy_in(elist[scenery_index].get_scenery_textures());				
+				for (int32_t j = 0; j < end_index; j++)
+					full_list[j].copy_in(elist[scen_index].get_scenery_textures(), std::string("scen_tex_neigh_") + elist[scen_index].m_ename);
 			}
 			else if (link.type == 2)
 			{
 				int32_t start_index = (cam_length - 1) / 2 + 1;
-				for (int32_t j = start_index; j < cam_length; j++)				
-					full_list[j].copy_in(elist[scenery_index].get_scenery_textures());				
+				for (int32_t j = start_index; j < cam_length; j++)
+					full_list[j].copy_in(elist[scen_index].get_scenery_textures(), std::string("scen_tex_neigh_") + elist[scen_index].m_ename);
 			}
 			else
 			{
@@ -104,7 +104,7 @@ void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int,
 		return;
 
 	for (int32_t j = 0; j < cam_length; j++)
-		full_list[j].copy_in(elist[neigh_idx].m_related);
+		full_list[j].copy_in(elist[neigh_idx].m_related, "neigh_dir_rel");
 
 	int32_t neigh_cam_count = elist[neigh_idx].get_cam_item_count() / 3;
 	if (link.cam_index >= neigh_cam_count)
@@ -116,7 +116,7 @@ void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int,
 
 	uint32_t slst = elist[neigh_idx].get_nth_slst(link.cam_index);
 	for (int32_t i = 0; i < cam_length; i++)
-		full_list[i].add(slst);
+		full_list[i].add(slst, "neigh_slst");
 
 	elist.add_neighbour_coll_dependencies(full_list, ntry);
 	elist.add_neighbour_coll_dependencies(full_list, elist[neigh_idx]);
@@ -176,7 +176,8 @@ void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int,
 // Starting from the 0th index it finds a path index at which the distance
 // reaches cap distance and loads the entries specified by the additions list
 // from point 0 to end index.
-void build_load_list_zone_refs_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions)
+void build_load_list_zone_refs_back(int32_t cam_length, FULL_LABELED_LL& full_list, 
+	int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions)
 {
 	int32_t end_index = 0;
 	build_get_distance(coords, 0, path_length - 1, final_distance - distance, &end_index);
@@ -185,14 +186,14 @@ void build_load_list_zone_refs_back(int32_t cam_length, std::vector<LIST>& full_
 		return;
 
 	for (int32_t j = 0; j < end_index; j++)
-		full_list[j].copy_in(additions);
+		full_list[j].copy_in(additions, "refs_back");
 }
 
 
 // Starting from the n-1th index it finds a path index at which the distance
 // reaches cap distance and loads the entries specified by the additions list
 // from point start index n - 1.
-void build_load_list_zone_refs_forw(int32_t cam_length, std::vector<LIST>& full_list,
+void build_load_list_zone_refs_forw(int32_t cam_length, FULL_LABELED_LL& full_list,
 	int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions)
 {
 	int32_t start_index = cam_length - 1;
@@ -202,7 +203,7 @@ void build_load_list_zone_refs_forw(int32_t cam_length, std::vector<LIST>& full_
 		return;
 
 	for (int32_t j = start_index; j < cam_length; j++)
-		full_list[j].copy_in(additions);
+		full_list[j].copy_in(additions, "refs_forw");
 }
 
 // Calculates total distance the path has between given points, if cap is set

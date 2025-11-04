@@ -25,6 +25,7 @@
 #include <variant>
 #include <map>
 #include <functional>
+#include "utils/json.hpp"
 
 struct PROPERTY;
 struct RELATION;
@@ -32,6 +33,7 @@ struct RELATION;
 class LOAD;
 class ENTRY;
 class LIST;
+class LABELED_LIST;
 class ELIST;
 class DEPENDENCY;
 class DEPENDENCI;
@@ -46,6 +48,7 @@ using MATRIX_STORED_LLS = std::vector<MATRIX_STORED_LL>;
 using GENERIC_LOAD_LIST = std::vector<LOAD>;
 using LOAD_LIST = GENERIC_LOAD_LIST;
 using DRAW_LIST = GENERIC_LOAD_LIST;
+using FULL_LABELED_LL = std::vector<LABELED_LIST>;
 
 using RebuildConfig = std::map<uint32_t, int32_t>;
 
@@ -229,9 +232,16 @@ inline double config_to_double(int32_t v)
 	return ((double)v / CONFIG_FLOAT_MULT);
 };
 
+inline std::string int_to_hex4(int32_t value)
+{
+	std::stringstream ss;
+	ss << std::setw(4) << std::setfill('0') << std::hex << std::uppercase << (value & 0xFFFF);
+	return ss.str();
+}
+
 // build files in no particular order
-void build_load_list_zone_refs_back(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
-void build_load_list_zone_refs_forw(int32_t cam_length, std::vector<LIST>& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
-void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist);
+void build_load_list_zone_refs_back(int32_t cam_length, FULL_LABELED_LL& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
+void build_load_list_zone_refs_forw(int32_t cam_length, FULL_LABELED_LL& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
+void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, FULL_LABELED_LL& full_list, int32_t cam_length, ELIST& elist);
 int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
-void build_load_list_util(ENTRY& ntry, int32_t camera_index, std::vector<LIST>& full_list, int32_t cam_length, ELIST& elist);
+void build_load_list_util(ENTRY& ntry, int32_t camera_index, FULL_LABELED_LL& full_list, int32_t cam_length, ELIST& elist);

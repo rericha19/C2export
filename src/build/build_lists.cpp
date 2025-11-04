@@ -38,7 +38,7 @@ void ELIST::print_draw_position_overrides()
 
 
 // Searches the entry and for each collision type it adds its dependencies to the lists 
-void ELIST::add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY& ntry)
+void ELIST::add_neighbour_coll_dependencies(FULL_LABELED_LL& full_list, ENTRY& ntry)
 {
 	LIST neighbours = ntry.get_neighbours();
 	for (int32_t x = 0; x < neighbours.count(); x++)
@@ -62,7 +62,7 @@ void ELIST::add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY&
 					continue;
 
 				for (auto& sublist : full_list)
-					sublist.copy_in(coll_dep.dependencies);
+					sublist.copy_in(coll_dep.dependencies, "collision_" + int_to_hex4(type));
 			}
 		}
 	}
@@ -307,6 +307,17 @@ void ELIST::remake_draw_lists()
 	}
 }
 
+std::vector<LIST> ELIST::labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll)
+{
+	std::vector<LIST> unlabeled_ll(labeled_ll.size());
+	for (int32_t i = 0; i < labeled_ll.size(); i++)
+	{
+		for (int32_t j = 0; j < labeled_ll[i].count(); j++)
+			unlabeled_ll[i].add(labeled_ll[i][j].first);
+	}
+	return unlabeled_ll;
+}
+
 //  Converts the full load list into delta form.
 void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw)
 {
@@ -401,6 +412,22 @@ sorted later during the nsd writing process.
 void ELIST::remake_load_lists()
 {
 	bool dbg_print = false;
+	m_load_list_logs = nlohmann::json::object();
+	m_load_list_logs["zone_info"] = nlohmann::json::object();
+
+	nlohmann::json perma = nlohmann::json::array();
+	for (uint32_t eid : m_permaloaded)
+		perma.push_back(eid2str(eid));
+
+	nlohmann::json sounds = nlohmann::json::array();
+	for (auto& entry : *this)
+	{
+		if (entry.get_entry_type() == EntryType::Sound)
+			sounds.push_back(entry.m_ename);
+	}
+
+	m_load_list_logs["full_perma[" + std::to_string(perma.size()) + "]"] = perma;
+	m_load_list_logs["sounds[" + std::to_string(sounds.size()) + "]"] = sounds;
 
 	// for each zone entry do load list (also for each zone's each camera)
 	for (auto& ntry : *this)
@@ -423,18 +450,18 @@ void ELIST::remake_load_lists()
 			int32_t cam_length = ntry.get_ent_path_len(2 + 3 * j);
 
 			// full non-delta load list used to represent the load list during building
-			std::vector<LIST> full_load(cam_length);
+			FULL_LABELED_LL full_load(cam_length);
 
 			// add permaloaded entries
 			for (int32_t k = 0; k < cam_length; k++)
-				full_load[k].copy_in(m_permaloaded);
+				full_load[k].copy_in(m_permaloaded, "perma");
 
 			for (auto& mus_dep : m_musi_deps)
 			{
 				if (mus_dep.type == music_ref)
 				{
 					for (int32_t k = 0; k < cam_length; k++)
-						full_load[k].copy_in(mus_dep.dependencies);
+						full_load[k].copy_in(mus_dep.dependencies, "mus_" + ENTRY::eid2s(music_ref));
 
 					if (dbg_print)
 					{
@@ -449,14 +476,14 @@ void ELIST::remake_load_lists()
 
 			// add current zone's special entries
 			for (int32_t k = 0; k < cam_length; k++)
-				full_load[k].copy_in(special_entries);
+				full_load[k].copy_in(special_entries, "special_ll");
 
 			if (dbg_print) printf("Copied in special %d\n", special_entries.count());
 
 			// add relatives (directly related entries like slsts, neighbours, scenery
 			// might not be necessary								
 			for (int32_t l = 0; l < cam_length; l++)
-				full_load[l].copy_in(ntry.m_related);
+				full_load[l].copy_in(ntry.m_related, "dir_rel");
 
 			if (dbg_print) printf("Copied in deprecate relatives\n");
 
@@ -468,32 +495,25 @@ void ELIST::remake_load_lists()
 					continue;
 
 				for (int32_t l = 0; l < cam_length; l++)
-					full_load[l].add(ntry2.m_eid);
+					full_load[l].add(ntry2.m_eid, "sound");
 			}
 
 			if (dbg_print) printf("Copied in sounds\n");
-
-			// add direct neighbours
-			LIST neighbours = ntry.get_neighbours();
-			for (int32_t k = 0; k < cam_length; k++)
-				full_load[k].copy_in(neighbours);
-
-			if (dbg_print) printf("Copied in neighbours\n");
 
 			// for each scenery in current zone's scen reference list, add its
 			// textures to the load list				
 			LIST sceneries = ntry.get_sceneries();
 			for (auto& scenery : sceneries)
 			{
-				int32_t scenery_index = get_index(scenery);
-				if (scenery_index == -1)
+				int32_t scen_index = get_index(scenery);
+				if (scen_index == -1)
 				{
 					printf("[warning] invalid scenery %s in zone %s\n", eid2str(scenery), ntry.m_ename);
 					continue;
 				}
 
 				for (int32_t l = 0; l < cam_length; l++)
-					full_load[l].copy_in(at(scenery_index).get_scenery_textures());
+					full_load[l].copy_in(at(scen_index).get_scenery_textures(), std::string("tex_scen_") + at(scen_index).m_ename);
 			}
 
 			if (dbg_print) printf("Copied in some scenery stuff\n");
@@ -503,8 +523,33 @@ void ELIST::remake_load_lists()
 
 			if (dbg_print) printf("Load list util ran\n");
 
+			std::string prev_dump{};
+			for (int32_t u = 0; u < full_load.size(); u++)
+			{
+				char key_buf[200] = "";
+				int32_t interesting_entries_count = int32_t(full_load[u].size() - perma.size() - sounds.size());
+				sprintf(key_buf, "%5s-%d-%03d/%03d[%d|%d]", ntry.m_ename, j, u, int32_t(full_load.size()), 
+					interesting_entries_count, int32_t(full_load[u].size()));
+
+				nlohmann::json load_info = nlohmann::json::object();
+				for (auto& loaded : full_load[u])
+				{
+					if (loaded.second == "sound" || loaded.second.find("perma") != std::string::npos)
+						continue;
+
+					load_info[eid2str(loaded.first)] = loaded.second;
+				}
+
+				auto curr_dump = load_info.dump();
+				if (prev_dump != curr_dump)
+					m_load_list_logs["zone_info"][key_buf] = load_info;
+				prev_dump = curr_dump;
+			}
+
+			auto unlabeled_full_load = labeled_ll_to_unlabeled(full_load);
+
 			// checks whether the load list doesnt try to load more than 8 textures,
-			ntry.texture_count_check(*this, full_load, j);
+			ntry.texture_count_check(*this, unlabeled_full_load, j);
 
 			if (dbg_print) printf("Texture chunk was checked\n");
 
@@ -514,7 +559,7 @@ void ELIST::remake_load_lists()
 
 			// converts full load list to delta based, then creates game-format load
 			// list properties based on the delta lists
-			list_to_delta(full_load, listA, listB, false);
+			list_to_delta(unlabeled_full_load, listA, listB, false);
 			PROPERTY prop_0x208 = PROPERTY::make_list_prop(listA, 0x208);
 			PROPERTY prop_0x209 = PROPERTY::make_list_prop(listB, 0x209);
 

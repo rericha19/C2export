@@ -28,6 +28,7 @@
     <ClInclude Include="..\src\utils\dist_queue.hpp" />
     <ClInclude Include="..\src\utils\elist.hpp" />
     <ClInclude Include="..\src\utils\entry.hpp" />
+    <ClInclude Include="..\src\utils\json.hpp" />
     <ClInclude Include="..\src\utils\payloads.hpp" />
     <ClInclude Include="..\src\utils\utils.hpp" />
   </ItemGroup>

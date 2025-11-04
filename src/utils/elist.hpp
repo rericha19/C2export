@@ -17,11 +17,13 @@ public:
 	File m_nsf_out2;
 	File m_nsd_out2;
 
+	nlohmann::json m_load_list_logs{};
+
 	int32_t m_chunk_count = 0;
 	int32_t m_chunk_border_sounds = 0;
 
 	int32_t m_level_ID = 0;				// level ID, for naming output files, needed in output nsd
-	LIST m_permaloaded{};					// eids of permaloaded entries provided by the user
+	LIST m_permaloaded{};				// eids of permaloaded entries provided by the user
 	DEPENDENCIES m_subt_deps{};			// dependencies for certain types and subtypes
 	DEPENDENCIES m_coll_deps{};			// dependencies for certain collision types
 	DEPENDENCIES m_musi_deps{};			// dependencies for zones using certain music track 
@@ -81,9 +83,10 @@ public:
 	// load list and draw list gen
 	void print_draw_position_overrides();
 	void remake_draw_lists();
-	void add_neighbour_coll_dependencies(std::vector<LIST>& full_list, ENTRY& ntry);
+	void add_neighbour_coll_dependencies(FULL_LABELED_LL& full_list, ENTRY& ntry);
 	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
 	LIST get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours);
+	std::vector<LIST> labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll);
 	void list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw);
 	void remake_load_lists();
 
@@ -96,6 +99,7 @@ public:
 	void matrix_merge_random_main();
 
 	// output
+	void write_ll_log();
 	void write_nsd();
 	void write_nsf(uint8_t** chunks);
 	void build_normal_chunks(uint8_t** chunks);

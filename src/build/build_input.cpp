@@ -4,18 +4,32 @@
 
 void ELIST::ask_build_flags()
 {
-	printf("\nRemake load lists? [0/1]\n");
+	printf("\nRemake load lists?\n");
+	printf("[0] - do not remake\n");
+	printf("[1] - remake load lists\n");
+	printf("[2] - remake + output log json (large)\n");
+
 	int32_t ans;
 	scanf("%d", &ans);
-	if (ans)
+	if (ans < 0 || ans > 2)
 	{
-		m_config[Remake_Load_Lists] = 1;
-		printf("Will remake load lists\n\n");
+		printf("Defaulting to 0\n");
+		ans = 0;
 	}
-	else
+
+	m_config[Remake_Load_Lists] = ans;
+	switch (ans)
 	{
-		m_config[Remake_Load_Lists] = 0;
+	case 2: 
+		printf("Will remake load lists + output log\n\n");
+		break;
+	case 1:
+		printf("Will remake load lists\n\n");
+		break;
+	case 0:
+	default:
 		printf("Won't remake load lists\n\n");
+		break;
 	}
 
 	printf("What merge method do you want to use?\n");

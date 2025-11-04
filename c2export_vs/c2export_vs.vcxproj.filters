@@ -57,6 +57,9 @@
     <ClInclude Include="..\src\build\build.hpp">
       <Filter>Source Files\build</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\utils\json.hpp">
+      <Filter>Source Files\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

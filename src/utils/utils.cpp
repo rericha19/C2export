@@ -36,7 +36,6 @@ int32_t LIST::find(uint32_t eid) const
 		return -1;
 
 	return static_cast<int32_t>(it - begin());
-
 }
 
 bool LIST::is_subset(const LIST& subset, const LIST& superset)
@@ -66,6 +65,42 @@ void LIST::remove_all(const LIST& other)
 		if (it != end())
 			erase(it);
 	}
+}
+
+int32_t LABELED_LIST::count() const
+{
+	return static_cast<int32_t>(size());
+}
+
+int32_t LABELED_LIST::find(uint32_t eid) const
+{
+	for (int32_t i = 0; i < count(); i++)
+	{
+		if (at(i).first == eid)
+			return i;
+	}
+
+	return -1;
+}
+
+void LABELED_LIST::add(uint32_t eid, const std::string& reason)
+{
+	for (auto& pair : *this)
+	{
+		if (pair.first == eid)
+		{
+			pair.second += ", " + reason;
+			return;
+		}
+	}
+
+	push_back(std::make_pair(eid, reason));
+}
+
+void LABELED_LIST::copy_in(const LIST& other, const std::string& reason)
+{
+	for (auto& eid : other)
+		add(eid, reason);
 }
 
 

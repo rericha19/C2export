@@ -42,6 +42,15 @@ public:
 	static bool is_subset(const LIST& subset, const LIST& superset);
 };
 
+class LABELED_LIST : public std::vector<std::pair<uint32_t, std::string>>
+{
+public:
+	int32_t count() const;
+	int32_t find(uint32_t eid) const;
+	void add(uint32_t eid, const std::string& reason);
+	void copy_in(const LIST& other, const std::string& reason);
+};
+
 class DEPENDENCY
 {
 public:
