@@ -8,9 +8,9 @@ int32_t LIST::count() const
 	return static_cast<int32_t>(size());
 }
 
-void LIST::add(uint32_t eid)
+void LIST::add(uint32_t eid, bool allow_dupe)
 {
-	if (!empty() && std::find(begin(), end(), eid) != end())
+	if (!allow_dupe && !empty() && std::find(begin(), end(), eid) != end())
 		return;
 
 	push_back(eid);

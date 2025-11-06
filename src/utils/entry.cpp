@@ -14,7 +14,7 @@ LIST ENTRY::get_neighbours()
 	for (int32_t k = 0; k < get_neighbour_count(); k++)
 	{
 		int32_t neighbour_eid = from_u32(item0_ptr + C2_NEIGHBOURS_START + 4 + 4 * k);
-		neighbours.add(neighbour_eid);
+		neighbours.add(neighbour_eid, true);
 	}
 
 	return neighbours;

@@ -34,7 +34,7 @@ class LIST : public std::vector<uint32_t>
 public:
 	int32_t count() const;
 	int32_t find(uint32_t eid) const;
-	void add(uint32_t eid);
+	void add(uint32_t eid, bool allow_dupe = false);
 	void remove(uint32_t eid);
 	void copy_in(const LIST& other);
 	void remove_all(const LIST& other);
