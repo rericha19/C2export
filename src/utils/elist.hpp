@@ -67,6 +67,7 @@ public:
 	void merge_permaloaded();
 	void print_transitions();
 	void sort_load_lists();
+	void patch_27f_props();
 	void check_unspecified_entities();
 	void check_loaded();
 

@@ -190,6 +190,44 @@ void ELIST::print_transitions()
 	}
 }
 
+// force camera prop 0x27F ENTITY_PROP_CAM_UPDATE_SCENERY to cover all sceneries
+void ELIST::patch_27f_props()
+{
+	int32_t cams_changed = 0;
+	for (auto& ntry : *this)
+	{
+		if (ntry.get_entry_type() != EntryType::Zone)
+			continue;
+
+		uint8_t flag = 0;
+		for (int32_t i = 0; i < ntry.get_scenery_count(); i++)
+			flag |= 1 << i;
+
+		for (int32_t i = 0; i < ntry.get_cam_item_count() / 3; i++)
+		{
+			uint8_t* cam = ntry.get_nth_main_cam(i);
+			int32_t offset = PROPERTY::get_offset(cam, ENTITY_PROP_CAM_UPDATE_SCENERY);
+			if (offset == 0)
+			{
+				printf("[warning] %s-%d doesnt have 0x27F prop??\n", ntry.m_ename, i);
+				continue;
+			}
+
+			int32_t len = from_u32(cam + offset);
+			bool changed = false;
+			for (int32_t j = 0; j < len; j++)
+			{
+				auto prev_flag = *(cam + offset + 4 + j);
+				*(cam + offset + 4 + j) = flag;
+				changed |= (prev_flag != flag);
+			}
+			if (changed)
+				cams_changed++;
+		}
+	}
+	printf("Patched 0x27F props in %d cam paths\n", cams_changed);
+}
+
 // Sorts load lists according to the NSD entry table order. I think.
 void ELIST::sort_load_lists()
 {

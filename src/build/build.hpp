@@ -94,6 +94,7 @@ inline void build_main(int32_t build_type)
 	printf("\nMerge took %.3fs\n", ((double)clock() - time_start) / CLOCKS_PER_SEC);
 
 	// build and write nsd file
+	elist.patch_27f_props();
 	elist.write_nsd();
 	elist.sort_load_lists();
 	elist.build_normal_chunks(chunks);
