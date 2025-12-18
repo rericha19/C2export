@@ -737,10 +737,10 @@ namespace level_alter
 		else
 			elist.m_level_ID = ask_level_ID();
 
-		uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE] = { NULL };  // array of pointers to potentially built chunks, fixed length cuz lazy
-		uint8_t* chunks2[CHUNK_LIST_DEFAULT_SIZE] = { NULL }; // keeping original non-normal chunks to keep level order
+		CHUNKS chunks(CHUNK_LIST_DEFAULT_SIZE);  // array of pointers to potentially built chunks, fixed length cuz lazy
+		CHUNKS chunks2(CHUNK_LIST_DEFAULT_SIZE); // keeping original non-normal chunks to keep level order
 
-		if (elist.read_and_parse_nsf(chunks, 1, nsfpath))
+		if (elist.read_and_parse_nsf(&chunks, 1, nsfpath))
 			return;
 
 		// get original (texture/sound/instrument) chunk data
@@ -767,8 +767,8 @@ namespace level_alter
 			ChunkType ct = chunk_type(buffer);
 			if (ct == ChunkType::TEXTURE || ct == ChunkType::SOUND || ct == ChunkType::INSTRUMENT)
 			{
-				chunks2[i] = (uint8_t*)try_malloc(CHUNKSIZE);
-				memcpy(chunks2[i], buffer, CHUNKSIZE);
+				chunks2[i].reset((uint8_t*)try_malloc(CHUNKSIZE));
+				memcpy(chunks2[i].get(), buffer, CHUNKSIZE);
 			}
 		}
 		elist.m_chunk_count = nsf_chunk_count;
@@ -828,13 +828,6 @@ namespace level_alter
 		case AT_LevelExport:
 			// export doesnt make an output nsf
 			ll_export::export_level(elist.m_level_ID, elist, chunks, chunks2, elist.m_chunk_count);
-			for (int32_t i = 0; i < elist.m_chunk_count; i++)
-			{
-				if (chunks2[i])
-					free(chunks2[i]);
-				if (chunks[i])
-					free(chunks[i]);
-			}
 			return;
 			break;
 		default:
@@ -871,20 +864,11 @@ namespace level_alter
 		{
 			if (chunks2[i] != NULL)
 			{
-				chunks[i] = (uint8_t*)try_malloc(CHUNKSIZE);
-				memcpy(chunks[i], chunks2[i], CHUNKSIZE);
+				chunks[i].reset((uint8_t*)try_malloc(CHUNKSIZE));
+				memcpy(chunks[i].get(), chunks2[i].get(), CHUNKSIZE);
 			}
 		}
 		elist.write_nsf(chunks);
-
-		// cleanup
-		for (int32_t i = 0; i < elist.m_chunk_count; i++)
-		{
-			if (chunks2[i])
-				free(chunks2[i]);
-			if (chunks[i])
-				free(chunks[i]);
-		}
 
 		printf("\nSaved as %s / .NSD\n", nsfpathout);
 		printf("Saving with CrashEdit recommended\n");

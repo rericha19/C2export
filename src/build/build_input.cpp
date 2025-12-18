@@ -20,7 +20,7 @@ void ELIST::ask_build_flags()
 	m_config[Remake_Load_Lists] = ans;
 	switch (ans)
 	{
-	case 2: 
+	case 2:
 		printf("Will remake load lists + output log\n\n");
 		break;
 	case 1:
@@ -389,11 +389,9 @@ void ELIST::ask_params_matrix()
 	m_config[Rebuild_Iteration_Limit] -= m_config[Rebuild_Thread_Count];
 }
 
-// todo fix the mess at the start
-// parsing input info for rebuilding from a nsf file
-bool ELIST::read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fpath)
+// getting the nsf file from user input
+bool ELIST::nsf_get_file(File& nsf, bool stats_only, const char* fpath)
 {
-	File nsf;
 	char nsfpath[MAX], fname[MAX + 20];
 
 	if (fpath)
@@ -445,6 +443,14 @@ bool ELIST::read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fp
 			}
 		}
 	}
+}
+
+// parsing input info for rebuilding from a nsf file
+bool ELIST::read_and_parse_nsf(CHUNKS* chunks, bool stats_only, const char* fpath)
+{
+	File nsf;
+	if (nsf_get_file(nsf, stats_only, fpath))
+		return true;
 
 	int32_t nsf_chunk_count = chunk_count_base(nsf.f);
 	m_chunk_count = 0;
@@ -462,8 +468,8 @@ bool ELIST::read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fp
 		{
 			if (chunks != NULL)
 			{
-				chunks[m_chunk_count] = (uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
-				memcpy(chunks[m_chunk_count], buffer, CHUNKSIZE);
+				(*chunks)[m_chunk_count].reset((uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)));
+				memcpy((*chunks)[m_chunk_count].get(), buffer, CHUNKSIZE);
 			}
 
 			ENTRY tpage{};

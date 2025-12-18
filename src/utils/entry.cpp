@@ -178,9 +178,9 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 		int32_t distance = 0;
 		CAMERA_LINK link(links[i]);
 		if (link.type == 1)
-			distance += build_get_distance(coords.data(), point_index, 0, -1, NULL);
+			distance += ELIST::accumulate_path_distance(coords, point_index, 0, -1, NULL);
 		if (link.type == 2)
-			distance += build_get_distance(coords.data(), point_index, coords.length() - 1, -1, NULL);
+			distance += ELIST::accumulate_path_distance(coords, point_index, coords.length() - 1, -1, NULL);
 
 		uint32_t eid_offset = get_nth_item_offset(0) + 4 + link.zone_index * 4 + C2_NEIGHBOURS_START;
 
@@ -211,13 +211,13 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 		int32_t point_index2;
 		if (link.flag == 1)
 		{
-			distance += build_get_distance(coords2.data(), 0, coords2.length() - 1, draw_dist_w_orientation - distance, &point_index2);
+			distance += ELIST::accumulate_path_distance(coords2, 0, coords2.length() - 1, draw_dist_w_orientation - distance, &point_index2);
 			for (int32_t j = 0; j < point_index2; j++)
 				entity_list.copy_in(draw_list_neighbour1[j]);
 		}
 		if (link.flag == 2)
 		{
-			distance += build_get_distance(coords2.data(), coords2.length() - 1, 0, draw_dist_w_orientation - distance, &point_index2);
+			distance += ELIST::accumulate_path_distance(coords2, coords2.length() - 1, 0, draw_dist_w_orientation - distance, &point_index2);
 			for (int32_t j = point_index2; j < coords2.length(); j++)
 				entity_list.copy_in(draw_list_neighbour1[j]);
 		}
@@ -260,7 +260,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			// start to end
 			if ((link.type == 2 && link2.type == 2 && link2.flag == 1) || (link.type == 1 && link2.type == 1 && link2.flag == 1))
 			{
-				build_get_distance(coords3.data(), 0, coords3.length() - 1, draw_dist_w_orientation - distance, &point_index3);
+				ELIST::accumulate_path_distance(coords3, 0, coords3.length() - 1, draw_dist_w_orientation - distance, &point_index3);
 				for (int32_t k = 0; k < point_index3; k++)
 					entity_list.copy_in(draw_list_neighbour2[k]);
 			}
@@ -268,7 +268,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			// end to start
 			if ((link.type == 2 && link2.type == 2 && link2.flag == 1) || (link.type == 1 && link2.type == 1 && link2.flag == 2))
 			{
-				build_get_distance(coords3.data(), coords3.length() - 1, 0, draw_dist_w_orientation - distance, &point_index3);
+				ELIST::accumulate_path_distance(coords3, coords3.length() - 1, 0, draw_dist_w_orientation - distance, &point_index3);
 				for (int32_t k = point_index3; k < coords3.length(); k++)
 					entity_list.copy_in(draw_list_neighbour2[k]);
 			}

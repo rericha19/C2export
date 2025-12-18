@@ -13,12 +13,10 @@ inline void build_main(int32_t build_type)
 	ELIST elist{};
 	elist.m_config[Remake_Draw_Lists] = (build_type == BuildType_Rebuild_DL);
 
-	// todo replace with vector of smart pointers?
-	//std::vector<std::unique_ptr<uint8_t[]>> chunks(CHUNK_LIST_DEFAULT_SIZE, nullptr);
-	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];
+	CHUNKS chunks(CHUNK_LIST_DEFAULT_SIZE);
 
 	// reading contents of the nsf to be rebuilt and collecting metadata
-	bool input_parse_err = elist.read_and_parse_nsf(chunks, 0, NULL);
+	bool input_parse_err = elist.read_and_parse_nsf(&chunks, 0, NULL);
 	if (input_parse_err)
 	{
 		printf("[ERROR] something went wrong during parsing\n");

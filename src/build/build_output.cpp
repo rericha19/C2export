@@ -2,6 +2,40 @@
 #include "../utils/elist.hpp"
 #include "../utils/entry.hpp"
 
+void ELIST::print_draw_position_overrides()
+{
+	printf("\nDraw list gen position overrides:\n");
+
+	for (auto& ntry : *this)
+	{
+		if (ntry.get_entry_type() != EntryType::Zone)
+			continue;
+
+		for (int32_t i = 0; i < ntry.get_entity_count(); i++)
+		{
+			uint8_t* entity = ntry.get_nth_entity(i);
+			int32_t ent_id = PROPERTY::get_value(entity, ENTITY_PROP_ID);
+			if (ent_id == -1)
+				continue;
+
+			int32_t draw_mult = ntry.get_nth_entity_draw_override_mult(i);
+			if (draw_mult != 100)
+				printf("          %s entity ID %3d uses distance multiplier %.2fx (%d)\n", ntry.m_ename, ent_id, double(draw_mult) / 100, draw_mult);
+
+			auto [present, entity_idx] = ntry.get_nth_entity_draw_override_ent_idx(i);
+			if (!present)
+				continue;
+
+			int32_t pos_override_id = PROPERTY::get_value(entity, ENTITY_PROP_OVERRIDE_DRAW_ID) >> 8;
+
+			if (entity_idx != -1)
+				printf("          %s entity ID %3d uses position from entity %3d\n", ntry.m_ename, ent_id, pos_override_id);
+			else
+				printf("[warning] %s entity ID %3d cannot use position override %3d\n", ntry.m_ename, ent_id, pos_override_id);
+		}
+	}
+}
+
 void ELIST::write_ll_log()
 {
 	if (m_config[Remake_Load_Lists] != 2)
@@ -94,10 +128,10 @@ void ELIST::write_nsd()
 }
 
 // Writes to the already open output nsf files
-void ELIST::write_nsf(uint8_t** chunks)
+void ELIST::write_nsf(CHUNKS& chunks)
 {
 	for (int32_t i = 0; i < m_chunk_count; i++)
-		fwrite(chunks[i], sizeof(uint8_t), CHUNKSIZE, m_nsf_out.f);
+		fwrite(chunks[i].get(), sizeof(uint8_t), CHUNKSIZE, m_nsf_out.f);
 
 	printf("NSF #1 saved as '%s'\n",
 		std::filesystem::absolute(m_nsf_out.rem_path).generic_string().c_str());
@@ -105,7 +139,7 @@ void ELIST::write_nsf(uint8_t** chunks)
 	if (m_nsf_out2.ok())
 	{
 		for (int32_t i = 0; i < m_chunk_count; i++)
-			fwrite(chunks[i], sizeof(uint8_t), CHUNKSIZE, m_nsf_out2.f);
+			fwrite(chunks[i].get(), sizeof(uint8_t), CHUNKSIZE, m_nsf_out2.f);
 
 		printf("NSF #2 saved as '%s'\n",
 			std::filesystem::absolute(m_nsf_out2.rem_path).generic_string().c_str());
@@ -113,7 +147,7 @@ void ELIST::write_nsf(uint8_t** chunks)
 }
 
 // Builds chunks according to entries' assigned chunks
-void ELIST::build_normal_chunks(uint8_t** chunks)
+void ELIST::build_normal_chunks(CHUNKS& chunks)
 {
 	// texture, wavebank and sound chunks are already taken care of, thats why it starts after sounds
 	for (int32_t i = m_chunk_border_sounds; i < m_chunk_count; i++)
@@ -124,11 +158,11 @@ void ELIST::build_normal_chunks(uint8_t** chunks)
 			if (ntry.m_chunk == i)
 				chunk_entry_count++;
 
-		chunks[i] = (uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+		chunks[i].reset((uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)));
 		// header stuff
-		*(uint16_t*)chunks[i] = MAGIC_CHUNK;
-		*(uint16_t*)(chunks[i] + 4) = chunk_no;
-		*(uint16_t*)(chunks[i] + 8) = chunk_entry_count;
+		*(uint16_t*)(chunks[i].get()) = MAGIC_CHUNK;
+		*(uint16_t*)(chunks[i].get() + 4) = chunk_no;
+		*(uint16_t*)(chunks[i].get() + 8) = chunk_entry_count;
 
 		std::vector<uint32_t> offsets(chunk_entry_count + 2);
 
@@ -147,7 +181,7 @@ void ELIST::build_normal_chunks(uint8_t** chunks)
 
 		// writes offsets
 		for (int32_t j = 0; j < chunk_entry_count + 1; j++)
-			*(uint32_t*)(chunks[i] + 0x10 + j * 4) = offsets[j];
+			*(uint32_t*)(chunks[i].get() + 0x10 + j * 4) = offsets[j];
 
 		// writes entries
 		int32_t curr_offset = offsets[0];
@@ -155,17 +189,17 @@ void ELIST::build_normal_chunks(uint8_t** chunks)
 		{
 			if (ntry.m_chunk == i)
 			{
-				memcpy(chunks[i] + curr_offset, ntry._data(), ntry.m_esize);
+				memcpy(chunks[i].get() + curr_offset, ntry._data(), ntry.m_esize);
 				curr_offset += ntry.m_esize;
 			}
 		}
 
-		*((uint32_t*)(chunks[i] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[i]); // chunk checksum
+		*((uint32_t*)(chunks[i].get() + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[i].get()); // chunk checksum
 	}
 }
 
 // Creates and builds sound chunks, formats accordingly?
-void ELIST::build_sound_chunks(uint8_t** chunks)
+void ELIST::build_sound_chunks(CHUNKS& chunks)
 {
 	auto align_sound = [](int32_t input)
 		{
@@ -218,7 +252,7 @@ void ELIST::build_sound_chunks(uint8_t** chunks)
 	{
 		int32_t chunk_entry_count = 0;
 		int32_t chunk_no = 2 * (m_chunk_count + i) + 1;
-		chunks[m_chunk_count + i] = (uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
+		chunks[m_chunk_count + i].reset((uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)));
 
 		for (int32_t j = 0; j < sound_entry_count; j++)
 			if (sound_list[j].m_chunk == m_chunk_count + i)
@@ -226,10 +260,10 @@ void ELIST::build_sound_chunks(uint8_t** chunks)
 
 		std::vector<uint32_t> offsets(chunk_entry_count + 2);
 
-		*(uint16_t*)chunks[m_chunk_count + i] = MAGIC_CHUNK;
-		*(uint16_t*)(chunks[m_chunk_count + i] + 2) = int32_t(ChunkType::SOUND);
-		*(uint16_t*)(chunks[m_chunk_count + i] + 4) = chunk_no;
-		*(uint16_t*)(chunks[m_chunk_count + i] + 8) = chunk_entry_count;
+		*(uint16_t*)(chunks[m_chunk_count + i].get()) = MAGIC_CHUNK;
+		*(uint16_t*)(chunks[m_chunk_count + i].get() + 2) = int32_t(ChunkType::SOUND);
+		*(uint16_t*)(chunks[m_chunk_count + i].get() + 4) = chunk_no;
+		*(uint16_t*)(chunks[m_chunk_count + i].get() + 8) = chunk_entry_count;
 
 		int32_t indexer = 0;
 		offsets[indexer] = align_sound(0x10 + (chunk_entry_count + 1) * 4);
@@ -247,16 +281,16 @@ void ELIST::build_sound_chunks(uint8_t** chunks)
 		offsets[indexer] -= 8;
 
 		for (int32_t j = 0; j < chunk_entry_count + 1; j++)
-			*(uint32_t*)(chunks[m_chunk_count + i] + 0x10 + j * 4) = offsets[j];
+			*(uint32_t*)(chunks[m_chunk_count + i].get() + 0x10 + j * 4) = offsets[j];
 
 		indexer = 0;
 		for (int32_t j = 0; j < sound_entry_count; j++)
 		{
 			if (sound_list[j].m_chunk == m_chunk_count + i)
-				memcpy(chunks[m_chunk_count + i] + offsets[indexer++], sound_list[j]._data(), sound_list[j].m_esize);
+				memcpy(chunks[m_chunk_count + i].get() + offsets[indexer++], sound_list[j]._data(), sound_list[j].m_esize);
 		}
 
-		*(uint32_t*)(chunks[m_chunk_count + i] + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[m_chunk_count + i]);
+		*(uint32_t*)(chunks[m_chunk_count + i].get() + CHUNK_CHECKSUM_OFFSET) = nsfChecksum(chunks[m_chunk_count + i].get());
 	}
 
 	// update the chunk assignment in the actual master entry list
@@ -277,7 +311,7 @@ void ELIST::build_sound_chunks(uint8_t** chunks)
 }
 
 // Creates and builds chunks for the instrument entries according to their format.
-void ELIST::build_instrument_chunks(uint8_t** chunks)
+void ELIST::build_instrument_chunks(CHUNKS& chunks)
 {
 	// wavebank chunks are one entry per chunk, not much to it
 	for (auto& ntry : *this)
@@ -286,17 +320,17 @@ void ELIST::build_instrument_chunks(uint8_t** chunks)
 			continue;
 
 		ntry.m_chunk = m_chunk_count;
-		chunks[m_chunk_count] = (uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)); // freed by build_main
-		*(uint16_t*)(chunks[m_chunk_count]) = MAGIC_CHUNK;
-		*(uint16_t*)(chunks[m_chunk_count] + 2) = int32_t(ChunkType::INSTRUMENT);
-		*(uint16_t*)(chunks[m_chunk_count] + 4) = 2 * m_chunk_count + 1;
+		chunks[m_chunk_count].reset((uint8_t*)try_calloc(CHUNKSIZE, sizeof(uint8_t)));
+		*(uint16_t*)(chunks[m_chunk_count].get()) = MAGIC_CHUNK;
+		*(uint16_t*)(chunks[m_chunk_count].get() + 2) = int32_t(ChunkType::INSTRUMENT);
+		*(uint16_t*)(chunks[m_chunk_count].get() + 4) = 2 * m_chunk_count + 1;
 
-		*(uint32_t*)(chunks[m_chunk_count] + 8) = 1;
-		*(uint32_t*)(chunks[m_chunk_count] + 0x10) = 0x24;
-		*(uint32_t*)(chunks[m_chunk_count] + 0x14) = 0x24 + ntry.m_esize;
+		*(uint32_t*)(chunks[m_chunk_count].get() + 8) = 1;
+		*(uint32_t*)(chunks[m_chunk_count].get() + 0x10) = 0x24;
+		*(uint32_t*)(chunks[m_chunk_count].get() + 0x14) = 0x24 + ntry.m_esize;
 
-		memcpy(chunks[m_chunk_count] + 0x24, ntry._data(), ntry.m_esize);
-		*((uint32_t*)(chunks[m_chunk_count] + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[m_chunk_count]);
+		memcpy(chunks[m_chunk_count].get() + 0x24, ntry._data(), ntry.m_esize);
+		*((uint32_t*)(chunks[m_chunk_count].get() + CHUNK_CHECKSUM_OFFSET)) = nsfChecksum(chunks[m_chunk_count].get());
 		m_chunk_count++;
 	}
 }

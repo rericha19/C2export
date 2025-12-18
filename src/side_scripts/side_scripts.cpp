@@ -526,7 +526,7 @@ void prop_remove_script()
 
 	FILE* file2 = fopen(fpath2, "wb");
 	fwrite(item.data(), 1, fsize, file2);
-	fclose(file2);	
+	fclose(file2);
 
 	if (fsize == fsize2)
 		printf("Seems like no changes were made\n");
@@ -554,7 +554,7 @@ void prop_replace_script()
 	int32_t fsize = ftell(file1);
 	rewind(file1);
 
-	std::vector<uint8_t> item (fsize);
+	std::vector<uint8_t> item(fsize);
 	fread(item.data(), 1, fsize, file1);
 	fclose(file1);
 
@@ -601,7 +601,7 @@ void prop_replace_script()
 	rewind(file2);
 	fwrite(item2.data(), 1, fsize2, file2);
 	fclose(file2);
-	
+
 	if (fsize2_before == fsize2_after)
 		printf("Property inserted. ");
 	else
@@ -2262,20 +2262,20 @@ void tpage_util_util(const char* fpath)
 		filename = fpath;
 	}
 
-	uint8_t* chunks[CHUNK_LIST_DEFAULT_SIZE];
-	if (elist.read_and_parse_nsf(chunks, 1, fpath))
+	CHUNKS chunks(CHUNK_LIST_DEFAULT_SIZE);
+	if (elist.read_and_parse_nsf(&chunks, 1, fpath))
 		return;
 
 	printf("File %s:\n", fpath);
 	for (int32_t i = 0; i < elist.m_chunk_count; i++)
 	{
-		if (chunks[i] == NULL)
+		if (chunks[i].get() == NULL)
 			continue;
-		if (chunk_type(chunks[i]) != ChunkType::TEXTURE)
+		if (chunk_type(chunks[i].get()) != ChunkType::TEXTURE)
 			continue;
 
-		int32_t checksum = from_u32(chunks[i] + CHUNK_CHECKSUM_OFFSET);
-		printf("\t tpage %s \t%08X\n", eid2str(from_u32(chunks[i] + 0x4)), checksum);
+		int32_t checksum = from_u32(chunks[i].get() + CHUNK_CHECKSUM_OFFSET);
+		printf("\t tpage %s \t%08X\n", eid2str(from_u32(chunks[i].get() + 0x4)), checksum);
 	}
 	printf("\n");
 }

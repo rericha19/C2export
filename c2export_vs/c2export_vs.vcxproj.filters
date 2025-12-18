@@ -74,9 +74,6 @@
     <ClCompile Include="..\src\side_scripts\side_scripts.cpp">
       <Filter>Source Files\side_scripts</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\build\build_load_lists.cpp">
-      <Filter>Source Files\build</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\utils\payloads.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>

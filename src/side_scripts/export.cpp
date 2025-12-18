@@ -278,7 +278,7 @@ namespace ll_export
 	}
 
 	// main function for exporting entries
-	void export_level(int32_t levelid, ELIST& elist, uint8_t** chunks, uint8_t** chunks2, int32_t chunk_count)
+	void export_level(int32_t levelid, ELIST& elist, CHUNKS& chunks, CHUNKS& chunks2, int32_t chunk_count)
 	{
 		char c = 0;
 		int32_t game = 0;
@@ -328,12 +328,12 @@ namespace ll_export
 		int32_t entry_counter = 0;
 		for (int32_t i = 0; i < chunk_count; i++)
 		{
-			if (chunk_type(chunks2[i]) != ChunkType::TEXTURE)
+			if (chunk_type(chunks2[i].get()) != ChunkType::TEXTURE)
 				continue;
 
-			char* path = make_path(out_dir, "texture", from_u32(chunks2[i] + 4), ++entry_counter);
+			char* path = make_path(out_dir, "texture", from_u32(chunks2[i].get() + 4), ++entry_counter);
 			FILE* f = fopen(path, "wb");
-			fwrite(chunks2[i], sizeof(uint8_t), CHUNKSIZE, f);
+			fwrite(chunks2[i].get(), sizeof(uint8_t), CHUNKSIZE, f);
 			fclose(f);
 		}
 

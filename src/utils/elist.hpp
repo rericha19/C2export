@@ -79,16 +79,24 @@ public:
 	void ask_draw_distances();
 	void ask_load_distances();
 	void ask_params_matrix();
-	bool read_and_parse_nsf(uint8_t** chunks, bool stats_only, const char* fpath);
+	bool nsf_get_file(File& nsf, bool stats_only, const char* fpath);
+	bool read_and_parse_nsf(CHUNKS* chunks, bool stats_only, const char* fpath);
 
 	// load list and draw list gen
-	void print_draw_position_overrides();
-	void remake_draw_lists();
-	void add_neighbour_coll_dependencies(FULL_LABELED_LL& full_list, ENTRY& ntry);
-	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
-	LIST get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours);
-	std::vector<LIST> labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll);
+	static int32_t accumulate_path_distance(ENTITY_PATH& coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
+	static void ll_gen_zone_refs_back(FULL_LABELED_LL& full_list, int32_t dist_cap, ENTITY_PATH& coords, LIST additions);
+	static void ll_gen_zone_refs_forw(FULL_LABELED_LL& full_list, int32_t dist_cap, ENTITY_PATH& coords, LIST additions);
+
+	static std::vector<LIST> labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll);
 	void list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw);
+
+	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
+	void remake_draw_lists();
+
+	void ll_gen_add_neighbour_coll_deps(FULL_LABELED_LL& full_list, ENTRY& ntry);
+	LIST ll_gen_get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours);
+	void ll_gen_get_link_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, FULL_LABELED_LL& full_list, int32_t cam_length);
+	void ll_gen_for_campath(ENTRY& ntry, int32_t camera_index, FULL_LABELED_LL& full_load);
 	void remake_load_lists();
 
 	// matrix merge
@@ -100,10 +108,11 @@ public:
 	void matrix_merge_random_main();
 
 	// output
+	void print_draw_position_overrides();
 	void write_ll_log();
 	void write_nsd();
-	void write_nsf(uint8_t** chunks);
-	void build_normal_chunks(uint8_t** chunks);
-	void build_sound_chunks(uint8_t** chunks);
-	void build_instrument_chunks(uint8_t** chunks);
+	void write_nsf(CHUNKS& chunks);
+	void build_normal_chunks(CHUNKS& chunks);
+	void build_sound_chunks(CHUNKS& chunks);
+	void build_instrument_chunks(CHUNKS& chunks);
 };

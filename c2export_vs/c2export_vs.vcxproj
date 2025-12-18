@@ -35,7 +35,6 @@
   <ItemGroup>
     <ClCompile Include="..\src\build\build_input.cpp" />
     <ClCompile Include="..\src\build\build_lists.cpp" />
-    <ClCompile Include="..\src\build\build_load_lists.cpp" />
     <ClCompile Include="..\src\build\build_matrix_merge.cpp" />
     <ClCompile Include="..\src\build\build_output.cpp" />
     <ClCompile Include="..\src\main.cpp" />

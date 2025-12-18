@@ -49,6 +49,7 @@ using GENERIC_LOAD_LIST = std::vector<LOAD>;
 using LOAD_LIST = GENERIC_LOAD_LIST;
 using DRAW_LIST = GENERIC_LOAD_LIST;
 using FULL_LABELED_LL = std::vector<LABELED_LIST>;
+using CHUNKS = std::vector<std::unique_ptr<uint8_t[]>>;
 
 using RebuildConfig = std::map<uint32_t, int32_t>;
 
@@ -238,10 +239,3 @@ inline std::string int_to_hex4(int32_t value)
 	ss << std::setw(4) << std::setfill('0') << std::hex << std::uppercase << (value & 0xFFFF);
 	return ss.str();
 }
-
-// build files in no particular order
-void build_load_list_zone_refs_back(int32_t cam_length, FULL_LABELED_LL& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
-void build_load_list_zone_refs_forw(int32_t cam_length, FULL_LABELED_LL& full_list, int32_t distance, int32_t final_distance, int16_t* coords, int32_t path_length, LIST additions);
-void build_load_list_zone_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, FULL_LABELED_LL& full_list, int32_t cam_length, ELIST& elist);
-int32_t build_get_distance(int16_t* coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index);
-void build_load_list_util(ENTRY& ntry, int32_t camera_index, FULL_LABELED_LL& full_list, int32_t cam_length, ELIST& elist);

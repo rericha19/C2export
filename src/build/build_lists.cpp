@@ -2,71 +2,160 @@
 #include "../utils/elist.hpp"
 #include "../utils/entry.hpp"
 
-void ELIST::print_draw_position_overrides()
+// Calculates total distance the path has between given points, if cap is set
+// it stop at given cap and returns index at which it stopped (final distance).
+int32_t ELIST::accumulate_path_distance(ENTITY_PATH& coords, int32_t start_index, int32_t end_index, int32_t cap, int32_t* final_index)
 {
-	printf("\nDraw list gen position overrides:\n");
+	int32_t distance = 0;
+	int32_t index = start_index;
+	int32_t step = (start_index < end_index) ? 1 : -1;
 
-	for (auto& ntry : *this)
+	for (int32_t j = start_index; j != end_index; j += step)
 	{
-		if (ntry.get_entry_type() != EntryType::Zone)
-			continue;
+		if (cap != -1 && distance >= cap)
+			break;
 
-		for (int32_t i = 0; i < ntry.get_entity_count(); i++)
-		{
-			uint8_t* entity = ntry.get_nth_entity(i);
-			int32_t ent_id = PROPERTY::get_value(entity, ENTITY_PROP_ID);
-			if (ent_id == -1)
-				continue;
+		const int16_t* p1 = &coords[j * 3];
+		const int16_t* p2 = &coords[(j + step) * 3];
 
-			int32_t draw_mult = ntry.get_nth_entity_draw_override_mult(i);
-			if (draw_mult != 100)
-				printf("          %s entity ID %3d uses distance multiplier %.2fx (%d)\n", ntry.m_ename, ent_id, double(draw_mult) / 100, draw_mult);
-
-			auto [present, entity_idx] = ntry.get_nth_entity_draw_override_ent_idx(i);
-			if (!present)
-				continue;
-
-			int32_t pos_override_id = PROPERTY::get_value(entity, ENTITY_PROP_OVERRIDE_DRAW_ID) >> 8;
-
-			if (entity_idx != -1)
-				printf("          %s entity ID %3d uses position from entity %3d\n", ntry.m_ename, ent_id, pos_override_id);
-			else
-				printf("[warning] %s entity ID %3d cannot use position override %3d\n", ntry.m_ename, ent_id, pos_override_id);
-		}
+		distance += point_distance_3D(p1, p2);
+		index = j;
 	}
+
+	if (cap != -1 && distance < cap)
+		index += step;
+
+	if (final_index)
+		*final_index = index;
+
+	return distance;
 }
 
-
-// Searches the entry and for each collision type it adds its dependencies to the lists 
-void ELIST::add_neighbour_coll_dependencies(FULL_LABELED_LL& full_list, ENTRY& ntry)
+// Starting from the 0th index it finds a path index at which the distance
+// reaches cap distance and loads the entries specified by the additions list
+// from point 0 to end index.
+void ELIST::ll_gen_zone_refs_back(FULL_LABELED_LL& full_list, int32_t dist_cap, ENTITY_PATH& coords, LIST additions)
 {
-	LIST neighbours = ntry.get_neighbours();
-	for (int32_t x = 0; x < neighbours.count(); x++)
+	auto cam_length = coords.length();
+	int32_t end_index = 0;
+
+	ELIST::accumulate_path_distance(coords, 0, cam_length - 1, dist_cap, &end_index);
+	if (end_index == 0)
+		return;
+
+	for (int32_t j = 0; j < end_index; j++)
+		full_list[j].copy_in(additions, "refs_back");
+}
+
+// Starting from the n-1th index it finds a path index at which the distance
+// reaches cap distance and loads the entries specified by the additions list
+// from point start index n - 1.
+void ELIST::ll_gen_zone_refs_forw(FULL_LABELED_LL& full_list, int32_t dist_cap, ENTITY_PATH& coords, LIST additions)
+{
+	auto cam_length = coords.length();
+	int32_t start_index = cam_length - 1;
+
+	ELIST::accumulate_path_distance(coords, cam_length - 1, 0, dist_cap, &start_index);
+	if (start_index == cam_length - 1)
+		return;
+
+	for (int32_t j = start_index; j < cam_length; j++)
+		full_list[j].copy_in(additions, "refs_forw");
+}
+
+// gets rid of logging labels
+std::vector<LIST> ELIST::labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll)
+{
+	std::vector<LIST> unlabeled_ll(labeled_ll.size());
+	for (int32_t i = 0; i < labeled_ll.size(); i++)
 	{
-		int32_t index = get_index(neighbours[x]);
-		if (index == -1)
-			continue;
+		for (int32_t j = 0; j < labeled_ll[i].count(); j++)
+			unlabeled_ll[i].add(labeled_ll[i][j].first);
+	}
+	return unlabeled_ll;
+}
 
-		uint8_t* item1 = at(index).get_nth_item(1);
-		int32_t item_len = at(index).get_nth_item_offset(2) - at(index).get_nth_item_offset(1);
+//  Converts the full load list into delta form.
+void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw)
+{
+	int32_t cam_length = int32_t(full_load.size());
+	// full item, listA point 0
+	for (int32_t i = 0; i < full_load[0].count(); i++)
+		if (is_draw || get_index(full_load[0][i]) != -1)
+			listA[0].add(full_load[0][i]);
 
-		for (int32_t offset = 0x24; offset < item_len; offset += 2)
+	// full item, listB point n-1
+	int32_t n = cam_length - 1;
+	for (int32_t i = 0; i < full_load[n].count(); i++)
+		if (is_draw || get_index(full_load[n][i]) != -1)
+			listB[n].add(full_load[n][i]);
+
+	// creates delta items
+	// for each point it takes full load list and for each entry checks whether it
+	// has just become loaded/deloaded
+	for (int32_t i = 1; i < cam_length; i++)
+	{
+		for (int32_t j = 0; j < full_load[i].count(); j++)
 		{
-			int16_t type = from_u16(item1 + offset);
-			if (type % 2 == 0)
+			uint32_t curr_eid = full_load[i][j];
+			if (!is_draw && get_index(curr_eid) == -1)
 				continue;
 
-			for (auto& coll_dep : m_coll_deps)
+			// is loaded on i-th point but not on i-1th point -> just became loaded,
+			// add to listA[i]
+			if (full_load[i - 1].find(curr_eid) == -1)
+				listA[i].add(curr_eid);
+		}
+
+		for (int32_t j = 0; j < full_load[i - 1].count(); j++)
+		{
+			uint32_t curr_eid = full_load[i - 1][j];
+			if (!is_draw && get_index(curr_eid) == -1)
+				continue;
+
+			// is loaded on i-1th point but not on i-th point -> no longer loaded, add
+			// to listB[i - 1]
+			if (full_load[i].find(curr_eid) == -1)
+				listB[i - 1].add(curr_eid);
+		}
+	}
+
+	// gets rid of cases when an item is in both listA and listB on the same index
+	// (getting loaded and instantly deloaded) if its in both it removes it
+	for (int32_t i = 0; i < cam_length; i++)
+	{
+		LIST iter_copy{};
+		iter_copy.copy_in(listA[i]);
+
+		for (int32_t j = 0; j < iter_copy.count(); j++)
+		{
+			if (listB[i].find(iter_copy[j]) == -1)
+				continue;
+
+			listA[i].remove(iter_copy[j]);
+			listB[i].remove(iter_copy[j]);
+		}
+	}
+
+	if (is_draw)
+	{
+		auto cmp_func_draw = [](uint32_t a, uint32_t b)
 			{
-				if (type != coll_dep.type)
-					continue;
+				DRAW_ITEM item_a(a);
+				DRAW_ITEM item_b(b);
 
-				for (auto& sublist : full_list)
-					sublist.copy_in(coll_dep.dependencies, "collision_" + int_to_hex4(type));
-			}
+				return item_a.ID < item_b.ID;
+			};
+
+		// sort by entity id
+		for (int32_t i = 0; i < cam_length; i++)
+		{
+			std::sort(listA[i].begin(), listA[i].end(), cmp_func_draw);
+			std::sort(listB[i].begin(), listB[i].end(), cmp_func_draw);
 		}
 	}
 }
+
 
 // check and add neighbouring entry's (single) entities to draw list of curr zone if within draw range
 void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx)
@@ -190,33 +279,6 @@ void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& 
 	}
 }
 
-// search entities of neighbours and get types and subtypes from them
-LIST ELIST::get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours)
-{
-	LIST type_subtype_list{};
-	for (auto& neigh : neighbours)
-	{
-		int32_t curr_index = get_index(neigh);
-		if (curr_index == -1)
-			continue;
-
-		int32_t entity_count = at(curr_index).get_entity_count();
-		for (int32_t j = 0; j < entity_count; j++)
-		{
-			uint8_t* entity = at(curr_index).get_nth_entity(j);
-			int32_t ID = PROPERTY::get_value(entity, ENTITY_PROP_ID);
-			if (entity_ids.find(ID) != -1)
-			{
-				int32_t type = PROPERTY::get_value(entity, ENTITY_PROP_TYPE);
-				int32_t subtype = PROPERTY::get_value(entity, ENTITY_PROP_SUBTYPE);
-				type_subtype_list.add((type << 16) | subtype);
-			}
-		}
-	}
-
-	return type_subtype_list;
-}
-
 // main function for remaking draw lists according to config and zone data
 // selects entities to draw, converts to delta form and replaces camera properties
 void ELIST::remake_draw_lists()
@@ -307,94 +369,184 @@ void ELIST::remake_draw_lists()
 	}
 }
 
-std::vector<LIST> ELIST::labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll)
+// Searches the entry and for each collision type it adds its dependencies to the lists 
+void ELIST::ll_gen_add_neighbour_coll_deps(FULL_LABELED_LL& full_list, ENTRY& ntry)
 {
-	std::vector<LIST> unlabeled_ll(labeled_ll.size());
-	for (int32_t i = 0; i < labeled_ll.size(); i++)
+	LIST neighbours = ntry.get_neighbours();
+	for (int32_t x = 0; x < neighbours.count(); x++)
 	{
-		for (int32_t j = 0; j < labeled_ll[i].count(); j++)
-			unlabeled_ll[i].add(labeled_ll[i][j].first);
+		int32_t index = get_index(neighbours[x]);
+		if (index == -1)
+			continue;
+
+		uint8_t* item1 = at(index).get_nth_item(1);
+		int32_t item_len = at(index).get_nth_item_offset(2) - at(index).get_nth_item_offset(1);
+
+		for (int32_t offset = 0x24; offset < item_len; offset += 2)
+		{
+			int16_t type = from_u16(item1 + offset);
+			if (type % 2 == 0)
+				continue;
+
+			for (auto& coll_dep : m_coll_deps)
+			{
+				if (type != coll_dep.type)
+					continue;
+
+				for (auto& sublist : full_list)
+					sublist.copy_in(coll_dep.dependencies, "collision_" + int_to_hex4(type));
+			}
+		}
 	}
-	return unlabeled_ll;
 }
 
-//  Converts the full load list into delta form.
-void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw)
+// search entities of neighbours and get types and subtypes from them
+LIST ELIST::ll_gen_get_types_subtypes_from_ids(LIST& entity_ids, LIST& neighbours)
 {
-	int32_t cam_length = int32_t(full_load.size());
-	// full item, listA point 0
-	for (int32_t i = 0; i < full_load[0].count(); i++)
-		if (is_draw || get_index(full_load[0][i]) != -1)
-			listA[0].add(full_load[0][i]);
-
-	// full item, listB point n-1
-	int32_t n = cam_length - 1;
-	for (int32_t i = 0; i < full_load[n].count(); i++)
-		if (is_draw || get_index(full_load[n][i]) != -1)
-			listB[n].add(full_load[n][i]);
-
-	// creates delta items
-	// for each point it takes full load list and for each entry checks whether it
-	// has just become loaded/deloaded
-	for (int32_t i = 1; i < cam_length; i++)
+	LIST type_subtype_list{};
+	for (auto& neigh : neighbours)
 	{
-		for (int32_t j = 0; j < full_load[i].count(); j++)
+		int32_t curr_index = get_index(neigh);
+		if (curr_index == -1)
+			continue;
+
+		int32_t entity_count = at(curr_index).get_entity_count();
+		for (int32_t j = 0; j < entity_count; j++)
 		{
-			uint32_t curr_eid = full_load[i][j];
-			if (!is_draw && get_index(curr_eid) == -1)
-				continue;
-
-			// is loaded on i-th point but not on i-1th point -> just became loaded,
-			// add to listA[i]
-			if (full_load[i - 1].find(curr_eid) == -1)
-				listA[i].add(curr_eid);
-		}
-
-		for (int32_t j = 0; j < full_load[i - 1].count(); j++)
-		{
-			uint32_t curr_eid = full_load[i - 1][j];
-			if (!is_draw && get_index(curr_eid) == -1)
-				continue;
-
-			// is loaded on i-1th point but not on i-th point -> no longer loaded, add
-			// to listB[i - 1]
-			if (full_load[i].find(curr_eid) == -1)
-				listB[i - 1].add(curr_eid);
-		}
-	}
-
-	// gets rid of cases when an item is in both listA and listB on the same index
-	// (getting loaded and instantly deloaded) if its in both it removes it
-	for (int32_t i = 0; i < cam_length; i++)
-	{
-		LIST iter_copy{};
-		iter_copy.copy_in(listA[i]);
-
-		for (int32_t j = 0; j < iter_copy.count(); j++)
-		{
-			if (listB[i].find(iter_copy[j]) == -1)
-				continue;
-
-			listA[i].remove(iter_copy[j]);
-			listB[i].remove(iter_copy[j]);
-		}
-	}
-
-	if (is_draw)
-	{
-		auto cmp_func_draw = [](uint32_t a, uint32_t b)
+			uint8_t* entity = at(curr_index).get_nth_entity(j);
+			int32_t id = PROPERTY::get_value(entity, ENTITY_PROP_ID);
+			if (entity_ids.find(id) != -1)
 			{
-				DRAW_ITEM item_a(a);
-				DRAW_ITEM item_b(b);
+				int32_t type = PROPERTY::get_value(entity, ENTITY_PROP_TYPE);
+				int32_t subtype = PROPERTY::get_value(entity, ENTITY_PROP_SUBTYPE);
+				type_subtype_list.add((type << 16) | subtype);
+			}
+		}
+	}
 
-				return item_a.ID < item_b.ID;
-			};
+	return type_subtype_list;
+}
 
-		// sort by entity id
-		for (int32_t i = 0; i < cam_length; i++)
+// Deals with slst and neighbour/scenery references of path linked entries.
+void ELIST::ll_gen_get_link_refs(ENTRY& ntry, int32_t cam_index, int32_t link_int, FULL_LABELED_LL& full_list, int32_t cam_length)
+{
+	int32_t slst_distance = m_config[LL_SLST_Distance];
+	int32_t neig_distance = m_config[LL_Neighbour_Distance];
+	int32_t preloading_flag = m_config[LL_Transition_Preloading_Type];
+
+	double backwards_penalty = config_to_double(m_config[LL_Backwards_Loading_Penalty_DBL]);
+
+	int32_t distance = 0;
+
+	CAMERA_LINK link(link_int);
+
+	uint32_t neighbour_eid = from_u32(ntry.get_nth_item(0) + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index);
+	int32_t neigh_idx = get_index(neighbour_eid);
+	if (neigh_idx == -1)
+		return;
+
+	// if preloading nothing
+	uint32_t neighbour_flg = from_u32(ntry.get_nth_item(0) + C2_NEIGHBOURS_START + 4 + 4 * link.zone_index + 0x20);
+	if (preloading_flag == PRELOADING_NOTHING && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+		return;
+
+	if (preloading_flag == PRELOADING_TEXTURES_ONLY || preloading_flag == PRELOADING_ALL)
+	{
+		for (auto& scenery : at(neigh_idx).get_sceneries())
 		{
-			std::sort(listA[i].begin(), listA[i].end(), cmp_func_draw);
-			std::sort(listB[i].begin(), listB[i].end(), cmp_func_draw);
+			int32_t scen_index = get_index(scenery);
+			if (scen_index == -1)
+				continue;
+
+			if (link.type == 1)
+			{
+				int32_t end_index = (cam_length - 1) / 2 - 1;
+				for (int32_t j = 0; j < end_index; j++)
+					full_list[j].copy_in(at(scen_index).get_scenery_textures(), std::string("scen_tex_neigh_") + at(scen_index).m_ename);
+			}
+			else if (link.type == 2)
+			{
+				int32_t start_index = (cam_length - 1) / 2 + 1;
+				for (int32_t j = start_index; j < cam_length; j++)
+					full_list[j].copy_in(at(scen_index).get_scenery_textures(), std::string("scen_tex_neigh_") + at(scen_index).m_ename);
+			}
+			else
+			{
+				printf("[warning] Link type %d ??\n", link.type);
+			}
+		}
+	}
+
+	// if preloading only textures
+	if (preloading_flag == PRELOADING_TEXTURES_ONLY && (neighbour_flg == 0xF || neighbour_flg == 0x1F))
+		return;
+
+	for (int32_t j = 0; j < cam_length; j++)
+		full_list[j].copy_in(at(neigh_idx).m_related, "neigh_dir_rel");
+
+	int32_t neigh_cam_count = at(neigh_idx).get_cam_item_count() / 3;
+	if (link.cam_index >= neigh_cam_count)
+	{
+		printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
+			ntry.m_ename, at(neigh_idx).m_ename, link.cam_index, neigh_cam_count);
+		return;
+	}
+
+	uint32_t slst = at(neigh_idx).get_nth_slst(link.cam_index);
+	for (int32_t i = 0; i < cam_length; i++)
+		full_list[i].add(slst, "neigh_slst");
+
+	ll_gen_add_neighbour_coll_deps(full_list, ntry);
+	ll_gen_add_neighbour_coll_deps(full_list, at(neigh_idx));
+
+	ENTITY_PATH coords = at(neigh_idx).get_ent_path(2 + 3 * link.cam_index);
+	distance += ELIST::accumulate_path_distance(coords, 0, coords.length() - 1, -1, NULL);
+
+	LIST layer2 = at(neigh_idx).get_links(2 + 3 * link.cam_index);
+	for (auto _l2 : layer2)
+	{
+		CAMERA_LINK link2(_l2);
+
+		uint32_t neighbour_eid2 = from_u32(at(neigh_idx).get_nth_item(0) + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index);
+		int32_t neigh_idx2 = get_index(neighbour_eid2);
+		if (neigh_idx2 == -1)
+			continue;
+
+		// not preloading everything
+		uint32_t neighbour_flg2 = from_u32(at(neigh_idx).get_nth_item(0) + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);
+		if ((preloading_flag == PRELOADING_NOTHING || preloading_flag == PRELOADING_TEXTURES_ONLY) && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
+			continue;
+
+		int32_t neigh_cam_count2 = at(neigh_idx2).get_cam_item_count() / 3;
+		if (link2.cam_index >= neigh_cam_count2)
+		{
+			printf("[warning] Zone %s is linked to zone %s's %d. camera path (indexing from 0) when it only has %d paths\n",
+				at(neigh_idx).m_ename, at(neigh_idx2).m_ename, link2.cam_index, neigh_cam_count2);
+			continue;
+		}
+
+		LIST neig_list = at(neigh_idx2).get_neighbours();
+		neig_list.copy_in(at(neigh_idx2).get_sceneries());
+
+		LIST slst_list{};
+		slst_list.add(at(neigh_idx2).get_nth_slst(link2.cam_index));
+
+		ll_gen_add_neighbour_coll_deps(full_list, at(neigh_idx2));
+		coords = ntry.get_ent_path(cam_index);
+
+		bool is_before = ENTRY::is_before(ntry, cam_index / 3, at(neigh_idx2), link2.cam_index);
+		int32_t slst_dist_w_orient = is_before ? slst_distance : distance_with_penalty(slst_distance, backwards_penalty);
+		int32_t neig_dist_w_orient = is_before ? neig_distance : distance_with_penalty(neig_distance, backwards_penalty);
+
+		if ((link.type == 2 && link.flag == 2 && link2.type == 1) || (link.type == 2 && link.flag == 1 && link2.type == 2))
+		{
+			ELIST::ll_gen_zone_refs_forw(full_list, slst_dist_w_orient - distance, coords, slst_list);
+			ELIST::ll_gen_zone_refs_forw(full_list, neig_dist_w_orient - distance, coords, neig_list);
+		}
+		if ((link.type == 1 && link.flag == 2 && link2.type == 1) || (link.type == 1 && link.flag == 1 && link2.type == 2))
+		{
+			ELIST::ll_gen_zone_refs_back(full_list, slst_dist_w_orient - distance, coords, slst_list);
+			ELIST::ll_gen_zone_refs_back(full_list, neig_dist_w_orient - distance, coords, neig_list);
 		}
 	}
 }
@@ -411,7 +563,6 @@ sorted later during the nsd writing process.
 */
 void ELIST::remake_load_lists()
 {
-	bool dbg_print = false;
 	m_load_list_logs = nlohmann::json::object();
 	m_load_list_logs["zone_info"] = nlohmann::json::object();
 
@@ -441,9 +592,6 @@ void ELIST::remake_load_lists()
 
 		printf("Making load lists for %s\n", ntry.m_ename);
 
-		LIST special_entries = ntry.get_special_entries_extended(*this);
-		uint32_t music_ref = ntry.get_zone_track();
-
 		for (int32_t j = 0; j < cam_count; j++)
 		{
 			printf("\t cam path %d\n", j);
@@ -451,84 +599,14 @@ void ELIST::remake_load_lists()
 
 			// full non-delta load list used to represent the load list during building
 			FULL_LABELED_LL full_load(cam_length);
-
-			// add permaloaded entries
-			for (int32_t k = 0; k < cam_length; k++)
-				full_load[k].copy_in(m_permaloaded, "perma");
-
-			for (auto& mus_dep : m_musi_deps)
-			{
-				if (mus_dep.type == music_ref)
-				{
-					for (int32_t k = 0; k < cam_length; k++)
-						full_load[k].copy_in(mus_dep.dependencies, "mus_" + ENTRY::eid2s(music_ref));
-
-					if (dbg_print)
-					{
-						printf("\t\tcopied in %d music deps\n", mus_dep.dependencies.count());
-						for (auto& d : mus_dep.dependencies)
-							printf("\t\t\t %s\n", eid2str(d));
-					}
-				}
-			}
-
-			if (dbg_print) printf("Copied in permaloaded and music refs\n");
-
-			// add current zone's special entries
-			for (int32_t k = 0; k < cam_length; k++)
-				full_load[k].copy_in(special_entries, "special_ll");
-
-			if (dbg_print) printf("Copied in special %d\n", special_entries.count());
-
-			// add relatives (directly related entries like slsts, neighbours, scenery
-			// might not be necessary								
-			for (int32_t l = 0; l < cam_length; l++)
-				full_load[l].copy_in(ntry.m_related, "dir_rel");
-
-			if (dbg_print) printf("Copied in deprecate relatives\n");
-
-			// all sounds
-			// if (load_list_sound_entry_inc_flag == 0)
-			for (auto& ntry2 : *this)
-			{
-				if (ntry2.get_entry_type() != EntryType::Sound)
-					continue;
-
-				for (int32_t l = 0; l < cam_length; l++)
-					full_load[l].add(ntry2.m_eid, "sound");
-			}
-
-			if (dbg_print) printf("Copied in sounds\n");
-
-			// for each scenery in current zone's scen reference list, add its
-			// textures to the load list				
-			LIST sceneries = ntry.get_sceneries();
-			for (auto& scenery : sceneries)
-			{
-				int32_t scen_index = get_index(scenery);
-				if (scen_index == -1)
-				{
-					printf("[warning] invalid scenery %s in zone %s\n", eid2str(scenery), ntry.m_ename);
-					continue;
-				}
-
-				for (int32_t l = 0; l < cam_length; l++)
-					full_load[l].copy_in(at(scen_index).get_scenery_textures(), std::string("tex_scen_") + at(scen_index).m_ename);
-			}
-
-			if (dbg_print) printf("Copied in some scenery stuff\n");
-
-			// oh boy
-			build_load_list_util(ntry, 2 + 3 * j, full_load, cam_length, *this);
-
-			if (dbg_print) printf("Load list util ran\n");
+			ll_gen_for_campath(ntry, 2 + 3 * j, full_load);
 
 			std::string prev_dump{};
 			for (int32_t u = 0; u < full_load.size(); u++)
 			{
 				char key_buf[200] = "";
 				int32_t interesting_entries_count = int32_t(full_load[u].size() - perma.size() - sounds.size());
-				sprintf(key_buf, "%5s-%d-%03d/%03d[%d|%d]", ntry.m_ename, j, u, int32_t(full_load.size()), 
+				sprintf(key_buf, "%5s-%d-%03d/%03d[%d|%d]", ntry.m_ename, j, u, int32_t(full_load.size()),
 					interesting_entries_count, int32_t(full_load[u].size()));
 
 				nlohmann::json load_info = nlohmann::json::object();
@@ -551,8 +629,6 @@ void ELIST::remake_load_lists()
 			// checks whether the load list doesnt try to load more than 8 textures,
 			ntry.texture_count_check(*this, unlabeled_full_load, j);
 
-			if (dbg_print) printf("Texture chunk was checked\n");
-
 			// creates and initialises delta representation of the load list
 			std::vector<LIST> listA(cam_length);
 			std::vector<LIST> listB(cam_length);
@@ -563,15 +639,100 @@ void ELIST::remake_load_lists()
 			PROPERTY prop_0x208 = PROPERTY::make_list_prop(listA, 0x208);
 			PROPERTY prop_0x209 = PROPERTY::make_list_prop(listB, 0x209);
 
-			if (dbg_print) printf("Converted full list to delta and delta to props\n");
-
 			// removes existing load list properties, inserts newly made ones
 			ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x208, NULL);
 			ntry.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x209, NULL);
 			ntry.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x208, &prop_0x208);
 			ntry.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x209, &prop_0x209);
+		}
+	}
+}
 
-			if (dbg_print) printf("Replaced load list props\n");
+// Handles load list generation for a single zone's single camera path.
+void ELIST::ll_gen_for_campath(ENTRY& ntry, int32_t camera_index, FULL_LABELED_LL& full_load)
+{
+	int32_t cam_length = int32_t(full_load.size());
+	LIST special_entries = ntry.get_special_entries_extended(*this);
+	uint32_t music_ref = ntry.get_zone_track();
+
+	// add permaloaded entries
+	for (int32_t k = 0; k < cam_length; k++)
+		full_load[k].copy_in(m_permaloaded, "perma");
+
+	for (auto& mus_dep : m_musi_deps)
+	{
+		if (mus_dep.type == music_ref)
+		{
+			for (int32_t k = 0; k < cam_length; k++)
+				full_load[k].copy_in(mus_dep.dependencies, "mus_" + ENTRY::eid2s(music_ref));
+		}
+	}
+
+	// add current zone's special entries
+	for (int32_t k = 0; k < cam_length; k++)
+		full_load[k].copy_in(special_entries, "special_ll");
+
+	// add relatives (directly related entries like slsts, neighbours, scenery
+	// might not be necessary								
+	for (int32_t l = 0; l < cam_length; l++)
+		full_load[l].copy_in(ntry.m_related, "dir_rel");
+
+	// all sounds
+	// if (load_list_sound_entry_inc_flag == 0)
+	for (auto& ntry2 : *this)
+	{
+		if (ntry2.get_entry_type() != EntryType::Sound)
+			continue;
+
+		for (int32_t l = 0; l < cam_length; l++)
+			full_load[l].add(ntry2.m_eid, "sound");
+	}
+
+	// for each scenery in current zone's scen reference list, add its
+	// textures to the load list				
+	LIST sceneries = ntry.get_sceneries();
+	for (auto& scenery : sceneries)
+	{
+		int32_t scen_index = get_index(scenery);
+		if (scen_index == -1)
+		{
+			printf("[warning] invalid scenery %s in zone %s\n", eid2str(scenery), ntry.m_ename);
+			continue;
+		}
+
+		for (int32_t l = 0; l < cam_length; l++)
+			full_load[l].copy_in(at(scen_index).get_scenery_textures(), std::string("tex_scen_") + at(scen_index).m_ename);
+	}
+
+	// neighbours, slsts, scenery
+	LIST links = ntry.get_links(camera_index);
+	for (auto& link : links)
+	{
+		ll_gen_get_link_refs(ntry, camera_index, link, full_load, cam_length);
+	}
+
+	// draw lists
+	for (int32_t i = 0; i < cam_length; i++)
+	{
+		LIST neighbour_list{};
+		// get a list of entities drawn within set distance of current camera point
+		LIST entity_list = ntry.get_entities_to_load(*this, neighbour_list, camera_index, i);
+
+		// get a list of types and subtypes from the entity list
+		// copy in dependency list for each found type/subtype
+		LIST types_subtypes = ll_gen_get_types_subtypes_from_ids(entity_list, neighbour_list);
+		for (auto& info : types_subtypes)
+		{
+			int32_t type = info >> 16;
+			int32_t subtype = info & 0xFF;
+
+			for (auto& info : m_subt_deps)
+			{
+				if (info.subtype != subtype || info.type != type)
+					continue;
+
+				full_load[i].copy_in(info.dependencies, "dep_" + std::to_string(type) + "_" + std::to_string(subtype));
+			}
 		}
 	}
 }
