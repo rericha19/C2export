@@ -443,6 +443,8 @@ bool ELIST::nsf_get_file(File& nsf, bool stats_only, const char* fpath)
 			}
 		}
 	}
+
+	return false;
 }
 
 // parsing input info for rebuilding from a nsf file

@@ -226,7 +226,7 @@ namespace level_analyze
 				chunk_count = ntry.m_chunk + 1;
 		}
 
-		std::vector<int32_t> chunksizes(chunk_count);		
+		std::vector<int32_t> chunksizes(chunk_count);
 
 		for (auto& ntry : elist)
 		{
@@ -405,7 +405,7 @@ namespace level_analyze
 			}
 
 			for (int32_t j = 0; j < cam_count; j++)
-			{				
+			{
 				uint32_t slst = ntry.get_nth_slst(j);
 				int32_t slst_index = elist.get_index(slst);
 				if (slst_index == -1)
@@ -592,7 +592,7 @@ namespace level_analyze
 			switch (ntry.get_entry_type())
 			{
 			case EntryType::Model:
-				text_refs.copy_in(ntry.get_model_textures());				
+				text_refs.copy_in(ntry.get_model_textures());
 				break;
 			case EntryType::Scenery:
 				text_refs.copy_in(ntry.get_scenery_textures());
