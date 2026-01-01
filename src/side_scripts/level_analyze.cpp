@@ -725,7 +725,17 @@ namespace level_analyze
 			}
 		}
 
-		for (int32_t i = 0; i < C3_GOOL_TABLE_SIZE; i++)
+		bool c3_type_found = false;
+		for (int32_t i = C2_GOOL_TABLE_SIZE; i < C3_GOOL_TABLE_SIZE; i++)
+		{
+			if (lists[i].size())
+			{
+				c3_type_found = true;
+				break;
+			}
+		}
+
+		for (int32_t i = 0; i < (c3_type_found ? C3_GOOL_TABLE_SIZE : C2_GOOL_TABLE_SIZE); i++)
 		{
 			printf("%2d:\t", i);
 			for (auto& eid : lists[i])

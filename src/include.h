@@ -88,6 +88,7 @@ enum __conf_enum
 
 #define BUILD_FPATH_COUNT 4
 #define OFFSET 0xC // bad name
+#define C2_GOOL_TABLE_SIZE 0x40
 #define C3_GOOL_TABLE_SIZE 0x80
 #define CHUNKSIZE 65536
 #define CHUNK_CHECKSUM_OFFSET 0xC
