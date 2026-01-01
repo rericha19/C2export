@@ -132,6 +132,7 @@ enum AlterType
 	AT_FlipScenX,
 	AT_LevelRecolor,
 	AT_LevelExport,
+	AT_Medieval_Rain_Fix,
 };
 
 enum class EntryType : int32_t

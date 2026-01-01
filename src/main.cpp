@@ -64,6 +64,7 @@ int32_t main()
 		else if (CMD("FLIP_Y"))             level_alter::ll_alter(AT_FlipScenY);
 		else if (CMD("FLIP_X"))             level_alter::ll_alter(AT_FlipScenX);
 		else if (CMD("LEVEL_RECOLOR"))      level_alter::ll_alter(AT_LevelRecolor);
+		else if (CMD("MEDIEVAL_RAIN_FIX"))	level_alter::ll_alter(AT_Medieval_Rain_Fix);
 		else printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
 	}
 }

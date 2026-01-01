@@ -713,6 +713,56 @@ namespace level_alter
 		}
 	}
 
+	void medieval_rain_fix(ELIST& elist)
+	{
+		auto tweak_amount = [](uint8_t *ptr)
+			{
+				auto prev = from_u32(ptr);
+				*(uint16_t*)(ptr + 2) = (from_u16(ptr + 2) / 2);
+				auto now = from_u32(ptr);
+
+				printf("\t amount: %x -> %x\n", prev, now);
+			};
+
+		for (auto& n : elist)
+		{
+			if (n.get_entry_type() != EntryType::Zone)
+				continue;
+
+			int32_t cam_count = n.get_cam_item_count() / 3;
+			for (int32_t j = 0; j < cam_count; j++)
+			{
+				uint8_t* cam_item1 = n.get_nth_item(2 + (3 * j) + 1);
+				auto prop_off = PROPERTY::get_offset(cam_item1, 0x1B5);
+				auto prop = PROPERTY::get_full(cam_item1, 0x1B5);
+
+				if (prop.length == 0)
+					continue;
+
+				switch (prop.length)
+				{
+				case 16: // 1 set
+					tweak_amount(cam_item1 + prop_off + 0x8);
+					break;
+				case 32: // 2 sets
+					tweak_amount(cam_item1 + prop_off + 0xC);
+					tweak_amount(cam_item1 + prop_off + 0x18);
+					break;
+				case 44: // 3 sets
+					tweak_amount(cam_item1 + prop_off + 0xC);
+					tweak_amount(cam_item1 + prop_off + 0x18);
+					tweak_amount(cam_item1 + prop_off + 0x24);
+					break;
+				default:
+					printf("unk length: %d\n", prop.length);
+					break;
+				}
+
+				printf("%s-%d length: %d\n", n.m_ename, j, prop.length);
+			}
+		}
+	}
+
 	// mix of rebuild and keeping original stuff
 	// useful for making operations on a level then saving it again
 	void ll_alter(int32_t alter_type)
@@ -829,6 +879,9 @@ namespace level_alter
 			// export doesnt make an output nsf
 			ll_export::export_level(elist.m_level_ID, elist, chunks, chunks2, elist.m_chunk_count);
 			return;
+			break;
+		case AT_Medieval_Rain_Fix:
+			medieval_rain_fix(elist);
 			break;
 		default:
 			break;
