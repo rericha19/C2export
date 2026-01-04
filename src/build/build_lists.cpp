@@ -432,7 +432,7 @@ void ELIST::ll_gen_get_link_refs(ENTRY& ntry, int32_t cam_index, int32_t link_in
 {
 	int32_t slst_distance = m_config[LL_SLST_Distance];
 	int32_t neig_distance = m_config[LL_Neighbour_Distance];
-	int32_t preloading_flag = m_config[LL_Transition_Preloading_Type];
+	int32_t preloading_flag = ntry.get_preloading_flag(m_config[LL_Transition_Preloading_Type]);
 
 	double backwards_penalty = config_to_double(m_config[LL_Backwards_Loading_Penalty_DBL]);
 
@@ -511,6 +511,8 @@ void ELIST::ll_gen_get_link_refs(ENTRY& ntry, int32_t cam_index, int32_t link_in
 		int32_t neigh_idx2 = get_index(neighbour_eid2);
 		if (neigh_idx2 == -1)
 			continue;
+
+		preloading_flag = at(neigh_idx).get_preloading_flag(m_config[LL_Transition_Preloading_Type]);
 
 		// not preloading everything
 		uint32_t neighbour_flg2 = from_u32(at(neigh_idx).get_nth_item(0) + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);

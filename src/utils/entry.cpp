@@ -163,7 +163,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 	LIST entity_list{};
 
 	int32_t draw_dist = elist.m_config[LL_Drawlist_Distance];
-	int32_t preloading_flag = elist.m_config[LL_Transition_Preloading_Type];
+	int32_t preloading_flag = get_preloading_flag(elist.m_config[LL_Transition_Preloading_Type]);
 	double backwards_penalty = config_to_double(elist.m_config[LL_Backwards_Loading_Penalty_DBL]);
 
 	neighbours.copy_in(get_neighbours());
@@ -236,6 +236,8 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			int32_t neigh_idx2 = elist.get_index(neighbour_eid2);
 			if (neigh_idx2 == -1)
 				continue;
+
+			preloading_flag = elist[neigh_idx].get_preloading_flag(elist.m_config[LL_Transition_Preloading_Type]);
 
 			// preloading everything check
 			uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + eid_offset2 + 0x20);
@@ -703,6 +705,25 @@ uint32_t ENTRY::get_zone_track()
 
 	uint32_t music_entry = from_u32(_data() + item0off + C2_MUSIC_REF + item0len - 0x318);
 	return music_entry;
+}
+
+uint32_t ENTRY::get_preloading_flag(uint32_t def)
+{
+	uint32_t ret = def;
+	if (get_entry_type() == EntryType::Zone)
+	{
+		uint32_t val = (from_u32(_data() + get_nth_item_offset(0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_TRANS_LOAD_OVERRIDE) >> 8;
+		if (val & 0x80)
+		{
+			ret = val & 0x7F;
+			if (!m_printed_override_info) {
+				printf("[info] Zone %s has transition preloading override: %d\n", m_ename, ret);
+				m_printed_override_info = true;
+			}
+		}
+
+	}
+	return ret;
 }
 
 

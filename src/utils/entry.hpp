@@ -22,6 +22,7 @@ public:
 	std::vector<int32_t> m_graph_distances{};
 	std::vector<uint8_t> m_data{};
 	LIST m_related{};
+	bool m_printed_override_info = false;
 
 	inline uint8_t* _data() { return m_data.data(); }
 
@@ -37,6 +38,7 @@ public:
 	LIST get_anim_refs(ELIST& elist);
 	uint32_t get_nth_slst(int32_t main_cam_idx);
 	uint32_t get_zone_track();
+	uint32_t get_preloading_flag(uint32_t def);
 
 	void parse_relatives();
 	void parse_spawns(SPAWNS& spawns);
