@@ -22,7 +22,6 @@ public:
 	std::vector<int32_t> m_graph_distances{};
 	std::vector<uint8_t> m_data{};
 	LIST m_related{};
-	bool m_printed_override_info = false;
 
 	inline uint8_t* _data() { return m_data.data(); }
 

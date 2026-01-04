@@ -716,10 +716,6 @@ uint32_t ENTRY::get_preloading_flag(uint32_t def)
 		if (val & 0x80)
 		{
 			ret = val & 0x7F;
-			if (!m_printed_override_info) {
-				printf("[info] Zone %s has transition preloading override: %d\n", m_ename, ret);
-				m_printed_override_info = true;
-			}
 		}
 
 	}

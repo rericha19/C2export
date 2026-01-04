@@ -182,9 +182,13 @@ void ELIST::print_transitions()
 			uint32_t neighbour_eid = from_u32(item0 + C2_NEIGHBOURS_START + 4 + 4 * j);
 			uint32_t neighbour_flg = from_u32(item0 + C2_NEIGHBOURS_START + 4 + 4 * j + 0x20);
 
+			int32_t override_type = ntry.get_preloading_flag(-1);
 			if (neighbour_flg == 0xF || neighbour_flg == 0x1F)
 			{
-				printf("Zone %s transition (%02x) to zone %s (neighbour %d)\n", ntry.m_ename, neighbour_flg, eid2str(neighbour_eid), j);
+
+				printf("Zone %s transition (%02x) to zone %s (neighbour %d) %s\n",
+					ntry.m_ename, neighbour_flg, eid2str(neighbour_eid), j,
+					override_type >= 0 ? ("- override " + std::to_string(override_type)).c_str() : "");
 			}
 		}
 	}
