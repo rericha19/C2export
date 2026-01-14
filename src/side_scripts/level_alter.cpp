@@ -823,15 +823,11 @@ namespace level_alter
 								if (ent_subtype == 18) angle_dist_limit = 20;
 
 								uint32_t draw_item_uint = (0 | (ent_id << 8) | (o << 24));
+								for (int32_t zi = 0; zi < 8; zi++)
+									full_draw[m].remove(draw_item_uint | zi);
+								
 								if (angle_dist < angle_dist_limit)
-								{
 									full_draw[m].add(draw_item_uint);
-								}
-								else
-								{
-									for (int32_t zi = 0; zi < 8; zi++)
-										full_draw[m].remove(draw_item_uint | zi);
-								}
 
 								//printf("\tent %3d (%d-%d) pos %5d,%5d,%5d | cam pos %5d,%5d,%5d | ang to ent %d | cam ang %d | dist %d\n",
 								//	ent_id, ent_type, ent_subtype, ent_x, ent_y, ent_z, cam_x, cam_y, cam_z, angle_to_ent, camera_angle, angle_dist);
