@@ -134,7 +134,9 @@ enum AlterType
 	AT_FlipScenX,
 	AT_LevelRecolor,
 	AT_LevelExport,
-	AT_Medieval_Rain_Fix,
+
+	AT_Medieval_Rain_Fix,	// misc modpack thing
+	AT_Warp_Swirl_Bs,		// misc modpack thing
 };
 
 enum class EntryType : int32_t

@@ -76,7 +76,7 @@ std::vector<LIST> ELIST::labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll)
 }
 
 //  Converts the full load list into delta form.
-void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw)
+void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw, bool do_minus_1)
 {
 	int32_t cam_length = int32_t(full_load.size());
 	// full item, listA point 0
@@ -116,7 +116,7 @@ void ELIST::list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA
 			// is loaded on i-1th point but not on i-th point -> no longer loaded, add
 			// to listB[i - 1]
 			if (full_load[i].find(curr_eid) == -1)
-				listB[i - 1].add(curr_eid);
+				listB[do_minus_1 ? (i - 1) : i].add(curr_eid);
 		}
 	}
 

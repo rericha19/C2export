@@ -10,5 +10,6 @@ namespace level_alter
 	void flip_level_y(ELIST& elist, int32_t* chunk_count);
 	void level_recolor(ELIST& elist);
 	void medieval_rain_fix(ELIST& elist);
+	void warp_swirl_bs_fix(ELIST& elist);
 	void ll_alter(int32_t alter_type);
 }

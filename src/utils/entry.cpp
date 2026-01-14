@@ -904,7 +904,7 @@ std::tuple<bool, int32_t> ENTRY::get_nth_entity_draw_override_ent_idx(int32_t en
 
 
 // reads draw lists of the camera of the zone, returns in a non-delta form.
-std::vector<LIST> ENTRY::get_expanded_draw_list(int32_t cam_index)
+std::vector<LIST> ENTRY::get_expanded_draw_list(int32_t cam_index, bool ret_full_items)
 {
 	int32_t cam_length = get_ent_path_len(cam_index);
 
@@ -924,7 +924,7 @@ std::vector<LIST> ENTRY::get_expanded_draw_list(int32_t cam_index)
 				for (auto& draw_uint : sublist.list)
 				{
 					DRAW_ITEM draw_item(draw_uint);
-					list.add(draw_item.ID);
+					list.add(ret_full_items ? draw_uint : draw_item.ID);
 				}
 			}
 
@@ -933,7 +933,7 @@ std::vector<LIST> ENTRY::get_expanded_draw_list(int32_t cam_index)
 				for (auto& draw_uint : sublist.list)
 				{
 					DRAW_ITEM draw_item(draw_uint);
-					list.remove(draw_item.ID);
+					list.remove(ret_full_items ? draw_uint : draw_item.ID);
 				}
 			}
 

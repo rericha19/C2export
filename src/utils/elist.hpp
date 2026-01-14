@@ -88,7 +88,7 @@ public:
 	static void ll_gen_zone_refs_forw(FULL_LABELED_LL& full_list, int32_t dist_cap, ENTITY_PATH& coords, LIST additions);
 
 	static std::vector<LIST> labeled_ll_to_unlabeled(FULL_LABELED_LL& labeled_ll);
-	void list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw);
+	void list_to_delta(std::vector<LIST>& full_load, std::vector<LIST>& listA, std::vector<LIST>& listB, bool is_draw, bool do_minus_1 = true);
 
 	void draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& curr, int32_t cam_idx, ENTRY& neighbour, int32_t neigh_ref_idx);
 	void remake_draw_lists();

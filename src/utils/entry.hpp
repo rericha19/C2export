@@ -46,7 +46,7 @@ public:
 	GENERIC_LOAD_LIST get_generic_lists(int32_t prop_code, int32_t cam_index);
 	LOAD_LIST get_load_lists(int32_t cam_index);
 	DRAW_LIST get_draw_lists(int32_t cam_index);
-	std::vector<LIST> get_expanded_draw_list(int32_t cam_index);
+	std::vector<LIST> get_expanded_draw_list(int32_t cam_index, bool ret_full_items = false);
 	void texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_idx);
 
 	int32_t get_nth_entity_draw_override_mult(int32_t entity_idx);

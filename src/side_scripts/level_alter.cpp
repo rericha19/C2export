@@ -715,7 +715,7 @@ namespace level_alter
 
 	void medieval_rain_fix(ELIST& elist)
 	{
-		auto tweak_amount = [](uint8_t *ptr)
+		auto tweak_amount = [](uint8_t* ptr)
 			{
 				auto prev = from_u32(ptr);
 				*(uint16_t*)(ptr + 2) = (from_u16(ptr + 2) / 2);
@@ -759,6 +759,107 @@ namespace level_alter
 				}
 
 				printf("%s-%d length: %d\n", n.m_ename, j, prop.length);
+			}
+		}
+	}
+
+	// mayhem warp room draw list optimisation / partial regen
+	void warp_swirl_bs_fix(ELIST& elist)
+	{
+		for (auto& n : elist)
+		{
+			if (n.get_entry_type() != EntryType::Zone)
+				continue;
+
+			int32_t cam_count = n.get_cam_item_count() / 3;
+			for (int32_t j = 0; j < cam_count; j++)
+			{
+				printf("zone %s cam %d\n", n.m_ename, j);
+
+				auto campath = n.get_ent_path(2 + 3 * j);
+				auto angles = n.get_ent_path(2 + 3 * j + 1);
+				int32_t cam_length = campath.length();
+				std::vector<int32_t> avg_angles(cam_length);
+
+				for (int32_t n = 0; n < avg_angles.size() * 2; n += 2)
+				{
+					int32_t angle1 = c2yaw_to_deg(angles[3 * n + 1]);
+					int32_t angle2 = c2yaw_to_deg(angles[3 * n + 4]);
+					avg_angles[n / 2] = normalize_angle(average_angles(angle1, angle2));
+				}
+
+				std::vector<LIST> full_draw = n.get_expanded_draw_list(2 + 3 * j, true);
+				for (int32_t m = 0; m < campath.length(); m++)
+				{
+					printf("  point %d\n", m);
+					int32_t cam_x = campath[3 * m + 0];
+					int32_t cam_y = campath[3 * m + 1];
+					int32_t cam_z = campath[3 * m + 2];
+
+					for (int32_t o = 0; o < n.get_entity_count(); o++)
+					{
+						int32_t ent_type = PROPERTY::get_value(n.get_nth_entity(o), ENTITY_PROP_TYPE);
+						int32_t ent_subtype = PROPERTY::get_value(n.get_nth_entity(o), ENTITY_PROP_SUBTYPE);
+						int32_t ent_id = PROPERTY::get_value(n.get_nth_entity(o), ENTITY_PROP_ID);
+
+						if (ent_type == 2 && (ent_subtype == 15 || ent_subtype == 16 || ent_subtype == 18))
+						{
+							auto ent_path = n.get_ent_path(2 + 3 * cam_count + o);
+							for (int32_t k = 0; k < ent_path.length(); k++)
+							{
+								int32_t ent_x = 4 * ent_path[3 * k + 0];
+								int32_t ent_y = 4 * ent_path[3 * k + 1];
+								int32_t ent_z = 4 * ent_path[3 * k + 2];
+
+								// simple frustum check, Zs swapped because of the z axis orientation in c2
+								double t = atan2(cam_z - ent_z, ent_x - cam_x);
+								int32_t angle_to_ent = (int32_t)(t * (180.0 / PI));
+								int32_t camera_angle = avg_angles[m];
+								int32_t angle_dist = angle_distance(angle_to_ent, camera_angle);
+
+								int32_t angle_dist_limit = 0;
+								if (ent_subtype == 15) angle_dist_limit = 37;
+								if (ent_subtype == 16) angle_dist_limit = 42;
+								if (ent_subtype == 18) angle_dist_limit = 20;
+
+								uint32_t draw_item_uint = (0 | (ent_id << 8) | (o << 24));
+								if (angle_dist < angle_dist_limit)
+								{
+									full_draw[m].add(draw_item_uint);
+								}
+								else
+								{
+									for (int32_t zi = 0; zi < 8; zi++)
+										full_draw[m].remove(draw_item_uint | zi);
+								}
+
+								//printf("\tent %3d (%d-%d) pos %5d,%5d,%5d | cam pos %5d,%5d,%5d | ang to ent %d | cam ang %d | dist %d\n",
+								//	ent_id, ent_type, ent_subtype, ent_x, ent_y, ent_z, cam_x, cam_y, cam_z, angle_to_ent, camera_angle, angle_dist);
+							}
+						}
+					}
+				}
+
+				// creates and initialises delta representation of the draw list
+				std::vector<LIST> listA(cam_length);
+				std::vector<LIST> listB(cam_length);
+
+				// converts full draw list to delta based, then creates game-format draw list properties based on the delta lists
+				// listA and listB args are switched around because draw lists are like that
+				elist.list_to_delta(full_draw, listB, listA, true, false);
+
+				PROPERTY prop_0x13B = PROPERTY::make_list_prop(listA, 0x13B);
+				PROPERTY prop_0x13C = PROPERTY::make_list_prop(listB, 0x13C);
+
+				// removes existing draw list properties, inserts newly made ones
+				n.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x13B, NULL);
+				n.entity_alter(2 + 3 * j, PROPERTY::item_rem_property, 0x13C, NULL);
+
+				if (prop_0x13B.length && prop_0x13C.length)
+				{
+					n.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x13B, &prop_0x13B);
+					n.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x13C, &prop_0x13C);
+				}
 			}
 		}
 	}
@@ -882,6 +983,9 @@ namespace level_alter
 			break;
 		case AT_Medieval_Rain_Fix:
 			medieval_rain_fix(elist);
+			break;
+		case AT_Warp_Swirl_Bs:
+			warp_swirl_bs_fix(elist);
 			break;
 		default:
 			break;

@@ -135,7 +135,7 @@ int64_t PAYLOADS::calculate_score() const
 // for ll_analyze
 PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 {
-	auto get_max_draw = [](LOAD_LIST& draw_list) -> int32_t
+	auto get_max_draw = [](DRAW_LIST& draw_list) -> int32_t
 		{
 			LIST list{};
 			int32_t ecount = 0;
