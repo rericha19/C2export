@@ -511,6 +511,9 @@ void print_help2()
 	printf("GOOL_UTIL\n");
 	printf("\t list gool entries within files (folder)\n");
 
+	printf("PROP_UTIL\n");
+	printf("\t print prop info within files (folder)\n");
+
 	printf("A <angle> & TIME\n");
 	printf("\t modpack crate rotation, TT value\n");
 

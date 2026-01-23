@@ -1668,19 +1668,31 @@ void entity_usage_folder()
 	printf("\nDone.\n\n");
 }
 
+// hacky
+int32_t g_prop = -1;
+void set_g_prop(int32_t p) { g_prop = p; }
+
 // script for printing a property from all cameras in a level
-void nsf_props_scr()
+void nsf_props_scr(const char* fpath)
 {
+	bool is_folder = (fpath != nullptr);
+
 	ELIST elist{};
 
-	if (elist.read_and_parse_nsf(NULL, 1, NULL))
+	if (is_folder)
+		printf("\n\nNSF path: %s\n", fpath);
+
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
 		return;
 
 	bool printed_something = false;
 
-	int32_t prop_code;
-	printf("\nProp code? (hex)\n");
-	scanf("%x", &prop_code);
+	int32_t prop_code = g_prop;
+	if (prop_code == -1)
+	{
+		printf("\nProp code? (hex)\n");
+		scanf("%x", &prop_code);
+	}
 
 	printf("\n");
 	for (auto& ntry : elist)
@@ -1713,9 +1725,12 @@ void nsf_props_scr()
 		}
 	}
 
-	if (!printed_something)
-		printf("No such prop was found in any camera item\n");
-	printf("Done.\n\n");
+	if (!is_folder)
+	{
+		if (!printed_something)
+			printf("No such prop was found in any camera item\n");
+		printf("Done.\n\n");
+	}
 }
 
 // makes an empty slst entry for a camera with specified length
@@ -2323,6 +2338,23 @@ void gool_util()
 	path_fix(dpath);
 
 	recursive_folder_iter(dpath, gool_util_util);
+	printf("\nDone.\n\n");
+}
+
+void prop_util()
+{
+	printf("Input the path to the folder\n");
+	char dpath[MAX] = "";
+
+	scanf(" %[^\n]", dpath);
+	path_fix(dpath);
+
+	int32_t prop_code;
+	printf("\nProp code? (hex)\n");
+	scanf("%x", &prop_code);
+
+	set_g_prop(prop_code);
+	recursive_folder_iter(dpath, nsf_props_scr);
 	printf("\nDone.\n\n");
 }
 

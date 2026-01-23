@@ -15,42 +15,44 @@ int32_t main()
 
 	while (1)
 	{
+		set_g_prop(-1);
 		char p_command[MAX] = "";
 
 		scanf("%s", p_command);
 		for (uint32_t i = 0; i < strlen(p_command); i++)
 			p_command[i] = toupper(p_command[i]);
 
+		// general
 		if (CMD("KILL"))                    return 0;
 		else if (CMD("WIPE")) { clrscr();   intro_text(); }
 		else if (CMD("HELP"))               print_help();
 		else if (CMD("HELP2"))              print_help2();
-		else if (CMD("EXPORT"))             level_alter::ll_alter(AT_LevelExport);
-		else if (CMD("RESIZE"))             resize_main();
-		else if (CMD("ROTATE"))             rotate_main();
+
+		// build/rebuild
 		else if (CMD("REBUILD"))            build_main(BuildType_Rebuild);
 		else if (CMD("REBUILD_DL"))         build_main(BuildType_Rebuild_DL);
-		else if (CMD("PROP"))               prop_main();
-		else if (CMD("TEXTURE"))            texture_copy_main();
-		else if (CMD("TEXTURE_RECOLOR"))    texture_recolor_stupid();
-		else if (CMD("SCEN_RECOLOR"))       scenery_recolor_main2();
-		else if (CMD("SCEN_RECOLOR2"))      scenery_recolor_main();
-		else if (CMD("A"))                  crate_rotation_angle();
-		else if (CMD("NSD"))                nsd_gool_table_print_cmd();
+
+		// modpack/util scripts
 		else if (CMD("EID"))                eid_cmd();
-		else if (CMD("PROP_REMOVE"))        prop_remove_script();
-		else if (CMD("PROP_REPLACE"))       prop_replace_script();
-		else if (CMD("LL_ANALYZE"))         level_analyze::ll_analyze_main();
+		else if (CMD("WARP_SPAWNS"))        warp_spawns_generate();
 		else if (CMD("GEN_SPAWN"))          generate_spawn();
-		else if (CMD("ENT_RESIZE"))         c3_ent_resize();
+		else if (CMD("GEN_SLST"))           generate_slst();
+		else if (CMD("LEVEL_RECOLOR"))      level_alter::ll_alter(AT_LevelRecolor);
+		else if (CMD("MEDIEVAL_RAIN_FIX"))	level_alter::ll_alter(AT_Medieval_Rain_Fix);
+		else if (CMD("WARP_SWIRLS"))		level_alter::ll_alter(AT_Warp_Swirl_Bs);
+
+		// analysis stuff single file
+		else if (CMD("LL_ANALYZE"))         level_analyze::ll_analyze_main();
+		else if (CMD("PROP"))               prop_main();
+		else if (CMD("NSF_PROP"))           nsf_props_scr();
 		else if (CMD("MODEL_REFS"))         print_model_tex_refs();
 		else if (CMD("MODEL_REFS_NSF"))     print_model_tex_refs_nsf();
 		else if (CMD("ALL_PERMA"))          print_all_entries_perma();
-		else if (CMD("ENTITY_USAGE"))       entity_usage_folder();
-		else if (CMD("NSF_PROP"))           nsf_props_scr();
-		else if (CMD("GEN_SLST"))           generate_slst();
+		else if (CMD("NSD"))                nsd_gool_table_print_cmd();
 		else if (CMD("PAYLOAD_INFO"))       cmd_payload_info();
-		else if (CMD("WARP_SPAWNS"))        warp_spawns_generate();
+
+		// analysis stuff folder
+		else if (CMD("ENTITY_USAGE"))       entity_usage_folder();
 		else if (CMD("LIST_SPECIAL_LL"))    special_load_lists_list();
 		else if (CMD("CHECK_UTIL"))         checkpoint_stats();
 		else if (CMD("NSD_UTIL"))           nsd_util();
@@ -58,14 +60,31 @@ int32_t main()
 		else if (CMD("DRAW_UTIL"))          draw_util();
 		else if (CMD("TPAGE_UTIL"))         tpage_util();
 		else if (CMD("GOOL_UTIL"))          gool_util();
+		else if (CMD("PROP_UTIL"))			prop_util();
+
+		// modify 
+		else if (CMD("EXPORT"))             level_alter::ll_alter(AT_LevelExport);
+		else if (CMD("PROP_REMOVE"))        prop_remove_script();
+		else if (CMD("PROP_REPLACE"))       prop_replace_script();
+
+		// obsolete/weird stuff (mostly useless)
+		else if (CMD("RESIZE"))             resize_main();
+		else if (CMD("ROTATE"))             rotate_main();
+		else if (CMD("A"))                  crate_rotation_angle();
+		else if (CMD("ENT_RESIZE"))         c3_ent_resize();
+		else if (CMD("TEXTURE"))            texture_copy_main();
+		else if (CMD("TEXTURE_RECOLOR"))    texture_recolor_stupid();
+		else if (CMD("SCEN_RECOLOR"))       scenery_recolor_main2();
+		else if (CMD("SCEN_RECOLOR2"))      scenery_recolor_main();
+
+		// level alter commands
 		else if (CMD("LEVEL_WIPE_DL"))      level_alter::ll_alter(AT_WipeDL);
 		else if (CMD("LEVEL_WIPE_ENT"))     level_alter::ll_alter(AT_WipeEnts);
 		else if (CMD("CONV_OLD_DL_OR"))     level_alter::ll_alter(AT_Old_DL_Override);
 		else if (CMD("FLIP_Y"))             level_alter::ll_alter(AT_FlipScenY);
 		else if (CMD("FLIP_X"))             level_alter::ll_alter(AT_FlipScenX);
-		else if (CMD("LEVEL_RECOLOR"))      level_alter::ll_alter(AT_LevelRecolor);
-		else if (CMD("MEDIEVAL_RAIN_FIX"))	level_alter::ll_alter(AT_Medieval_Rain_Fix);
-		else if (CMD("WARP_SWIRLS"))		level_alter::ll_alter(AT_Warp_Swirl_Bs);
+
+		// catch
 		else printf("[ERROR] '%s' is not a valid command.\n\n", p_command);
 	}
 }
