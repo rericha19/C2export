@@ -9,14 +9,12 @@ namespace ll_export
 	// converts camera mode from c3 to c2 values
 	void camera_fix(uint8_t* cam, int32_t length)
 	{
-		int32_t curr_off;
-
 		for (int32_t i = 0; i < cam[0xC]; i++)
 		{
 			if (cam[0x10 + i * 8] == 0x29 && cam[0x11 + i * 8] == 0)
 			{
-				curr_off = BYTE * cam[0x13 + i * 8] + cam[0x12 + i * 8] + 0xC + 4;
-				switch (curr_off)
+				int32_t curr_off = BYTE * cam[0x13 + i * 8] + cam[0x12 + i * 8] + 0xC + 4;
+				switch (from_u32(cam + curr_off))
 				{
 				case 0x80:
 					cam[curr_off] = 8;
@@ -24,7 +22,7 @@ namespace ll_export
 				case 4:
 					cam[curr_off] = 3;
 					break;
-				case 1:
+				case 1:				
 					cam[curr_off] = 0;
 					break;
 				case 2:
