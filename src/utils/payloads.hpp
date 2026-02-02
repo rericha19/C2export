@@ -35,11 +35,16 @@ struct WORST_ZONE_INFO_SINGLE
 	int32_t count;
 	int32_t cam_path;
 	int32_t sum;
+
+	double avg() const
+	{
+		return ((double)sum) / count;
+	}
 };
 
 class WORST_ZONE_INFO : public std::vector<WORST_ZONE_INFO_SINGLE>
 {
 public:
-	void update(const PAYLOAD& worst);
+	void update(const PAYLOADS& payloads);
 	void print_summary();
 };

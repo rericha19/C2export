@@ -204,36 +204,43 @@ PAYLOADS PAYLOADS::get_payload_ladder_ll(ELIST& elist)
 }
 
 
-void WORST_ZONE_INFO::update(const PAYLOAD& worst)
+void WORST_ZONE_INFO::update(const PAYLOADS& payloads)
 {
-	for (auto& info_s : *this)
+	for (auto& p : payloads)
 	{
-		if (info_s.zone == worst.zone && info_s.cam_path == worst.cam_path)
+		bool exists = false;
+		for (auto& info_s : *this)
 		{
-			info_s.count++;
-			info_s.sum += worst.page_count();
-			return;
+			if (info_s.zone == p.zone && info_s.cam_path == p.cam_path)
+			{
+				info_s.count++;
+				info_s.sum += p.page_count();
+				exists = true;
+				break;
+			}
+		}
+
+		if (!exists)
+		{
+			WORST_ZONE_INFO_SINGLE new_info{};
+			new_info.zone = p.zone;
+			new_info.cam_path = p.cam_path;
+			new_info.count = 1;
+			new_info.sum = p.page_count();
+			push_back(new_info);
 		}
 	}
-
-	// new zone
-	WORST_ZONE_INFO_SINGLE new_info{};
-	new_info.zone = worst.zone;
-	new_info.cam_path = worst.cam_path;
-	new_info.count = 1;
-	new_info.sum = worst.page_count();
-	push_back(new_info);
 }
 
 void WORST_ZONE_INFO::print_summary()
 {
-	std::sort(begin(), end(), [](WORST_ZONE_INFO_SINGLE a, WORST_ZONE_INFO_SINGLE b)
+	// sort by avg
+	std::sort(begin(), end(), [](auto& a, auto& b)
 		{
-			return b.count < a.count;
+			return a.avg() > b.avg();
 		});
 
-	printf("\nWorst zone averages:\n");
-	for (int32_t i = 0; i < int32_t(size()) && i < 10; i++)
-		printf("\t%s - %d  -  %4dx, worst-avg payload %4.2f\n",
-			eid2str(at(i).zone), at(i).cam_path, at(i).count, ((double)at(i).sum) / at(i).count);
+	printf("\nZone payload averages:\n");
+	for (int32_t i = 0; i < int32_t(size()) && i < 20; i++)
+		printf("\t%s - %d, avg payload %4.2f\n", eid2str(at(i).zone), at(i).cam_path, at(i).avg());
 }

@@ -53,7 +53,7 @@ public:
 		{Rebuild_Iteration_Limit, 0},
 		{Rebuild_Random_Mult_DBL, 0},
 		{Rebuild_Base_Seed, 0},
-		{Rebuild_Thread_Count, 0},
+		{Rebuild_Thread_Count, 0},		
 	};
 
 	void sort_by_eid();
@@ -100,6 +100,7 @@ public:
 	void remake_load_lists();
 
 	// matrix merge
+	void matrix_merge_hotspot_boost(RELATIONS& common_occurences, const WORST_ZONE_INFO& wzi, MATRIX_STORED_LLS& stored_lls);
 	void matrix_merge_util(RELATIONS& relations);
 	RELATIONS get_occurence_array();
 	RELATIONS matrix_transform_to_array(std::vector<std::vector<int32_t>>& entry_matrix, LIST& normal_entries);

@@ -53,6 +53,14 @@ using CHUNKS = std::vector<std::unique_ptr<uint8_t[]>>;
 
 using RebuildConfig = std::map<uint32_t, int32_t>;
 
+enum Chunk_Merge_Methods
+{
+	// 0-3 are deprecated
+	Occurence_Matrix = 4,
+	Occurence_Matrix_Threaded = 5,
+	Occurence_Matrix_Threaded_HotBoost = 6,
+};
+
 enum __conf_enum
 {
 	LL_Matrix_Polling_Type_CONST,
@@ -77,6 +85,7 @@ enum __conf_enum
 	Rebuild_Random_Mult_DBL,
 	Rebuild_Base_Seed,
 	Rebuild_Thread_Count,
+	Rebuild_Hotspot_Boost,
 };
 
 #define CONFIG_FLOAT_MULT 1000000

@@ -33,17 +33,18 @@ void ELIST::ask_build_flags()
 	}
 
 	printf("What merge method do you want to use?\n");
-	printf("[4] - occurence count matrix merge (absolute) with randomness\n");
-	printf("[5] - occurence count matrix merge (absolute) with randomness multithreaded\n");
+	printf("[4] - occurence count merge (absolute) + random\n");
+	printf("[5] - occurence count merge (absolute) + random, threaded\n");
+	printf("[6] - occurence count merge (absolute) + random, threaded, hotspot boost\n");
 
 	scanf("%d", &ans);
 	m_config[Chunk_Merge_Method] = ans;
 	printf("Selected merge method %d\n", ans);
 
-	if (ans < 4 || ans > 5)
+	if (ans < Chunk_Merge_Methods::Occurence_Matrix || ans > Chunk_Merge_Methods::Occurence_Matrix_Threaded_HotBoost)
 	{
 		printf(" unknown, defaulting to 4\n");
-		m_config[Chunk_Merge_Method] = 4;
+		m_config[Chunk_Merge_Method] = Chunk_Merge_Methods::Occurence_Matrix;
 	}
 	printf("\n");
 }
@@ -378,12 +379,20 @@ void ELIST::ask_params_matrix()
 	printf("Seed used: %d\n", m_config[Rebuild_Base_Seed]);
 	printf("\n");
 
-	if (m_config[Chunk_Merge_Method] == 5)
+	if (m_config[Chunk_Merge_Method] >= Occurence_Matrix_Threaded)
 	{
 		printf("Thread count? (64 max)\n");
 		scanf("%d", &input_int);
 		m_config[Rebuild_Thread_Count] = std::clamp(input_int, 1, 64);
 		printf("Thread count: %d\n\n", m_config[Rebuild_Thread_Count]);
+	}
+
+	if (m_config[Chunk_Merge_Method] == Occurence_Matrix_Threaded_HotBoost)
+	{
+		printf("Hotspot boost ratio? (%%)\n");
+		scanf("%d", &input_int);
+		m_config[Rebuild_Hotspot_Boost] = std::clamp(input_int, 0, 25);
+		printf("Boost ratio: %d %%\n\n", m_config[Rebuild_Hotspot_Boost]);
 	}
 
 	m_config[Rebuild_Iteration_Limit] -= m_config[Rebuild_Thread_Count];

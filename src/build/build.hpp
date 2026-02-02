@@ -81,10 +81,11 @@ inline void build_main(int32_t build_type)
 	clock_t time_start = clock();
 	switch (elist.m_config[Chunk_Merge_Method])
 	{
-	case 4:
-	case 5:
+	case Occurence_Matrix:
+	case Occurence_Matrix_Threaded:
+	case Occurence_Matrix_Threaded_HotBoost:
 		elist.matrix_merge_random_main();
-		break;
+		break;	
 	default:
 		printf("[ERROR] unknown/deprecated merge\n");
 		break;

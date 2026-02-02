@@ -268,9 +268,58 @@ MATRIX_STORED_LLS ELIST::matrix_store_lls()
 	return stored_stuff;
 }
 
+void ELIST::matrix_merge_hotspot_boost(RELATIONS& common_occurences, const WORST_ZONE_INFO& wzi, MATRIX_STORED_LLS& stored_lls)
+{
+	if (!wzi.size() || wzi[0].count < 20)
+		return;
+
+	for (auto& zi : wzi)
+	{
+		// how many pages over the limit the zone-path is
+		int32_t over = int32_t(zi.avg()) - m_config[Rebuild_Payload_Limit];
+		if (over <= 0)
+			continue;
+
+		// cache a set of entry pairs loaded by this zone info
+		std::unordered_set<uint64_t> zone_loaded_pairs;
+		for (int32_t k = 0; k < stored_lls.size(); k++)
+		{
+			if (stored_lls[k].zone != zi.zone || stored_lls[k].cam_path != zi.cam_path)
+				continue;
+
+			const auto& load_list = stored_lls[k].full_load;
+			for (int32_t a = 0; a < load_list.count(); a++)
+			{
+				for (int32_t b = a + 1; b < load_list.count(); b++)
+				{
+					uint32_t eid1 = load_list[a];
+					uint32_t eid2 = load_list[b];
+					if (eid1 > eid2) std::swap(eid1, eid2);
+					zone_loaded_pairs.insert((uint64_t(eid1) << 32) | eid2);
+				}
+			}
+		}
+
+		// boost array representation pairs that are loaded by the worst zones
+		for (int32_t j = 0; j < common_occurences.count; j++)
+		{
+			uint32_t eid1 = at(common_occurences.relations[j].index1).m_eid;
+			uint32_t eid2 = at(common_occurences.relations[j].index2).m_eid;
+
+			if (eid1 > eid2) std::swap(eid1, eid2);
+			uint64_t pair_key = (uint64_t(eid1) << 32) | eid2;
+
+			if (zone_loaded_pairs.find(pair_key) != zone_loaded_pairs.end())
+				common_occurences.relations[j].value += ((over * common_occurences.relations[0].value * m_config[Rebuild_Hotspot_Boost]) / 100);
+		}
+	}
+}
+
 // do matrix marge (single thread util function)
 void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 {
+	bool do_hotspot_boost = m_config[Chunk_Merge_Method] == Occurence_Matrix_Threaded_HotBoost;
+
 	bool limit_reached = false;
 	bool goal_reached = false;
 
@@ -282,13 +331,16 @@ void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 		clone_elist[j] = at(j);
 
 	// separate array representation for each thread
-	RELATIONS array_representation(inp_args.rel_array->count);
-	memcpy(array_representation.relations.get(), inp_args.rel_array->relations.get(), array_representation.count * sizeof(RELATION));
+	RELATIONS common_occurences(inp_args.rel_array->count);
+	memcpy(common_occurences.relations.get(), inp_args.rel_array->relations.get(), common_occurences.count * sizeof(RELATION));
 
 	rand_seed(inp_args.rnd_seed);
 	int32_t iter_count = m_config[Rebuild_Iteration_Limit];
 	int16_t thr_id = inp_args.thread_idx;
 	double rand_mult = config_to_double(m_config[Rebuild_Random_Mult_DBL]);
+
+	auto& wzi = *inp_args.worst_zones_info;
+	auto& stored_lls = *inp_args.stored_lls;
 
 	while (!goal_reached)
 	{
@@ -307,15 +359,19 @@ void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 			clone_elist[j].m_chunk = at(j).m_chunk;
 
 		// second half of the matrix merge slightly randomised and ran on clone elist
-		for (int32_t j = 0; j < array_representation.count; j++)
-			array_representation.relations[j].value = array_representation.relations[j].save_value * randfrom(1.0, rand_mult);
-		array_representation.do_sort();
+		for (int32_t j = 0; j < common_occurences.count; j++)
+			common_occurences.relations[j].value = common_occurences.relations[j].save_value * randfrom(1.0, rand_mult);
+
+		if (do_hotspot_boost)
+			matrix_merge_hotspot_boost(common_occurences, wzi, stored_lls);
+
+		common_occurences.do_sort();
 
 		// do the merges according to the slightly randomised relation array
-		clone_elist.matrix_merge_util(array_representation);
+		clone_elist.matrix_merge_util(common_occurences);
 
 		// get payload ladder for current iteration
-		PAYLOADS payloads = PAYLOADS::get_payload_ladder(*inp_args.stored_lls, clone_elist, m_chunk_border_sounds, false);
+		PAYLOADS payloads = PAYLOADS::get_payload_ladder(stored_lls, clone_elist, m_chunk_border_sounds, false);
 		int64_t curr_score = payloads.calculate_score();
 
 		// mutex best
@@ -336,7 +392,7 @@ void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 			// mutex iter
 			{
 				std::lock_guard<std::mutex> guard(*inp_args.mutex_iter);
-				inp_args.worst_zones_info->update(payloads[0]);
+				wzi.update(payloads);
 				int32_t curr_iter = *inp_args.curr_iter_ptr;
 
 				int64_t cr_max = *inp_args.best_max_ptr;
@@ -349,7 +405,7 @@ void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 				{
 					printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_iter, thr_id);
 				}
-				else if (goal_reached || is_new_best || *inp_args.curr_iter_ptr % 20 == 0)
+				else if (goal_reached || is_new_best || *inp_args.curr_iter_ptr % 10 == 0)
 				{
 					if (m_config[Rebuild_Thread_Count] > 1)
 					{
