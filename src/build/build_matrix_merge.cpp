@@ -405,7 +405,7 @@ void ELIST::matrix_merge_random_util(MTRX_THRD_IN_STR inp_args)
 				{
 					printf("Iter %3d, thr %2d, solution found by another thread, thread terminating\n", curr_iter, thr_id);
 				}
-				else if (goal_reached || is_new_best || *inp_args.curr_iter_ptr % 10 == 0)
+				else if (goal_reached || is_new_best || *inp_args.curr_iter_ptr % (do_hotspot_boost ? 10 : 20) == 0)
 				{
 					if (m_config[Rebuild_Thread_Count] > 1)
 					{

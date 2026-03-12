@@ -1733,6 +1733,24 @@ void nsf_props_scr(const char* fpath)
 	}
 }
 
+std::vector<std::pair<std::string, int>> g_slst_info{};
+void nsf_slst_util(const char* fpath)
+{
+	ELIST elist{};
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
+		return;
+
+	for (auto& entry : elist)
+	{
+		if (entry.get_entry_type() != EntryType::SLST)
+			continue;
+
+		auto* item0 = entry.get_nth_item(0);
+		int32_t count = from_u16(item0);
+		g_slst_info.push_back({ std::string(fpath) + " " + eid2str(entry.m_eid), count });
+	}
+}
+
 // makes an empty slst entry for a camera with specified length
 void generate_slst()
 {
@@ -2355,6 +2373,116 @@ void prop_util()
 
 	set_g_prop(prop_code);
 	recursive_folder_iter(dpath, nsf_props_scr);
+	printf("\nDone.\n\n");
+}
+
+void slst_util()
+{
+	printf("Input the path to the folder\n");
+	char dpath[MAX] = "";
+
+	scanf(" %[^\n]", dpath);
+	path_fix(dpath);
+
+	g_slst_info.clear();
+	recursive_folder_iter(dpath, nsf_slst_util);
+
+	if (g_slst_info.empty())
+	{
+		printf("No SLST entries found\n");
+		printf("\nDone.\n\n");
+		return;
+	}
+
+	// Build per-file aggregates (sum + count) so we can show average per file.
+	std::vector<std::pair<std::string, std::pair<long long, int>>> file_stats;
+	for (const auto& p : g_slst_info)
+	{
+		// p.first is "filepath + ' ' + eid" (we stored it that way in nsf_slst_util)
+		auto pos = p.first.find_last_of(' ');
+		std::string fname = (pos == std::string::npos) ? p.first : p.first.substr(0, pos);
+
+		bool found = false;
+		for (auto& fs : file_stats)
+		{
+			if (fs.first == fname)
+			{
+				fs.second.first += p.second; // sum
+				fs.second.second += 1;       // count
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+		{
+			file_stats.push_back({ fname, { p.second, 1 } });
+		}
+	}
+
+	// Sort entries by count descending for printing (original behavior)
+	std::vector<std::pair<std::string, int>> sorted_desc = g_slst_info;
+	std::sort(sorted_desc.begin(), sorted_desc.end(), [](const auto& a, const auto& b)
+		{
+			return a.second > b.second;
+		});
+
+	// Print all collected values (highest -> lowest).
+	printf("\nSLST entries (highest -> lowest):\n");
+	for (const auto& p : sorted_desc)
+	{
+		printf("%4d : %s\n", p.second, p.first.c_str());
+	}
+
+	// Print per-file averages in the requested format: "{path} {avg}"
+	// Sort file_stats by filename for stable output.
+	std::sort(file_stats.begin(), file_stats.end(), [](const auto& a, const auto& b)
+		{
+			return a.first < b.first;
+		});
+
+	printf("\nPer-file averages:\n");
+	for (const auto& fs : file_stats)
+	{
+		double avg = static_cast<double>(fs.second.first) / fs.second.second;
+		printf("%s %.2f\n", fs.first.c_str(), avg);
+	}
+
+	// Collect counts and compute overall statistics (use ascending order for percentiles)
+	std::vector<int> counts;
+	counts.reserve(g_slst_info.size());
+	long long sum = 0;
+	for (const auto& p : g_slst_info)
+	{
+		counts.push_back(p.second);
+		sum += p.second;
+	}
+
+	std::sort(counts.begin(), counts.end()); // ascending
+
+	int n = static_cast<int>(counts.size());
+	double average = static_cast<double>(sum) / n;
+
+	// Compute 25th, 50th and 75th percentiles using the "sorted index" method:
+	int idx25 = static_cast<int>(floor(0.25 * (n - 1)));
+	int idx50 = static_cast<int>(floor(0.50 * (n - 1)));
+	int idx75 = static_cast<int>(floor(0.75 * (n - 1)));
+	int p25 = counts[idx25];
+	int p50 = counts[idx50];
+	int p75 = counts[idx75];
+
+	// Highest & lowest with source (use sorted_desc)
+	const auto& highest = sorted_desc.front();
+	const auto& lowest = sorted_desc.back();
+
+	printf("\nSummary statistics:\n");
+	printf(" Total files: %d\n", n);
+	printf(" Average: %.2f\n", average);
+	printf(" 25th percentile: %d\n", p25);
+	printf(" 50th percentile: %d\n", p50);
+	printf(" 75th percentile: %d\n", p75);
+	printf(" Highest: %d (from %s)\n", highest.second, highest.first.c_str());
+	printf(" Lowest : %d (from %s)\n", lowest.second, lowest.first.c_str());
+
 	printf("\nDone.\n\n");
 }
 

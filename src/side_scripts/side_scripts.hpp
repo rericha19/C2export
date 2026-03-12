@@ -40,4 +40,5 @@ void tpage_util();
 void gool_util();
 void set_g_prop(int32_t p);
 void prop_util();
+void slst_util();
 void eid_cmd();

@@ -61,6 +61,7 @@ int32_t main()
 		else if (CMD("TPAGE_UTIL"))         tpage_util();
 		else if (CMD("GOOL_UTIL"))          gool_util();
 		else if (CMD("PROP_UTIL"))			prop_util();
+		else if (CMD("SLST_UTIL"))			slst_util();
 
 		// modify 
 		else if (CMD("EXPORT"))             level_alter::ll_alter(AT_LevelExport);
