@@ -1733,6 +1733,24 @@ void nsf_props_scr(const char* fpath)
 	}
 }
 
+std::vector<std::pair<std::string, int>> g_world_info{};
+void nsf_world_util(const char* fpath)
+{
+	int cnt = 0;
+	ELIST elist{};
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
+		return;
+
+	for (auto& entry : elist)
+	{
+		if (entry.get_entry_type() != EntryType::Scenery)
+			continue;
+
+		cnt++;
+	}
+	g_world_info.push_back({ std::string(fpath), cnt });
+}
+
 std::vector<std::pair<std::string, int>> g_slst_info{};
 void nsf_slst_util(const char* fpath)
 {
@@ -2373,6 +2391,37 @@ void prop_util()
 
 	set_g_prop(prop_code);
 	recursive_folder_iter(dpath, nsf_props_scr);
+	printf("\nDone.\n\n");
+}
+
+void world_util()
+{
+	printf("Input the path to the folder\n");
+	char dpath[MAX] = "";
+
+	scanf(" %[^\n]", dpath);
+	path_fix(dpath);
+
+	g_world_info.clear();
+	recursive_folder_iter(dpath, nsf_world_util);
+
+	if (g_world_info.empty())
+	{
+		printf("Nothing found\n");
+		printf("\nDone.\n\n");
+		return;
+	}
+
+	int c = 0;
+	float total = 0;
+	for (auto i : g_world_info)
+	{
+		printf("%s: %d\n", i.first.c_str(), i.second);
+		c++;
+		total += i.second;
+	}
+	printf("AVERAGE: %f (%d nsfs)", total / c, c);
+
 	printf("\nDone.\n\n");
 }
 
