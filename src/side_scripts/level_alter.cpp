@@ -825,7 +825,7 @@ namespace level_alter
 								uint32_t draw_item_uint = (0 | (ent_id << 8) | (o << 24));
 								for (int32_t zi = 0; zi < 8; zi++)
 									full_draw[m].remove(draw_item_uint | zi);
-								
+
 								if (angle_dist < angle_dist_limit)
 									full_draw[m].add(draw_item_uint);
 
@@ -857,6 +857,51 @@ namespace level_alter
 					n.entity_alter(2 + 3 * j, PROPERTY::item_add_property, 0x13C, &prop_0x13C);
 				}
 			}
+		}
+	}
+
+	void change_scenery_lods(ELIST& elist)
+	{
+		std::vector<std::pair<uint32_t, std::string>> s_lod_options{};
+		s_lod_options.push_back({ 0x80000001, "00000000" });
+		s_lod_options.push_back({ 0x80028001, "00000011" });
+		s_lod_options.push_back({ 0x802A8001, "00001111" });
+		s_lod_options.push_back({ 0x802D0001, "00001122" });
+		s_lod_options.push_back({ 0x82D50001, "00112222" });
+		s_lod_options.push_back({ 0x82D78001, "00112233" });
+
+		printf("Select LOD to apply:\n");
+		int i = 0;
+		for (auto& opt : s_lod_options)
+			printf("\t[%d] %s 0x%8X\n", i++, opt.second.c_str(), opt.first);
+
+		int32_t option = -1;
+		scanf("%d", &option);
+		if (option < 0 || option >= s_lod_options.size())
+		{
+			printf("[error] invalid option !!\n");
+			return;
+		}
+
+		for (auto& entry : elist)
+		{
+			if (entry.get_entry_type() != EntryType::Scenery)
+				continue;
+
+			uint8_t* item6 = entry.get_nth_item(6);
+			int32_t thing_count = from_u32(entry.get_nth_item(0) + 0x24);
+
+			int changes = 0;
+			for (int i = 0; i < thing_count; i++)
+			{
+				uint32_t data = from_u32(item6 + 4 * i);
+				if (data < 0x80000000)
+					continue;
+
+				*(uint32_t*)(item6 + 4 * i) = s_lod_options[option].first | (i * 4);
+				changes++;
+			}
+			printf("Changed %d lod values in %s\n", changes, entry.m_ename);
 		}
 	}
 
@@ -982,6 +1027,9 @@ namespace level_alter
 			break;
 		case AT_Warp_Swirl_Bs:
 			warp_swirl_bs_fix(elist);
+			break;
+		case AT_ChangeLOD:
+			change_scenery_lods(elist);
 			break;
 		default:
 			break;

@@ -141,6 +141,7 @@ enum AlterType
 	AT_Old_DL_Override,
 	AT_FlipScenY,
 	AT_FlipScenX,
+	AT_ChangeLOD,
 	AT_LevelRecolor,
 	AT_LevelExport,
 
