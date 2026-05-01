@@ -629,6 +629,8 @@ void resize_main()
 
 	int32_t gamemode;
 
+	printf("game sx sy sz?\n");
+
 	scanf("%d %lf %lf %lf", &gamemode, &scale[0], &scale[1], &scale[2]);
 	if (gamemode != 2 && gamemode != 3)
 	{
@@ -1001,12 +1003,12 @@ void resize_entity(uint8_t* item, int32_t itemsize, double scale[3])
 // yep resizes scenery
 void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t game)
 {
-	int32_t item1off, curr_off, next_off, group;
-	int64_t origin;
-	int32_t vertcount;
+	int i, item1off, j, curr_off, next_off, group, rest, vert;
+	long long int origin;
+	int vertcount;
 
 	item1off = buffer[0x10];
-	for (int32_t i = 0; i < 3; i++)
+	for (i = 0; i < 3; i++)
 	{
 		origin = from_u32(buffer + item1off + 4 * i);
 		if (origin >= (1LL << 31))
@@ -1014,7 +1016,7 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 			origin = (1LL << 32) - origin;
 			origin = scale[i] * origin;
 			origin = (1LL << 32) - origin;
-			for (int32_t j = 0; j < 4; j++)
+			for (j = 0; j < 4; j++)
 			{
 				buffer[item1off + j + i * 4] = origin % 256;
 				origin /= 256;
@@ -1023,7 +1025,7 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 		else
 		{
 			origin = scale[i] * origin;
-			for (int32_t j = 0; j < 4; j++)
+			for (j = 0; j < 4; j++)
 			{
 				buffer[item1off + j + i * 4] = origin % 256;
 				origin /= 256;
@@ -1035,20 +1037,11 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 	next_off = BYTE * buffer[0x19] + buffer[0x18];
 	vertcount = next_off - curr_off / 6;
 
-	for (int32_t i = curr_off; i < next_off; i += 2)
+	for (i = curr_off; i < next_off; i += 2)
 	{
-		group = from_s16(buffer + i);
-		int16_t vert = group & 0xFFF0;
-		int16_t rest = group & 0xF;
-		if (game == 2)
-		{
-			if (i >= 4 * vertcount + curr_off)
-				vert *= scale[2];
-			else if (i % 4 == 2)
-				vert *= scale[1];
-			else
-				vert *= scale[0];
-		}
+		group = 256 * buffer[i + 1] + buffer[i];
+		vert = group / 16;
+		rest = group % 16;
 		if (game == 2 && vert >= 2048)
 		{
 			vert = 4096 - vert;
@@ -1059,7 +1052,7 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 				else
 					vert = vert * scale[1];
 			}
-			else
+			else 
 				vert = vert * scale[2];
 			vert = 4096 - vert;
 		}
@@ -1072,7 +1065,7 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 				else
 					vert = vert * scale[1];
 			}
-			else
+			else 
 				vert = vert * scale[2];
 		}
 
