@@ -1052,7 +1052,7 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 				else
 					vert = vert * scale[1];
 			}
-			else 
+			else
 				vert = vert * scale[2];
 			vert = 4096 - vert;
 		}
@@ -1065,7 +1065,7 @@ void resize_scenery(int32_t fsize, uint8_t* buffer, double scale[3], int32_t gam
 				else
 					vert = vert * scale[1];
 			}
-			else 
+			else
 				vert = vert * scale[2];
 		}
 
@@ -1757,8 +1757,27 @@ void nsf_slst_util(const char* fpath)
 			continue;
 
 		auto* item0 = entry.get_nth_item(0);
-		int32_t count = from_u16(item0);
-		g_slst_info.push_back({ std::string(fpath) + " " + eid2str(entry.m_eid), count });
+		auto* itemL = entry.get_nth_item(entry.get_item_count() - 1);
+		int32_t count0 = from_u16(item0);
+		int32_t countL = from_u16(itemL);
+
+		int real_count0 = 0;
+		for (int i = 0; i < count0; i++)
+		{
+			uint16_t value = from_u16(item0 + 4 + 2 * i);
+			int state = (value >> 11) & 0x3;
+			real_count0 += (state == 3) ? 2 : 1;
+		}
+		g_slst_info.push_back({ std::string(fpath) + " " + eid2str(entry.m_eid) + "_0", real_count0 });
+
+		int real_countL = 0;
+		for (int i = 0; i < countL; i++)
+		{
+			uint16_t value = from_u16(itemL + 4 + 2 * i);
+			int state = (value >> 11) & 0x3;
+			real_countL += (state == 3) ? 2 : 1;
+		}
+		g_slst_info.push_back({ std::string(fpath) + " " + eid2str(entry.m_eid) + "_L", real_countL });
 	}
 }
 
