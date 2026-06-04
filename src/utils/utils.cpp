@@ -813,3 +813,20 @@ int32_t distance_with_penalty(int32_t distance, double backw_penalty)
 {
 	return int32_t(distance * (1.0 - backw_penalty));
 };
+
+std::vector<uint8_t> read_file(const char* path)
+{
+	std::vector<uint8_t> data;
+	FILE* file = fopen(path, "rb");
+	if (file == NULL)
+		return data;
+	fseek(file, 0, SEEK_END);
+	size_t file_size = ftell(file);
+	rewind(file);
+	data.resize(file_size);
+	size_t read_size = fread(data.data(), 1, file_size, file);
+	if (read_size != file_size)
+		data.clear();
+	fclose(file);
+	return data;
+}

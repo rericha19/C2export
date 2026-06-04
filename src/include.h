@@ -147,6 +147,7 @@ enum AlterType
 
 	AT_Medieval_Rain_Fix,	// misc modpack thing
 	AT_Warp_Swirl_Bs,		// misc modpack thing
+	AT_SmartReplace,		// misc modpack thing
 };
 
 enum class EntryType : int32_t

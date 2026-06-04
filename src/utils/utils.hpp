@@ -199,3 +199,4 @@ int32_t chunk_count_base(FILE* nsf);
 int32_t ask_level_ID();
 ChunkType chunk_type(uint8_t* chunk);
 int32_t distance_with_penalty(int32_t distance, double backw_penalty);
+std::vector<uint8_t> read_file(const char* path);

@@ -860,6 +860,60 @@ namespace level_alter
 		}
 	}
 
+	void smart_replace(ELIST& elist)
+	{
+		printf("\npath to folder with entries (zones, slsts and sceneries - .nsentry/nszone/nssort/nsworld)\n");
+
+		char path[MAX] = "";
+		scanf(" %[^\n]", path);
+		path_fix(path);
+
+		for (auto& ntry : elist)
+		{
+			auto entry_type = ntry.get_entry_type();
+			if (entry_type != EntryType::Zone && entry_type != EntryType::SLST && entry_type != EntryType::Scenery)
+				continue;
+
+			std::vector<std::string> possible_extensions = { ".nsentry", ".nszone", ".nssort", ".nsworld" };
+			std::vector<uint8_t> data{};
+			for (auto& ext : possible_extensions)
+			{
+				std::string full_path = std::string(path) + "/" + ntry.m_ename + ext;
+				data = read_file(full_path.c_str());;
+				if (!data.empty())
+					break;
+			}
+			if (data.empty())
+				continue;
+
+			ENTRY new_entry{};
+			new_entry.m_data = data;
+
+			if (entry_type == EntryType::Zone)
+			{
+				auto item0 = ntry.get_nth_item(0);
+				auto new_sceneries = new_entry.get_sceneries();
+
+				*(uint32_t*)(item0) = new_sceneries.count();
+				for (int i = 0; i < 8; i++)
+				{
+					uint32_t eid = i < new_sceneries.size() ? new_sceneries[i] : 0;
+					*(uint32_t*)(item0 + 0x4 + 0x30 * i) = eid;
+				}
+
+				ntry.replace_nth_item(1, new_entry.get_nth_item(1), new_entry.get_nth_item_offset(2) - new_entry.get_nth_item_offset(1));
+				printf("applied changes for %s (scenery refs, collision)\n", ntry.m_ename);
+			}
+			else
+			{
+				// todo fix
+				ntry.m_esize = data.size();
+				ntry.m_data = data;
+				printf("replaced whole entry for %s\n", ntry.m_ename);
+			}
+		}
+	}
+
 	void change_scenery_lods(ELIST& elist)
 	{
 		std::vector<std::pair<uint32_t, std::string>> s_lod_options{};
@@ -1031,9 +1085,40 @@ namespace level_alter
 		case AT_ChangeLOD:
 			change_scenery_lods(elist);
 			break;
+		case AT_SmartReplace:
+			smart_replace(elist);
+			break;
 		default:
 			break;
 		}
+
+		// make sure stuff still fits into chunks	
+		bool all_fits;
+		do
+		{
+			all_fits = true;
+			for (int i = 0; i < elist.m_chunk_count; i++)
+			{
+				int size = 0x14;
+				for (auto& ntry : elist)
+				{
+					if (ntry.m_chunk != i)
+						continue;
+
+					size += ntry.m_esize + 0x4;
+					if (size > CHUNKSIZE)
+					{
+						printf("entry %s with size %d doesnt fit in chunk, moving \n", ntry.m_ename, size);
+						ntry.m_chunk = elist.m_chunk_count++;
+						all_fits = false;
+						break; // stop iter over entries
+					}
+				}
+
+				if (!all_fits)
+					break; // stop iter over chunks
+			}
+		} while (!all_fits); // repeat until all fits
 
 		// start repacking stuff
 		for (auto& ntry : elist)

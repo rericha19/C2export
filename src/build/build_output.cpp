@@ -191,6 +191,8 @@ void ELIST::build_normal_chunks(CHUNKS& chunks)
 			{
 				memcpy(chunks[i].get() + curr_offset, ntry._data(), ntry.m_esize);
 				curr_offset += ntry.m_esize;
+				if (curr_offset > CHUNKSIZE)
+					printf("[ERROR] build_normal_chunks i:%d offset %d!!!\n", i, curr_offset);
 			}
 		}
 
