@@ -906,8 +906,7 @@ namespace level_alter
 			}
 			else
 			{
-				// todo fix
-				ntry.m_esize = data.size();
+				ntry.m_esize = (int32_t)data.size();
 				ntry.m_data = data;
 				printf("replaced whole entry for %s\n", ntry.m_ename);
 			}
