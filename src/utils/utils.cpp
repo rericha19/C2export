@@ -571,6 +571,9 @@ void print_help()
 	printf("LL_ANALYZE\n");
 	printf("\t stats about the level, integrity checks\n");
 
+	printf("SMART_REPLACE\n");
+	printf("\t replaces slst and world entries, selectively updates zones (scen refs + collision)\n");
+
 	printf("EXPORT\n");
 	printf("\t exports level entries\n");
 

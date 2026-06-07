@@ -868,13 +868,22 @@ namespace level_alter
 		scanf(" %[^\n]", path);
 		path_fix(path);
 
+		printf("\nZone replacement:\n[0] - only scenery refs\n[1] - refs and collision\n");
+		int zone_replace_type = -1;
+		scanf("%d", &zone_replace_type);
+		if (zone_replace_type < 0 || zone_replace_type > 1)
+		{
+			printf("[error] invalid option !!\n");
+			return;
+		}
+
+		const std::vector<std::string> possible_extensions = { ".nsentry", ".nszone", ".nssort", ".nsworld" };
 		for (auto& ntry : elist)
 		{
 			auto entry_type = ntry.get_entry_type();
 			if (entry_type != EntryType::Zone && entry_type != EntryType::SLST && entry_type != EntryType::Scenery)
 				continue;
 
-			std::vector<std::string> possible_extensions = { ".nsentry", ".nszone", ".nssort", ".nsworld" };
 			std::vector<uint8_t> data{};
 			for (auto& ext : possible_extensions)
 			{
@@ -901,8 +910,10 @@ namespace level_alter
 					*(uint32_t*)(item0 + 0x4 + 0x30 * i) = eid;
 				}
 
-				ntry.replace_nth_item(1, new_entry.get_nth_item(1), new_entry.get_nth_item_offset(2) - new_entry.get_nth_item_offset(1));
-				printf("applied changes for %s (scenery refs, collision)\n", ntry.m_ename);
+				if (zone_replace_type == 1)
+					ntry.replace_nth_item(1, new_entry.get_nth_item(1), new_entry.get_nth_item_offset(2) - new_entry.get_nth_item_offset(1));
+
+				printf("applied changes for %s (%s)\n", ntry.m_ename, zone_replace_type == 0 ? "scenery" : "scenery, collision");
 			}
 			else
 			{
