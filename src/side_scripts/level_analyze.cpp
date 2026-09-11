@@ -114,6 +114,8 @@ namespace level_analyze
 								printf("Duplicate/already drawn ID %4d in zone %s path %d load list B point %d\n",
 									draw_item.ID, eid2str(ntry.m_eid), j, sublist.index);
 							}
+							else
+								ids.add(draw_item.ID);
 						}
 					}
 					else if (sublist.type == 'A')
@@ -149,6 +151,8 @@ namespace level_analyze
 								printf("Duplicate/already drawn ID %4d in zone %s path %d load list B point %d\n",
 									draw_item.ID, ntry.m_ename, j, sublist.index);
 							}
+							else
+								ids2.add(draw_item.ID);
 						}
 					}
 				}
