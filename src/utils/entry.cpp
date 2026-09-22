@@ -226,11 +226,11 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			continue;
 
 		LIST layer2 = elist[neigh_idx].get_links(2 + 3 * link.cam_index);
-		for (auto _l2: layer2)
+		for (auto _l2 : layer2)
 		{
 			CAMERA_LINK link2(_l2);
 
-			uint32_t eid_offset2 = from_u32(elist[neigh_idx]._data() + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;			
+			uint32_t eid_offset2 = from_u32(elist[neigh_idx]._data() + 0x10) + 4 + link2.zone_index * 4 + C2_NEIGHBOURS_START;
 
 			uint32_t neighbour_eid2 = from_u32(elist[neigh_idx]._data() + eid_offset2);
 			int32_t neigh_idx2 = elist.get_index(neighbour_eid2);
@@ -243,7 +243,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + eid_offset2 + 0x20);
 			if (preloading_flag != PRELOADING_ALL && (neighbour_flg2 == 0xF || neighbour_flg2 == 0x1F))
 				continue;
-			
+
 			neighbours.copy_in(elist[neigh_idx2].get_neighbours());
 
 			ENTITY_PATH coords3 = elist[neigh_idx2].get_ent_path(2 + 3 * link2.cam_index);
@@ -821,12 +821,15 @@ LOAD_LIST ENTRY::get_load_lists(int32_t item_index)
 	return ll;
 }
 
-DRAW_LIST ENTRY::get_draw_lists(int32_t item_index)
+DRAW_LIST ENTRY::get_draw_lists(int32_t item_index, bool sort_type2)
 {
-	auto dl_sort = [](LOAD x, LOAD y)
+	auto dl_sort = [=](LOAD x, LOAD y)
 		{
 			if (x.index != y.index)
 				return (x.index < y.index);
+
+			if (sort_type2)
+				return (y.type < x.type);
 			else
 				return (y.type > x.type);
 		};

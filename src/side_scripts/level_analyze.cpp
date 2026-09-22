@@ -98,7 +98,7 @@ namespace level_analyze
 			int32_t cam_count = ntry.get_cam_item_count() / 3;
 			for (int32_t j = 0; j < cam_count; j++)
 			{
-				DRAW_LIST draw_list = ntry.get_draw_lists(2 + 3 * j);
+				DRAW_LIST draw_list = ntry.get_draw_lists(2 + 3 * j, true);
 
 				LIST ids{};
 				for (auto& sublist : draw_list)

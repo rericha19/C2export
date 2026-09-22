@@ -45,7 +45,7 @@ public:
 	// Deconstructs the load or draw lists and saves into a convenient struct.
 	GENERIC_LOAD_LIST get_generic_lists(int32_t prop_code, int32_t cam_index);
 	LOAD_LIST get_load_lists(int32_t cam_index);
-	DRAW_LIST get_draw_lists(int32_t cam_index);
+	DRAW_LIST get_draw_lists(int32_t cam_index, bool sort_type2 = false);
 	std::vector<LIST> get_expanded_draw_list(int32_t cam_index, bool ret_full_items = false);
 	void texture_count_check(ELIST& elist, std::vector<LIST>& full_load, int32_t cam_idx);
 
