@@ -42,4 +42,5 @@ void set_g_prop(int32_t p);
 void prop_util();
 void slst_util();
 void world_util();
+void c3_willc_meta_util();
 void eid_cmd();

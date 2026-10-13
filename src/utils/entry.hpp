@@ -55,6 +55,7 @@ public:
 	ENTITY_PATH get_ent_path(int32_t item_index);
 	int32_t get_ent_path_len(int32_t item_index);
 	int32_t get_nth_item_offset(int32_t n);
+	int32_t get_nth_item_size(int32_t n);
 	uint8_t* get_nth_item(int32_t n);
 	uint8_t* get_nth_entity(int32_t entity_n);
 	uint8_t* get_nth_main_cam(int32_t cam_n);

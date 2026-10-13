@@ -394,8 +394,7 @@ namespace level_alter
 			if (ntry.get_entry_type() == EntryType::Zone)
 			{
 				uint8_t* item1 = ntry.get_nth_item(1);
-				int32_t size =
-					ntry.get_nth_item_offset(2) - ntry.get_nth_item_offset(1);
+				int32_t size = ntry.get_nth_item_size(1);
 
 				// zone position
 				*(int32_t*)(item1 + 0x4) *= -1;
@@ -587,8 +586,7 @@ namespace level_alter
 			if (ntry.get_entry_type() == EntryType::Zone)
 			{
 				uint8_t* item1 = ntry.get_nth_item(1);
-				int32_t new_size =
-					ntry.get_nth_item_offset(2) - ntry.get_nth_item_offset(1);
+				int32_t new_size = ntry.get_nth_item_size(1);
 
 				// zone position
 				*(int32_t*)(item1 + 0x0) *= -1;
@@ -911,7 +909,7 @@ namespace level_alter
 				}
 
 				if (zone_replace_type == 1)
-					ntry.replace_nth_item(1, new_entry.get_nth_item(1), new_entry.get_nth_item_offset(2) - new_entry.get_nth_item_offset(1));
+					ntry.replace_nth_item(1, new_entry.get_nth_item(1), new_entry.get_nth_item_size(1));
 
 				printf("applied changes for %s (%s)\n", ntry.m_ename, zone_replace_type == 0 ? "scenery" : "scenery, collision");
 			}

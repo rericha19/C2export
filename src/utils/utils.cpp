@@ -514,6 +514,9 @@ void print_help2()
 	printf("PROP_UTIL\n");
 	printf("\t print prop info within files (folder)\n");
 
+	printf("C3_WILLC_META\n");
+	printf("\t c3 willc meta info");
+
 	printf("A <angle> & TIME\n");
 	printf("\t modpack crate rotation, TT value\n");
 

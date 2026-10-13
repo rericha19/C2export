@@ -380,7 +380,7 @@ void ELIST::ll_gen_add_neighbour_coll_deps(FULL_LABELED_LL& full_list, ENTRY& nt
 			continue;
 
 		uint8_t* item1 = at(index).get_nth_item(1);
-		int32_t item_len = at(index).get_nth_item_offset(2) - at(index).get_nth_item_offset(1);
+		int32_t item_len = at(index).get_nth_item_size(1);
 
 		for (int32_t offset = 0x24; offset < item_len; offset += 2)
 		{

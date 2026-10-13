@@ -436,6 +436,11 @@ int32_t ENTRY::get_ent_path_len(int32_t item_index)
 	return from_u32(item + offset);
 }
 
+int32_t ENTRY::get_nth_item_size(int32_t n)
+{
+	return get_nth_item_offset(n + 1) - get_nth_item_offset(n);
+}
+
 // gets offset of the nth item in an entry
 int32_t ENTRY::get_nth_item_offset(int32_t n)
 {
@@ -653,7 +658,7 @@ void ENTRY::replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t item
 	}
 
 	for (int32_t i = 0; i < item_cnt; i++)
-		item_lengths[i] = get_nth_item_offset(i + 1) - get_nth_item_offset(i);
+		item_lengths[i] = get_nth_item_size(i);
 
 	for (offset = first_item_off, i = 0; i < item_cnt; offset += item_lengths[i], i++)
 	{
@@ -689,7 +694,7 @@ void ENTRY::replace_nth_item(int32_t item_index, uint8_t* new_item, int32_t item
 // alters specified item using the func_arg function, replaces within the entry
 void ENTRY::entity_alter(int32_t item_index, std::vector<uint8_t>(func_arg)(uint32_t, std::vector<uint8_t>&, PROPERTY*), int32_t property_code, PROPERTY* prop)
 {
-	int32_t item_length = get_nth_item_offset(item_index + 1) - get_nth_item_offset(item_index);
+	int32_t item_length = get_nth_item_size(item_index);
 	std::vector<uint8_t> item(item_length);
 	memcpy(item.data(), _data() + get_nth_item_offset(item_index), item_length);
 

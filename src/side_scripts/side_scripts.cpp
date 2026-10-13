@@ -2437,6 +2437,107 @@ void world_util()
 	printf("\nDone.\n\n");
 }
 
+void nsf_c3_willc_meta(const char* fpath)
+{
+	ELIST elist{};
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
+		return;
+
+	ENTRY* willc = nullptr;
+	std::vector<std::string> entries{};
+	for (auto& ntry : elist)
+	{
+		if (strcmp(ntry.m_ename, "WillC") == 0)
+			willc = &ntry;
+
+		entries.push_back(ntry.m_ename);
+	}
+
+	if (willc == nullptr)
+		return;
+
+	printf("File %s:\n", fpath);
+
+	std::unordered_set<std::string> sounds{};
+	std::unordered_set<std::string> modules{};
+	std::unordered_set<std::string> anims{};
+	std::unordered_set<std::string> models{};
+	std::unordered_set<std::string> unk{};
+
+	auto data_item = willc->get_nth_item(2);
+	auto data_item_size = willc->get_nth_item_size(2);
+	for (int i = 0; i < data_item_size; i += 4)
+	{
+		std::string name = eid2str(from_u32(data_item + i));
+		if (name[4] == 'I')
+			unk.insert(name + "(data)");
+		if (std::find(entries.begin(), entries.end(), name) == entries.end())
+			continue;
+
+		if (name[4] == 'A')
+			sounds.insert(name);
+		if (name[4] == 'C')
+			modules.insert(name);
+	}
+
+	auto anim_item = willc->get_nth_item(5);
+	auto anim_item_size = willc->get_nth_item_size(5);
+	for (int i = 0; i < anim_item_size; i += 4)
+	{
+		std::string name = eid2str(from_u32(anim_item + i));
+		if (name[4] == 'I')
+			unk.insert(name + "(anim)");
+		if (std::find(entries.begin(), entries.end(), name) == entries.end())
+			continue;
+
+		if (name[4] == 'G')
+			models.insert(name);
+		if (name[4] == 'V')
+			anims.insert(name);
+	}
+
+	printf("Modules: ");
+	for (auto& mod : modules)
+		printf("%s, ", mod.c_str());
+	printf("\n");
+
+	printf("Sounds:  ");
+	for (auto& snd : sounds)
+		printf("%s, ", snd.c_str());
+	printf("\n");
+
+	printf("Models:  ");
+	for (auto& mdl : models)
+		printf("%s, ", mdl.c_str());
+	printf("\n");
+
+	printf("Anims:   ");
+	for (auto& anim : anims)
+		printf("%s, ", anim.c_str());
+	printf("\n");
+
+	printf("Unk:     ");
+	for (auto& un : unk)
+		printf("%s, ", un.c_str());
+	printf("\n");
+
+	printf("\n");
+}
+
+void c3_willc_meta_util()
+{
+	printf("Input the path to the folder\n");
+	char dpath[MAX] = "";
+
+	scanf(" %[^\n]", dpath);
+	path_fix(dpath);
+
+	g_slst_info.clear();
+	recursive_folder_iter(dpath, nsf_c3_willc_meta);
+
+	printf("\nDone\n\n");
+}
+
 void slst_util()
 {
 	printf("Input the path to the folder\n");
