@@ -22,7 +22,7 @@ https://youtu.be/BTdX0XOQf4E \
 
 
 #### REBUILD / REBUILD_DL (standalone / direct)
-
+Now both Crash 2 and Crash 3 levels can be rebuilt using rebuild/rebuild_dl. \
 Arguably the most useful commands in the tool, used to rebuild levels. \
 Allows to generate load lists and draw lists given parameters and input files. \
 Places entries into chunks and creates a playable NSF & NSD (it is recommended to Patch NSD with CrashEdit) \
