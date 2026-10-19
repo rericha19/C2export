@@ -518,7 +518,7 @@ namespace level_alter
 	void flip_camera_dist_2D_x(uint8_t* item0, uint8_t* item1)
 	{
 		int32_t mode = PROPERTY::get_value(item0, ENTITY_PROP_CAMERA_MODE);
-		if (mode != C2_CAM_MODE_2D)
+		if (!cammode_2d(mode, false))
 			return;
 
 		PROPERTY prop = PROPERTY::get_full(item1, ENTITY_PROP_CAM_DISTANCE);

@@ -97,14 +97,16 @@ enum __conf_enum
 
 #define BUILD_FPATH_COUNT 4
 #define OFFSET 0xC // bad name
-#define C2_GOOL_TABLE_SIZE 0x40
-#define C3_GOOL_TABLE_SIZE 0x80
 #define CHUNKSIZE 65536
 #define CHUNK_CHECKSUM_OFFSET 0xC
 #define BYTE 0x100
 #define MAX 1000
 #define PI 3.1415926535
 #define CHUNK_LIST_DEFAULT_SIZE 1000
+
+#define C2_GOOL_TABLE_SIZE 0x40
+#define C3_GOOL_TABLE_SIZE 0x80
+#define GOOL_TABLE_SIZE(c3) ((c3) ? C3_GOOL_TABLE_SIZE : C2_GOOL_TABLE_SIZE)
 
 #define SPECIAL_METADATA_MASK_LLCOUNT 0xFF
 #define SPECIAL_METADATA_MASK_TRANS_LOAD_OVERRIDE 0xFF00
@@ -114,10 +116,22 @@ enum __conf_enum
 #define C2_CAMERA_COUNT_OFF 0x188
 #define C2_ENTITY_COUNT_OFF 0x18C
 #define C2_NEIGHBOURS_START 0x190
+
 #define C2_NEIGHBOURS_END 0x1B4
+#define C3_NEIGHBOURS_END 0x1D4
+#define NEIGHBOURS_END(c3) ((c3) ? C3_NEIGHBOURS_END : C2_NEIGHBOURS_END)
+
 #define C2_NEIGHBOURS_FLAGS_END 0x1D4
+#define C3_NEIGHBOURS_FLAGS_END 0x214
+#define NEIGHBOURS_FLAGS_END(c3) ((c3) ? C3_NEIGHBOURS_FLAGS_END : C2_NEIGHBOURS_FLAGS_END)
+
 #define C2_SPECIAL_METADATA_OFFSET 0x1DC
+#define C3_SPECIAL_METADATA_OFFSET 0x21C
+#define SPECIAL_METADATA_OFFSET(c3) ((c3) ? C3_SPECIAL_METADATA_OFFSET : C2_SPECIAL_METADATA_OFFSET)
+
 #define C2_MUSIC_REF 0x2A4
+#define C3_MUSIC_REF 0x2E4
+#define MUSIC_REF(c3) ((c3) ? C3_MUSIC_REF : C2_MUSIC_REF)
 
 #define C2_NSD_CHUNK_COUNT_OFFSET 0x400
 #define C2_NSD_ENTRY_COUNT_OFFSET 0x404
@@ -188,10 +202,49 @@ enum class ChunkType : int32_t
 	SPEECH = 5,
 };
 
-#define C2_CAM_MODE_3D 0
-#define C2_CAM_MODE_CUTSCENE 2
-#define C2_CAM_MODE_2D 3
-#define C2_CAM_MODE_VERTICAL 8
+enum class CameraModeC2
+{
+	_3D = 0,
+	CUTSC = 2,
+	_2D = 3,
+	VERT = 8,
+};
+
+enum class CameraModeC3
+{
+	_3D = 1,
+	CUTSC = 2,
+	_2D = 4,
+	VERT = 0x80,
+};
+
+inline bool cammode_3d(int32_t mode, bool c3)
+{
+	return (c3)
+		? (mode == (int32_t)CameraModeC3::_3D)
+		: (mode == (int32_t)CameraModeC2::_3D);
+}
+
+inline bool cammode_cutsc(int32_t mode, bool c3)
+{
+	return (c3)
+		? (mode == (int32_t)CameraModeC3::CUTSC)
+		: (mode == (int32_t)CameraModeC2::CUTSC);
+}
+
+inline bool cammode_2d(int32_t mode, bool c3)
+{
+	return (c3)
+		? (mode == (int32_t)CameraModeC3::_2D)
+		: (mode == (int32_t)CameraModeC2::_2D);
+}
+
+inline bool cammode_vert(int32_t mode, bool c3)
+{
+	return (c3)
+		? (mode == (int32_t)CameraModeC3::VERT)
+		: (mode == (int32_t)CameraModeC2::VERT);
+}
 
 #define ENTITY_PROP_NAME 0x2C
 #define ENTITY_PROP_DEPTH_MODIFIER 0x32
@@ -205,6 +258,7 @@ enum class ChunkType : int32_t
 #define ENTITY_PROP_VICTIMS 0x287
 #define ENTITY_PROP_DDA_SECTION 0x288
 #define ENTITY_PROP_BOX_COUNT 0x28B
+#define ENTITY_PROP_PATH_SCALE 0x30E
 
 #define ENTITY_PROP_OVERRIDE_DRAW_ID 0x3FE
 #define ENTITY_PROP_OVERRIDE_DRAW_MULT 0x3FF

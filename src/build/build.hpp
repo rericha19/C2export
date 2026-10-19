@@ -23,6 +23,9 @@ inline void build_main(int32_t build_type)
 		return;
 	}
 
+	if (elist.m_is_crash3)
+		elist.store_c3_anim_model_refs();
+
 	// see whether to save in a secondary folder
 	elist.ask_second_output();
 
@@ -85,7 +88,7 @@ inline void build_main(int32_t build_type)
 	case Occurence_Matrix_Threaded:
 	case Occurence_Matrix_Threaded_HotBoost:
 		elist.matrix_merge_random_main();
-		break;	
+		break;
 	default:
 		printf("[ERROR] unknown/deprecated merge\n");
 		break;

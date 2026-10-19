@@ -182,7 +182,7 @@ void ELIST::print_transitions()
 			uint32_t neighbour_eid = from_u32(item0 + C2_NEIGHBOURS_START + 4 + 4 * j);
 			uint32_t neighbour_flg = from_u32(item0 + C2_NEIGHBOURS_START + 4 + 4 * j + 0x20);
 
-			int32_t override_type = ntry.get_preloading_flag(-1);
+			int32_t override_type = ntry.get_preloading_flag(-1, m_is_crash3);
 			if (neighbour_flg == 0xF || neighbour_flg == 0x1F)
 			{
 
@@ -295,6 +295,8 @@ void ELIST::check_unspecified_entities()
 	printf("\n");
 
 	LIST considered{};
+	int ts = GOOL_TABLE_SIZE(m_is_crash3);
+
 	for (auto& ntry : *this)
 	{
 		if (ntry.get_entry_type() != EntryType::Zone)
@@ -306,7 +308,7 @@ void ELIST::check_unspecified_entities()
 			int32_t type = PROPERTY::get_value(entity, ENTITY_PROP_TYPE);
 			int32_t subt = PROPERTY::get_value(entity, ENTITY_PROP_SUBTYPE);
 			int32_t enID = PROPERTY::get_value(entity, ENTITY_PROP_ID);
-			if (type >= 64 || type < 0 || subt < 0)
+			if (type >= ts || type < 0 || subt < 0)
 			{
 				printf("[warning] Zone %s entity %2d is invalid! (type %2d subtype %2d)\n", ntry.m_ename, j, type, subt);
 				continue;
@@ -385,4 +387,60 @@ void ELIST::check_loaded()
 	}
 
 	printf("Number of normal entries not included: %3d\n", entries_skipped);
+}
+
+void ELIST::detect_game()
+{
+	std::unordered_map<int32_t, int32_t> guesses{};
+	for (auto& ntry : *this)
+	{
+		auto type = ntry.get_entry_type();
+		if (type == EntryType::Zone)
+		{
+			auto size = ntry.get_nth_item_size(0);
+			if (size == 0x318)
+				guesses[2]++;
+			if (size == 0x358)
+				guesses[3]++;
+		}
+	}
+
+	if (guesses[2] > guesses[3])
+		m_is_crash3 = false;
+	else if (guesses[3] > guesses[2])
+		m_is_crash3 = true;
+
+	if (m_is_crash3)
+		printf("[info] Detected game: Crash 3\n");
+	else
+		printf("[info] Detected game: Crash 2\n");
+}
+
+void ELIST::store_c3_anim_model_refs()
+{
+	for (auto& ntry : *this)
+	{
+		if (ntry.get_entry_type() != EntryType::GOOL)
+			continue;
+
+		if (ntry.get_item_count() != 6)
+			continue;
+
+		auto data = ntry.get_nth_item(5);
+		auto size = ntry.get_nth_item_size(5);
+
+		for (int i = 0; i < (size - 4); i += 4)
+		{
+			auto eid_anim = from_u32(data + i + 4);
+			auto eid_model = from_u32(data + i);
+
+			auto string_anim = ENTRY::eid2s(eid_anim);
+			auto string_model = ENTRY::eid2s(eid_model);
+
+			if (string_anim[4] == 'V' && string_model[4] == 'G')
+			{
+				m_c3_anim_model_map[string_anim].add(eid_model);
+			}
+		}
+	}
 }

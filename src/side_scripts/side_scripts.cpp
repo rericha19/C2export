@@ -1961,7 +1961,7 @@ void special_load_lists_util(const char* fpath)
 		if (curr.get_entry_type() != EntryType::Zone)
 			continue;
 
-		LIST special_entries = curr.get_special_entries_raw();
+		LIST special_entries = curr.get_special_entries_raw(elist.m_is_crash3);
 		if (special_entries.count())
 		{
 			printed_something = true;
@@ -2532,8 +2532,79 @@ void c3_willc_meta_util()
 	scanf(" %[^\n]", dpath);
 	path_fix(dpath);
 
-	g_slst_info.clear();
 	recursive_folder_iter(dpath, nsf_c3_willc_meta);
+
+	printf("\nDone\n\n");
+}
+
+static std::map<int32_t, size_t> g_c3_zone_header_size{};
+static std::map<int32_t, size_t> g_c3_zone_meta_neighbours{};
+static std::map<int32_t, size_t> g_c3_zone_meta_scenery{};
+
+void nsf_c3_zone_meta(const char* fpath)
+{
+	ELIST elist{};
+	if (elist.read_and_parse_nsf(NULL, 1, fpath))
+		return;
+
+	for (auto& ntry : elist)
+	{
+		if (ntry.get_entry_type() != EntryType::Zone)
+			continue;
+
+		auto nc = ntry.get_neighbour_count();
+		g_c3_zone_header_size[ntry.get_nth_item_size(0)]++;
+		g_c3_zone_meta_neighbours[nc]++;
+		g_c3_zone_meta_scenery[ntry.get_scenery_count()]++;
+
+		if (nc > 8)
+		{
+			std::string fpaths = fpath;
+			printf("Level %s zone %s neighbour count %d\n", fpaths.substr(fpaths.length() - 15).c_str(), ntry.m_ename, nc);
+		}
+	}
+}
+
+static void c3_zone_meta_print_distribution(const char* name, const std::map<int32_t, size_t>& dist)
+{
+	size_t total = 0;
+	for (auto& [value, count] : dist)
+		total += count;
+
+	printf("%s distribution (%zu zones)\n", name, total);
+
+	if (!total)
+	{
+		printf("  no data\n\n");
+		return;
+	}
+
+	printf("  min: %d, max: %d\n", dist.begin()->first, dist.rbegin()->first);
+	printf("  %6s | %8s | %7s\n", "count", "zones", "percent");
+
+	for (auto& [value, count] : dist)
+		printf("  %6d | %8zu | %6.2f%%\n", value, count, 100.0 * count / total);
+
+	printf("\n");
+}
+
+void c3_zone_meta_util()
+{
+	printf("Input the path to the folder\n");
+	char dpath[MAX] = "";
+
+	scanf(" %[^\n]", dpath);
+	path_fix(dpath);
+
+	g_c3_zone_header_size.clear();
+	g_c3_zone_meta_neighbours.clear();
+	g_c3_zone_meta_scenery.clear();
+	recursive_folder_iter(dpath, nsf_c3_zone_meta);
+
+	printf("\n");
+	c3_zone_meta_print_distribution("Header size", g_c3_zone_header_size);
+	c3_zone_meta_print_distribution("Neighbour count", g_c3_zone_meta_neighbours);
+	c3_zone_meta_print_distribution("Scenery count", g_c3_zone_meta_scenery);
 
 	printf("\nDone\n\n");
 }

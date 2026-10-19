@@ -23,12 +23,14 @@ public:
 	int32_t m_chunk_border_sounds = 0;
 
 	int32_t m_level_ID = 0;				// level ID, for naming output files, needed in output nsd
+	bool m_is_crash3 = false;			// whether the level is a crash 3 level
 	LIST m_permaloaded{};				// eids of permaloaded entries provided by the user
 	DEPENDENCIES m_subt_deps{};			// dependencies for certain types and subtypes
 	DEPENDENCIES m_coll_deps{};			// dependencies for certain collision types
 	DEPENDENCIES m_musi_deps{};			// dependencies for zones using certain music track 
 	uint32_t m_gool_table[C3_GOOL_TABLE_SIZE]{};
 	SPAWNS m_spawns{};
+	std::map<std::string, LIST> m_c3_anim_model_map{};
 
 	RebuildConfig m_config =
 	{
@@ -53,7 +55,8 @@ public:
 		{Rebuild_Iteration_Limit, 0},
 		{Rebuild_Random_Mult_DBL, 0},
 		{Rebuild_Base_Seed, 0},
-		{Rebuild_Thread_Count, 0},		
+		{Rebuild_Thread_Count, 0},
+		{Rebuild_Hotspot_Boost, 10},
 	};
 
 	void sort_by_eid();
@@ -70,6 +73,8 @@ public:
 	void patch_27f_props();
 	void check_unspecified_entities();
 	void check_loaded();
+	void detect_game();
+	void store_c3_anim_model_refs();
 
 	// input
 	void ask_build_flags();

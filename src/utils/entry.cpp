@@ -39,6 +39,13 @@ LIST ENTRY::get_models()
 	return models;
 }
 
+LIST ENTRY::get_models_c3(ELIST& elist)
+{
+	LIST models{};
+	models.copy_in(elist.m_c3_anim_model_map[m_ename]);
+	return models;
+}
+
 // returns list of camera links of the specified camera path 
 LIST ENTRY::get_links(int32_t item_idx)
 {
@@ -97,12 +104,12 @@ std::string ENTRY::eid2s(uint32_t value)
 }
 
 // Gets list of special entries in the zone's first item. For more info see function below.
-LIST ENTRY::get_special_entries_raw()
+LIST ENTRY::get_special_entries_raw(bool c3)
 {
 	if (get_entry_type() != EntryType::Zone)
 		return {};
 
-	const uint8_t* metadata_ptr = get_nth_item(0) + C2_SPECIAL_METADATA_OFFSET;
+	const uint8_t* metadata_ptr = get_nth_item(0) + SPECIAL_METADATA_OFFSET(c3);
 	int32_t special_entry_count = from_u32(metadata_ptr) & SPECIAL_METADATA_MASK_LLCOUNT;
 
 	LIST special_entries{};
@@ -116,7 +123,7 @@ LIST ENTRY::get_special_entries_raw()
 // implicit are models and textures referenced by animations
 LIST ENTRY::get_special_entries_extended(ELIST& elist)
 {
-	LIST special_entries = get_special_entries_raw();
+	LIST special_entries = get_special_entries_raw(elist.m_is_crash3);
 	LIST iteration_clone = {};
 	iteration_clone.copy_in(special_entries);
 
@@ -163,7 +170,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 	LIST entity_list{};
 
 	int32_t draw_dist = elist.m_config[LL_Drawlist_Distance];
-	int32_t preloading_flag = get_preloading_flag(elist.m_config[LL_Transition_Preloading_Type]);
+	int32_t preloading_flag = get_preloading_flag(elist.m_config[LL_Transition_Preloading_Type], elist.m_is_crash3);
 	double backwards_penalty = config_to_double(elist.m_config[LL_Backwards_Loading_Penalty_DBL]);
 
 	neighbours.copy_in(get_neighbours());
@@ -237,7 +244,7 @@ LIST ENTRY::get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_
 			if (neigh_idx2 == -1)
 				continue;
 
-			preloading_flag = elist[neigh_idx].get_preloading_flag(elist.m_config[LL_Transition_Preloading_Type]);
+			preloading_flag = elist[neigh_idx].get_preloading_flag(elist.m_config[LL_Transition_Preloading_Type], elist.m_is_crash3);
 
 			// preloading everything check
 			uint32_t neighbour_flg2 = from_u32(elist[neigh_idx]._data() + eid_offset2 + 0x20);
@@ -312,8 +319,11 @@ LIST ENTRY::get_model_textures()
 LIST ENTRY::get_anim_refs(ELIST& elist)
 {
 	LIST list{};
+	LIST models = elist.m_is_crash3
+		? get_models_c3(elist)
+		: get_models();
 
-	for (auto& model : get_models())
+	for (auto& model : models)
 	{
 		int32_t model_index = elist.get_index(model);
 		if (model_index == -1)
@@ -330,7 +340,7 @@ LIST ENTRY::get_anim_refs(ELIST& elist)
 	return list;
 }
 
-void ENTRY::parse_relatives()
+void ENTRY::parse_relatives(bool c3)
 {
 	int32_t item0off = get_nth_item_offset(0);
 	int32_t item1off = get_nth_item_offset(1);
@@ -348,7 +358,7 @@ void ENTRY::parse_relatives()
 	m_related.copy_in(get_neighbours());
 	m_related.copy_in(get_sceneries());
 
-	uint32_t music_ref = get_zone_track();
+	uint32_t music_ref = get_zone_track(c3);
 	if (music_ref != EID_NONE)
 		m_related.add(music_ref);
 }
@@ -365,12 +375,20 @@ void ENTRY::parse_spawns(SPAWNS& spawns)
 			if (coords_offset == -1)
 				return {};
 
+			int ent_pos_scale = 4;
+			auto ent_pos_offset = PROPERTY::get_offset(item, ENTITY_PROP_PATH_SCALE);
+			if (ent_pos_offset != 0)
+			{
+				auto scaling_value = from_u32(item + ent_pos_offset + 4);
+				ent_pos_scale = 1 << scaling_value;
+			}
+
 			if ((type == 0 && subtype == 0) || (type == 34 && subtype == 4))
 			{
 				ENTITY_PATH coords{};
 
 				for (int32_t i = 0; i < 3; i++)
-					coords.push_back((*(int16_t*)(item + coords_offset + 4 + 2 * i)) * 4);
+					coords.push_back((*(int16_t*)(item + coords_offset + 4 + 2 * i)) * ent_pos_scale);
 				return coords;
 			}
 
@@ -702,22 +720,18 @@ void ENTRY::entity_alter(int32_t item_index, std::vector<uint8_t>(func_arg)(uint
 	replace_nth_item(item_index, item.data(), int32_t(item.size()));
 }
 
-uint32_t ENTRY::get_zone_track()
+uint32_t ENTRY::get_zone_track(bool c3)
 {
 	int32_t item0off = get_nth_item_offset(0);
-	int32_t item1off = get_nth_item_offset(1);
-	int32_t item0len = item1off - item0off;
-
-	uint32_t music_entry = from_u32(_data() + item0off + C2_MUSIC_REF + item0len - 0x318);
-	return music_entry;
+	return from_u32(_data() + item0off + MUSIC_REF(c3));
 }
 
-uint32_t ENTRY::get_preloading_flag(uint32_t def)
+uint32_t ENTRY::get_preloading_flag(uint32_t def, bool c3)
 {
 	uint32_t ret = def;
 	if (get_entry_type() == EntryType::Zone)
 	{
-		uint32_t val = (from_u32(_data() + get_nth_item_offset(0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_TRANS_LOAD_OVERRIDE) >> 8;
+		uint32_t val = (from_u32(_data() + get_nth_item_offset(0) + SPECIAL_METADATA_OFFSET(c3)) & SPECIAL_METADATA_MASK_TRANS_LOAD_OVERRIDE) >> 8;
 		if (val & 0x80)
 		{
 			ret = val & 0x7F;

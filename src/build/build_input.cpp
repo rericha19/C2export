@@ -516,8 +516,7 @@ bool ELIST::read_and_parse_nsf(CHUNKS* chunks, bool stats_only, const char* fpat
 
 				if (ntry.get_entry_type() == EntryType::Zone)
 				{
-					ntry.check_zone_item_count();						
-					ntry.parse_relatives();
+					ntry.check_zone_item_count();
 					ntry.parse_spawns(m_spawns);
 				}
 
@@ -539,6 +538,13 @@ bool ELIST::read_and_parse_nsf(CHUNKS* chunks, bool stats_only, const char* fpat
 				sort_by_eid();
 			}
 		}
+	}
+
+	detect_game();
+	for (auto& ntry : *this)
+	{
+		if (ntry.get_entry_type() == EntryType::Zone)
+			ntry.parse_relatives(m_is_crash3);
 	}
 
 	return false;

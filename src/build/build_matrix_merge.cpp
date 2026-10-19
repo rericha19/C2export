@@ -134,6 +134,8 @@ RELATIONS ELIST::get_occurence_array()
 		{
 			LOAD_LIST load_list = ntry.get_load_lists(2 + 3 * j);
 			int32_t cam_length = ntry.get_ent_path_len(2 + 3 * j);
+			if (load_list.size() < 2)
+				continue;
 
 			LIST list{};
 			switch (ll_polling_type)

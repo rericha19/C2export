@@ -175,7 +175,7 @@ void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& 
 	}
 
 	std::vector<int32_t> avg_angles(campath.length());
-	if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
+	if (cammode_3d(cam_mode, m_is_crash3) || cammode_cutsc(cam_mode, m_is_crash3))
 	{
 		for (int32_t n = 0; n < avg_angles.size() * 2; n += 2)
 		{
@@ -207,6 +207,15 @@ void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& 
 				ref_ent_idx = override_idx;
 
 			ENTITY_PATH ent_path = neighbour.get_ent_path(2 + neigh_camitems + ref_ent_idx);
+			auto item = neighbour.get_nth_item(2 + neigh_camitems + ref_ent_idx);
+			int ent_pos_scale = 4;
+			auto ent_pos_data = PROPERTY::get_offset(item, ENTITY_PROP_PATH_SCALE);
+			if (ent_pos_data != 0)
+			{
+				auto scaling_value = from_s32(item + ent_pos_data + 4);
+				ent_pos_scale = 1 << scaling_value;
+			}
+
 			if (!ent_path.length())
 			{
 				int32_t id = PROPERTY::get_value(neighbour.get_nth_entity(ref_ent_idx), ENTITY_PROP_ID);
@@ -228,9 +237,9 @@ void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& 
 			// check all entity points to see whether its visible
 			for (int32_t o = 0; o < ent_path.length(); o++)
 			{
-				int32_t ent_x = (4 * ent_path[3 * o + 0]) + from_s32(neighbour.get_nth_item(1) + 0);
-				int32_t ent_y = (4 * ent_path[3 * o + 1]) + from_s32(neighbour.get_nth_item(1) + 4);
-				int32_t ent_z = (4 * ent_path[3 * o + 2]) + from_s32(neighbour.get_nth_item(1) + 8);
+				int32_t ent_x = (ent_pos_scale * ent_path[3 * o + 0]) + from_s32(neighbour.get_nth_item(1) + 0);
+				int32_t ent_y = (ent_pos_scale * ent_path[3 * o + 1]) + from_s32(neighbour.get_nth_item(1) + 4);
+				int32_t ent_z = (ent_pos_scale * ent_path[3 * o + 2]) + from_s32(neighbour.get_nth_item(1) + 8);
 
 				int32_t dist_x = abs(cam_x - ent_x);
 				int32_t dist_y = abs(cam_y - ent_y);
@@ -244,12 +253,12 @@ void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& 
 				if (allowed_dist_xz && dist_xz > allowed_dist_xz)
 					continue;
 
-				if (cam_mode == C2_CAM_MODE_2D || cam_mode == C2_CAM_MODE_VERTICAL)
+				if (cammode_2d(cam_mode, m_is_crash3) || cammode_vert(cam_mode, m_is_crash3))
 				{
 					full_draw[m].add(neigh_ref_idx | (ent_id << 8) | (n << 24));
 					break;
 				}
-				else if (cam_mode == C2_CAM_MODE_3D || cam_mode == C2_CAM_MODE_CUTSCENE)
+				else if (cammode_3d(cam_mode, m_is_crash3) || cammode_cutsc(cam_mode, m_is_crash3))
 				{
 					// in 3D, entities closer than 20% of the distance cap are drawn regardless of the check
 					if (dist_xz < (allowed_dist_xz / 5) || !allowed_dist_xz)
@@ -284,6 +293,7 @@ void ELIST::draw_list_gen_handle_neighbour(std::vector<LIST>& full_draw, ENTRY& 
 void ELIST::remake_draw_lists()
 {
 	LIST pos_overrides{};
+	uint32_t meta_offset = SPECIAL_METADATA_OFFSET(m_is_crash3);
 
 	for (auto& ntry : *this)
 	{
@@ -294,7 +304,7 @@ void ELIST::remake_draw_lists()
 		if (!cam_count)
 			continue;
 
-		uint32_t skipflag = from_u32(ntry.get_nth_item(0) + C2_SPECIAL_METADATA_OFFSET) & SPECIAL_METADATA_MASK_SKIPFLAG;
+		uint32_t skipflag = from_u32(ntry.get_nth_item(0) + meta_offset) & SPECIAL_METADATA_MASK_SKIPFLAG;
 		if (skipflag)
 		{
 			printf("\nSkipping draw list making for %s\n", ntry.m_ename);
@@ -432,7 +442,7 @@ void ELIST::ll_gen_get_link_refs(ENTRY& ntry, int32_t cam_index, int32_t link_in
 {
 	int32_t slst_distance = m_config[LL_SLST_Distance];
 	int32_t neig_distance = m_config[LL_Neighbour_Distance];
-	int32_t preloading_flag = ntry.get_preloading_flag(m_config[LL_Transition_Preloading_Type]);
+	int32_t preloading_flag = ntry.get_preloading_flag(m_config[LL_Transition_Preloading_Type], m_is_crash3);
 
 	double backwards_penalty = config_to_double(m_config[LL_Backwards_Loading_Penalty_DBL]);
 
@@ -512,7 +522,7 @@ void ELIST::ll_gen_get_link_refs(ENTRY& ntry, int32_t cam_index, int32_t link_in
 		if (neigh_idx2 == -1)
 			continue;
 
-		preloading_flag = at(neigh_idx).get_preloading_flag(m_config[LL_Transition_Preloading_Type]);
+		preloading_flag = at(neigh_idx).get_preloading_flag(m_config[LL_Transition_Preloading_Type], m_is_crash3);
 
 		// not preloading everything
 		uint32_t neighbour_flg2 = from_u32(at(neigh_idx).get_nth_item(0) + C2_NEIGHBOURS_START + 4 + 4 * link2.zone_index + 0x20);
@@ -655,7 +665,7 @@ void ELIST::ll_gen_for_campath(ENTRY& ntry, int32_t camera_index, FULL_LABELED_L
 {
 	int32_t cam_length = int32_t(full_load.size());
 	LIST special_entries = ntry.get_special_entries_extended(*this);
-	uint32_t music_ref = ntry.get_zone_track();
+	uint32_t music_ref = ntry.get_zone_track(m_is_crash3);
 
 	// add permaloaded entries
 	for (int32_t k = 0; k < cam_length; k++)

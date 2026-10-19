@@ -100,9 +100,11 @@ void ELIST::write_nsd()
 	real_nsd_size += 0x10;
 
 	// gool table, idr why nsd size gets incremented by 0x1CC
-	for (int32_t i = 0; i < 0x40; i++)
+	int gool_table_size = GOOL_TABLE_SIZE(m_is_crash3);
+	for (int32_t i = 0; i < gool_table_size; i++)
 		*(int32_t*)(nsddata + real_nsd_size + i * 4) = m_gool_table[i];
-	real_nsd_size += 0x1CC;
+	real_nsd_size += (4 * gool_table_size);
+	real_nsd_size += 0xCC;
 
 	// write spawns, assumes camera 'spawns' on the zone's first cam path's first point (first == 0th)
 	for (int32_t i = 0; i < int32_t(m_spawns.size()); i++)

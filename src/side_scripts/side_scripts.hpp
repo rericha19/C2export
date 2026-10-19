@@ -43,4 +43,5 @@ void prop_util();
 void slst_util();
 void world_util();
 void c3_willc_meta_util();
+void c3_zone_meta_util();
 void eid_cmd();

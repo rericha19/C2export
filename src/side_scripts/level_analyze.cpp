@@ -367,7 +367,7 @@ namespace level_analyze
 			if (!cam_count)
 				continue;
 
-			uint32_t music_entry = ntry.get_zone_track();
+			uint32_t music_entry = ntry.get_zone_track(elist.m_is_crash3);
 			int32_t music_entry_index = elist.get_index(music_entry);
 			if (music_entry_index == -1 && music_entry != EID_NONE)
 			{

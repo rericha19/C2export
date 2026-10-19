@@ -27,8 +27,9 @@ public:
 
 	LIST get_neighbours();
 	LIST get_models();
+	LIST get_models_c3(ELIST& elist);
 	LIST get_links(int32_t item_idx);
-	LIST get_special_entries_raw();
+	LIST get_special_entries_raw(bool c3);
 	LIST get_special_entries_extended(ELIST& elist);
 	LIST get_sceneries();
 	LIST get_entities_to_load(ELIST& elist, LIST& neighbours, int32_t camera_index, int32_t point_index);
@@ -36,10 +37,10 @@ public:
 	LIST get_model_textures();
 	LIST get_anim_refs(ELIST& elist);
 	uint32_t get_nth_slst(int32_t main_cam_idx);
-	uint32_t get_zone_track();
-	uint32_t get_preloading_flag(uint32_t def);
+	uint32_t get_zone_track(bool c3);
+	uint32_t get_preloading_flag(uint32_t def, bool c3);
 
-	void parse_relatives();
+	void parse_relatives(bool c3);
 	void parse_spawns(SPAWNS& spawns);
 
 	// Deconstructs the load or draw lists and saves into a convenient struct.

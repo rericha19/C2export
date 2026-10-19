@@ -65,6 +65,7 @@ int32_t main()
 		else if (CMD("SLST_UTIL"))			slst_util();
 		else if (CMD("WORLD_UTIL"))			world_util();
 		else if (CMD("C3_WILLC_META"))		c3_willc_meta_util();
+		else if (CMD("C3_ZONE_META"))		c3_zone_meta_util();
 
 		// modify 
 		else if (CMD("EXPORT"))             level_alter::ll_alter(AT_LevelExport);
