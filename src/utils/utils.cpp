@@ -448,7 +448,7 @@ void intro_text()
 {
 	for (int32_t i = 0; i < 100; i++)
 		printf("*");
-	printf("\nCrash 2 rebuilder, utility tool & c2/c3 level exporter made by Averso.\n");
+	printf("\nCrash 2/3 rebuilder, utility tool & c2/c3 level exporter made by Averso.\n");
 	printf("If any issue pops up (instructions are unclear or it crashes), DM me @ Averso#5633 (Discord).\n");
 	printf("Type \"HELP\" for list of commands and their format. Commands >ARE NOT< case sensitive.\n");
 	printf("It is recommended to provide valid data as there may be edge cases that are unaccounted for.\n");

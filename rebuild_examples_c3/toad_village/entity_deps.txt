@@ -1,0 +1,47 @@
+00, 00
+# fruic
+03, 05
+03, 16
+03, 24
+# counter
+04, 17
+# elev
+09, 31, El2bV
+09, 35, El2bV
+09, 38
+# medieval stuff
+11, 00, FrobV, Fd1bV, Fd2bV, Fd3bV, Fd4bV, Fd5bV, Fd6bV, Fd7bV, Cf1bV, Cf2bV, Cf4bV, Cf5bV, Cf6bV, Cf3bV
+11, 01, Goa0V, Go20V, Go30V, Cm10V
+11, 02, Kn10V, Kn20V, Kn40V, Kn30V, Kn50V, Cs1bV, Cs2bV, Cs3bV, Cs4bV, Cs5bV, Cs6bV
+11, 03
+11, 06, LogbV, FenbV
+11, 07, LogbV, FenbV
+# kurica
+12, 00, ChibV, CRDbV, CTabV, Cp1bV, Cp2bV
+# warp in stuff
+30, 08, BCi2V, BCH0V, BSL2V, BHa2V, BLi2V, Cw62V, NE10V
+30, 09, BCi2V, BCH0V, BSL2V, BHa2V, BLi2V
+# boxsc
+34, 00, BN10V
+34, 02, BN10V
+34, 04, BN10V
+34, 05, Bi10V
+34, 06, BN10V
+34, 07, BA10V, BA20V, Bi10V
+34, 08, BN10V
+34, 09, BN10V
+34, 10, BN10V
+34, 18, BN10V
+34, 24, BA10V, BA20V, Bi10V
+34, 25, BN10V
+34, 28, Bc10V
+# banners
+53, 00, MA1bV, MB1bV
+53, 01, MA1bV, MB1bV
+# giant
+81, 00, GiSbV, GiabV, GiHbV, GiBbV, GiDbV, Cg1tV, Cp10V
+# butterflies & swallups
+95, 04
+95, 06
+# fake crash
+98, 00, FC10V
